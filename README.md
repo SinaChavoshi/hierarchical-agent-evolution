@@ -62,7 +62,7 @@ Group A: Consensus (~15 Firms)      Group B: Dimension Extremes (~15)    Group C
 ```
 
 1. **Group A: Consensus Exploitation (15 Firms)**:
-   An AST and schema diffing engine identifies common structural traits present across $\ge 80\%$ of winning firms (e.g. mandatory OpenAPI contract agents, strict QA temperatures $\le 0.3$) and preserves them as invariants.
+   Identifies common structural traits across winning firms (e.g. mandatory API contract agents, strict QA temperatures $\le 0.3$) and preserves them as invariants.
 2. **Group B: Pareto Frontier Amplification (15 Firms)**:
    Clones and amplifies specialized dimension champions (e.g. Extreme Technical Rigor, Extreme Adversarial Risk Mitigation, Extreme Telemetry Rigor).
 3. **Group C: Directed Hypothesis Mutations (15 Firms)**:
@@ -76,11 +76,13 @@ Group A: Consensus (~15 Firms)      Group B: Dimension Extremes (~15)    Group C
 
 To prevent LLM hallucination and ensure competing firms write real, working software rather than plausible text memos, HAE enforces a strict **Deterministic Sandbox Gate**:
 
-$$\text{Fitness Floor} = \begin{cases} 
-0 & \text{Build failure (\texttt{pip install -e .} fails)} \\
-20 \times \text{PassRate} & \text{Unit/Integration test failures (\texttt{pytest})} \\
-50 + 0.5 \times F_{\text{LLM}} & \text{Clean build + passing tests + successful smoke execution}
-\end{cases}$$
+$$
+\text{Fitness Floor} = \begin{cases} 
+0, & \text{Build failure (\texttt{pip install -e .} fails)} \\
+20 \times \text{PassRate}, & \text{Unit/Integration test failures (\texttt{pytest})} \\
+50 + 0.5 \times F_{\text{LLM}}, & \text{Clean build + passing tests + successful smoke execution}
+\end{cases}
+$$
 
 * **Build Gate**: Verifies valid `pyproject.toml` and directory structure.
 * **Test Gate**: Executes test suites under `pytest` with coverage tracking.
@@ -89,30 +91,17 @@ $$\text{Fitness Floor} = \begin{cases}
 
 ---
 
-## 4. Empirical Pilot Results (Google Kubernetes Engine)
+## 4. Empirical Highlights & Experiment Archive
 
-During initial validation on Google Kubernetes Engine (GKE) leveraging Vertex AI in Google Cloud Platform (`YOUR_GCP_PROJECT_ID`):
+Validation runs on Google Kubernetes Engine (GKE) demonstrated continuous generational ascent and autonomous adaptation:
 
-### Generation 0 Leaderboard (Baseline 31-Agent Enterprises)
-| Rank | Firm ID | Strategy Name | Overall Score | Strategic (25%) | Technical (25%) | Coherence (20%) | Risk (15%) | Action (15%) |
-| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| 🥇 **#1** | **`gen_0_firm_3`** | *The Forged Path* | **`94.60`** | `95.0` | `88.0` | `98.0` | **`97.0`** | `98.0` |
-| 🥈 **#2** | **`gen_0_firm_1`** | *Project Chimera* | **`93.75`** | `95.0` | **`92.0`** | **`100.0`** | `80.0` | **`100.0`** |
-| 🥉 **#3** | **`gen_0_firm_2`** | *Project Cathedral* | **`93.00`** | `95.0` | `80.0` | **`100.0`** | `95.0` | **`100.0`** |
+* **Generational Progression**: Baseline Generation 0 champion scored **94.60**, with Generation 1 reaching **96.25 / 100** (+1.65 pts).
+* **Autonomous Headcount Expansion**: The mutation engine diagnosed a 6-month tape-out critical path in Generation 0 and autonomously expanded enterprise size from **31 to 36 agents**, injecting redundant supply-chain and regulatory roles.
+* **Inference Economics**: ~115,000 tokens consumed across 6 complete virtual enterprises at an effective cost of **~$0.22 USD**.
 
-### Autonomous Genetic Adaptation
-* The evaluation judge flagged a critical-path single point of failure in Firm 3's 6-month custom silicon tape-out schedule and key-person executive dependencies.
-* The evolutionary mutator autonomously adapted the genome, expanding headcount from **31 to 36 agents** in `gen_1_mutant_1` to add redundant silicon supply-chain and regulatory compliance specialists.
-
-### Generation 1 Tournament Progression & Final Champion
-* `gen_1_elite_1`: Score `89.80`
-* `gen_1_mutant_1` (36 agents, resolved tape-out bottleneck): Score `94.00`
-* `gen_1_elite_2`: **`96.25 / 100`** (**Tournament Champion**)
-
-### Efficiency & Token Economics
-* **Total Tokens Consumed**: ~115,000 tokens across 6 complete virtual enterprises.
-* **Effective Inference Cost**: **~$0.22 USD** total.
-* **Model Tiering**: Gemini 2.5 Flash for operational specialists accounted for 70% of tokens at 1/15th the cost of frontier reasoning models, while Gemini 2.5 Pro reserved for executives guaranteed high-level synthesis quality.
+> 📊 **Detailed Experimentation Archive**:  
+> For full generational scorecards, token breakdowns, resource metrics, and lineage tracking, see the dedicated [**`experiments/`**](experiments/README.md) directory.
+> * 🔬 [**Pilot Tournament on GKE Report**](experiments/pilot_tournament_gke.md)
 
 ---
 
@@ -123,6 +112,14 @@ hierarchical-agent-evolution/
 ├── pyproject.toml              # Build config & dependencies
 ├── Dockerfile                  # Container definition for GKE execution
 ├── cloudbuild.yaml             # Google Cloud Build automation
+├── experiments/                # Empirical experiment logs, scorecards & benchmarks
+│   ├── README.md               # Experiments index & telemetry artifact schema
+│   └── pilot_tournament_gke.md # Detailed Generation 0 vs 1 GKE report
+├── research/
+│   ├── WHITE_PAPER_DRAFT.md    # Academic paper manuscript
+│   └── RESEARCH_LOGBOOK.md     # Empirical ledger and lineage logs
+├── docs/
+│   └── PLATFORM_SPECIFICATION.md# Production platform architecture blueprint
 ├── src/
 │   ├── schema.py               # Genome schemas (Company, Department, Agent)
 │   ├── company.py              # Federated hierarchical execution runner
@@ -132,15 +129,13 @@ hierarchical-agent-evolution/
 │   ├── sandbox_verifier.py     # Deterministic code extraction & execution verifier
 │   ├── telemetry.py            # Research ledger, OpenTelemetry & cost tracking
 │   ├── engine.py               # Tournament controller & generation manager
+│   ├── worker.py               # Parallel indexed job worker entrypoint
 │   ├── llm_factory.py          # Vertex AI REST client with retry logic
 │   └── main.py                 # CLI entrypoint
-├── research/
-│   ├── WHITE_PAPER_DRAFT.md    # Academic paper manuscript
-│   └── RESEARCH_LOGBOOK.md     # Empirical ledger and lineage logs
-├── docs/
-│   └── PLATFORM_SPECIFICATION.md# Production platform architecture blueprint
 ├── k8s/
-│   ├── evolution-job.yaml      # Kubernetes Job manifest
+│   ├── evolution-job.yaml      # Single-pod tournament job manifest
+│   ├── parallel-indexed-job-east4.yaml # Parallel indexed job (us-east4)
+│   ├── parallel-indexed-job-west1.yaml # Parallel indexed job (us-west1)
 │   └── rbac.yaml               # ServiceAccount & RBAC bindings
 ├── templates/
 │   └── default_company.json    # Generation 0 seed enterprise genome
@@ -169,18 +164,18 @@ python3 -m src.main --mode single-firm --objective "Build next-generation teleme
 ```
 
 ### Multi-Cluster GKE Deployment
-To run high-throughput parallel tournaments across multiple non-congested cloud regions (`us-east4`, `us-west1`):
+To run high-throughput parallel tournaments across multiple cloud regions (`us-east4`, `us-west1`):
 
 ```bash
-# Authenticate with GKE
-gcloud container clusters get-credentials hae-cluster-east4 --zone us-east4-a
+# Authenticate with GKE cluster
+gcloud container clusters get-credentials <YOUR_CLUSTER_NAME> --zone <ZONE>
 
 # Apply Kubernetes manifests
 kubectl apply -f k8s/rbac.yaml
-kubectl apply -f k8s/evolution-job.yaml
+kubectl apply -f k8s/parallel-indexed-job-east4.yaml
 
-# Stream live generation logs
-kubectl logs -n agent-evolution -l app=agent-evolution -f
+# Stream live worker logs
+kubectl logs -n agent-evolution -l app=parallel-firms-east4 -f
 ```
 
 ---

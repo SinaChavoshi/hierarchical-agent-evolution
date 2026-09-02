@@ -2,7 +2,6 @@
 
 **Authors**: Autonomous Agent Systems Research Group  
 **Target Venue**: arXiv / NeurIPS / ICLR (Agentic AI Track)  
-**Artifact Repository**: `experimental/users/chavoshi/hierarchical_agent_evolution`  
 **Deployment Infrastructure**: Google Kubernetes Engine (GKE), Google Cloud Platform (`YOUR_GCP_PROJECT_ID`)
 
 ---
@@ -39,19 +38,28 @@ As LLM reasoning capabilities have matured, collective intelligence via multi-ag
 
 ### 2.1 The Organizational Genome
 A virtual enterprise $\mathcal{C}$ is formalized as a tuple:
-$$\mathcal{C} = \langle \mathcal{A}_{\text{CEO}}, \mathcal{R}_{\text{exec}}, \{\mathcal{D}_1, \mathcal{D}_2, \dots, \mathcal{D}_m\} \rangle$$
+
+$$
+\mathcal{C} = \left\langle \mathcal{A}_{\text{CEO}}, \mathcal{R}_{\text{exec}}, \{\mathcal{D}_1, \mathcal{D}_2, \dots, \mathcal{D}_m\} \right\rangle
+$$
 
 Where:
 * $\mathcal{A}_{\text{CEO}} = \langle \text{Role}, \text{Goal}, \text{Backstory}, \tau, \mathcal{M} \rangle$ represents the CEO agent with sampling temperature $\tau \in [0, 2]$ and model tier $\mathcal{M} \in \{\text{Worker}, \text{Executive}\}$.
 * $\mathcal{R}_{\text{exec}}$ defines the executive reconciliation protocol.
 * Each department pod $\mathcal{D}_i$ is defined as:
-  $$\mathcal{D}_i = \langle \text{ID}, \text{Mandate}, \mathcal{A}_{\text{mgr}}, \{\mathcal{A}_{i,1}, \dots, \mathcal{A}_{i,k}\}, \mathcal{P}_i \rangle$$
-  where $\mathcal{A}_{\text{mgr}}$ is the Department Manager, $\{\mathcal{A}_{i,j}\}$ are the operational specialists, and $\mathcal{P}_i$ is the delegation rule.
+
+$$
+\mathcal{D}_i = \left\langle \text{ID}, \text{Mandate}, \mathcal{A}_{\text{mgr}}, \{\mathcal{A}_{i,1}, \dots, \mathcal{A}_{i,k}\}, \mathcal{P}_i \right\rangle
+$$
+
+where $\mathcal{A}_{\text{mgr}}$ is the Department Manager, $\{\mathcal{A}_{i,j}\}$ are the operational specialists, and $\mathcal{P}_i$ is the delegation rule.
 
 ### 2.2 Composite Multi-Dimensional Fitness
 Evaluation maps an enterprise's deliverables $\mathcal{Y}(\mathcal{C}, \mathcal{O})$ on objective $\mathcal{O}$ to a scalar fitness score $F \in [0, 100]$:
 
-$$F(\mathcal{C}) = w_S \cdot S + w_T \cdot T + w_C \cdot C + w_R \cdot R + w_A \cdot A$$
+$$
+F(\mathcal{C}) = w_S \cdot S + w_T \cdot T + w_C \cdot C + w_R \cdot R + w_A \cdot A
+$$
 
 Subject to weights $\sum w_i = 1.0$:
 * **$S$ (Strategic Depth, 25%)**: Novelty, competitive moats, and non-obvious dynamics.
@@ -64,21 +72,41 @@ Subject to weights $\sum w_i = 1.0$:
 
 ## 3. The 3-Way Evolutionary Breeding Pool
 
-In each generation $g$ with population size $P = 50$, the top $K = 5$ surviving firms $\mathcal{S}_g = \{\mathcal{C}_1^*, \dots, \mathcal{C}_5^*\}$ are selected based on fitness ranking. The subsequent generation $P_{g+1}$ is populated via three distinct operators:
+In each generation $g$ with population size $P = 50$, the top $K = 5$ surviving firms:
+
+$$
+\mathcal{S}_g = \{\mathcal{C}_1^*, \dots, \mathcal{C}_5^*\}
+$$
+
+are selected based on fitness ranking. The subsequent generation $P_{g+1}$ is populated via three distinct operators:
 
 ### 3.1 Group A: Consensus Exploitation ($N_A = 15$)
-Let $\mathcal{G}(\mathcal{C})$ be the graph of roles, constraints, and delegation rules in $\mathcal{C}$. The consensus operator identifies the maximal common subgraph motif $\mathcal{M}_{\text{shared}} = \bigcap_{i=1}^K \mathcal{G}(\mathcal{C}_i^*)$.
+Let $\mathcal{G}(\mathcal{C})$ be the graph of roles, constraints, and delegation rules in $\mathcal{C}$. The consensus operator identifies the maximal common subgraph motif:
+
+$$
+\mathcal{M}_{\text{shared}} = \bigcap_{i=1}^K \mathcal{G}(\mathcal{C}_i^*)
+$$
+
 * Structural attributes present across $\ge 80\%$ of winners are preserved as invariants.
 * Offspring are synthesized by locking in these invariants while interpolating hyperparameter temperatures $\tau$.
 
 ### 3.2 Group B: Pareto Frontier Amplification ($N_B = 15$)
-For each sub-dimension $d \in \{S, T, C, R, A\}$, the champion firm $\mathcal{C}^{(d)} = \arg\max_{\mathcal{C} \in \mathcal{S}_g} F_d(\mathcal{C})$ is identified.
-* Offspring are cloned from $\mathcal{C}^{(d)}$ with genetic mutations applied exclusively to reinforce that specific dimension (e.g. deepening red-team adversarial rigor or tightening telemetry instrumentation).
+For each sub-dimension $d \in \{S, T, C, R, A\}$, the champion firm:
+
+$$
+\mathcal{C}^{(d)} = \arg\max_{\mathcal{C} \in \mathcal{S}_g} F_d(\mathcal{C})
+$$
+
+is identified. Offspring are cloned from $\mathcal{C}^{(d)}$ with genetic mutations applied exclusively to reinforce that specific dimension.
 
 ### 3.3 Group C: Directed Hypothesis Mutation ($N_C = 15$)
 An LLM Meta-Architect ($\text{Gemini 2.5 Pro}$) receives the qualitative diagnostic feedback and identified bottlenecks $\mathcal{B}(\mathcal{S}_g)$ from the evaluation panel:
-$$\text{Mutator}(\mathcal{S}_g, \mathcal{B}) \rightarrow \{\mathcal{C}_{\text{mutant}, 1}, \dots, \mathcal{C}_{\text{mutant}, 15}\}$$
-Rather than applying Gaussian noise to text embeddings, the mutator injects structured architectural hypotheses:
+
+$$
+\text{Mutator}(\mathcal{S}_g, \mathcal{B}) \longrightarrow \{\mathcal{C}_{\text{mutant}, 1}, \dots, \mathcal{C}_{\text{mutant}, 15}\}
+$$
+
+Rather than applying unstructured Gaussian noise, the mutator injects structured architectural hypotheses:
 * Spawning missing domain-specific specialist roles (e.g., adding an "ITAR Export Compliance Officer" when regulatory gaps are flagged).
 * Replacing consensus review with adversarial debate.
 
@@ -88,39 +116,27 @@ Rather than applying Gaussian noise to text embeddings, the mutator injects stru
 
 To ensure that firms tasked with software platform generation produce functional software rather than plausible text, evaluation is anchored into an automated execution harness:
 
-$$\text{Score}_{\text{final}} = \begin{cases} 
-0 & \text{if package build fails (\texttt{pip install .} fails)} \\
-0.2 \cdot \text{PassRate} & \text{if unit tests fail (\texttt{pytest} failures)} \\
-0.5 \cdot \text{SmokeScore} + 0.5 \cdot F(\mathcal{C}) & \text{if self-execution passes}
-\end{cases}$$
+$$
+\text{Score}_{\text{final}} = \begin{cases} 
+0, & \text{if package build fails (\texttt{pip install .} fails)} \\
+0.2 \cdot \text{PassRate}, & \text{if unit tests fail (\texttt{pytest} failures)} \\
+0.5 \cdot \text{SmokeScore} + 0.5 \cdot F(\mathcal{C}), & \text{if self-execution passes}
+\end{cases}
+$$
 
 Telemetry anchors verify that the candidate platform successfully emits OpenTelemetry traces, latency histograms, and token counters to a centralized collector during execution.
 
 ---
 
-## 5. Empirical Pilot Results (GKE Deployment)
+## 5. Empirical Results & Experiment Archive
 
-We deployed the initial prototype of HAE on a Google Kubernetes Engine (GKE) cluster in GCP project `YOUR_GCP_PROJECT_ID` configured with Workload Identity and dedicated `evolution-pool` nodes (`e2-standard-4`).
+Empirical validation was performed on Google Kubernetes Engine across single-cluster and multi-cluster setups using Gemini 2.5 models on Vertex AI:
 
-### 5.1 Generational Trajectory
-* **Generation 0**:
-  * `gen_0_firm_1`: Score **93.75** (Tech: 92.0, Risk: 80.0, Coherence: 100.0)
-  * `gen_0_firm_2`: Score **93.00** (Tech: 80.0, Risk: 95.0, Coherence: 100.0)
-  * `gen_0_firm_3` (Champion): Score **94.60** (Tech: 88.0, Risk: 97.0, Coherence: 98.0)
-* **Evolutionary Transition**:
-  * The judge flagged key bottlenecks in `gen_0_firm_3`: single-point-of-failure in a 6-month rack gauntlet, and key-person executive risk.
-  * The mutator bred `gen_1_mutant_1` by expanding headcount from 31 to 36 agents, injecting redundant supply-chain and regulatory roles.
-* **Generation 1**:
-  * `gen_1_elite_1`: Score **89.80**
-  * `gen_1_mutant_1`: Score **94.00** (Successfully resolved hardware gauntlet bottlenecks)
-  * `gen_1_elite_2`: Score **96.25** (**Tournament Champion**)
+* **Generational Ascent**: Generation 0 baseline champion scored $94.60$, with Generation 1 reaching $96.25$ (+1.65 pts).
+* **Autonomous Headcount Adaptation**: Mutation engine expanded enterprise size from 31 to 36 agents to fix a critical-path silicon tape-out bottleneck.
+* **Token Economics**: ~115,000 tokens generated across 6 complete virtual enterprises at an effective cost of under $0.25 USD.
 
-### 5.2 Efficiency & Token Economics
-Across the pilot tournament:
-* **Total Tokens**: ~115,000 tokens generated across 6 complete virtual enterprises.
-* **Wall-Clock Latency**: Average of ~415 seconds per enterprise run.
-* **Hardware Footprint**: 2 GKE nodes running containerized batch jobs.
-* **Effective Cost**: Less than $0.25 USD total for the entire multi-generation pilot run using Gemini 2.5 Flash workers and Gemini 2.5 Pro executives.
+> Detailed scorecards, token tables, resource metrics, and diagnosed bottlenecks are maintained in the [experiments/](file:///tmp/hierarchical-agent-evolution-export/experiments/README.md) directory. See [pilot_tournament_gke.md](file:///tmp/hierarchical-agent-evolution-export/experiments/pilot_tournament_gke.md) for the complete pilot report.
 
 ---
 
