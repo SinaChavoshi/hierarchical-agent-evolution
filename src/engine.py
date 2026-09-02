@@ -178,14 +178,16 @@ class EvolutionaryTournamentEngine:
         print(f"Fitness: {overall_champion['score']}/100")
         print(f"{'='*70}")
 
+        summary_path = os.path.join(self.output_dir, "tournament_summary.json")
         summary = {
             "objective": self.objective,
             "generations_completed": self.num_generations,
             "overall_champion": overall_champion,
-            "champions_history": all_generation_champions
+            "champions_history": all_generation_champions,
+            "summary_file": summary_path
         }
 
-        with open(os.path.join(self.output_dir, "tournament_summary.json"), "w") as f:
+        with open(summary_path, "w") as f:
             json.dump(summary, f, indent=2)
 
         self.ledger.finalize(overall_champion)

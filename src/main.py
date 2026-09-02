@@ -84,7 +84,8 @@ def main():
             output_dir=args.output_dir
         )
         tournament_summary = engine.execute_tournament()
-        print(f"\nTournament Completed! Summary written to: {tournament_summary['summary_file']}")
+        summary_path = tournament_summary.get("summary_file", os.path.join(args.output_dir, "tournament_summary.json"))
+        print(f"\nTournament Completed! Summary written to: {summary_path}")
 
 if __name__ == "__main__":
     main()
