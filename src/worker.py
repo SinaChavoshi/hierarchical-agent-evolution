@@ -19,7 +19,7 @@ def evaluate_single_firm(
     objective: str,
     output_dir: str,
     region: str,
-    gcs_bucket: str = "gemle-gke-dev-agent-evolution",
+    gcs_bucket: str = "agent-evolution-artifacts-bucket",
     seed_config_path: str = "templates/default_company.json"
 ) -> Dict[str, Any]:
     """Executes and scores an individual firm in parallel, writing results to local disk and GCS."""
@@ -115,7 +115,7 @@ def main():
     parser.add_argument("--objective", type=str, required=True)
     parser.add_argument("--region", type=str, default=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-east4"))
     parser.add_argument("--output-dir", type=str, default="/data/outputs")
-    parser.add_argument("--gcs-bucket", type=str, default=os.environ.get("GCS_BUCKET", "gemle-gke-dev-agent-evolution"))
+    parser.add_argument("--gcs-bucket", type=str, default=os.environ.get("GCS_BUCKET", "agent-evolution-artifacts-bucket"))
     args = parser.parse_args()
 
     evaluate_single_firm(

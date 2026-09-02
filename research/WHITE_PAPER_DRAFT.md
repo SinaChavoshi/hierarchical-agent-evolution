@@ -3,7 +3,7 @@
 **Authors**: Autonomous Agent Systems Research Group  
 **Target Venue**: arXiv / NeurIPS / ICLR (Agentic AI Track)  
 **Artifact Repository**: `experimental/users/chavoshi/hierarchical_agent_evolution`  
-**Deployment Infrastructure**: Google Kubernetes Engine (GKE), Google Cloud Platform (`gemle-gke-dev`)
+**Deployment Infrastructure**: Google Kubernetes Engine (GKE), Google Cloud Platform (`YOUR_GCP_PROJECT_ID`)
 
 ---
 
@@ -100,7 +100,7 @@ Telemetry anchors verify that the candidate platform successfully emits OpenTele
 
 ## 5. Empirical Pilot Results (GKE Deployment)
 
-We deployed the initial prototype of HAE on a Google Kubernetes Engine (GKE) cluster in GCP project `gemle-gke-dev` configured with Workload Identity and dedicated `evolution-pool` nodes (`e2-standard-4`).
+We deployed the initial prototype of HAE on a Google Kubernetes Engine (GKE) cluster in GCP project `YOUR_GCP_PROJECT_ID` configured with Workload Identity and dedicated `evolution-pool` nodes (`e2-standard-4`).
 
 ### 5.1 Generational Trajectory
 * **Generation 0**:

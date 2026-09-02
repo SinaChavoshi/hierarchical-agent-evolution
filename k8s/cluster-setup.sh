@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ID="gemle-gke-dev"
+PROJECT_ID="YOUR_GCP_PROJECT_ID"
 ZONE="us-central1-a"
-CLUSTER_NAME="chavoshi-ht-prod-cluster"
+CLUSTER_NAME="hae-prod-cluster-01"
 REGION="us-central1"
 REPO_NAME="chavoshi-repo"
 IMAGE_NAME="us-central1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/agent-evolution:latest"

@@ -19,7 +19,7 @@ spec:
       restartPolicy: Never
       containers:
       - name: firm-evaluator
-        image: us-central1-docker.pkg.dev/gemle-gke-dev/chavoshi-repo/agent-evolution:latest
+        image: us-central1-docker.pkg.dev/YOUR_PROJECT_ID/agent-evolution-repo/agent-evolution:latest
         imagePullPolicy: Always
         command:
         - "python"
@@ -35,7 +35,7 @@ spec:
         - "Design and implement the production-ready 'agent-org' platform: a Python package providing hierarchical multi-agent orchestration, OpenTelemetry observability anchors, deterministic sandbox execution, and evolutionary search. Generate clean package files including pyproject.toml, core genome models, execution runtime, and test suites."
         env:
         - name: GOOGLE_CLOUD_PROJECT
-          value: "gemle-gke-dev"
+          value: "YOUR_GCP_PROJECT_ID"
         - name: GOOGLE_CLOUD_LOCATION
           value: "us-east4"
         - name: WORKER_MODEL
@@ -45,7 +45,7 @@ spec:
         - name: JUDGE_MODEL
           value: "gemini-2.5-pro"
         - name: GCS_BUCKET
-          value: "gemle-gke-dev-agent-evolution"
+          value: "agent-evolution-artifacts-bucket"
         resources:
           requests:
             cpu: "1500m"

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 @dataclass
 class EvolutionConfig:
     # Google Cloud Project settings
-    project_id: str = os.getenv("GOOGLE_CLOUD_PROJECT", os.getenv("GCP_PROJECT", "gemle-gke-dev"))
+    project_id: str = os.getenv("GOOGLE_CLOUD_PROJECT", os.getenv("GCP_PROJECT", "YOUR_GCP_PROJECT_ID"))
     location: str = os.getenv("GOOGLE_CLOUD_LOCATION", os.getenv("GCP_LOCATION", "us-central1"))
     
     # Model defaults on Vertex AI
@@ -24,7 +24,7 @@ class EvolutionConfig:
     
     # Output and storage paths
     local_output_dir: str = os.getenv("OUTPUT_DIR", "/tmp/agent_evolution_outputs")
-    gcs_bucket: str = os.getenv("GCS_BUCKET", "gemle-gke-dev-agent-evolution")
+    gcs_bucket: str = os.getenv("GCS_BUCKET", "agent-evolution-artifacts-bucket")
     
     # Execution timeouts (seconds)
     department_timeout: int = int(os.getenv("DEPARTMENT_TIMEOUT", "600"))

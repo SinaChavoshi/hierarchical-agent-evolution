@@ -91,7 +91,7 @@ $$\text{Fitness Floor} = \begin{cases}
 
 ## 4. Empirical Pilot Results (Google Kubernetes Engine)
 
-During initial validation on Google Kubernetes Engine (GKE) leveraging Vertex AI in Google Cloud Platform (`gemle-gke-dev`):
+During initial validation on Google Kubernetes Engine (GKE) leveraging Vertex AI in Google Cloud Platform (`YOUR_GCP_PROJECT_ID`):
 
 ### Generation 0 Leaderboard (Baseline 31-Agent Enterprises)
 | Rank | Firm ID | Strategy Name | Overall Score | Strategic (25%) | Technical (25%) | Coherence (20%) | Risk (15%) | Action (15%) |
@@ -173,7 +173,7 @@ To run high-throughput parallel tournaments across multiple non-congested cloud 
 
 ```bash
 # Authenticate with GKE
-gcloud container clusters get-credentials chavoshi-evolution-east4 --zone us-east4-a
+gcloud container clusters get-credentials hae-cluster-east4 --zone us-east4-a
 
 # Apply Kubernetes manifests
 kubectl apply -f k8s/rbac.yaml

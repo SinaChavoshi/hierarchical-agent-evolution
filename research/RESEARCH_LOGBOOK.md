@@ -1,8 +1,8 @@
 # Empirical Research Logbook: Hierarchical Agent Evolution (HAE)
 
 ## Experiment Identifier: `run_gke_pilot_001`
-* **GCP Project**: `gemle-gke-dev` (Project Number: `999225737877`)
-* **Cluster**: `chavoshi-ht-prod-cluster` (GKE 1.35, Zone `us-central1-a`)
+* **GCP Project**: `YOUR_GCP_PROJECT_ID` (Project Number: `123456789012`)
+* **Cluster**: `hae-prod-cluster-01` (GKE 1.35, Zone `us-central1-a`)
 * **Node Pool**: `evolution-pool` (2 x `e2-standard-4`, `scopes=cloud-platform`, Workload Identity)
 * **Execution Date**: September 1–2, 2026
 * **Status**: Succeeded / 100% Completed
