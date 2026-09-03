@@ -2,7 +2,7 @@
 
 **Authors**: Autonomous Agent Systems Research Group  
 **Target Venue**: arXiv / NeurIPS / ICLR (Agentic AI Track)  
-**Deployment Infrastructure**: Google Kubernetes Engine (GKE), Google Cloud Platform (`YOUR_GCP_PROJECT_ID`)
+**Deployment Infrastructure**: Cloud Kubernetes, Vertex AI (Gemini 2.5 Flash & Pro)
 
 ---
 
@@ -136,7 +136,7 @@ Empirical validation was performed on Google Kubernetes Engine across single-clu
 * **Autonomous Headcount Adaptation**: Mutation engine expanded enterprise size from 31 to 36 agents to fix a critical-path silicon tape-out bottleneck.
 * **Token Economics**: ~115,000 tokens generated across 6 complete virtual enterprises at an effective cost of under $0.25 USD.
 
-> Detailed scorecards, token tables, resource metrics, and diagnosed bottlenecks are maintained in the [experiments/](file:///tmp/hierarchical-agent-evolution-export/experiments/README.md) directory. See [pilot_tournament_gke.md](file:///tmp/hierarchical-agent-evolution-export/experiments/pilot_tournament_gke.md) for the complete pilot report.
+> Detailed scorecards, token tables, resource metrics, and diagnosed bottlenecks are maintained in the [experiments/](experiments/README.md) directory. See [pilot_tournament_baseline.md](experiments/pilot_tournament_baseline.md) for the complete baseline report and [parallel_tournament_distributed.md](experiments/parallel_tournament_distributed.md) for the distributed parallel tournament report.
 
 ---
 
