@@ -7,7 +7,8 @@ This directory stores empirical telemetry, benchmark scorecards, generational tr
 | Experiment ID | Objective | Date | Infrastructure | Key Result | Report |
 | :--- | :--- | :---: | :---: | :--- | :---: |
 | **`exp-001-pilot`** | Strategic Architecture & Headcount Adaptation | Sep 2, 2026 | Single Cluster GKE (`e2-standard-4`) | Fitness gain: $93.00 \rightarrow 96.25$; Headcount expanded $31 \rightarrow 36$ agents | [Full Report](pilot_tournament_gke.md) |
-| **`exp-002-self-hosting`** | Recursive Self-Hosting (Building `agent-org`) | Active | Multi-Cluster GKE (`us-east4`, `us-west1`) | Deterministic sandbox verification applied to generated software | *In Progress* |
+| **`exp-002-parallel-east4`** | High-Throughput 10-Firm Parallel Tournament | Sep 3, 2026 | Regional GKE (`us-east4`, 5 parallel pods) | 10 firms (310 agents) in 22 min; Top firm: 77.50; Telemetry Gate PASS | [Full Report](parallel_tournament_east4.md) |
+| **`exp-003-agent-sandbox`** | GKE Agent Sandbox Dynamic Verification | Active | Multi-Cluster GKE (`us-east4`, `us-west1`) | Sub-second warm pool sandboxed pytest execution | *In Progress* |
 
 ---
 
