@@ -9,7 +9,21 @@ from typing import Optional, Any
 from .config import DEFAULT_CONFIG
 
 def get_adc_access_token() -> Optional[str]:
-    """Retrieve Google Cloud access token via google-auth or metadata server or gcloud fallback."""
+    """Retrieve Google Cloud access token via env var, mounted secret, google-auth, or metadata server."""
+    # 0. Check explicit environment variable or mounted secret file
+    env_token = os.environ.get("VERTEX_API_TOKEN")
+    if env_token and env_token.strip():
+        return env_token.strip()
+
+    if os.path.exists("/etc/vertex-token/token"):
+        try:
+            with open("/etc/vertex-token/token", "r") as f:
+                t = f.read().strip()
+                if t:
+                    return t
+        except Exception:
+            pass
+
     # 1. Try google-auth library if available
     try:
         import google.auth
@@ -92,9 +106,9 @@ def call_vertex_gemini_rest(
         except urllib.error.HTTPError as e:
             err_body = e.read().decode("utf-8", errors="replace")
             last_err = f"HTTP {e.code}: {err_body}"
-            # Retry on 429 (ResourceExhausted) or 5xx server errors
-            if e.code in (429, 500, 503, 504):
-                sleep_sec = (2 ** attempt) + 1.0
+            # Retry on 429 (ResourceExhausted), 5xx server errors, or transient 403
+            if (e.code in (429, 500, 503, 504) or e.code == 403) and attempt < max_retries - 1:
+                sleep_sec = (2 ** attempt) + 1.5
                 time.sleep(sleep_sec)
                 continue
             raise RuntimeError(f"Vertex AI API error: {last_err}")

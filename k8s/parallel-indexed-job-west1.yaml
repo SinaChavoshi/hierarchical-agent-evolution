@@ -9,7 +9,7 @@ spec:
   completionMode: Indexed
   completions: 10
   parallelism: 5
-  backoffLimit: 1
+  backoffLimit: 6
   template:
     metadata:
       labels:
@@ -34,6 +34,12 @@ spec:
         - "--objective"
         - "Design and implement the production-ready 'agent-org' platform: a Python package providing hierarchical multi-agent orchestration, OpenTelemetry observability anchors, deterministic sandbox execution, and evolutionary search. Generate clean package files including pyproject.toml, core genome models, execution runtime, and test suites."
         env:
+        - name: VERTEX_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vertex-token
+              key: token
+              optional: true
         - name: GOOGLE_CLOUD_PROJECT
           value: "YOUR_GCP_PROJECT_ID"
         - name: GOOGLE_CLOUD_LOCATION
