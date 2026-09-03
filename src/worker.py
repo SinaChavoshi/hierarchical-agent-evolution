@@ -99,12 +99,37 @@ def evaluate_single_firm(
     # Sync to GCS
     if gcs_bucket:
         try:
-            import subprocess
-            gcs_dest = f"gs://{gcs_bucket}/parallel_runs/generation_{generation}/{company_id}_result.json"
-            subprocess.run(["gcloud", "storage", "cp", local_path, gcs_dest], check=False)
-            print(f" Synced scorecard to: {gcs_dest}")
-        except Exception as e:
-            print(f" Warning: Failed to sync to GCS: {e}")
+            from google.cloud import storage
+            client = storage.Client(project=project)
+            bucket = client.bucket(gcs_bucket)
+            blob = bucket.blob(f"parallel_runs/generation_{generation}/{company_id}_result.json")
+            blob.upload_from_filename(local_path)
+            print(f" Synced scorecard to: gs://{gcs_bucket}/parallel_runs/generation_{generation}/{company_id}_result.json")
+        except Exception as e1:
+            try:
+                import urllib.request
+                from .llm_factory import get_adc_access_token
+                token = get_adc_access_token()
+                if token:
+                    object_name = f"parallel_runs/generation_{generation}/{company_id}_result.json"
+                    url = f"https://storage.googleapis.com/upload/storage/v1/b/{gcs_bucket}/o?uploadType=media&name={object_name}"
+                    with open(local_path, "rb") as f_data:
+                        data_bytes = f_data.read()
+                    req = urllib.request.Request(
+                        url,
+                        data=data_bytes,
+                        headers={
+                            "Authorization": f"Bearer {token}",
+                            "Content-Type": "application/json"
+                        },
+                        method="POST"
+                    )
+                    with urllib.request.urlopen(req, timeout=30) as resp:
+                        print(f" Synced scorecard via GCS REST API to: gs://{gcs_bucket}/{object_name}")
+                else:
+                    print(f" Warning: Failed to sync to GCS (no token): {e1}")
+            except Exception as e2:
+                print(f" Warning: Failed to sync to GCS: {e1}; fallback: {e2}")
 
     return result_payload
 
