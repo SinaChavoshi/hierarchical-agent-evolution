@@ -20,30 +20,41 @@ def evaluate_single_firm(
     output_dir: str,
     region: str,
     gcs_bucket: str = "agent-evolution-artifacts-bucket",
-    seed_config_path: str = "templates/default_company.json"
+    seed_config_path: str = "templates/default_company.json",
+    population_file: Optional[str] = None
 ) -> Dict[str, Any]:
     """Executes and scores an individual firm in parallel, writing results to local disk and GCS."""
     os.environ["GOOGLE_CLOUD_LOCATION"] = region
     print(f"=== PARALLEL WORKER: Firm Index {firm_index} (Generation {generation}) on Region {region} ===")
 
-    # Load seed template
-    with open(seed_config_path, "r") as f:
-        template = json.load(f)
+    if population_file and os.path.exists(population_file):
+        with open(population_file, "r") as f:
+            pop = json.load(f)
+        if firm_index < len(pop):
+            firm_genome = CompanyGenome(**pop[firm_index])
+            company_id = firm_genome.company_id
+            print(f"---> Loaded pre-bred genome from {population_file}: {company_id} ({firm_genome.total_agent_count} agents)")
+        else:
+            raise IndexError(f"firm_index {firm_index} out of range for population size {len(pop)}")
+    else:
+        # Load seed template
+        with open(seed_config_path, "r") as f:
+            template = json.load(f)
 
-    # Deterministically construct firm genome for this index
-    company_id = f"gen_{generation}_firm_{firm_index+1}"
-    ceo = template["ceo"]
-    # Jitter temperature based on index to create diversity
-    ceo["temperature"] = max(0.2, min(1.0, 0.35 + (firm_index * 0.04)))
-    
-    firm_genome = CompanyGenome(
-        company_id=company_id,
-        generation=generation,
-        parent_ids=["seed_root"],
-        mutation_history=[f"Parallel Generation {generation} Variant {firm_index+1}"],
-        ceo=ceo,
-        departments=template["departments"]
-    )
+        # Deterministically construct firm genome for this index
+        company_id = f"gen_{generation}_firm_{firm_index+1}"
+        ceo = template["ceo"]
+        # Jitter temperature based on index to create diversity
+        ceo["temperature"] = max(0.2, min(1.0, 0.35 + (firm_index * 0.04)))
+        
+        firm_genome = CompanyGenome(
+            company_id=company_id,
+            generation=generation,
+            parent_ids=["seed_root"],
+            mutation_history=[f"Parallel Generation {generation} Variant {firm_index+1}"],
+            ceo=ceo,
+            departments=template["departments"]
+        )
 
     print(f"---> Running {firm_genome.company_id} ({firm_genome.total_agent_count} agents)...")
     runner = HierarchicalCompanyRunner(firm_genome)
@@ -141,6 +152,7 @@ def main():
     parser.add_argument("--region", type=str, default=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-east4"))
     parser.add_argument("--output-dir", type=str, default="/data/outputs")
     parser.add_argument("--gcs-bucket", type=str, default=os.environ.get("GCS_BUCKET", "agent-evolution-artifacts-bucket"))
+    parser.add_argument("--population-file", type=str, default=None)
     args = parser.parse_args()
 
     evaluate_single_firm(
@@ -149,7 +161,8 @@ def main():
         objective=args.objective,
         output_dir=args.output_dir,
         region=args.region,
-        gcs_bucket=args.gcs_bucket
+        gcs_bucket=args.gcs_bucket,
+        population_file=args.population_file
     )
 
 if __name__ == "__main__":

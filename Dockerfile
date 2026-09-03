@@ -18,9 +18,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source and templates
+# Copy application source, templates, and configs
 COPY src/ /app/src/
 COPY templates/ /app/templates/
+COPY configs/ /app/configs/
 
 ENTRYPOINT ["python", "-m", "src.main"]
 CMD ["--mode", "tournament"]
