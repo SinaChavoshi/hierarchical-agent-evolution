@@ -75,7 +75,9 @@ hierarchical-agent-evolution/
 ├── Dockerfile                  # Container definition for Kubernetes execution
 ├── cloudbuild.yaml             # Container image build automation
 ├── configs/                    # Generational population archives
-│   └── generation_1_population.json # Evolved Gen 1 population genomes
+│   ├── generation_1_population.json # Evolved Gen 1 population genomes
+│   ├── generation_2_population.json # Evolved Gen 2 population genomes (Trait Alleles)
+│   └── generation_3_population.json # Evolved Gen 3 population genomes (Consensus Peak)
 ├── experiments/                # Empirical experiment ledger & benchmarks
 │   ├── README.md               # Benchmark registry and artifact schema
 │   ├── pilot_tournament_baseline.md # Baseline pilot tournament report
@@ -236,11 +238,13 @@ Where:
 
 Empirical validation across tournament iterations demonstrated measurable evolutionary ascent and autonomous self-repair:
 
-| Experiment | Infrastructure | Key Scientific Findings | Benchmark Report |
-| :--- | :--- | :--- | :---: |
-| **`exp-001-baseline`** | Cloud Kubernetes (Single Node Pool) | Baseline progression ($93.00 \rightarrow 96.25$); Autonomous headcount expansion ($31 \rightarrow 36$ agents) to resolve tape-out bottlenecks; Total cost ~$0.22 USD. | [Full Report](experiments/pilot_tournament_baseline.md) |
-| **`exp-002-parallel`** | Cloud Kubernetes (5 Parallel Pods) | 10 enterprises (310 agents) evaluated in **22 minutes** (**4.1x speedup**); OpenTelemetry selection pressure rewarded top firms ($77.50$ vs $71.25$). | [Full Report](experiments/parallel_tournament_distributed.md) |
-| **`exp-003-sandbox`** | Kubernetes Agent Sandbox + gVisor | Sub-second warm-pool `pytest` dynamic execution of synthesized Python code deliverables. | *In Progress* |
+| Experiment | Infrastructure | Key Scientific Findings | Benchmark Report | Champion |
+| :--- | :--- | :--- | :---: | :---: |
+| [**`exp-001-baseline`**](experiments/exp-001-pilot-baseline/) | Cloud Kubernetes (`e2-standard-4`) | Baseline progression ($93.00 \rightarrow 96.25$); Autonomous headcount expansion ($31 \rightarrow 36$ agents) to resolve tape-out bottlenecks. | [Report](experiments/exp-001-pilot-baseline/README.md) | **96.25** |
+| [**`exp-002-parallel`**](experiments/exp-002-parallel-tournament/) | Cloud Kubernetes (5 Parallel Pods) | 10 enterprises (310 agents) evaluated in **22 minutes** (**4.1x speedup**); Deterministic sandbox verification introduces ground-truth execution anchoring. | [Report](experiments/exp-002-parallel-tournament/README.md) | **77.50** |
+| [**`exp-003-parallel-gen1`**](experiments/exp-003-parallel-gen1/) | Cloud Kubernetes + gVisor Sandbox | 3-Way Recombination across 10 firms (312 agents); Identifies the "Thin Persona" bottleneck where single-sentence backstories produce prose over code. | [Report](experiments/exp-003-parallel-gen1/README.md) | **76.55** |
+| [**`exp-004-parallel-gen2`**](experiments/exp-004-parallel-gen2/) | Cloud Kubernetes + gVisor Sandbox | **Persona Discretization Breakthrough**: Structured trait alleles (`backstory_traits`) enable 90% code extraction, 3 zero-penalty runs, and a +11.92 pt cohort leap. | [Report](experiments/exp-004-parallel-gen2/README.md) | **94.50** |
+| [**`exp-005-parallel-gen3`**](experiments/exp-005-parallel-gen3/) | Cloud Kubernetes + gVisor Sandbox | **Allelic Consensus Record**: 100% code extraction, 4 flawless zero-penalty passes, and an all-time tournament record of **96.75 pts** (`gen_3_consensus_2`). | [Report](experiments/exp-005-parallel-gen3/README.md) | **96.75** |
 
 ---
 
