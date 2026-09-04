@@ -1,10 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: parallel-firms-gen1-east4
+  name: parallel-firms-gen1
   namespace: agent-evolution
   labels:
-    app: parallel-firms-gen1-east4
+    app: parallel-firms-gen1
 spec:
   completionMode: Indexed
   completions: 10
@@ -13,7 +13,7 @@ spec:
   template:
     metadata:
       labels:
-        app: parallel-firms-gen1-east4
+        app: parallel-firms-gen1
     spec:
       serviceAccountName: agent-evolution-sa
       restartPolicy: Never
@@ -28,7 +28,7 @@ spec:
         - "--generation"
         - "1"
         - "--region"
-        - "us-east4"
+        - "us-central1"
         - "--population-file"
         - "/app/configs/generation_1_population.json"
         - "--output-dir"
@@ -45,7 +45,7 @@ spec:
         - name: GOOGLE_CLOUD_PROJECT
           value: "YOUR_GCP_PROJECT_ID"
         - name: GOOGLE_CLOUD_LOCATION
-          value: "us-east4"
+          value: "us-central1"
         - name: WORKER_MODEL
           value: "gemini-2.5-flash"
         - name: EXECUTIVE_MODEL
