@@ -82,9 +82,6 @@ hierarchical-agent-evolution/
 │   ├── README.md               # Benchmark registry and artifact schema
 │   ├── pilot_tournament_baseline.md # Baseline pilot tournament report
 │   └── parallel_tournament_distributed.md # High-throughput parallel tournament report
-├── research/
-│   ├── WHITE_PAPER_DRAFT.md    # Formal scientific paper manuscript
-│   └── RESEARCH_LOGBOOK.md     # Empirical research ledger
 ├── src/
 │   ├── schema.py               # Genome schemas (Company, Department, Agent, Fitness)
 │   ├── company.py              # Federated hierarchical execution runner
