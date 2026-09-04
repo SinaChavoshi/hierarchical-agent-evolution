@@ -1,4 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?>
+"""Generate publication-grade SVG chart and high-res PNG for Generational Fitness Trajectory (Gen 0 to Gen 4)."""
+
+import os
+import xml.etree.ElementTree as ET
+import subprocess
+
+SVG_CONTENT = '''<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="960" height="560">
   <defs>
     <!-- Background Gradients -->
@@ -213,3 +219,39 @@
     </g>
   </g>
 </svg>
+'''
+
+target_svg = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "experiments", "assets", "fitness_trajectory.svg")
+target_png = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "experiments", "assets", "fitness_trajectory.png")
+os.makedirs(os.path.dirname(target_svg), exist_ok=True)
+
+with open(target_svg, "w", encoding="utf-8") as f:
+    f.write(SVG_CONTENT.strip() + "\n")
+
+# Validate XML strictly
+tree = ET.fromstring(SVG_CONTENT.strip())
+print("[SUCCESS] XML is 100% VALID! Root tag:", tree.tag)
+
+# Render to high-res PNG via headless chrome
+html_wrapper = f"""<!DOCTYPE html>
+<html>
+<head><style>body {{ margin: 0; padding: 0; background: #0b0f19; overflow: hidden; }}</style></head>
+<body>
+{SVG_CONTENT}
+</body>
+</html>"""
+temp_html = "/tmp/render_chart.html"
+with open(temp_html, "w") as f:
+    f.write(html_wrapper)
+
+cmd = [
+    "/usr/bin/google-chrome",
+    "--headless",
+    "--disable-gpu",
+    "--hide-scrollbars",
+    f"--screenshot={target_png}",
+    "--window-size=960,560",
+    temp_html
+]
+subprocess.run(cmd, check=True)
+print(f"[SUCCESS] Rendered PNG to {target_png}")

@@ -77,11 +77,17 @@ hierarchical-agent-evolution/
 ├── configs/                    # Generational population archives
 │   ├── generation_1_population.json # Evolved Gen 1 population genomes
 │   ├── generation_2_population.json # Evolved Gen 2 population genomes (Trait Alleles)
-│   └── generation_3_population.json # Evolved Gen 3 population genomes (Consensus Peak)
+│   ├── generation_3_population.json # Evolved Gen 3 population genomes (Consensus Peak)
+│   └── generation_4_population.json # Evolved Gen 4 population genomes (OpEx & Sizing)
 ├── experiments/                # Empirical experiment ledger & benchmarks
 │   ├── README.md               # Benchmark registry and artifact schema
-│   ├── pilot_tournament_baseline.md # Baseline pilot tournament report
-│   └── parallel_tournament_distributed.md # High-throughput parallel tournament report
+│   ├── assets/                 # High-resolution SVG/PNG fitness trajectory charts
+│   ├── exp-001-pilot-baseline/ # Pilot baseline experiment snapshots
+│   ├── exp-002-parallel-tournament/ # Parallel tournament experiment snapshots
+│   ├── exp-003-parallel-gen1/  # Gen 1 parallel tournament snapshots
+│   ├── exp-004-parallel-gen2/  # Gen 2 parallel tournament snapshots
+│   ├── exp-005-parallel-gen3/  # Gen 3 parallel tournament snapshots
+│   └── exp-006-parallel-gen4/  # Gen 4 parallel tournament snapshots
 ├── src/
 │   ├── schema.py               # Genome schemas (Company, Department, Agent, Fitness)
 │   ├── company.py              # Federated hierarchical execution runner

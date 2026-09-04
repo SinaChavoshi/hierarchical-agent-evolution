@@ -15,6 +15,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | [**`exp-003-parallel-gen1`**](exp-003-parallel-gen1/) | 3-Way Recombination & The "Thin Persona" Bottleneck | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (312 agents) | **76.55** | [`exp-003-parallel-gen1/`](exp-003-parallel-gen1/) |
 | [**`exp-004-parallel-gen2`**](exp-004-parallel-gen2/) | Persona Discretization (`backstory_traits`) & Sandbox Convergence | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (314 agents) | **94.50** | [`exp-004-parallel-gen2/`](exp-004-parallel-gen2/) |
 | [**`exp-005-parallel-gen3`**](exp-005-parallel-gen3/) | Allelic Consensus Mining & Hermetic Pytest Assertion Rigor | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (318 agents) | **96.75** | [`exp-005-parallel-gen3/`](exp-005-parallel-gen3/) |
+| [**`exp-006-parallel-gen4`**](exp-006-parallel-gen4/) | Autonomous Sizing, Model Unit Economics & Token OpEx Envelope | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (320 agents) | **96.75** | [`exp-006-parallel-gen4/`](exp-006-parallel-gen4/) |
 
 ---
 
@@ -46,6 +47,7 @@ graph LR
         Penalized -->|3-Way Breeding| Gen1Cohort
         Gen1Cohort -->|Persona Discretization| Gen2Cohort
         Gen2Cohort -->|Allelic Consensus Mining| Gen3Cohort
+        Gen3Cohort -->|Autonomous Sizing & OpEx Economics| Gen4Cohort["Gen 4 Cohort (Exp 006)<br/>Champion: gen_4_elite_2 (96.75)<br/>100% Code (10 Files) | $0.0305 OpEx"]
     end
 ```
 
@@ -78,6 +80,10 @@ Where:
 | **`gen_3_elite_1`** (Gen 3 #3) | Gen 3 | 92.0 | 95.0 | 100.0 | 94.0 | 98.0 | **$0.00$** | **95.55** | **Build, Smoke, OTel, Tests (8 Files)** |
 | **`gen_3_consensus_3`** (Gen 3 #4) | Gen 3 | 95.0 | 90.0 | 100.0 | 95.0 | 100.0 | **$0.00$** | **95.50** | **Build, Smoke, OTel, Tests (5 Files)** |
 | **`gen_3_elite_2`** (Gen 3 #5) | Gen 3 | 98.0 | 95.0 | 100.0 | 100.0 | 100.0 | $-6.25$ | **92.00** | Build, Smoke, OTel (5 Files) |
+| **`gen_4_elite_2`** (Gen 4 Champ) | Gen 4 | 95.0 | 98.0 | 100.0 | 90.0 | 100.0 | **$0.00$** | **96.75** | **Build, Smoke, OTel, Tests (10 Files - Record)** |
+| **`gen_4_elite_1`** (Gen 4 #2) | Gen 4 | 95.0 | 90.0 | 100.0 | 90.0 | 100.0 | **$0.00$** | **94.75** | **Build, Smoke, OTel, Tests (7 Files)** |
+| **`gen_4_mutant_1`** (Gen 4 #3) | Gen 4 | 95.0 | 85.0 | 100.0 | 80.0 | 100.0 | **$0.00$** | **92.00** | **Build, Smoke, OTel, Tests (6 Files)** |
+| **`gen_4_consensus_2`** (Gen 4 #4) | Gen 4 | 95.0 | 98.0 | 100.0 | 95.0 | 100.0 | $-12.50$ | **85.00** | Telemetry, Tests (5 Files) |
 
 ---
 
@@ -129,7 +135,7 @@ kubectl apply -f k8s/parallel-indexed-job-gen3-east4.yaml
 
 ## 5. Future Evolutionary Roadmap: Generations 4, 5, 6 and Beyond
 
-### 5.1 Generation 4: Autonomous Sizing & Model Unit Economics (In Progress)
+### 5.1 Generation 4: Autonomous Sizing & Model Unit Economics (Completed in Exp 006)
 * **Autonomous Headcount Morphogenesis**: Granting the CEO and Department Managers intra-generational authority to spawn specialized sub-departments, hire contractors, or downsize redundant roles to optimize task execution.
 * **Model Tier Unit Economics**: Assigning real-world token cost weights ($0.075 / 1M tokens for Gemini 2.5 Flash vs. $1.25 / 1M tokens for Gemini 2.5 Pro).
 * **Net Fitness with OpEx Budget Envelope**: Penalizing bloated architectures that exceed operating budgets, while awarding efficiency bonuses to lean enterprises that pass all 4 sandbox gates under budget.
