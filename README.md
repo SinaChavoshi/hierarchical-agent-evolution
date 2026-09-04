@@ -270,14 +270,46 @@ As the platform evolves across generational iterations, the virtual enterprises 
 | **Gen 5** | **Asset-Sharing Commercial Commons** | IP registration & modular library reuse | Redundant re-implementation of common libraries | **Reusable Corporate Assets & IP Marketplace** | *Active* |
 | **Gen 6** | **Inter-Firm Strategic Co-opetition** | Bilateral executive term sheets & joint ventures | Zero-sum isolationism | **Cross-Company Communication & Consortia** | *Planned* |
 
-### 5.2 Next-Generation Pillars
+### 5.2 Evolutionary Roadmap & Priority Matrix
 
-* **Generation 4: Dynamic Headcount Sizing & Model Unit Economics (Completed in Exp 006)**:
-  CEOs and Managers receive autonomous authority to resize departmental pods, hire specialized contractors, or downsize redundant headcount. Introduces real-world model pricing tiers (Gemini 2.5 Flash at $0.075/1M tokens vs. Gemini 2.5 Pro at $1.25/1M tokens) into an audited corporate balance sheet. Verified a ~14x OpEx reduction, zero-penalty sweep by lean firms (24k–41k tokens), and a 10-file complete deliverable record from champion `gen_4_elite_2` ($0.0305 USD).
-* **Generation 5: Reusable Corporate Assets & IP Marketplace (Cumulative Culture - In Progress)**:
-  Enterprises package verified code modules, agent skills, and prompt libraries into an open Corporate Asset Registry. Subsequent generations license or import these verified assets, eliminating token re-implementation costs and unlocking the evolutionary "ratchet effect."
-* **Generation 6: Cross-Company Communication & Strategic Co-opetition**:
-  CEOs gain inter-firm communication channels to negotiate strategic alliances, technology licensing, and joint-venture consortiums, transitioning the platform from zero-sum competition to non-zero-sum co-opetition.
+#### Active (In Progress — Generation 5)
+* **Active Tool Sandboxing (Agent Execution Runtimes)**:
+  * Transitions specialists from blind text generation to active sandboxed execution.
+  * Equips engineering agents with safe workspace primitives: `write_file`, `read_file`, `list_files`, and `execute_bash(command)`.
+  * Enables agents to write modules, run `pytest`, inspect failure tracebacks, and iteratively self-heal code in an isolated scratch workspace (`/tmp/hae_workspaces/{company_id}/`) *before* submitting deliverables to management.
+* **Reusable Corporate Assets & IP Marketplace (Cumulative Culture)**:
+  * Virtual enterprises package and register verified code modules, agent skills, and prompt libraries into a central **Corporate Asset Registry**.
+  * Offspring enterprises license pre-verified assets for a nominal royalty ($0.015 USD), mounting existing code directly into their scratch sandbox and saving token OpEx to focus exclusively on novel domain logic.
+
+#### Priority 1 (P1): Autonomous Morphogenesis & Dynamic Topologies
+* **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**:
+  * Eliminates the rigid 5-department corporate template (`default_company.json`).
+  * Given an arbitrary objective, a `MetaExecutive` synthesizes the optimal organizational topology (e.g. 2 lean pods for a lightweight utility vs. 6 specialized pods for a distributed database).
+* **Structural Allelic Crossover**:
+  * Enables genetic recombination across enterprises with differing numbers of departments and specialist roles using semantic role embeddings.
+
+#### Priority 2 (P2): Universal Multi-Platform & LLM Provider Portability
+* **Zero Cloud Lock-In / Universal LLM Providers**:
+  * Decouples the platform from Google Cloud Vertex AI REST and service account requirements.
+  * Direct support for **Gemini Developer API keys** (`GEMINI_API_KEY`), **OpenAI** (`OPENAI_API_KEY`), **Anthropic** (`ANTHROPIC_API_KEY`), and local open-source models via **Ollama / vLLM** (`http://localhost:11434/v1`).
+  * Tiered compute mapping across all providers: Executive (`gpt-4o`, `claude-3-5-sonnet`, `gemini-2.5-pro`) vs. Worker (`gpt-4o-mini`, `claude-3-5-haiku`, `gemini-2.5-flash`, `llama-3.3-70b`).
+* **Portable Runtimes Beyond Google Kubernetes Engine (GKE)**:
+  * Single-command local execution (`hae run --objective "..."` via multi-threading / async).
+  * Docker Compose execution engine with gVisor / container isolation.
+  * Pluggable cluster backends: Ray and Slurm alongside Kubernetes Batch Indexed Jobs.
+
+#### Priority 2 (P2): Pluggable Multi-Domain Evaluation & Autonomous Teleological OKRs
+* **Multi-Domain Verification Harnesses**:
+  * Decouples evaluation from software development via a pluggable `BaseVerificationHarness` interface.
+  * Quantitative trading backtests (`FinancialTradingHarness`), regulatory audits (`ComplianceHarness`), and formal scientific paper compilation (`ScientificPaperHarness`).
+* **Autonomous Teleological Metric Formulation (Endogenous OKRs)**:
+  * CEOs synthesize and evolve their own `EvaluationMetricSpec` (internal OKRs, acceptance criteria, and priority weights) under ambiguous objectives, modeling how real startups discover product-market fit.
+
+#### Priority 3 (P3 — Generation 6): Inter-Firm Strategic Co-opetition & Consortiums
+* **Cross-Company Executive Communication**:
+  * CEOs gain secure inter-firm communication channels to negotiate bilateral strategic alliances, IP licensing, and joint-venture consortiums.
+* **Game-Theoretic Coalitions**:
+  * Incorporates non-zero-sum game theory, enabling complementary enterprises to co-author unified deliverables evaluated jointly under the sandbox.
 
 ---
 
