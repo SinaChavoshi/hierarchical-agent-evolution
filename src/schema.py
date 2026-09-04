@@ -194,3 +194,13 @@ class EvaluationResult(BaseModel):
             self.opex = op
         if not hasattr(self, "departmental_briefs") or self.departmental_briefs is None:
             self.departmental_briefs = kwargs.get("departmental_briefs", {})
+
+class EvaluationMetricSpec(BaseModel):
+    """Specification of an endogenous success metric or OKR defined autonomously by an enterprise."""
+    metric_id: str = ""
+    name: str = ""
+    metric_type: str = "deterministic"  # "deterministic", "financial", "rubric", "compliance"
+    target_value: str = ""
+    evaluation_code_or_prompt: str = ""
+    weight: float = 0.20
+    description: str = ""

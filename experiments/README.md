@@ -140,5 +140,8 @@ kubectl apply -f k8s/parallel-indexed-job-gen3-east4.yaml
 * **Royalty Rewards**: Originator firms receive a capital bonus on their corporate financial statement when other organizations license their verified assets.
 
 ### 5.3 Generation 6: Inter-Firm Co-opetition, Strategic Alliances & M&A
+### 5.4 Generalized Multi-Domain Evaluation & Endogenous Teleological Metrics
+* **Beyond Software Engineering**: The deterministic sandbox framework is designed with pluggable evaluation adapters (`FinancialTradingHarness`, `ComplianceHarness`, `ScientificPaperHarness`), enabling evolutionary search across real-world commercial trading, legal compliance, and hardware architecture domains.
+* **Autonomous Teleological Metric Formulation**: Granting the CEO the autonomy to synthesize and evolve their own **`EvaluationMetricSpec`** (internal OKRs and acceptance tests). Offspring inherit and refine these metric specifications, modeling how real enterprises evolve their vision, mission, and success metrics across generations.
 * **Cross-Company Executive Communication**: CEOs and VPs receive secure inter-firm communication channels to propose strategic partnerships, joint ventures, or technology licensing.
 * **Game-Theoretic Coalitions**: Incorporating non-zero-sum game theory (Co-opetition, Tit-for-Tat, and Consortium Formation). Two specialized firms (e.g., a Systems Hardware champion and a GTM/Strategic Moats leader) can execute a bilateral joint-venture term sheet to co-author unified deliverables evaluated jointly under the sandbox.

@@ -277,7 +277,41 @@ As the platform evolves across generational iterations, the virtual enterprises 
 
 ---
 
-## 6. Getting Started
+---
+
+## 6. Generalized Pluggable Evaluation & Teleological Goal Formulation
+
+While early benchmark tournaments focus on Python package engineering (with Build, Smoke, Telemetry, and Pytest gates), the HAE platform is fundamentally **domain-agnostic**. The platform is engineered to break out of software development and generalize across real-world commercial and strategic domains:
+
+```mermaid
+graph TD
+    subgraph ExogenousEvaluation ["Phase 1: Exogenous Domain Verification"]
+        Harness["Pluggable Verification Harness<br/>(Software Sandbox | Trading Backtest | Regulatory Audit)"]
+    end
+
+    subgraph EndogenousEvaluation ["Phase 2: Autonomous Teleological Metrics (Self-Defined OKRs)"]
+        CEO["CEO & Executive Council<br/>Receives Ambiguous Vision"] --> OKR["Emits EvaluationMetricSpec<br/>(Verifiable KPIs, Acceptance Tests, Weights)"]
+        OKR --> Execution["Operational Pods Deliver Against Internal OKRs"]
+        OKR --> Inheritance["Metric Genome Passed & Adjusted<br/>Across Generational Transitions (Startup Pivots)"]
+    end
+```
+
+### 6.1 Pluggable Multi-Domain Verification Harnesses
+The deterministic execution verifier is decoupled from software development through an abstract harness interface (`BaseVerificationHarness`):
+* **Software Engineering (`SoftwareSandboxHarness`)**: Deterministic syntax, packaging, OpenTelemetry trace spans, and `pytest` test suites (Current benchmark).
+* **Quantitative Finance & Trading (`FinancialTradingHarness`)**: Validates synthetic order books, backtests portfolio strategies against historical tick data, and verifies Risk/Sharpe ratios.
+* **Regulatory & Compliance (`ComplianceHarness`)**: Evaluates legal filings, SOC2/HIPAA guardrails, and adversarial red-team compliance penetration checks.
+* **Scientific Research (`ScientificPaperHarness`)**: Compiles formal LaTeX manuscripts, verifies mathematical proofs, and validates empirical ablation data integrity.
+
+### 6.2 Autonomous Teleological Goal Formulation (Endogenous OKRs)
+Under ambiguous strategic objectives, executive leadership in real companies does not merely execute; they **define what success looks like**:
+1. **CEO Metric Synthesis (`EvaluationMetricSpec`)**: Given a high-level mission, the CEO defines verifiable Key Performance Indicators (KPIs), quantitative acceptance tests, and priority weights.
+2. **Genomic Metric Inheritance**: The defined metric specification becomes an evolvable corporate asset (`CorporateMetricAsset`). When the enterprise breeds or pivots, offspring inherit and refine the metrics, modeling how real companies adjust their mission and unit metrics through product-market fit discovery.
+3. **Adversarial Goal Validation**: To prevent degenerate metric gaming ("grading their own homework"), an external Meta-Evaluator scores **Goal Ambition & Alignment**, penalizing trivial metrics while heavily rewarding high-ambition, verifiable customer-centric standards.
+
+---
+
+## 7. Getting Started
 
 ### Local Quickstart
 ```bash
@@ -316,7 +350,7 @@ kubectl logs -n agent-evolution -l app=parallel-firms-gen1-east4 --tail=50 -f
 
 ---
 
-## 7. License & Citation
+## 8. License & Citation
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
 
