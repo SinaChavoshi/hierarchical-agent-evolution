@@ -18,43 +18,57 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 
 ## 2. Multi-Generational Fitness Progression
 
-### 2.1 Cross-Generational Performance Trajectory
+### 2.1 Visual Performance Trajectory
 
-The graph below illustrates peak and cohort performance across evolutionary milestones:
-* **Unconstrained Semantic Search (Exp 001)**: Pure rubric-based judging allowed rapid convergence toward near-perfect strategic synthesis ($93.00 ightarrow 96.25$).
-* **Deterministic Ground-Truth Disruption (Exp 002)**: Introducing the 4-Gate Deterministic Sandbox Verifier exposed execution gaps (non-executable code docked up to $-25.0$ pts), resetting baseline scores to $71.25 - 77.50$ and creating strong selection pressure toward syntactically and functionally valid packages.
-* **Genomic Adaptation (Exp 003)**: Injected packaging specialists in Generation 1 directed mutants designed to conquer Build and Test gates.
+The chart below contrasts the unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory across evolutionary iterations:
 
+<p align="center">
+  <img src="assets/fitness_trajectory.svg" alt="Generational Fitness Trajectory & Architecture Optimization" width="100%"/>
+</p>
+
+```mermaid
+graph LR
+    subgraph TrackA ["Track A: Unconstrained Semantic Search (Exp 001)"]
+        Seed["Gen 0 Seed Baseline<br/>Score: 93.00 (31 Agents)"] --> Firm3["Gen 0 Firm 3 Winner<br/>Score: 94.60"]
+        Firm3 --> Elite2["Gen 1 Tournament Champion (gen_1_elite_2)<br/>Score: 96.25 (+3.25 pts)"]
+    end
+
+    subgraph TrackB ["Track B: Ground-Truth Deterministic Sandbox (Exp 002 & 003)"]
+        ParSeed["Gen 0 Parallel Cohort (Exp 002)<br/>Raw Semantic: ~95-98 pts"]
+        Gates{"4 Deterministic Gates<br/>Build | Smoke | OTel | Test"}
+        Penalized["Gen 0 Grounded Survivors<br/>Docked -18.75 to -25.0 pts<br/>Top: gen_0_firm_3 (77.50)"]
+        Gen1Mutant["Gen 1 Packaging Mutants (Exp 003)<br/>Injected Packaging Engineer<br/>Target: 0 Penalty (>90 pts)"]
+
+        ParSeed --> Gates
+        Gates --> Penalized
+        Penalized -->|3-Way Breeding| Gen1Mutant
+    end
 ```
-Overall Fitness Trajectory Across Generations & Tournaments
-100 ┼──────────────────────────────────────────────────────── [Gen 1 Champion: 96.25] (Exp 001)
-    │                                    *─────────────────── [Gen 0 Champion: 94.60] (Exp 001)
- 90 ┼─ - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-    │                                                    ▲   [Gen 1 Target: >90] (Exp 003)
- 80 ┼────────────────────────────────────*              /
-    │                 *                   \            /
-    │                /                     \──────────*────── [Gen 0 Firm 3: 77.50] (Exp 002: Hard Gates)
- 70 ┼───────────────*───────────────────────*─────────*────── [Gen 0 Cohort Median: 72.95] (Exp 002)
-    │              /                         \───────*─────── [Gen 0 Firm 1: 71.25] (Exp 002)
- 60 ┼─────────────* 
-    │
-    └─────────────┬──────────────────────────┬───────────────►
-             Generation 0               Generation 1
-         (Unconstrained Seed)       (3-Way Bred Offspring)
-```
+
+---
 
 ### 2.2 Detailed Multi-Objective Score Breakdown
 
-$$\mathcal{F}(\mathcal{C}) = \left[ w_s S + w_t T + w_c C + w_r R + w_a A ight] - \mathcal{P}_{	ext{sandbox}}$$
+$$
+\mathcal{F}(\mathcal{C}) = \left[ w_s S + w_t T + w_c C + w_r R + w_a A \right] - \mathcal{P}_{\text{sandbox}}
+$$
 
-| Milestone / Firm | Generation | Strategic (25%) | Technical (25%) | Coherence (20%) | Risk (15%) | Action (15%) | Sandbox Penalty | Overall Fitness |
+Where:
+* $S, T, C, R, A \in [0, 100]$ represent Strategic Depth ($25\%$), Technical Feasibility ($25\%$), Cross-Functional Coherence ($20\%$), Risk Mitigation ($15\%$), and Actionability ($15\%$).
+* $\mathcal{P}_{\text{sandbox}} \in [0, 25.0]$ is the penalty docked by the 4-Gate Deterministic Sandbox Verifier:
+  * **Build Gate** ($-6.25$ pts): `pyproject.toml` or `setup.py` packaging manifest exists.
+  * **Smoke Gate** ($-6.25$ pts): Module contains $\ge 3$ distinct functional code files.
+  * **Telemetry Gate** ($-6.25$ pts): OpenTelemetry spans or metric hooks verified.
+  * **Test Gate** ($-6.25$ pts): Test suites execute cleanly under `pytest`.
+
+| Milestone / Architecture | Generation | Strategic (25%) | Technical (25%) | Coherence (20%) | Risk (15%) | Action (15%) | Sandbox Penalty | Overall Fitness |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **`exp001_seed`** (Baseline) | Gen 0 | 95.0 | 80.0 | 100.0 | 95.0 | 100.0 | 0.0 (Unanchored) | **93.00** |
-| **`exp001_firm_3`** (Gen 0 Winner) | Gen 0 | 95.0 | 88.0 | 98.0 | 97.0 | 98.0 | 0.0 (Unanchored) | **94.60** |
-| **`exp001_elite_2`** (Tournament Champion) | Gen 1 | 95.0 | 90.0 | 100.0 | 98.0 | 100.0 | 0.0 (Unanchored) | **96.25** |
-| **`gen_0_firm_1`** (Parallel Wave) | Gen 0 | 95.0 | 95.0 | 95.0 | 95.0 | 95.0 | -25.0 (Failed all gates) | **71.25** |
-| **`gen_0_firm_3`** (Parallel Champion) | Gen 0 | 95.0 | 98.0 | 95.0 | 95.0 | 95.0 | -18.75 (Cleared Telemetry) | **77.50** |
-| **`gen_1_mutant_1`** (Directed Hypothesis) | Gen 1 | 95.0 | 95.0 | 95.0 | 95.0 | 95.0 | Projected: 0.0 | *Evaluating* |
+| **`exp001_seed`** (Baseline) | Gen 0 | 95.0 | 80.0 | 100.0 | 95.0 | 100.0 | $0.0$ (Unanchored) | **93.00** |
+| **`exp001_firm_3`** (Gen 0 Winner) | Gen 0 | 95.0 | 88.0 | 98.0 | 97.0 | 98.0 | $0.0$ (Unanchored) | **94.60** |
+| **`exp001_elite_2`** (Champion) | Gen 1 | 95.0 | 90.0 | 100.0 | 98.0 | 100.0 | $0.0$ (Unanchored) | **96.25** |
+| **`gen_0_firm_1`** (Parallel Wave) | Gen 0 | 95.0 | 95.0 | 95.0 | 95.0 | 95.0 | $-25.0$ (Failed all gates) | **71.25** |
+| **`gen_0_firm_3`** (Parallel Champion) | Gen 0 | 95.0 | 98.0 | 95.0 | 95.0 | 95.0 | $-18.75$ (Cleared Telemetry) | **77.50** |
+| **`gen_1_mutant_1`** (Directed Hypothesis) | Gen 1 | 95.0 | 95.0 | 95.0 | 95.0 | 95.0 | *Projected: $0.0$* | *Evaluating* |
 
 ---
 
@@ -64,8 +78,8 @@ Evolutionary progression across tournaments demonstrates that multi-agent enterp
 
 ### 3.1 Headcount Dynamics & Specialized Sub-Pods
 * **Gen 0 Seed Architecture (31 Agents)**: Standardized allocation consisting of 1 CEO, 5 Department Managers, and 25 Specialists (5 per pod across Strategy, Silicon/Systems, Software, Product/GTM, and Finance/Risk).
-* **Pilot Mutant Evolution ($31 ightarrow 36$ Agents)**: In Experiment 001, judge critique identified existential dependencies on single-source lithography. The LLM Meta-Architect dynamically injected 5 new operational roles (e.g., *Secondary Silicon Foundry Architect*, *Tariff & Export Compliance Specialist*, and *Autonomous Fault Recovery Engineer*), directly raising Risk Resilience from 80.0 to 98.0.
-* **Gen 1 Packaging Evolution ($31 ightarrow 32$ Agents)**: In Experiment 003, directed mutants (`gen_1_mutant_1` and `gen_1_mutant_2`) responded to sandbox gate failures by expanding the Systems Engineering pod to include a dedicated *Python Packaging & Test Automation Engineer* tasked explicitly with authoring valid `pyproject.toml` manifests and executable `pytest` suites.
+* **Pilot Mutant Evolution ($31 \rightarrow 36$ Agents)**: In Experiment 001, judge critique identified existential dependencies on single-source lithography. The LLM Meta-Architect dynamically injected 5 new operational roles (e.g., *Secondary Silicon Foundry Architect*, *Tariff & Export Compliance Specialist*, and *Autonomous Fault Recovery Engineer*), directly raising Risk Resilience from $80.0$ to $98.0$.
+* **Gen 1 Packaging Evolution ($31 \rightarrow 32$ Agents)**: In Experiment 003, directed mutants (`gen_1_mutant_1` and `gen_1_mutant_2`) responded to sandbox gate failures by expanding the Systems Engineering pod to include a dedicated *Python Packaging & Test Automation Engineer* tasked explicitly with authoring valid `pyproject.toml` manifests and executable `pytest` suites.
 
 ### 3.2 Cognitive Backstory & Behavioral Instruction Mutations
 * **Executive Deliberation Evolution**: Early seed generations relied on cooperative consensus reconciliation. Offspring genomes mutated toward **adversarial dialectic review**, actively pitting systems constraints against commercial ambitions and enforcing mandatory red-team stress testing before executive sign-off.
@@ -73,21 +87,9 @@ Evolutionary progression across tournaments demonstrates that multi-agent enterp
 
 ### 3.3 Hyperparameter Temperature Landscapes
 Analysis of winning lineages revealed distinct temperature clustering based on organizational hierarchy:
-* **Executive Suite ($	au \in [0.35, 0.45]$)**: Balances strategic synthesis with decision determinism.
-* **Market & Strategy Specialists ($	au \in [0.50, 0.70]$)**: Higher entropy encourages creative disruption, non-obvious moat identification, and counter-factual competitive scenarios.
-* **Hardware & Systems Verification Specialists ($	au \in [0.20, 0.30]$)**: Near-zero entropy eliminates syntax errors, hallucinated packaging files, and invalid physical calculations.
-
-```mermaid
-graph LR
-    subgraph GenomeMutations ["Genomic Evolution & Structural Mutations"]
-        Seed["Generation 0 Seed<br/>31 Agents | Cooperative Review | Uniform Temps"]
-        GateFail["Deterministic Gate Failure<br/>Build & Test Failures Dock -25 pts"]
-        MutantGen1["Generation 1 Mutants<br/>32 Agents | Dialectic Debate | Injected Packaging Lead | Low Temp (0.2)"]
-
-        Seed --> GateFail
-        GateFail --> MutantGen1
-    end
-```
+* **Executive Suite ($\tau \in [0.35, 0.45]$)**: Balances strategic synthesis with decision determinism.
+* **Market & Strategy Specialists ($\tau \in [0.50, 0.70]$)**: Higher entropy encourages creative disruption, non-obvious moat identification, and counter-factual competitive scenarios.
+* **Hardware & Systems Verification Specialists ($\tau \in [0.20, 0.30]$)**: Near-zero entropy eliminates syntax errors, hallucinated packaging files, and invalid physical calculations.
 
 ---
 
