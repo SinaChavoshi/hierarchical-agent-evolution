@@ -135,7 +135,7 @@ class AgentWorkspace:
             return "(Empty workspace)"
         lines = []
         for f in files:
-            lines.append(f"- {f["path"]} ({f["size"]} bytes)")
+            lines.append(f"- {f['path']} ({f['size']} bytes)")
         return "\n".join(lines)
 
     def export_bundle(self) -> Dict[str, str]:
