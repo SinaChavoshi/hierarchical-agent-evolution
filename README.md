@@ -248,7 +248,36 @@ Empirical validation across tournament iterations demonstrated measurable evolut
 
 ---
 
-## 5. Getting Started
+---
+
+## 5. Evolutionary Roadmap & Organizational Phylogeny
+
+As the platform evolves across generational iterations, the virtual enterprises undergo continuous cultural and structural adaptations:
+
+### 5.1 Organizational Culture & Behavioral Phylogeny
+
+| Generation | Dominant Organizational Culture | Communication Paradigm | Behavioral Bottleneck | Key Innovation | Champion Score |
+| :---: | :--- | :--- | :--- | :--- | :---: |
+| **Gen 0** | **Polite Bureaucratic Consensus** | Departmental silos; gentle peer review | Superficial risk analysis; narrative prose without code | Establishing federated departmental hierarchies | 77.50 |
+| **Gen 1** | **Adversarial Dialectic Review** | Cross-departmental challenges & red-teaming | "Thin Persona" syndrome; prose over code formatting | Headcount expansion; dedicated packaging specialists | 76.55 |
+| **Gen 2** | **Pragmatic Implementation Culture** | Rigid code-block and manifest formatting | Test assertion mismatches | **Structured Persona Discretization** (`backstory_traits`) | 94.50 |
+| **Gen 3** | **Hermetic Engineering & Invariant Mining** | Recombination of consensus operational alleles | High token OpEx across uniform Pro models | **Allelic Consensus Mining** & Pytest harness injection | **96.75** |
+| **Gen 4** | **Capital-Efficient Economic Enterprise** | Dynamic sizing & model tier cost accounting | Fixed organizational topologies | **Autonomous Sizing & OpEx token budgeting** | *Active* |
+| **Gen 5** | **Asset-Sharing Commercial Commons** | IP registration & modular library reuse | Redundant re-implementation of common libraries | **Reusable Corporate Assets & IP Marketplace** | *Planned* |
+| **Gen 6** | **Inter-Firm Strategic Co-opetition** | Bilateral executive term sheets & joint ventures | Zero-sum isolationism | **Cross-Company Communication & Consortia** | *Planned* |
+
+### 5.2 Next-Generation Pillars
+
+* **Generation 4: Dynamic Headcount Sizing & Model Unit Economics (In Progress)**:
+  CEOs and Managers receive autonomous authority to resize departmental pods, hire specialized contractors, or downsize redundant headcount. Introduces real-world model pricing tiers (Gemini 2.5 Flash at $0.075/1M tokens vs. Gemini 2.5 Pro at $1.25/1M tokens) into an audited corporate balance sheet.
+* **Generation 5: Reusable Corporate Assets & IP Marketplace (Cumulative Culture)**:
+  Enterprises package verified code modules, agent skills, and prompt libraries into an open Corporate Asset Registry. Subsequent generations license or import these verified assets, eliminating token re-implementation costs and unlocking the evolutionary "ratchet effect."
+* **Generation 6: Cross-Company Communication & Strategic Co-opetition**:
+  CEOs gain inter-firm communication channels to negotiate strategic alliances, technology licensing, and joint-venture consortiums, transitioning the platform from zero-sum competition to non-zero-sum co-opetition.
+
+---
+
+## 6. Getting Started
 
 ### Local Quickstart
 ```bash
@@ -287,7 +316,7 @@ kubectl logs -n agent-evolution -l app=parallel-firms-gen1-east4 --tail=50 -f
 
 ---
 
-## 6. License & Citation
+## 7. License & Citation
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
 

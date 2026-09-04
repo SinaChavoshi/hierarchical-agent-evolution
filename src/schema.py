@@ -1,4 +1,4 @@
-"""Schema definitions for hierarchical virtual organizations and evolutionary lineages."""
+"""Schema definitions for hierarchical virtual organizations, evolutionary lineages, and economic OpEx."""
 
 from typing import List, Dict, Optional, Any
 import copy
@@ -37,6 +37,36 @@ except ImportError:
             return default_factory()
         return default
 
+class CorporateAsset(BaseModel):
+    """Reusable corporate asset (Code module, Agent Skill, Trait Pack) for IP marketplace."""
+    asset_id: str = ""
+    asset_type: str = "code_module"  # "code_module", "agent_skill", "trait_pack"
+    name: str = ""
+    description: str = ""
+    content: str = ""
+    author_company_id: str = ""
+    licensing_fee_usd: float = 0.0
+
+class OpExBreakdown(BaseModel):
+    """Financial balance sheet detailing token expenditure, model tiers, and unit economics."""
+    flash_input_tokens: int = 0
+    flash_output_tokens: int = 0
+    pro_input_tokens: int = 0
+    pro_output_tokens: int = 0
+    total_tokens: int = 0
+    estimated_cost_usd: float = 0.0
+    budget_usd: float = 0.50
+    cost_penalty: float = 0.0
+    efficiency_bonus: float = 0.0
+    headcount: int = 31
+    pro_count: int = 1
+    flash_count: int = 30
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
 class AgentGenome(BaseModel):
     """Genome representing an individual agent within a department or executive suite."""
     role: str = ""
@@ -44,7 +74,7 @@ class AgentGenome(BaseModel):
     backstory: str = ""
     backstory_traits: List[str] = None
     temperature: float = 0.7
-    model_tier: str = "worker"
+    model_tier: str = "worker"  # "worker" (Flash) vs "executive" (Pro)
     tools_enabled: List[str] = None
     system_instructions: Optional[str] = None
 
@@ -86,7 +116,7 @@ class DepartmentGenome(BaseModel):
         return 1 + len(self.agents or [])
 
 class CompanyGenome(BaseModel):
-    """Genome representing the entire virtual enterprise (CEO + Departments)."""
+    """Genome representing the entire virtual enterprise (CEO + Departments + Budget)."""
     company_id: str = ""
     generation: int = 0
     parent_ids: List[str] = None
@@ -94,6 +124,8 @@ class CompanyGenome(BaseModel):
     ceo: AgentGenome = None
     departments: List[DepartmentGenome] = None
     executive_deliberation_rules: str = "Dialectic review: challenge assumptions, stress-test trade-offs"
+    budget_usd: float = 0.50
+    assets: List[CorporateAsset] = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -109,6 +141,10 @@ class CompanyGenome(BaseModel):
             self.parent_ids = kwargs.get("parent_ids", [])
         if not hasattr(self, "mutation_history") or self.mutation_history is None:
             self.mutation_history = kwargs.get("mutation_history", [])
+        if not hasattr(self, "budget_usd") or self.budget_usd is None:
+            self.budget_usd = kwargs.get("budget_usd", 0.50)
+        if not hasattr(self, "assets") or self.assets is None:
+            self.assets = kwargs.get("assets", [])
 
     @property
     def total_agent_count(self) -> int:
@@ -116,7 +152,7 @@ class CompanyGenome(BaseModel):
         return 1 + dept_agents
 
 class FitnessScore(BaseModel):
-    """Multi-dimensional evaluation scorecard produced by LLM-as-a-Judge."""
+    """Multi-dimensional evaluation scorecard produced by LLM-as-a-Judge and OpEx engine."""
     strategic_depth: float = 0.0
     technical_feasibility: float = 0.0
     cross_functional_coherence: float = 0.0
@@ -134,13 +170,14 @@ class FitnessScore(BaseModel):
             self.identified_bottlenecks = kwargs.get("identified_bottlenecks", [])
 
 class EvaluationResult(BaseModel):
-    """Complete evaluation record for a company's performance on an objective."""
+    """Complete evaluation record for a company's performance, sandbox gates, and financials."""
     company_id: str = ""
     generation: int = 0
     objective: str = ""
     final_deliverable: str = ""
     departmental_briefs: Dict[str, str] = None
     fitness: FitnessScore = None
+    opex: Optional[OpExBreakdown] = None
     timestamp: str = ""
 
     def __init__(self, **kwargs):
@@ -150,5 +187,10 @@ class EvaluationResult(BaseModel):
             self.fitness = FitnessScore(**fit)
         elif fit is not None:
             self.fitness = fit
+        op = kwargs.get("opex")
+        if isinstance(op, dict):
+            self.opex = OpExBreakdown(**op)
+        elif op is not None:
+            self.opex = op
         if not hasattr(self, "departmental_briefs") or self.departmental_briefs is None:
             self.departmental_briefs = kwargs.get("departmental_briefs", {})

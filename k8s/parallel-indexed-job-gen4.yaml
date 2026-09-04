@@ -1,0 +1,74 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parallel-firms-gen4-east4
+  namespace: agent-evolution
+  labels:
+    app: parallel-firms-gen4-east4
+spec:
+  completionMode: Indexed
+  completions: 10
+  parallelism: 5
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: parallel-firms-gen4-east4
+    spec:
+      serviceAccountName: agent-evolution-sa
+      restartPolicy: Never
+      containers:
+      - name: firm-evaluator
+        image: us-central1-docker.pkg.dev/YOUR_GCP_PROJECT_ID/agent-evolution-repo/agent-evolution:latest
+        imagePullPolicy: Always
+        command:
+        - "python"
+        - "-m"
+        - "src.worker"
+        - "--generation"
+        - "4"
+        - "--region"
+        - "us-east4"
+        - "--population-file"
+        - "/configs/generation_4_population.json"
+        - "--output-dir"
+        - "/data/outputs"
+        - "--objective"
+        - "Design and implement the production-ready 'agent-org' platform: a Python package providing hierarchical multi-agent orchestration, OpenTelemetry observability anchors, deterministic sandbox execution, and evolutionary search. Generate clean package files including pyproject.toml, core genome models, execution runtime, and test suites."
+        env:
+        - name: VERTEX_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vertex-token
+              key: token
+              optional: true
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "YOUR_GCP_PROJECT_ID"
+        - name: GOOGLE_CLOUD_LOCATION
+          value: "us-east4"
+        - name: WORKER_MODEL
+          value: "gemini-2.5-flash"
+        - name: EXECUTIVE_MODEL
+          value: "gemini-2.5-pro"
+        - name: JUDGE_MODEL
+          value: "gemini-2.5-pro"
+        - name: GCS_BUCKET
+          value: "YOUR_GCP_PROJECT_ID-agent-evolution"
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            cpu: "3000m"
+            memory: "6Gi"
+        volumeMounts:
+        - name: data-vol
+          mountPath: /data
+        - name: config-vol
+          mountPath: /configs
+      volumes:
+      - name: data-vol
+        emptyDir: {}
+      - name: config-vol
+        configMap:
+          name: gen4-population

@@ -19,7 +19,7 @@ def evaluate_single_firm(
     objective: str,
     output_dir: str,
     region: str,
-    gcs_bucket: str = "agent-evolution-artifacts-bucket",
+    gcs_bucket: str = "YOUR_GCS_BUCKET",
     seed_config_path: str = "templates/default_company.json",
     population_file: Optional[str] = None
 ) -> Dict[str, Any]:
@@ -41,10 +41,8 @@ def evaluate_single_firm(
         with open(seed_config_path, "r") as f:
             template = json.load(f)
 
-        # Deterministically construct firm genome for this index
         company_id = f"gen_{generation}_firm_{firm_index+1}"
         ceo = template["ceo"]
-        # Jitter temperature based on index to create diversity
         ceo["temperature"] = max(0.2, min(1.0, 0.35 + (firm_index * 0.04)))
         
         firm_genome = CompanyGenome(
@@ -78,15 +76,27 @@ def evaluate_single_firm(
         estimated_tokens=run_output["estimated_tokens"]
     )
 
-    # Apply penalty
-    eval_res.fitness.overall_score = max(0.0, round(eval_res.fitness.overall_score - v_score.score_penalty, 2))
-    print(f" FINAL SCORE: {eval_res.fitness.overall_score}/100")
+    gross_score = eval_res.fitness.overall_score
+    sandbox_penalty = v_score.score_penalty
+    opex_data = run_output.get("opex", {})
+    cost_penalty = opex_data.get("cost_penalty", 0.0)
+    efficiency_bonus = opex_data.get("efficiency_bonus", 0.0)
+
+    # Net Fitness incorporating Sandbox Gate and OpEx Envelope
+    net_score = round(max(0.0, min(100.0, gross_score - sandbox_penalty - cost_penalty + efficiency_bonus)), 2)
+    eval_res.fitness.overall_score = net_score
+
+    cost_usd = opex_data.get("estimated_cost_usd", 0.0)
+    budget_usd = opex_data.get("budget_usd", 0.50)
+    print(f" [OpEx Balance Sheet] Cost: ${cost_usd:.4f} USD (Budget: ${budget_usd:.2f}) | Penalty: -{cost_penalty} pts | Bonus: +{efficiency_bonus} pts")
+    print(f" FINAL NET FITNESS: {eval_res.fitness.overall_score}/100 (Gross: {gross_score})")
 
     result_payload = {
         "company_id": company_id,
         "generation": generation,
         "region": region,
         "overall_score": eval_res.fitness.overall_score,
+        "gross_score": gross_score,
         "strategic_depth": eval_res.fitness.strategic_depth,
         "technical_feasibility": eval_res.fitness.technical_feasibility,
         "cross_functional_coherence": eval_res.fitness.cross_functional_coherence,
@@ -95,6 +105,7 @@ def evaluate_single_firm(
         "elapsed_seconds": eval_res.fitness.elapsed_seconds,
         "estimated_tokens": eval_res.fitness.token_count,
         "verification": v_score.__dict__,
+        "opex": opex_data,
         "genome": firm_genome.model_dump(),
         "run_output": run_output,
         "evaluation": eval_res.model_dump()
@@ -111,7 +122,7 @@ def evaluate_single_firm(
     if gcs_bucket:
         try:
             from google.cloud import storage
-            client = storage.Client(project=project)
+            client = storage.Client()
             bucket = client.bucket(gcs_bucket)
             blob = bucket.blob(f"parallel_runs/generation_{generation}/{company_id}_result.json")
             blob.upload_from_filename(local_path)
@@ -136,32 +147,42 @@ def evaluate_single_firm(
                         method="POST"
                     )
                     with urllib.request.urlopen(req, timeout=30) as resp:
-                        print(f" Synced scorecard via GCS REST API to: gs://{gcs_bucket}/{object_name}")
-                else:
-                    print(f" Warning: Failed to sync to GCS (no token): {e1}")
+                        print(f" Synced scorecard via REST to: gs://{gcs_bucket}/{object_name}")
             except Exception as e2:
-                print(f" Warning: Failed to sync to GCS: {e1}; fallback: {e2}")
+                print(f" [WARNING] GCS sync fallback failed: {e2}")
 
     return result_payload
 
 def main():
-    parser = argparse.ArgumentParser(description="Parallel Firm Evaluation Worker")
-    parser.add_argument("--firm-index", type=int, default=int(os.environ.get("JOB_COMPLETION_INDEX", "0")))
-    parser.add_argument("--generation", type=int, default=0)
-    parser.add_argument("--objective", type=str, required=True)
-    parser.add_argument("--region", type=str, default=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-east4"))
-    parser.add_argument("--output-dir", type=str, default="/data/outputs")
-    parser.add_argument("--gcs-bucket", type=str, default=os.environ.get("GCS_BUCKET", "agent-evolution-artifacts-bucket"))
-    parser.add_argument("--population-file", type=str, default=None)
+    parser = argparse.ArgumentParser(description="Parallel Worker for Hierarchical Agent Evolution")
+    parser.add_argument("--generation", type=int, default=1, help="Evolutionary generation index")
+    parser.add_argument("--firm-index", type=int, default=None, help="Index of firm within population (defaults to JOB_COMPLETION_INDEX)")
+    parser.add_argument("--objective", type=str, default="5-Year Hyperscale AI Compute Strategy", help="Strategic objective")
+    parser.add_argument("--output-dir", type=str, default="/data/outputs", help="Directory for local outputs")
+    parser.add_argument("--region", type=str, default="us-east4", help="GCP Region for Vertex AI calls")
+    parser.add_argument("--gcs-bucket", type=str, default="YOUR_GCS_BUCKET", help="GCS Bucket for persistent results")
+    parser.add_argument("--seed-config", type=str, default="templates/default_company.json", help="Path to seed company genome template")
+    parser.add_argument("--population-file", type=str, default=None, help="Path to pre-bred JSON population array")
+
     args = parser.parse_args()
 
+    # If firm-index not supplied via CLI, check Kubernetes Indexed Job environment variable
+    firm_idx = args.firm_index
+    if firm_idx is None:
+        idx_env = os.environ.get("JOB_COMPLETION_INDEX")
+        if idx_env is not None:
+            firm_idx = int(idx_env)
+        else:
+            firm_idx = 0
+
     evaluate_single_firm(
-        firm_index=args.firm_index,
+        firm_index=firm_idx,
         generation=args.generation,
         objective=args.objective,
         output_dir=args.output_dir,
         region=args.region,
         gcs_bucket=args.gcs_bucket,
+        seed_config_path=args.seed_config,
         population_file=args.population_file
     )
 
