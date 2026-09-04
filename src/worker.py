@@ -5,7 +5,7 @@ import sys
 import json
 import time
 import argparse
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 
 from .schema import CompanyGenome, EvaluationResult
 from .company import HierarchicalCompanyRunner
