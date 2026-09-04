@@ -19,7 +19,7 @@ def evaluate_single_firm(
     objective: str,
     output_dir: str,
     region: str,
-    gcs_bucket: str = "YOUR_GCS_BUCKET",
+    gcs_bucket: str = os.environ.get("GCS_BUCKET", "YOUR_GCS_BUCKET"),
     seed_config_path: str = "templates/default_company.json",
     population_file: Optional[str] = None
 ) -> Dict[str, Any]:
@@ -60,7 +60,7 @@ def evaluate_single_firm(
 
     # Deterministic Gate Check
     verifier = DeterministicSandboxVerifier()
-    v_score = verifier.verify_package(company_id, run_output["final_deliverable"])
+    v_score = verifier.verify_package(company_id, run_output["final_deliverable"], workspace=runner.workspace)
     print(f" [Deterministic Gate] {v_score.details} (Penalty: -{v_score.score_penalty} pts)")
 
     # LLM Judge Evaluation
@@ -160,7 +160,7 @@ def main():
     parser.add_argument("--objective", type=str, default="5-Year Hyperscale AI Compute Strategy", help="Strategic objective")
     parser.add_argument("--output-dir", type=str, default="/data/outputs", help="Directory for local outputs")
     parser.add_argument("--region", type=str, default="us-east4", help="GCP Region for Vertex AI calls")
-    parser.add_argument("--gcs-bucket", type=str, default="YOUR_GCS_BUCKET", help="GCS Bucket for persistent results")
+    parser.add_argument("--gcs-bucket", type=str, default=os.environ.get("GCS_BUCKET", "YOUR_GCS_BUCKET"), help="GCS Bucket for persistent results")
     parser.add_argument("--seed-config", type=str, default="templates/default_company.json", help="Path to seed company genome template")
     parser.add_argument("--population-file", type=str, default=None, help="Path to pre-bred JSON population array")
 

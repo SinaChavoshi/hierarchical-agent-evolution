@@ -80,7 +80,7 @@ class EvolutionaryTournamentEngine:
             run_output = runner.run(self.objective)
 
             # Step 1: Deterministic Sandbox Verification
-            v_score = self.verifier.verify_package(firm.company_id, run_output["final_deliverable"])
+            v_score = self.verifier.verify_package(firm.company_id, run_output["final_deliverable"], workspace=runner.workspace)
             print(f" [Deterministic Gate] {v_score.details} (Penalty: -{v_score.score_penalty} pts)")
 
             # Step 2: LLM Strategic Evaluation
