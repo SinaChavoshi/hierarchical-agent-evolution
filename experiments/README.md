@@ -154,14 +154,27 @@ kubectl apply -f k8s/parallel-indexed-job-gen3-east4.yaml
   * Pre-licensed assets are mounted directly into the scratch sandbox directory at initialization, enabling offspring to import and extend them.
   * Originator firms receive a royalty credit ($0.015 USD) on their corporate balance sheet when peers license their verified assets.
 
-### 5.3 Priority 1 (P1): Autonomous Morphogenesis & Dynamic Topologies
+### 5.3 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Inter-Firm Strategic Co-opetition & Consortiums
+* **Cross-Company Executive Communication**:
+  * CEOs and VPs gain secure inter-firm communication channels to negotiate bilateral strategic alliances, technology licensing, and joint-venture consortiums.
+* **Game-Theoretic Coalitions**:
+  * Incorporates non-zero-sum game theory (Co-opetition, Tit-for-Tat, and Consortium Formation). Two specialized enterprises (e.g., a Systems Architecture champion and a GTM/Strategic Moats leader) can execute a bilateral joint-venture term sheet to co-author unified deliverables evaluated jointly under the sandbox.
+
+### 5.4 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Pluggable Multi-Domain Evaluation & Autonomous Teleological OKRs
+* **Multi-Domain Verification Harnesses**:
+  * Decouples evaluation from software development via a pluggable `BaseVerificationHarness` interface.
+  * Pluggable adapters for Quantitative Trading (`FinancialTradingHarness` backtesting Sharpe/PnL), Regulatory Auditing (`ComplianceHarness`), and Formal Scientific Papers (`ScientificPaperHarness`).
+* **Autonomous Teleological Metric Formulation (Endogenous OKRs)**:
+  * Under ambiguous strategic missions, CEOs autonomously synthesize and evolve their own `EvaluationMetricSpec` (internal OKRs, verifiable acceptance criteria, and priority weights). Offspring inherit and refine these metric specifications, modeling how real startups discover product-market fit.
+
+### 5.5 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Autonomous Morphogenesis & Dynamic Topologies
 * **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**:
   * Eliminates the rigid 5-department corporate template (`default_company.json`).
   * Given an arbitrary objective, a `MetaExecutive` synthesizes the optimal organizational topology (e.g. 2 lean pods for a lightweight utility vs. 6 specialized pods for a distributed database).
 * **Structural Allelic Crossover**:
   * Enables genetic recombination across enterprises with differing numbers of departments and specialist roles using semantic role embeddings.
 
-### 5.4 Priority 2 (P2): Universal Multi-Platform & LLM Provider Portability
+### 5.6 Priority 2 (P2 — Infrastructure & Portability Expansion): Universal Multi-Platform & LLM Provider Portability
 * **Zero Cloud Lock-In / Universal LLM Providers**:
   * Decouples the platform from Google Cloud Vertex AI REST and service account requirements.
   * Direct support for **Gemini Developer API keys** (`GEMINI_API_KEY`), **OpenAI** (`OPENAI_API_KEY`), **Anthropic** (`ANTHROPIC_API_KEY`), and local open-source models via **Ollama / vLLM** (`http://localhost:11434/v1`).
@@ -170,16 +183,3 @@ kubectl apply -f k8s/parallel-indexed-job-gen3-east4.yaml
   * Single-command local execution (`hae run --objective "..."` via multi-threading / async).
   * Docker Compose execution engine with gVisor / container isolation.
   * Pluggable cluster backends: Ray and Slurm alongside Kubernetes Batch Indexed Jobs.
-
-### 5.5 Priority 2 (P2): Pluggable Multi-Domain Evaluation & Autonomous Teleological OKRs
-* **Multi-Domain Verification Harnesses**:
-  * Decouples evaluation from software development via a pluggable `BaseVerificationHarness` interface.
-  * Pluggable adapters for Quantitative Trading (`FinancialTradingHarness`), Regulatory Auditing (`ComplianceHarness`), and Formal Scientific Papers (`ScientificPaperHarness`).
-* **Autonomous Teleological Metric Formulation (Endogenous OKRs)**:
-  * CEOs synthesize and evolve their own `EvaluationMetricSpec` (internal OKRs, acceptance criteria, and priority weights) under ambiguous objectives, modeling how real startups discover product-market fit.
-
-### 5.6 Priority 3 (P3 — Generation 6): Inter-Firm Strategic Co-opetition & Consortiums
-* **Cross-Company Executive Communication**:
-  * CEOs gain secure inter-firm communication channels to negotiate bilateral strategic alliances, IP licensing, and joint-venture consortiums.
-* **Game-Theoretic Coalitions**:
-  * Incorporates non-zero-sum game theory, enabling complementary enterprises to co-author unified deliverables evaluated jointly under the sandbox.

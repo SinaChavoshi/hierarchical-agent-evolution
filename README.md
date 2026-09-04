@@ -281,15 +281,19 @@ As the platform evolves across generational iterations, the virtual enterprises 
   * Virtual enterprises package and register verified code modules, agent skills, and prompt libraries into a central **Corporate Asset Registry**.
   * Offspring enterprises license pre-verified assets for a nominal royalty ($0.015 USD), mounting existing code directly into their scratch sandbox and saving token OpEx to focus exclusively on novel domain logic.
 
-#### Priority 1 (P1): Autonomous Morphogenesis & Dynamic Topologies
-* **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**:
-  * Eliminates the rigid 5-department corporate template (`default_company.json`).
-  * Given an arbitrary objective, a `MetaExecutive` synthesizes the optimal organizational topology (e.g. 2 lean pods for a lightweight utility vs. 6 specialized pods for a distributed database).
-* **Structural Allelic Crossover**:
-  * Enables genetic recombination across enterprises with differing numbers of departments and specialist roles using semantic role embeddings.
+#### Priority 1 (P1 — Targeted for Next Generation / Generation 6)
+* **Inter-Firm Strategic Co-opetition & Consortiums (Cross-Company Communication)**:
+  * CEOs and VPs gain secure inter-firm communication channels to negotiate bilateral strategic alliances, technology licensing, and joint-venture consortiums.
+  * **Game-Theoretic Coalitions**: Incorporates non-zero-sum game theory (Co-opetition, Tit-for-Tat, and Consortium Formation). Two specialized firms (e.g., a Systems Architecture champion and a GTM/Strategic Moats leader) can execute a bilateral joint-venture term sheet to co-author unified deliverables evaluated jointly under the sandbox.
+* **Pluggable Multi-Domain Evaluation & Autonomous Teleological OKRs**:
+  * **Pluggable Multi-Domain Verification Harnesses**: Decouples evaluation from software development via an abstract `BaseVerificationHarness` interface. Pluggable adapters for Quantitative Trading (`FinancialTradingHarness` backtesting Sharpe/PnL), Regulatory Compliance (`ComplianceHarness`), and Formal Scientific Papers (`ScientificPaperHarness`).
+  * **Autonomous Teleological Metric Formulation (Endogenous OKRs)**: Under ambiguous strategic missions, CEOs autonomously synthesize and evolve their own `EvaluationMetricSpec` (internal OKRs, verifiable acceptance criteria, and priority weights). Offspring inherit and refine these metric specifications, modeling how real startups discover product-market fit.
+* **Autonomous Morphogenesis & Dynamic Topologies**:
+  * **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**: Eliminates the rigid 5-department corporate template (`default_company.json`) to dynamically spawn custom departments tailored to arbitrary objectives.
+  * **Structural Allelic Crossover**: Enables genetic recombination across enterprises with differing numbers of departments and specialist roles using semantic role embeddings.
 
-#### Priority 2 (P2): Universal Multi-Platform & LLM Provider Portability
-* **Zero Cloud Lock-In / Universal LLM Providers**:
+#### Priority 2 (P2 — Infrastructure & Portability Expansion)
+* **Universal Multi-Platform & LLM Provider Portability (Zero Cloud Lock-In)**:
   * Decouples the platform from Google Cloud Vertex AI REST and service account requirements.
   * Direct support for **Gemini Developer API keys** (`GEMINI_API_KEY`), **OpenAI** (`OPENAI_API_KEY`), **Anthropic** (`ANTHROPIC_API_KEY`), and local open-source models via **Ollama / vLLM** (`http://localhost:11434/v1`).
   * Tiered compute mapping across all providers: Executive (`gpt-4o`, `claude-3-5-sonnet`, `gemini-2.5-pro`) vs. Worker (`gpt-4o-mini`, `claude-3-5-haiku`, `gemini-2.5-flash`, `llama-3.3-70b`).
@@ -297,19 +301,6 @@ As the platform evolves across generational iterations, the virtual enterprises 
   * Single-command local execution (`hae run --objective "..."` via multi-threading / async).
   * Docker Compose execution engine with gVisor / container isolation.
   * Pluggable cluster backends: Ray and Slurm alongside Kubernetes Batch Indexed Jobs.
-
-#### Priority 2 (P2): Pluggable Multi-Domain Evaluation & Autonomous Teleological OKRs
-* **Multi-Domain Verification Harnesses**:
-  * Decouples evaluation from software development via a pluggable `BaseVerificationHarness` interface.
-  * Quantitative trading backtests (`FinancialTradingHarness`), regulatory audits (`ComplianceHarness`), and formal scientific paper compilation (`ScientificPaperHarness`).
-* **Autonomous Teleological Metric Formulation (Endogenous OKRs)**:
-  * CEOs synthesize and evolve their own `EvaluationMetricSpec` (internal OKRs, acceptance criteria, and priority weights) under ambiguous objectives, modeling how real startups discover product-market fit.
-
-#### Priority 3 (P3 — Generation 6): Inter-Firm Strategic Co-opetition & Consortiums
-* **Cross-Company Executive Communication**:
-  * CEOs gain secure inter-firm communication channels to negotiate bilateral strategic alliances, IP licensing, and joint-venture consortiums.
-* **Game-Theoretic Coalitions**:
-  * Incorporates non-zero-sum game theory, enabling complementary enterprises to co-author unified deliverables evaluated jointly under the sandbox.
 
 ---
 
