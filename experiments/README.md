@@ -12,7 +12,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | :--- | :--- | :--- | :---: | :---: | :---: |
 | [**`exp-001-pilot-baseline`**](exp-001-pilot-baseline/) | Strategic Architecture & Autonomous Headcount Adaptation | Cloud Kubernetes (`e2-standard-4`) | 6 virtual enterprises (Gen 0 & 1) | **96.25** | [`exp-001-pilot-baseline/`](exp-001-pilot-baseline/) |
 | [**`exp-002-parallel-tournament`**](exp-002-parallel-tournament/) | High-Throughput 10-Firm Parallel Tournament with 4-Gate Sandbox | Cloud Kubernetes (5 Parallel Pods) | 10 virtual enterprises (310 agents) | **77.50** | [`exp-002-parallel-tournament/`](exp-002-parallel-tournament/) |
-| [**`exp-003-parallel-gen1`**](exp-003-parallel-gen1/) | 3-Way Recombination & Directed Packaging Mutation | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (312 agents) | *Evaluating* | [`exp-003-parallel-gen1/`](exp-003-parallel-gen1/) |
+| [**`exp-003-parallel-gen1`**](exp-003-parallel-gen1/) | 3-Way Recombination & Directed Packaging Mutation | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (312 agents) | **76.55** | [`exp-003-parallel-gen1/`](exp-003-parallel-gen1/) |
 
 ---
 
@@ -35,11 +35,11 @@ graph LR
         ParSeed["Gen 0 Parallel Cohort (Exp 002)<br/>Raw Semantic: ~95-98 pts"]
         Gates{"4 Deterministic Gates<br/>Build | Smoke | OTel | Test"}
         Penalized["Gen 0 Grounded Survivors<br/>Docked -18.75 to -25.0 pts<br/>Top: gen_0_firm_3 (77.50)"]
-        Gen1Mutant["Gen 1 Packaging Mutants (Exp 003)<br/>Injected Packaging Engineer<br/>Target: 0 Penalty (>90 pts)"]
+        Gen1Cohort["Gen 1 Cohort (Exp 003)<br/>Champion: gen_1_elite_2 (76.55)<br/>Mutant 1 Raw: 97.20"]
 
         ParSeed --> Gates
         Gates --> Penalized
-        Penalized -->|3-Way Breeding| Gen1Mutant
+        Penalized -->|3-Way Breeding| Gen1Cohort
     end
 ```
 
@@ -64,9 +64,12 @@ Where:
 | **`exp001_seed`** (Baseline) | Gen 0 | 95.0 | 80.0 | 100.0 | 95.0 | 100.0 | $0.0$ (Unanchored) | **93.00** |
 | **`exp001_firm_3`** (Gen 0 Winner) | Gen 0 | 95.0 | 88.0 | 98.0 | 97.0 | 98.0 | $0.0$ (Unanchored) | **94.60** |
 | **`exp001_elite_2`** (Champion) | Gen 1 | 95.0 | 90.0 | 100.0 | 98.0 | 100.0 | $0.0$ (Unanchored) | **96.25** |
-| **`gen_0_firm_1`** (Parallel Wave) | Gen 0 | 95.0 | 95.0 | 95.0 | 95.0 | 95.0 | $-25.0$ (Failed all gates) | **71.25** |
-| **`gen_0_firm_3`** (Parallel Champion) | Gen 0 | 95.0 | 98.0 | 95.0 | 95.0 | 95.0 | $-18.75$ (Cleared Telemetry) | **77.50** |
-| **`gen_1_mutant_1`** (Directed Hypothesis) | Gen 1 | 95.0 | 95.0 | 95.0 | 95.0 | 95.0 | *Projected: $0.0$* | *Evaluating* |
+| **`gen_0_firm_3`** (Gen 0 Parallel Champ) | Gen 0 | 95.0 | 98.0 | 95.0 | 95.0 | 95.0 | $-18.75$ (Cleared Telemetry) | **77.50** |
+| **`gen_1_elite_2`** (Gen 1 Champion) | Gen 1 | 95.0 | 92.0 | 98.0 | 96.0 | 97.0 | $-18.75$ (Cleared Telemetry) | **76.55** |
+| **`gen_1_pareto_bonus_1`** (Pareto Leader) | Gen 1 | 95.0 | 85.0 | 98.0 | 95.0 | 98.0 | $-18.75$ (Cleared Telemetry) | **74.80** |
+| **`gen_1_mutant_1`** (Top Raw Rubric) | Gen 1 | 98.0 | 92.0 | 100.0 | 98.0 | 100.0 | $-25.00$ (Thin Persona Prose) | **72.20** |
+| **`gen_1_consensus_1`** (Consensus Offspring) | Gen 1 | 95.0 | 90.0 | 100.0 | 98.0 | 100.0 | $-25.00$ (Non-executable) | **70.95** |
+| **`gen_1_mutant_2`** (Directed Mutant 2) | Gen 1 | 95.0 | 90.0 | 98.0 | 95.0 | 100.0 | $-25.00$ (Non-executable) | **70.10** |
 
 ---
 
@@ -74,10 +77,11 @@ Where:
 
 Evolutionary progression across tournaments demonstrates that multi-agent enterprises exhibit profound structural plasticity under selective pressure:
 
-### 3.1 Headcount Dynamics & Specialized Sub-Pods
+### 3.1 Headcount Dynamics & Specialist Sub-Pods
 * **Gen 0 Seed Architecture (31 Agents)**: Standardized allocation consisting of 1 CEO, 5 Department Managers, and 25 Specialists (5 per pod across Strategy, Silicon/Systems, Software, Product/GTM, and Finance/Risk).
 * **Pilot Mutant Evolution ($31 \rightarrow 36$ Agents)**: In Experiment 001, judge critique identified existential dependencies on single-source lithography. The LLM Meta-Architect dynamically injected 5 new operational roles (e.g., *Secondary Silicon Foundry Architect*, *Tariff & Export Compliance Specialist*, and *Autonomous Fault Recovery Engineer*), directly raising Risk Resilience from $80.0$ to $98.0$.
 * **Gen 1 Packaging Evolution ($31 \rightarrow 32$ Agents)**: In Experiment 003, directed mutants (`gen_1_mutant_1` and `gen_1_mutant_2`) responded to sandbox gate failures by expanding the Systems Engineering pod to include a dedicated *Python Packaging & Test Automation Engineer* tasked explicitly with authoring valid `pyproject.toml` manifests and executable `pytest` suites.
+* **The "Thin Persona" Discovery**: In Gen 1, even with dedicated packaging roles, single-sentence backstories resulted in conversational prose instead of concrete code deliverables. This discovery motivates the transition to multi-bullet structured trait personas (`backstory_traits`) with explicit formatting invariants.
 
 ### 3.2 Cognitive Backstory & Behavioral Instruction Mutations
 * **Executive Deliberation Evolution**: Early seed generations relied on cooperative consensus reconciliation. Offspring genomes mutated toward **adversarial dialectic review**, actively pitting systems constraints against commercial ambitions and enforcing mandatory red-team stress testing before executive sign-off.
@@ -107,6 +111,12 @@ python3 -m src.main \
 python3 -m src.main \
   --mode single-firm \
   --config experiments/exp-002-parallel-tournament/champion_firm_3_genome.json \
+  --objective "Design and implement the production-ready 'agent-org' platform"
+
+# Replay Experiment 003 Champion
+python3 -m src.main \
+  --mode single-firm \
+  --config experiments/exp-003-parallel-gen1/winning_champion_genome.json \
   --objective "Design and implement the production-ready 'agent-org' platform"
 ```
 
