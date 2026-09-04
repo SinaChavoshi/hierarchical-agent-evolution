@@ -42,6 +42,7 @@ class AgentGenome(BaseModel):
     role: str = ""
     goal: str = ""
     backstory: str = ""
+    backstory_traits: List[str] = None
     temperature: float = 0.7
     model_tier: str = "worker"
     tools_enabled: List[str] = None
@@ -49,6 +50,8 @@ class AgentGenome(BaseModel):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        if not hasattr(self, "backstory_traits") or self.backstory_traits is None:
+            self.backstory_traits = kwargs.get("backstory_traits", [])
         if not hasattr(self, "tools_enabled") or self.tools_enabled is None:
             self.tools_enabled = kwargs.get("tools_enabled", [])
         if not hasattr(self, "temperature") or self.temperature is None:

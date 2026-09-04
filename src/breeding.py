@@ -46,6 +46,48 @@ class ThreeWayBreedingEngine:
             "common_deliberation_rule": top_firms[0][0].executive_deliberation_rules
         }
 
+    def extract_consensus_traits(self, top_firms: List[Tuple[CompanyGenome, EvaluationResult]]) -> Dict[str, List[str]]:
+        """Extracts high-frequency trait alleles across corresponding roles in the winning firms."""
+        role_traits: Dict[str, Dict[str, int]] = {}
+        for firm, _ in top_firms:
+            # CEO traits
+            ceo_role = firm.ceo.role
+            role_traits.setdefault(ceo_role, {})
+            for t in getattr(firm.ceo, "backstory_traits", []) or []:
+                role_traits[ceo_role][t] = role_traits[ceo_role].get(t, 0) + 1
+            
+            # Department agents traits
+            for dept in firm.departments:
+                mgr_role = dept.manager.role
+                role_traits.setdefault(mgr_role, {})
+                for t in getattr(dept.manager, "backstory_traits", []) or []:
+                    role_traits[mgr_role][t] = role_traits[mgr_role].get(t, 0) + 1
+                for a in dept.agents:
+                    role_traits.setdefault(a.role, {})
+                    for t in getattr(a, "backstory_traits", []) or []:
+                        role_traits[a.role][t] = role_traits[a.role].get(t, 0) + 1
+
+        consensus_traits: Dict[str, List[str]] = {}
+        threshold = max(1, int(len(top_firms) * 0.4))
+        for role, trait_counts in role_traits.items():
+            consensus_traits[role] = [t for t, count in trait_counts.items() if count >= threshold]
+
+        return consensus_traits
+
+    def crossover_agent_traits(self, parent_a_traits: List[str], parent_b_traits: List[str]) -> List[str]:
+        """Performs allelic crossover between two trait sets, interleaving non-redundant operational axioms."""
+        combined = []
+        seen = set()
+        max_len = max(len(parent_a_traits or []), len(parent_b_traits or []))
+        for i in range(max_len):
+            if parent_a_traits and i < len(parent_a_traits) and parent_a_traits[i] not in seen:
+                combined.append(parent_a_traits[i])
+                seen.add(parent_a_traits[i])
+            if parent_b_traits and i < len(parent_b_traits) and parent_b_traits[i] not in seen:
+                combined.append(parent_b_traits[i])
+                seen.add(parent_b_traits[i])
+        return combined[:6]
+
     def breed_consensus_offspring(
         self,
         top_firms: List[Tuple[CompanyGenome, EvaluationResult]],
@@ -53,20 +95,50 @@ class ThreeWayBreedingEngine:
         count: int,
         target_generation: int
     ) -> List[CompanyGenome]:
-        """Group A (Consensus): Generates offspring that preserve and reinforce shared winning motifs."""
+        """Group A (Consensus): Generates offspring that preserve and reinforce shared winning motifs and consensus traits."""
+        consensus_traits = self.extract_consensus_traits(top_firms)
         offspring: List[CompanyGenome] = []
         for i in range(count):
-            parent = copy.deepcopy(random.choice(top_firms)[0])
+            parent_a = random.choice(top_firms)[0]
+            parent_b = random.choice(top_firms)[0]
+            child = copy.deepcopy(parent_a)
             child_id = f"gen_{target_generation}_consensus_{i+1}"
-            parent.company_id = child_id
-            parent.generation = target_generation
-            parent.ceo.temperature = max(0.2, min(1.0, consensus_motifs["mean_ceo_temp"] + random.uniform(-0.05, 0.05)))
+            child.company_id = child_id
+            child.generation = target_generation
+            child.parent_ids = [parent_a.company_id, parent_b.company_id]
+            child.ceo.temperature = max(0.2, min(1.0, consensus_motifs["mean_ceo_temp"] + random.uniform(-0.05, 0.05)))
             
-            # Enforce shared department invariants
-            parent.mutation_history.append(
-                f"Gen {target_generation} Consensus: Reinforced shared motifs {consensus_motifs['shared_department_ids']}"
+            # Crossover CEO traits
+            child.ceo.backstory_traits = self.crossover_agent_traits(
+                getattr(parent_a.ceo, "backstory_traits", []) or [],
+                getattr(parent_b.ceo, "backstory_traits", []) or []
             )
-            offspring.append(parent)
+            # Add role consensus traits if available
+            for ct in consensus_traits.get(child.ceo.role, []):
+                if ct not in child.ceo.backstory_traits and len(child.ceo.backstory_traits) < 6:
+                    child.ceo.backstory_traits.append(ct)
+
+            # Crossover departmental traits
+            for d_idx, dept in enumerate(child.departments):
+                b_dept = parent_b.departments[d_idx] if d_idx < len(parent_b.departments) else None
+                if b_dept:
+                    dept.manager.backstory_traits = self.crossover_agent_traits(
+                        getattr(dept.manager, "backstory_traits", []) or [],
+                        getattr(b_dept.manager, "backstory_traits", []) or []
+                    )
+                    for a_idx, agent in enumerate(dept.agents):
+                        b_agent = b_dept.agents[a_idx] if a_idx < len(b_dept.agents) else None
+                        if b_agent:
+                            agent.backstory_traits = self.crossover_agent_traits(
+                                getattr(agent, "backstory_traits", []) or [],
+                                getattr(b_agent, "backstory_traits", []) or []
+                            )
+
+            # Enforce shared department invariants
+            child.mutation_history.append(
+                f"Gen {target_generation} Consensus: Recombined traits from {parent_a.company_id} & {parent_b.company_id}"
+            )
+            offspring.append(child)
         return offspring
 
     def breed_pareto_extremes(
@@ -187,22 +259,36 @@ that directly solves these collective vulnerabilities. Return valid JSON only.""
             except Exception:
                 pass
 
-            # Fallback heuristic directed mutation
+            # Fallback heuristic directed mutation with structured traits
             parent = copy.deepcopy(random.choice(top_firms)[0])
             parent.company_id = child_id
             parent.generation = target_generation
-            # Jitter temperature and inject telemetry / chaos specialist
+            
+            # Inject strict deliverable trait into CEO
+            if not hasattr(parent.ceo, "backstory_traits") or not parent.ceo.backstory_traits:
+                parent.ceo.backstory_traits = []
+            parent.ceo.backstory_traits.append(
+                "Mandate complete inclusion of executable files, pyproject.toml, and pytest suites from engineering pods using '### File: <path>' headers."
+            )
+
+            # Jitter temperature and inject packaging / telemetry specialist
             if len(parent.departments) > 0:
                 parent.departments[0].agents.append(
                     AgentGenome(
-                        role="Telemetry & Continuous Verification Specialist",
-                        goal="Ensure automated instrumentation and continuous health checks across all functions.",
-                        backstory="SRE expert specializing in distributed tracing and observability.",
-                        temperature=0.3,
+                        role="Python Packaging & Deterministic Sandbox Specialist",
+                        goal="Ensure 100% executable pyproject.toml, pytest test suites, and clean directory structure.",
+                        backstory="Staff DevOps & Build Engineer passionate about executable Python packages.",
+                        backstory_traits=[
+                            "Always author complete, production-ready code files formatted strictly as '### File: <path>' with fenced code blocks.",
+                            "Every module must be paired with unit tests in 'tests/test_<module>.py' containing assertions.",
+                            "Specify clean 'pyproject.toml' manifests with build-system and runtime dependencies.",
+                            "Ensure OpenTelemetry trace spans are embedded across all service interfaces."
+                        ],
+                        temperature=0.2,
                         model_tier="worker"
                     )
                 )
-            parent.mutation_history.append(f"Gen {target_generation} Directed Mutation: Injected Telemetry Specialist")
+            parent.mutation_history.append(f"Gen {target_generation} Directed Mutation: Injected Packaging & Sandbox Specialist with structured traits")
             offspring.append(parent)
 
         return offspring

@@ -13,11 +13,16 @@ class HierarchicalCompanyRunner:
         self.genome = genome
 
     def _execute_agent(self, agent: AgentGenome, prompt: str, context: str = "") -> str:
-        """Invokes a single agent with their persona backstory and system instructions."""
+        """Invokes a single agent with their persona backstory, operational traits, and system instructions."""
+        traits_section = ""
+        if hasattr(agent, "backstory_traits") and agent.backstory_traits:
+            traits_section = "\nCore Operational Axioms & Behavioral Traits:\n" + "\n".join([f"- {t}" for t in agent.backstory_traits]) + "\n"
+
         system_prompt = (
             f"You are the {agent.role}.\n"
             f"Your Core Mission: {agent.goal}\n"
             f"Your Professional Background & Perspective:\n{agent.backstory}\n"
+            f"{traits_section}"
         )
         if agent.system_instructions:
             system_prompt += f"\nSpecific Behavioral Guardrails: {agent.system_instructions}\n"
@@ -100,7 +105,11 @@ class HierarchicalCompanyRunner:
             f"Departmental Submissions:\n{all_briefs_text}\n\n"
             f"Synthesize these submissions into a comprehensive Master Strategic Deliverable. "
             f"Reconcile trade-offs between departments, challenge weak assumptions, and deliver "
-            f"an exhaustive, actionable, and world-class strategic execution plan."
+            f"an exhaustive, actionable, and world-class strategic execution plan.\n\n"
+            f"CRITICAL DELIVERABLE INVARIANT: If technical specifications, Python code, configuration manifests "
+            f"(e.g. pyproject.toml), or test suites were produced by your engineering teams, you MUST include the complete, unabridged "
+            f"source code files in your final deliverable formatted strictly as '### File: <relative_path>' followed by fenced code blocks. "
+            f"Do not truncate or summarize code into bullet points, as automated sandbox verification requires valid executable files."
         )
         final_deliverable = self._execute_agent(self.genome.ceo, ceo_final_prompt)
 
