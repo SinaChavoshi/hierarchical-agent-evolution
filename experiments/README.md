@@ -22,7 +22,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 
 The chart below contrasts the unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory across evolutionary iterations:
 
-![Generational Fitness Trajectory & Architecture Optimization](assets/fitness_trajectory.svg)
+![Generational Fitness Trajectory & Architecture Optimization](assets/fitness_trajectory.png)
 
 ```mermaid
 graph LR
