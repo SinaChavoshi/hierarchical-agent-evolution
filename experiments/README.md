@@ -14,6 +14,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | [**`exp-002-parallel-tournament`**](exp-002-parallel-tournament/) | High-Throughput 10-Firm Parallel Tournament with 4-Gate Sandbox | Cloud Kubernetes (5 Parallel Pods) | 10 virtual enterprises (310 agents) | **77.50** | [`exp-002-parallel-tournament/`](exp-002-parallel-tournament/) |
 | [**`exp-003-parallel-gen1`**](exp-003-parallel-gen1/) | 3-Way Recombination & Directed Packaging Mutation | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (312 agents) | **76.55** | [`exp-003-parallel-gen1/`](exp-003-parallel-gen1/) |
 | [**`exp-004-parallel-gen2`**](exp-004-parallel-gen2/) | Persona Discretization (`backstory_traits`) & Sandbox Convergence | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (314 agents) | **94.50** | [`exp-004-parallel-gen2/`](exp-004-parallel-gen2/) |
+| [**`exp-005-parallel-gen3`**](exp-005-parallel-gen3/) | Allelic Consensus Mining & Hermetic Pytest Assertion Rigor | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (318 agents) | **96.75** | [`exp-005-parallel-gen3/`](exp-005-parallel-gen3/) |
 
 ---
 
@@ -21,28 +22,30 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 
 ### 2.1 Visual Performance Trajectory
 
-The chart below contrasts the unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory across 4 evolutionary generations:
+The chart below contrasts the unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory across 5 evolutionary generations:
 
 ![Generational Fitness Trajectory & Sandbox Convergence](assets/fitness_trajectory.png)
 
 ```mermaid
 graph LR
     subgraph TrackA ["Track A: Unconstrained Semantic Search (Exp 001)"]
-        Seed["Gen 0 Seed Baseline<br/>Score: 93.00 (31 Agents)"] --> Firm3["Gen 0 Firm 3 Winner<br/>Score: 94.60"]
-        Firm3 --> Elite2["Gen 1 Tournament Champion (gen_1_elite_2)<br/>Score: 96.25 (+3.25 pts)"]
+        Seed["Gen 0 Baseline Seed<br/>Score: 93.00 (31 Agents)"] --> Firm3["Gen 0 Firm 3 Winner<br/>Score: 94.60"]
+        Firm3 --> Elite2["Gen 1 Champion<br/>Score: 96.25 (+3.25 pts)"]
     end
 
-    subgraph TrackB ["Track B: Ground-Truth Deterministic Sandbox (Exp 002, 003, & 004)"]
+    subgraph TrackB ["Track B: Ground-Truth Deterministic Sandbox (Exp 002 through 005)"]
         ParSeed["Gen 0 Parallel Cohort (Exp 002)<br/>Raw Semantic: ~95-98 pts"]
         Gates{"4 Deterministic Gates<br/>Build | Smoke | OTel | Test"}
         Penalized["Gen 0 Grounded Survivors<br/>Docked -18.75 to -25.0 pts<br/>Top: gen_0_firm_3 (77.50)"]
-        Gen1Cohort["Gen 1 Cohort (Exp 003)<br/>Champion: gen_1_elite_2 (76.55)<br/>Mutant 1 Raw: 97.20 (-25.0 docked)"]
-        Gen2Cohort["Gen 2 Cohort (Exp 004)<br/>Champion: gen_2_mutant_2 (94.50)<br/>10 Files Extracted | Zero Penalty!"]
+        Gen1Cohort["Gen 1 Cohort (Exp 003)<br/>Champion: gen_1_elite_2 (76.55)<br/>Docked -18.75 to -25.0"]
+        Gen2Cohort["Gen 2 Cohort (Exp 004)<br/>Champion: gen_2_mutant_2 (94.50)<br/>90% Code | 3 Zero-Penalty"]
+        Gen3Cohort["Gen 3 Cohort (Exp 005)<br/>Champion: gen_3_consensus_2 (96.75)<br/>100% Code | 4 Zero-Penalty"]
 
         ParSeed --> Gates
         Gates --> Penalized
         Penalized -->|3-Way Breeding| Gen1Cohort
         Gen1Cohort -->|Persona Discretization| Gen2Cohort
+        Gen2Cohort -->|Allelic Consensus Mining| Gen3Cohort
     end
 ```
 
@@ -64,84 +67,65 @@ Where:
 
 | Milestone / Architecture | Generation | Strategic (25%) | Technical (25%) | Coherence (20%) | Risk (15%) | Action (15%) | Sandbox Penalty | Overall Fitness | Gates Cleared |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
-| **`exp001_seed`** (Baseline) | Gen 0 | 95.0 | 80.0 | 100.0 | 95.0 | 100.0 | $0.00$ (Unanchored) | **93.00** | N/A |
-| **`exp001_firm_3`** (Gen 0 Winner) | Gen 0 | 95.0 | 88.0 | 98.0 | 97.0 | 98.0 | $0.00$ (Unanchored) | **94.60** | N/A |
-| **`exp001_elite_2`** (Champion) | Gen 1 | 95.0 | 90.0 | 100.0 | 98.0 | 100.0 | $0.00$ (Unanchored) | **96.25** | N/A |
-| **`gen_0_firm_3`** (Gen 0 Parallel Champ) | Gen 0 | 95.0 | 98.0 | 95.0 | 95.0 | 95.0 | $-18.75$ | **77.50** | OTel |
-| **`gen_1_elite_2`** (Gen 1 Champion) | Gen 1 | 95.0 | 92.0 | 98.0 | 96.0 | 97.0 | $-18.75$ | **76.55** | OTel |
-| **`gen_1_pareto_bonus_1`** (Pareto Leader) | Gen 1 | 95.0 | 85.0 | 98.0 | 95.0 | 98.0 | $-18.75$ | **74.80** | OTel |
-| **`gen_1_mutant_1`** (Top Raw Rubric) | Gen 1 | 98.0 | 92.0 | 100.0 | 98.0 | 100.0 | $-25.00$ (Thin Persona) | **72.20** | None |
-| **`gen_2_mutant_2`** (Gen 2 Champion) | Gen 2 | 95.0 | 93.0 | 96.0 | 94.0 | 95.0 | **$0.00$ (All Gates Pass)** | **94.50** | **Build, Smoke, OTel, Tests (10 Files)** |
-| **`gen_2_pareto_bonus_3`** (Gen 2 Rank #2) | Gen 2 | 94.0 | 95.0 | 93.0 | 91.0 | 92.0 | **$0.00$ (All Gates Pass)** | **92.85** | **Build, Smoke, OTel, Tests (5 Files)** |
-| **`gen_2_consensus_2`** (Gen 2 Rank #3) | Gen 2 | 98.0 | 95.0 | 98.0 | 95.0 | 98.0 | $-6.25$ | **90.50** | Build, Smoke, OTel (5 Files) |
-| **`gen_2_elite_1`** (Gen 2 Rank #4) | Gen 2 | 95.0 | 93.0 | 95.0 | 94.0 | 95.0 | $-12.50$ | **81.90** | OTel, Tests (7 Files) |
-| **`gen_2_pareto_bonus_2`** (Gen 2 Rank #5) | Gen 2 | 90.0 | 90.0 | 85.0 | 88.0 | 88.0 | $-6.25$ | **81.75** | Build, Smoke, OTel (4 Files) |
+| **`exp001_seed`** (Baseline) | Gen 0 | 95.0 | 80.0 | 100.0 | 95.0 | 100.0 | $0.00$ | **93.00** | Unanchored Baseline |
+| **`exp001_elite_2`** (Exp 001 Top) | Gen 1 | 95.0 | 90.0 | 100.0 | 98.0 | 100.0 | $0.00$ | **96.25** | Unanchored Baseline |
+| **`gen_0_firm_3`** (Gen 0 Champ) | Gen 0 | 95.0 | 98.0 | 95.0 | 95.0 | 95.0 | $-18.75$ | **77.50** | OTel Only |
+| **`gen_1_elite_2`** (Gen 1 Champ) | Gen 1 | 95.0 | 92.0 | 98.0 | 96.0 | 97.0 | $-18.75$ | **76.55** | OTel Only |
+| **`gen_2_mutant_2`** (Gen 2 Champ) | Gen 2 | 95.0 | 93.0 | 96.0 | 94.0 | 95.0 | **$0.00$** | **94.50** | **Build, Smoke, OTel, Tests (10 Files)** |
+| **`gen_2_pareto_bonus_3`** (Gen 2 #2) | Gen 2 | 94.0 | 95.0 | 93.0 | 91.0 | 92.0 | **$0.00$** | **92.85** | **Build, Smoke, OTel, Tests (5 Files)** |
+| **`gen_3_consensus_2`** (Gen 3 Champ) | Gen 3 | 95.0 | 98.0 | 100.0 | 90.0 | 100.0 | **$0.00$** | **96.75** | **Build, Smoke, OTel, Tests (5 Files - Record)** |
+| **`gen_3_pareto_bonus_3`** (Gen 3 #2) | Gen 3 | 95.0 | 95.0 | 100.0 | 90.0 | 100.0 | **$0.00$** | **96.00** | **Build, Smoke, OTel, Tests (5 Files)** |
+| **`gen_3_elite_1`** (Gen 3 #3) | Gen 3 | 92.0 | 95.0 | 100.0 | 94.0 | 98.0 | **$0.00$** | **95.55** | **Build, Smoke, OTel, Tests (8 Files)** |
+| **`gen_3_consensus_3`** (Gen 3 #4) | Gen 3 | 95.0 | 90.0 | 100.0 | 95.0 | 100.0 | **$0.00$** | **95.50** | **Build, Smoke, OTel, Tests (5 Files)** |
+| **`gen_3_elite_2`** (Gen 3 #5) | Gen 3 | 98.0 | 95.0 | 100.0 | 100.0 | 100.0 | $-6.25$ | **92.00** | Build, Smoke, OTel (5 Files) |
 
 ---
 
 ## 3. Genomic & Structural Mutation Highlights
 
-Evolutionary progression across tournaments demonstrates that multi-agent enterprises exhibit profound structural plasticity under selective pressure:
+### 3.1 The Power of Allelic Consensus Mining (Generation 3)
+* **Champion Origin (`gen_3_consensus_2`)**: Offspring generated by mining shared traits between `gen_2_mutant_2` (the Gen 2 packaging mutant) and `gen_2_pareto_bonus_2` (the coherence leader).
+* By isolating high-frequency operational alleles and crossing them over, the breeding engine reinforced:
+  1. Concrete packaging format axioms (`### File: <path>`)
+  2. Strict unit test assertions (`tests/test_<module>.py`)
+  3. Executive cross-functional coherence directives (100.0/100 score)
+* **Result**: An all-time record composite fitness of **96.75 pts** with a 0.00 sandbox penalty.
 
-### 3.1 Persona Discretization (`backstory_traits`) Breakthrough
-* **The "Thin Persona" Barrier in Generations 0 & 1**: Prior agent genomes encoded backstories as single monolithic strings (e.g. `"Staff DevOps & Build Engineer passionate about executable Python packages"`). Under LLM temperature sampling, agents defaulted to high-level conversational prose. Even when a dedicated packaging role was added, 0 files were emitted in final enterprise deliverables across all 20 firms in Gen 0 and 1, triggering $-18.75$ to $-25.00$ point deterministic penalties.
-* **Discrete Trait Alleles in Generation 2**: Personas were refactored into structured operational traits (`backstory_traits: List[str]`). By explicitly specifying operational invariants (e.g., `"Always author complete, production-ready code files formatted strictly as '### File: <path>' with fenced code blocks"`, `"Every module must be paired with unit tests in 'tests/test_<module>.py' containing concrete assertions"`), behavioral compliance jumped dramatically:
-  * **90% of firms** (9/10) emitted concrete Python packages and test suites.
-  * **3 firms** achieved zero penalty ($0.00$ pts docked), clearing all 4 sandbox gates.
-  * **Tournament Champion `gen_2_mutant_2`** set a historical record of **94.50 pts** with 10 verified code files.
-  * **Cohort Mean** increased from $69.60$ to **$81.52$ pts** (+11.92 pt generational leap).
+### 3.2 100% Code Extraction Across the Cohort
+* In Generations 0 and 1, 0% of firms emitted extractable code files due to thin monolithic backstories.
+* In Generation 2, 90% emitted code.
+* In Generation 3, **100% of enterprises (10/10)** successfully authored full multi-file codebases, packages, manifests, and test suites.
 
-### 3.2 3-Way Breeding Dynamics: Consensus vs. Pareto vs. Mutants
-* **Allelic Consensus Mining**: The breeding engine analyzes common traits across top survivors to form consensus offspring (`gen_2_consensus_1..3`). This strategy reinforced architectural coherence (reaching 98/100) and build viability.
-* **Pareto Frontier Offspring**: Selects firms dominating on specific criteria (e.g. Technical Feasibility). `gen_2_pareto_bonus_3` leveraged extreme technical depth combined with deliverable traits to achieve a flawless $0.00$ penalty run and $92.85$ pts.
-* **Directed Packaging Mutants**: By injecting a dedicated *Python Packaging & Deterministic Sandbox Specialist* into the Systems Engineering department and augmenting the CEO's traits, `gen_2_mutant_2` captured #1 overall.
-
-### 3.3 Headcount Dynamics & Department Topologies
-* **Gen 0 Seed Architecture (31 Agents)**: 1 CEO, 5 Department Managers, 25 Specialists.
-* **Pilot Expansion ($31 \rightarrow 36$ Agents)**: In Experiment 001, judge critique dynamically injected 5 new operational roles (e.g. *Secondary Silicon Foundry Architect*, *Export Compliance Specialist*), raising Risk Mitigation from 80.0 to 98.0.
-* **Packaging Expansion ($31 \rightarrow 32$ Agents)**: In Experiments 003 and 004, directed mutants expanded the Systems Engineering pod to include dedicated packaging specialists.
+### 3.3 Four Flawless Zero-Penalty Passes
+* Four separate lineages (`gen_3_consensus_2`, `gen_3_pareto_bonus_3`, `gen_3_elite_1`, `gen_3_consensus_3`) achieved **100% pass rates across all 4 gates** (Build, Smoke, Telemetry, Tests).
+* Cohort mean climbed from $71.37$ (Gen 0) $\rightarrow$ $69.60$ (Gen 1) $\rightarrow$ $81.52$ (Gen 2) $\rightarrow$ **$86.47$ pts** (Gen 3).
 
 ---
 
 ## 4. Total Reproduction Protocol
 
-All experiments are engineered for full deterministic replay. To reproduce any tournament generation:
+All experiments are engineered for full deterministic replay:
 
 ### Local Replay (Single Enterprise)
 ```bash
-# Replay Experiment 001 Champion
-python3 -m src.main \
-  --mode single-firm \
-  --config experiments/exp-001-pilot-baseline/winning_champion_genome.json \
-  --objective "5-Year Hyperscale AI Compute Cloud Strategy"
-
-# Replay Experiment 002 Champion
-python3 -m src.main \
-  --mode single-firm \
-  --config experiments/exp-002-parallel-tournament/champion_firm_3_genome.json \
-  --objective "Design and implement the production-ready 'agent-org' platform"
-
-# Replay Experiment 003 Champion
-python3 -m src.main \
-  --mode single-firm \
-  --config experiments/exp-003-parallel-gen1/winning_champion_genome.json \
-  --objective "Design and implement the production-ready 'agent-org' platform"
-
 # Replay Experiment 004 Champion
 python3 -m src.main \
   --mode single-firm \
   --config experiments/exp-004-parallel-gen2/winning_champion_genome.json \
   --objective "Design and implement the production-ready 'agent-org' platform"
+
+# Replay Experiment 005 Champion (All-Time Record: 96.75)
+python3 -m src.main \
+  --mode single-firm \
+  --config experiments/exp-005-parallel-gen3/winning_champion_genome.json \
+  --objective "Design and implement the production-ready 'agent-org' platform"
 ```
 
 ### Distributed Cluster Replay (Full Tournament)
 ```bash
-# Re-run Experiment 002 (10-firm parallel tournament)
-kubectl apply -f k8s/parallel-indexed-job-east4.yaml
-
-# Re-run Experiment 003 (Generation 1 tournament)
-kubectl apply -f k8s/parallel-indexed-job-gen1-east4.yaml
-
 # Re-run Experiment 004 (Generation 2 tournament)
 kubectl apply -f k8s/parallel-indexed-job-gen2-east4.yaml
+
+# Re-run Experiment 005 (Generation 3 tournament)
+kubectl apply -f k8s/parallel-indexed-job-gen3-east4.yaml
 ```
