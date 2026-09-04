@@ -124,7 +124,7 @@ class EvolutionaryTournamentEngine:
                     "evaluation": eval_result.model_dump(),
                     "run_output": run_output,
                     "verification": v_score.__dict__
-                }, f, indent=2)
+                }, f, indent=2, default=str)
 
         # Sort leaderboard by overall score descending
         gen_results.sort(key=lambda x: x[1].fitness.overall_score, reverse=True)

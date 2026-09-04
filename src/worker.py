@@ -116,7 +116,7 @@ def evaluate_single_firm(
     os.makedirs(gen_dir, exist_ok=True)
     local_path = os.path.join(gen_dir, f"{company_id}_result.json")
     with open(local_path, "w") as f:
-        json.dump(result_payload, f, indent=2)
+        json.dump(result_payload, f, indent=2, default=str)
 
     # Sync to GCS
     if gcs_bucket:
