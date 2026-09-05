@@ -16,6 +16,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | [**`exp-004-parallel-gen2`**](exp-004-parallel-gen2/) | Persona Discretization (`backstory_traits`) & Sandbox Convergence | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (314 agents) | **94.50** | [`exp-004-parallel-gen2/`](exp-004-parallel-gen2/) |
 | [**`exp-005-parallel-gen3`**](exp-005-parallel-gen3/) | Allelic Consensus Mining & Hermetic Pytest Assertion Rigor | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (318 agents) | **96.75** | [`exp-005-parallel-gen3/`](exp-005-parallel-gen3/) ([Report](exp-005-parallel-gen3/experiment_report.md)) |
 | [**`exp-006-parallel-gen4`**](exp-006-parallel-gen4/) | Autonomous Sizing, Model Unit Economics & Token OpEx Envelope | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (320 agents) | **96.75** | [`exp-006-parallel-gen4/`](exp-006-parallel-gen4/) ([Report](exp-006-parallel-gen4/experiment_report.md)) |
+| [**`exp-007-parallel-gen5`**](#6-active-tournament-generation-5-active-tool-sandboxing--corporate-ip-marketplace) | Active Tool Sandboxing (Agent Execution Runtimes) & Corporate IP Marketplace | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (320 agents) | *Evaluating* | [Section 6](#6-active-tournament-generation-5-active-tool-sandboxing--corporate-ip-marketplace) |
 
 ---
 
@@ -23,7 +24,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 
 ### 2.1 Visual Performance Trajectory
 
-The chart below contrasts the unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory across 5 evolutionary generations:
+The chart below contrasts the unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory across 6 evolutionary generations:
 
 ![Generational Fitness Trajectory & Sandbox Convergence](assets/fitness_trajectory.png)
 
@@ -34,7 +35,7 @@ graph LR
         Firm3 --> Elite2["Gen 1 Champion<br/>Score: 96.25 (+3.25 pts)"]
     end
 
-    subgraph TrackB ["Track B: Ground-Truth Deterministic Sandbox (Exp 002 through 005)"]
+    subgraph TrackB ["Track B: Ground-Truth Deterministic Sandbox (Exp 002 through 006+)"]
         ParSeed["Gen 0 Parallel Cohort (Exp 002)<br/>Raw Semantic: ~95-98 pts"]
         Gates{"4 Deterministic Gates<br/>Build | Smoke | OTel | Test"}
         Penalized["Gen 0 Grounded Survivors<br/>Docked -18.75 to -25.0 pts<br/>Top: gen_0_firm_3 (77.50)"]
@@ -48,6 +49,7 @@ graph LR
         Gen1Cohort -->|Persona Discretization| Gen2Cohort
         Gen2Cohort -->|Allelic Consensus Mining| Gen3Cohort
         Gen3Cohort -->|Autonomous Sizing & OpEx Economics| Gen4Cohort["Gen 4 Cohort (Exp 006)<br/>Champion: gen_4_elite_2 (96.75)<br/>100% Code (10 Files) | $0.0305 OpEx"]
+        Gen4Cohort -->|Active Tool Sandboxing & IP Marketplace| Gen5Cohort["Gen 5 Cohort (Exp 007)<br/>Live Execution Scratchpads<br/>Corporate IP Registry (*Running*)"]
     end
 ```
 
