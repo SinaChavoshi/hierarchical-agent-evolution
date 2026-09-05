@@ -120,6 +120,12 @@ python3 -m src.main \
   --mode single-firm \
   --config experiments/exp-005-parallel-gen3/winning_champion_genome.json \
   --objective "Design and implement the production-ready 'agent-org' platform"
+
+# Replay Experiment 006 Champion (Gen 4 Champion: 96.75, $0.0305 OpEx)
+python3 -m src.main \
+  --mode single-firm \
+  --config experiments/exp-006-parallel-gen4/winning_champion_genome.json \
+  --objective "Design and implement the production-ready 'agent-org' platform"
 ```
 
 ### Distributed Cluster Replay (Full Tournament)
@@ -129,13 +135,15 @@ kubectl apply -f k8s/parallel-indexed-job-gen2-east4.yaml
 
 # Re-run Experiment 005 (Generation 3 tournament)
 kubectl apply -f k8s/parallel-indexed-job-gen3-east4.yaml
+
+# Re-run Experiment 006 (Generation 4 tournament)
+kubectl apply -f k8s/parallel-indexed-job-gen4-east4.yaml
 ```
 
 ---
 
-## 5. Future Evolutionary Roadmap: Generations 4, 5, 6 and Beyond
+## 5. Completed Benchmark: Generation 4 (Autonomous Sizing & Model Unit Economics)
 
-### 5.1 Generation 4: Autonomous Sizing & Model Unit Economics (Completed in Exp 006)
 * **Autonomous Headcount Morphogenesis**: Granting the CEO and Department Managers intra-generational authority to scale specialist headcount (from 3 up to 6 specialists per pod). The population solidified an asymmetric 32-agent topology, allocating the 6th specialist to Systems Engineering (`dept_systems_eng`).
 * **Model Tier Unit Economics**: Tiered compute architecture assigning real-world token cost weights ($0.075 / $0.30 per 1M tokens for Gemini 2.5 Flash vs. $1.25 / $5.00 per 1M tokens for Gemini 2.5 Pro). This compressed total OpEx by ~12x–16x, allowing complete 32-agent enterprise workflows to execute for $0.024–$0.123 USD against the $0.45 budget envelope.
 * **Empirical Findings & The Lean Discipline**:
@@ -144,7 +152,10 @@ kubectl apply -f k8s/parallel-indexed-job-gen3-east4.yaml
   * **The Under-Sizing Frontier**: Extreme austerity (`gen_4_pareto_bonus_2`, 23k tokens / $0.0241 USD) undershot implementation depth, emitting only 4 skeleton files and failing unit tests (-18.75 penalty, 79.05 pts).
   * See the full empirical analysis in the [Generation 4 Experiment Report](exp-006-parallel-gen4/experiment_report.md).
 
-### 5.2 Generation 5: Active Tool Sandboxing & Corporate IP Marketplace (Active / In Progress)
+---
+
+## 6. Active Tournament: Generation 5 (Active Tool Sandboxing & Corporate IP Marketplace)
+
 * **Active Tool Sandboxing (Agent Execution Runtimes)**:
   * Transitions specialist agents from passive text generation to active sandboxed execution.
   * Equips engineering agents with safe workspace primitives: `write_file`, `read_file`, `list_files`, and `execute_bash(command)`.
@@ -153,28 +164,36 @@ kubectl apply -f k8s/parallel-indexed-job-gen3-east4.yaml
   * Virtual enterprises package and register reusable software assets (e.g., tested Python modules, OpenTelemetry exporters, pytest harness fixtures) and agent skills into an open **Corporate Asset Registry**.
   * Pre-licensed assets are mounted directly into the scratch sandbox directory at initialization, enabling offspring to import and extend them.
   * Originator firms receive a royalty credit ($0.015 USD) on their corporate balance sheet when peers license their verified assets.
+* **Distributed Cluster Execution**:
+  ```bash
+  kubectl apply -f k8s/parallel-indexed-job-gen5-east4.yaml
+  ```
 
-### 5.3 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Inter-Firm Strategic Co-opetition & Consortiums
+---
+
+## 7. Future Evolutionary Roadmap: Generation 6 and Beyond
+
+### 7.1 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Inter-Firm Strategic Co-opetition & Consortiums
 * **Cross-Company Executive Communication**:
   * CEOs and VPs gain secure inter-firm communication channels to negotiate bilateral strategic alliances, technology licensing, and joint-venture consortiums.
 * **Game-Theoretic Coalitions**:
   * Incorporates non-zero-sum game theory (Co-opetition, Tit-for-Tat, and Consortium Formation). Two specialized enterprises (e.g., a Systems Architecture champion and a GTM/Strategic Moats leader) can execute a bilateral joint-venture term sheet to co-author unified deliverables evaluated jointly under the sandbox.
 
-### 5.4 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Pluggable Multi-Domain Evaluation & Autonomous Teleological OKRs
+### 7.2 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Pluggable Multi-Domain Evaluation & Autonomous Teleological OKRs
 * **Multi-Domain Verification Harnesses**:
   * Decouples evaluation from software development via a pluggable `BaseVerificationHarness` interface.
   * Pluggable adapters for Quantitative Trading (`FinancialTradingHarness` backtesting Sharpe/PnL), Regulatory Auditing (`ComplianceHarness`), and Formal Scientific Papers (`ScientificPaperHarness`).
 * **Autonomous Teleological Metric Formulation (Endogenous OKRs)**:
   * Under ambiguous strategic missions, CEOs autonomously synthesize and evolve their own `EvaluationMetricSpec` (internal OKRs, verifiable acceptance criteria, and priority weights). Offspring inherit and refine these metric specifications, modeling how real startups discover product-market fit.
 
-### 5.5 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Autonomous Morphogenesis & Dynamic Topologies
+### 7.3 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Autonomous Morphogenesis & Dynamic Topologies
 * **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**:
   * Eliminates the rigid 5-department corporate template (`default_company.json`).
   * Given an arbitrary objective, a `MetaExecutive` synthesizes the optimal organizational topology (e.g. 2 lean pods for a lightweight utility vs. 6 specialized pods for a distributed database).
 * **Structural Allelic Crossover**:
   * Enables genetic recombination across enterprises with differing numbers of departments and specialist roles using semantic role embeddings.
 
-### 5.6 Priority 2 (P2 — Infrastructure & Portability Expansion): Universal Multi-Platform & LLM Provider Portability
+### 7.4 Priority 2 (P2 — Infrastructure & Portability Expansion): Universal Multi-Platform & LLM Provider Portability
 * **Zero Cloud Lock-In / Universal LLM Providers**:
   * Decouples the platform from Google Cloud Vertex AI REST and service account requirements.
   * Direct support for **Gemini Developer API keys** (`GEMINI_API_KEY`), **OpenAI** (`OPENAI_API_KEY`), **Anthropic** (`ANTHROPIC_API_KEY`), and local open-source models via **Ollama / vLLM** (`http://localhost:11434/v1`).
