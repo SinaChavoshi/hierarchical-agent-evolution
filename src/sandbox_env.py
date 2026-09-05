@@ -19,6 +19,11 @@ class AgentWorkspace:
         self.workspace_dir = os.path.abspath(os.path.join(base_dir, company_id))
         os.makedirs(self.workspace_dir, exist_ok=True)
 
+    @property
+    def path(self) -> str:
+        """Alias for workspace_dir."""
+        return self.workspace_dir
+
     def _resolve_path(self, relative_path: str) -> str:
         """Resolves a path relative to workspace_dir and guards against path traversal."""
         clean_path = os.path.normpath(relative_path.strip().lstrip("/"))

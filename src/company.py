@@ -393,6 +393,6 @@ class HierarchicalCompanyRunner:
             "estimated_tokens": total_tokens,
             "workspace_files": workspace_bundle,
             "workspace_tree": self.workspace.get_file_tree(),
-            "workspace_path": str(self.workspace.path),
+            "workspace_path": str(self.workspace.workspace_dir),
             "opex": opex.model_dump()
         }
