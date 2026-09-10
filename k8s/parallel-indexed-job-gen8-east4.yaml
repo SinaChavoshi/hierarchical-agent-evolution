@@ -66,9 +66,15 @@ spec:
           mountPath: /data
         - name: config-vol
           mountPath: /configs
+        - name: code-vol
+          mountPath: /app/src/company.py
+          subPath: company.py
       volumes:
       - name: data-vol
         emptyDir: {}
       - name: config-vol
         configMap:
           name: gen8-population
+      - name: code-vol
+        configMap:
+          name: gen8-code
