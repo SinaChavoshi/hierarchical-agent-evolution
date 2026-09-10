@@ -242,24 +242,39 @@ kubectl apply -f k8s/parallel-indexed-job-gen6-east4.yaml
 
 ---
 
-## 8. Active Generation & Future Evolutionary Roadmap: Generation 7 and Beyond
+## 8. Completed Benchmark: Generation 7 (Universal Multi-Platform & LLM Provider Portability)
 
-### 8.1 Priority 2 (P2 — Immediate Target for Generation 7): Universal Multi-Platform & LLM Provider Portability
-* **Zero Cloud Lock-In / Universal LLM Providers**:
-  * Decouples the platform from Google Cloud Vertex AI REST and service account requirements.
-  * Direct support for **Gemini Developer API keys** (`GEMINI_API_KEY`), **OpenAI** (`OPENAI_API_KEY`), **Anthropic** (`ANTHROPIC_API_KEY`), and local open-source models via **Ollama / vLLM** (`http://localhost:11434/v1`).
+* **Zero Cloud Lock-In / Universal LLM Engine (`src/llm_factory.py`)**:
+  * Decoupled the platform from Google Cloud Vertex AI REST and service account dependencies.
+  * Direct zero-setup support for **Gemini Developer API keys** (`GEMINI_API_KEY`), **OpenAI** (`OPENAI_API_KEY`), **Anthropic Claude** (`ANTHROPIC_API_KEY`), and local open-source models via **Ollama / vLLM** (`OPENAI_BASE_URL=http://localhost:11434/v1`).
   * Tiered compute mapping across all providers: Executive (`gpt-4o`, `claude-3-5-sonnet`, `gemini-2.5-pro`) vs. Worker (`gpt-4o-mini`, `claude-3-5-haiku`, `gemini-2.5-flash`, `llama-3.3-70b`).
-* **Portable Runtimes Beyond Google Kubernetes Engine (GKE)**:
-  * Single-command local execution (`hae run --objective "..."` via multi-threading / async).
-  * Docker Compose execution engine with gVisor / container isolation.
-  * Pluggable cluster backends: Ray and Slurm alongside Kubernetes Batch Indexed Jobs.
+* **Empirical Findings & Champion Emergence**:
+  * **Champion `gen_7_mutant_1` (Score: 82.70)**: 3 physical files on disk, cleared Build, Smoke, and Telemetry gates cleanly (-6.25 test penalty), consuming 718k tokens ($0.4632 USD OpEx).
+  * **Runner-Up `gen_7_consensus_2` (Score: 80.32)**: Recombined alleles from top Gen 6 survivors, authoring 9 physical files on disk and passing Build, Smoke, and Telemetry gates cleanly.
+  * **Standardized Fitness**: Achieved **82.70** standardized physical execution fitness under universal portability constraints.
+  * See the full empirical report in the [Generation 7 Experiment Report](exp-009-parallel-gen7/experiment_report.md).
 
-### 8.2 Closed-Loop Self-Healing & Sandbox Test Repair
-* **Dynamic Test Failure Feedback**:
-  * Specialist engineering agents receive sandbox error traces and stderr logs to execute iterative test repair turns before deliverable submission.
+---
 
-### 8.3 Autonomous Morphogenesis & Dynamic Topologies
+## 9. Active Generation & Future Evolutionary Roadmap: Generation 8 and Beyond
+
+### 9.1 Active Tournament: Generation 8 (Closed-Loop Sandbox Test Feedback & Automated Code Self-Repair)
+* **Closed-Loop Sandbox Test Verification (`src/company.py: Step 2.5`)**:
+  * Runs physical `pytest` within the live container scratchpad (`/tmp/hae_workspaces/{company_id}`).
+  * If assertions or syntax fail, extracts full stdout/stderr stack trace and triggers an iterative repair turn with technical specialists (`dept_systems_eng`, `dept_qa_redteam`).
+  * Specialists use `read_file`, `write_file`, and `execute_bash` to inspect code, patch implementation/fixtures, and re-verify tests before executive delivery.
+* **Target Objective**: Eliminate the persistent -6.25 pt test penalty and achieve 100% 4-Gate Sandbox Clearance across all virtual enterprises.
+* **Deployment**: 10 virtual enterprises (334 specialized agents) competing on GKE cluster (`parallel-firms-gen8-east4`).
+
+### 9.2 Generation 9: Autonomous Morphogenesis & Dynamic Organizational Topologies
 * **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**:
   * Eliminates the rigid 5-department corporate template (`default_company.json`). Given an arbitrary objective, a `MetaExecutive` synthesizes the optimal organizational topology (e.g. 2 lean pods for a lightweight utility vs. 6 specialized pods for a distributed database).
 * **Structural Allelic Crossover**:
   * Enables genetic recombination across enterprises with differing numbers of departments and specialist roles using semantic role embeddings.
+
+### 9.3 Generation 10: Cross-Cloud Federated Mesh & Autonomous Self-Evolving Evaluation Rubrics
+* **Cross-Cloud Multi-Agent Mesh**:
+  * Enterprises dynamically distribute specialist pods across multi-cloud infrastructure (GCP GKE + AWS EKS + local edge nodes) with zero-trust mTLS peer communication.
+* **Self-Evolving Evaluation Rubrics**:
+  * The evaluation harness evolves alongside agent code, autonomously synthesizing adversarial unit tests, fuzzing inputs, and formal verification proofs.
+
