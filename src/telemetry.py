@@ -8,8 +8,18 @@ from typing import Dict, Any, List, Optional
 
 # Cost per 1k tokens (approximate public list pricing for research accounting)
 COST_TABLE = {
+    # Google Gemini
     "gemini-2.5-flash": {"input_per_1k": 0.000075, "output_per_1k": 0.00030},
     "gemini-2.5-pro": {"input_per_1k": 0.00125, "output_per_1k": 0.00500},
+    # OpenAI
+    "gpt-4o-mini": {"input_per_1k": 0.00015, "output_per_1k": 0.00060},
+    "gpt-4o": {"input_per_1k": 0.00250, "output_per_1k": 0.01000},
+    # Anthropic
+    "claude-3-5-haiku-20241022": {"input_per_1k": 0.00100, "output_per_1k": 0.00500},
+    "claude-3-5-sonnet-20241022": {"input_per_1k": 0.00300, "output_per_1k": 0.01500},
+    # Local open-source (Ollama / vLLM)
+    "ollama": {"input_per_1k": 0.0, "output_per_1k": 0.0},
+    "vllm": {"input_per_1k": 0.0, "output_per_1k": 0.0},
 }
 
 class ResearchLedger:

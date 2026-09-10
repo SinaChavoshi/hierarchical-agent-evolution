@@ -3,6 +3,7 @@
 import os
 import json
 import time
+import concurrent.futures
 from typing import List, Dict, Any, Tuple
 from .schema import CompanyGenome, EvaluationResult
 from .company import HierarchicalCompanyRunner
@@ -23,7 +24,8 @@ class EvolutionaryTournamentEngine:
         population_size: int = 50,
         top_k_survivors: int = 5,
         num_generations: int = 2,
-        gcs_bucket: str = None
+        gcs_bucket: str = None,
+        parallel_workers: int = 1
     ):
         self.seed_genome = seed_genome
         self.objective = objective
@@ -32,6 +34,7 @@ class EvolutionaryTournamentEngine:
         self.top_k_survivors = top_k_survivors
         self.num_generations = num_generations
         self.gcs_bucket = gcs_bucket
+        self.parallel_workers = max(1, parallel_workers)
 
         self.evaluator = StrategicFitnessEvaluator()
         self.mutator = OrganizationalMutator()
@@ -62,10 +65,66 @@ class EvolutionaryTournamentEngine:
 
         return population
 
+    def _evaluate_single_firm(self, firm: CompanyGenome, generation_idx: int, gen_dir: str) -> Tuple[CompanyGenome, EvaluationResult, Dict[str, Any]]:
+        """Executes, verifies, and scores a single firm."""
+        print(f"\n---> Executing Firm: {firm.company_id} ({firm.total_agent_count} agents)...")
+        runner = HierarchicalCompanyRunner(firm)
+        run_output = runner.run(self.objective)
+
+        # Step 1: Deterministic Sandbox Verification
+        v_score = self.verifier.verify_package(firm.company_id, run_output["final_deliverable"], workspace=runner.workspace)
+        print(f" [{firm.company_id} Deterministic Gate] {v_score.details} (Penalty: -{v_score.score_penalty} pts)")
+
+        # Step 2: LLM Strategic Evaluation
+        print(f"---> Evaluating deliverables for {firm.company_id} via LLM Judge...")
+        eval_result = self.evaluator.evaluate(
+            company_id=firm.company_id,
+            generation=generation_idx,
+            objective=self.objective,
+            final_deliverable=run_output["final_deliverable"],
+            departmental_briefs=run_output["departmental_briefs"],
+            elapsed_seconds=run_output["elapsed_seconds"],
+            estimated_tokens=run_output["estimated_tokens"]
+        )
+
+        # Apply verification penalty
+        eval_result.fitness.overall_score = max(0.0, round(eval_result.fitness.overall_score - v_score.score_penalty, 2))
+
+        print(f" [{firm.company_id}] Net Score: {eval_result.fitness.overall_score}/100 "
+              f"(Strat: {eval_result.fitness.strategic_depth}, Tech: {eval_result.fitness.technical_feasibility}, "
+              f"Risk: {eval_result.fitness.risk_mitigation})")
+
+        firm_raw_output = {
+            "company_id": firm.company_id,
+            "overall_score": eval_result.fitness.overall_score,
+            "strategic_depth": eval_result.fitness.strategic_depth,
+            "technical_feasibility": eval_result.fitness.technical_feasibility,
+            "cross_functional_coherence": eval_result.fitness.cross_functional_coherence,
+            "risk_mitigation": eval_result.fitness.risk_mitigation,
+            "actionability": eval_result.fitness.actionability_and_synthesis,
+            "elapsed_seconds": eval_result.fitness.elapsed_seconds,
+            "estimated_tokens": eval_result.fitness.token_count,
+            "verification": v_score.__dict__,
+            "opex": run_output.get("opex", {})
+        }
+
+        # Save individual firm result to disk
+        firm_output_file = os.path.join(gen_dir, f"{firm.company_id}_result.json")
+        with open(firm_output_file, "w") as f:
+            json.dump({
+                "genome": firm.model_dump(),
+                "evaluation": eval_result.model_dump(),
+                "run_output": run_output,
+                "verification": v_score.__dict__,
+                "opex": run_output.get("opex", {})
+            }, f, indent=2, default=str)
+
+        return firm, eval_result, firm_raw_output
+
     def run_generation(self, population: List[CompanyGenome], generation_idx: int) -> Tuple[List[Tuple[CompanyGenome, EvaluationResult]], List[CompanyGenome]]:
         """Executes, verifies, and scores all firms in a generation, then breeds the next."""
         print(f"\n{'='*70}")
-        print(f"STARTING GENERATION {generation_idx} ({len(population)} Competing Firms)")
+        print(f"STARTING GENERATION {generation_idx} ({len(population)} Competing Firms, Workers: {self.parallel_workers})")
         print(f"{'='*70}")
 
         gen_dir = os.path.join(self.output_dir, f"generation_{generation_idx}")
@@ -74,57 +133,18 @@ class EvolutionaryTournamentEngine:
         gen_results: List[Tuple[CompanyGenome, EvaluationResult]] = []
         raw_firm_outputs: List[Dict[str, Any]] = []
 
-        for firm in population:
-            print(f"\n---> Executing Firm: {firm.company_id} ({firm.total_agent_count} agents)...")
-            runner = HierarchicalCompanyRunner(firm)
-            run_output = runner.run(self.objective)
-
-            # Step 1: Deterministic Sandbox Verification
-            v_score = self.verifier.verify_package(firm.company_id, run_output["final_deliverable"], workspace=runner.workspace)
-            print(f" [Deterministic Gate] {v_score.details} (Penalty: -{v_score.score_penalty} pts)")
-
-            # Step 2: LLM Strategic Evaluation
-            print(f"---> Evaluating deliverables for {firm.company_id} via LLM Judge...")
-            eval_result = self.evaluator.evaluate(
-                company_id=firm.company_id,
-                generation=generation_idx,
-                objective=self.objective,
-                final_deliverable=run_output["final_deliverable"],
-                departmental_briefs=run_output["departmental_briefs"],
-                elapsed_seconds=run_output["elapsed_seconds"],
-                estimated_tokens=run_output["estimated_tokens"]
-            )
-
-            # Apply verification penalty
-            eval_result.fitness.overall_score = max(0.0, round(eval_result.fitness.overall_score - v_score.score_penalty, 2))
-
-            print(f" Score: {eval_result.fitness.overall_score}/100 "
-                  f"(Strat: {eval_result.fitness.strategic_depth}, Tech: {eval_result.fitness.technical_feasibility}, "
-                  f"Risk: {eval_result.fitness.risk_mitigation})")
-
-            gen_results.append((firm, eval_result))
-            raw_firm_outputs.append({
-                "company_id": firm.company_id,
-                "overall_score": eval_result.fitness.overall_score,
-                "strategic_depth": eval_result.fitness.strategic_depth,
-                "technical_feasibility": eval_result.fitness.technical_feasibility,
-                "cross_functional_coherence": eval_result.fitness.cross_functional_coherence,
-                "risk_mitigation": eval_result.fitness.risk_mitigation,
-                "actionability": eval_result.fitness.actionability_and_synthesis,
-                "elapsed_seconds": eval_result.fitness.elapsed_seconds,
-                "estimated_tokens": eval_result.fitness.token_count,
-                "verification": v_score.__dict__
-            })
-
-            # Save individual firm result to disk
-            firm_output_file = os.path.join(gen_dir, f"{firm.company_id}_result.json")
-            with open(firm_output_file, "w") as f:
-                json.dump({
-                    "genome": firm.model_dump(),
-                    "evaluation": eval_result.model_dump(),
-                    "run_output": run_output,
-                    "verification": v_score.__dict__
-                }, f, indent=2, default=str)
+        if self.parallel_workers > 1:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.parallel_workers) as executor:
+                futures = [executor.submit(self._evaluate_single_firm, firm, generation_idx, gen_dir) for firm in population]
+                for future in concurrent.futures.as_completed(futures):
+                    firm, eval_result, firm_raw = future.result()
+                    gen_results.append((firm, eval_result))
+                    raw_firm_outputs.append(firm_raw)
+        else:
+            for firm in population:
+                firm, eval_result, firm_raw = self._evaluate_single_firm(firm, generation_idx, gen_dir)
+                gen_results.append((firm, eval_result))
+                raw_firm_outputs.append(firm_raw)
 
         # Sort leaderboard by overall score descending
         gen_results.sort(key=lambda x: x[1].fitness.overall_score, reverse=True)

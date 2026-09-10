@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # Hierarchical Agent Evolution Tournament Service
+  evolution-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hae-runner
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini_api}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+      - OUTPUT_DIR=/data/outputs
+      - POPULATION_SIZE=${POPULATION_SIZE:-4}
+      - NUM_GENERATIONS=${NUM_GENERATIONS:-2}
+    volumes:
+      - ./data:/data/outputs
+      - ./configs:/app/configs
+      - ./experiments:/app/experiments
+    command: ["--mode", "tournament", "--runtime", "parallel-local", "--workers", "4", "--output-dir", "/data/outputs"]
+    depends_on:
+      - ollama
+
+  # Local Open-Source LLM Service (Zero-Cost / Air-Gapped Option)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: hae-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama-data:

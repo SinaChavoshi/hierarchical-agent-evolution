@@ -9,7 +9,16 @@ class EvolutionConfig:
     project_id: str = os.getenv("GOOGLE_CLOUD_PROJECT", os.getenv("GCP_PROJECT", "YOUR_GCP_PROJECT_ID"))
     location: str = os.getenv("GOOGLE_CLOUD_LOCATION", os.getenv("GCP_LOCATION", "us-central1"))
     
-    # Model defaults on Vertex AI
+    # Universal LLM Provider Settings ("auto", "vertex", "gemini_api", "openai", "anthropic", "ollama", "vllm")
+    llm_provider: str = os.getenv("LLM_PROVIDER", "auto")
+    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")
+    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
+    openai_base_url: str = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
+    ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+    vllm_base_url: str = os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1")
+
+    # Model defaults (provider-specific defaults can be auto-resolved)
     worker_model: str = os.getenv("WORKER_MODEL", "gemini-2.5-flash")
     executive_model: str = os.getenv("EXECUTIVE_MODEL", "gemini-2.5-pro")
     judge_model: str = os.getenv("JUDGE_MODEL", "gemini-2.5-pro")

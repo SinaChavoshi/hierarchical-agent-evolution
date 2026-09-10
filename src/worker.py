@@ -27,13 +27,24 @@ def evaluate_single_firm(
     os.environ["GOOGLE_CLOUD_LOCATION"] = region
     print(f"=== PARALLEL WORKER: Firm Index {firm_index} (Generation {generation}) on Region {region} ===")
 
-    if population_file and os.path.exists(population_file):
-        with open(population_file, "r") as f:
+    resolved_pop_file = population_file
+    if resolved_pop_file and not os.path.exists(resolved_pop_file):
+        for candidate in [
+            os.path.join("/app", resolved_pop_file.lstrip("/")),
+            os.path.join(".", resolved_pop_file.lstrip("/")),
+            os.path.join(os.path.dirname(__file__), "..", resolved_pop_file.lstrip("/"))
+        ]:
+            if os.path.exists(candidate):
+                resolved_pop_file = candidate
+                break
+
+    if resolved_pop_file and os.path.exists(resolved_pop_file):
+        with open(resolved_pop_file, "r") as f:
             pop = json.load(f)
         if firm_index < len(pop):
             firm_genome = CompanyGenome(**pop[firm_index])
             company_id = firm_genome.company_id
-            print(f"---> Loaded pre-bred genome from {population_file}: {company_id} ({firm_genome.total_agent_count} agents)")
+            print(f"---> Loaded pre-bred genome from {resolved_pop_file}: {company_id} ({firm_genome.total_agent_count} agents)")
         else:
             raise IndexError(f"firm_index {firm_index} out of range for population size {len(pop)}")
     else:
