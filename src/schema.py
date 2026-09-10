@@ -40,8 +40,6 @@ except ImportError:
 class CorporateAsset(BaseModel):
     """Reusable corporate asset (Code module, Agent Skill, Trait Pack) for IP marketplace."""
     model_config = {"extra": "allow"}
-    class Config:
-        extra = "allow"
 
     asset_id: str = ""
     asset_type: str = "code_module"  # "code_module", "agent_skill", "trait_pack"
@@ -54,8 +52,6 @@ class CorporateAsset(BaseModel):
 class OpExBreakdown(BaseModel):
     """Financial balance sheet detailing token expenditure, model tiers, and unit economics."""
     model_config = {"extra": "allow"}
-    class Config:
-        extra = "allow"
 
     flash_input_tokens: int = 0
     flash_output_tokens: int = 0
@@ -84,8 +80,6 @@ class OpExBreakdown(BaseModel):
 class AgentGenome(BaseModel):
     """Genome representing an individual agent within a department or executive suite."""
     model_config = {"extra": "allow"}
-    class Config:
-        extra = "allow"
 
     role: str = ""
     goal: str = ""
@@ -110,8 +104,6 @@ class AgentGenome(BaseModel):
 class DepartmentGenome(BaseModel):
     """Genome representing an operational department pod (Manager + Team Members)."""
     model_config = {"extra": "allow"}
-    class Config:
-        extra = "allow"
 
     dept_id: str = ""
     name: str = ""
@@ -140,8 +132,6 @@ class DepartmentGenome(BaseModel):
 class CompanyGenome(BaseModel):
     """Genome representing the entire virtual enterprise (CEO + Departments + Budget)."""
     model_config = {"extra": "allow"}
-    class Config:
-        extra = "allow"
 
     company_id: str = ""
     generation: int = 0
@@ -180,8 +170,6 @@ class CompanyGenome(BaseModel):
 class FitnessScore(BaseModel):
     """Multi-dimensional evaluation scorecard produced by LLM-as-a-Judge and OpEx engine."""
     model_config = {"extra": "allow"}
-    class Config:
-        extra = "allow"
 
     strategic_depth: float = 0.0
     technical_feasibility: float = 0.0
@@ -202,8 +190,6 @@ class FitnessScore(BaseModel):
 class EvaluationResult(BaseModel):
     """Complete evaluation record for a company's performance, sandbox gates, and financials."""
     model_config = {"extra": "allow"}
-    class Config:
-        extra = "allow"
 
     company_id: str = ""
     generation: int = 0
@@ -232,8 +218,6 @@ class EvaluationResult(BaseModel):
 class EvaluationMetricSpec(BaseModel):
     """Specification of an endogenous success metric or OKR defined autonomously by an enterprise."""
     model_config = {"extra": "allow"}
-    class Config:
-        extra = "allow"
 
     metric_id: str = ""
     name: str = ""
