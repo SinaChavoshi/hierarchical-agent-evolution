@@ -311,7 +311,7 @@ class HierarchicalCompanyRunner:
 
         # Step 2: Parallel Departmental Pod Execution
         departmental_briefs: Dict[str, str] = {}
-        with concurrent.futures.ThreadPoolExecutor(max_workers=min(5, len(self.genome.departments))) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(self.genome.departments))) as executor:
             future_to_dept = {
                 executor.submit(self._run_department_pod, dept, ceo_directives): dept
                 for dept in self.genome.departments
@@ -322,8 +322,8 @@ class HierarchicalCompanyRunner:
 
         # Step 2.5: Closed-Loop Sandbox Test Verification & Automated Code Self-Repair
         repair_brief = ""
-        has_tests = any("test" in f.get("path", "").lower() for f in self.workspace.list_files())
-        if has_tests:
+        test_files = [f for f in self.workspace.list_files() if "test" in f.get("path", "").lower() and f.get("path", "").endswith(".py")]
+        if test_files:
             test_run = self.workspace.execute_bash("python3 -m pytest tests/ -q", timeout=20)
             if test_run.get("exit_code") != 0 and "No module named pytest" in test_run.get("stderr", ""):
                 test_run = self.workspace.execute_bash("python3 -m unittest discover -s tests/ -p 'test_*.py'", timeout=20)
@@ -332,10 +332,10 @@ class HierarchicalCompanyRunner:
                 # Tests failed! Trigger Closed-Loop Self-Repair with technical specialist
                 repair_agent = None
                 for dept in self.genome.departments:
-                    if dept.dept_id in ["dept_systems_eng", "dept_qa_redteam"]:
+                    if dept.dept_id in ["dept_systems_eng", "dept_qa_redteam", "dept_formal_verification"]:
                         for a in dept.agents:
                             role_l = a.role.lower()
-                            if "engineer" in role_l or "devops" in role_l or "specialist" in role_l or "qa" in role_l:
+                            if "engineer" in role_l or "devops" in role_l or "specialist" in role_l or "qa" in role_l or "verification" in role_l:
                                 repair_agent = a
                                 break
                     if repair_agent:
