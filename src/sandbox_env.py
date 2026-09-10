@@ -77,6 +77,7 @@ class AgentWorkspace:
             if not os.path.exists(start_dir):
                 return results
             for root, dirs, files in os.walk(start_dir):
+                dirs[:] = [d for d in dirs if d not in ("venv", ".venv", "__pycache__", ".git", ".pytest_cache")]
                 for f in sorted(files):
                     full = os.path.join(root, f)
                     rel = os.path.relpath(full, self.workspace_dir)

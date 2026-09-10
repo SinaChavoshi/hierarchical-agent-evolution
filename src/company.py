@@ -394,6 +394,10 @@ class HierarchicalCompanyRunner:
         # Append physical workspace files if deliverable did not include them
         workspace_bundle = self.workspace.export_bundle()
         for path, content in workspace_bundle.items():
+            if any(ignored in path for ignored in ("venv", ".venv", "__pycache__", ".git", ".pytest_cache")):
+                continue
+            if len(content) > 50000:
+                content = content[:50000] + "\n# [TRUNCATED DUE TO SIZE]"
             if f"### File: {path}" not in final_deliverable and f"### File: `{path}`" not in final_deliverable:
                 final_deliverable += f"\n\n### File: {path}\n```python\n{content}\n```"
 
