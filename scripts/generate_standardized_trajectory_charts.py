@@ -3,60 +3,15 @@ Generates publication-grade SVG and PNG charts showing:
 1. Standardized Grounded Usability Trajectory (Corrected for physical execution)
 2. Legacy Unconstrained Synthetic Score vs Grounded Physical Usability Score
 3. Physical Workspace Disk Artifact Growth (0 to 17 files)
+4. Empirical inclusion of Generation 8 (Closed-Loop Test Verification & Self-Repair)
 """
 
 import os
 import subprocess
 import xml.etree.ElementTree as ET
 
-# Coordinates and Data Points
-# ViewBox: 1100 x 640
-# X positions for 8 generations:
-# Gen 0: x=75
-# Gen 1: x=195
-# Gen 2: x=315
-# Gen 3: x=435
-# Gen 4: x=555
-# Gen 5: x=675 (Phase Shift)
-# Gen 6: x=795
-# Gen 7: x=915
-# Gen 8 (Future): x=1015
-
-# Y mapping:
-# 100 -> y=120
-# 90  -> y=170
-# 80  -> y=220
-# 70  -> y=270
-# 60  -> y=320
-# 50  -> y=370
-# 40  -> y=420
-# 30  -> y=470
-# 20  -> y=520
-# Formula: y = 120 + (100 - score) * 5.0
-
 def score_to_y(s):
     return round(120 + (100.0 - s) * 5.0, 1)
-
-# Raw Legacy Scores:
-# Gen 0: 50.25 -> y = 368.8
-# Gen 1: 76.55 -> y = 237.2
-# Gen 2: 94.50 -> y = 147.5
-# Gen 3: 96.75 -> y = 136.2
-# Gen 4: 96.75 -> y = 136.2
-# Gen 5: 91.93 -> y = 160.4
-# Gen 6: 91.87 -> y = 160.7
-# Gen 7: 82.70 -> y = 206.5
-
-# Corrected Grounded Scores:
-# Gen 0: 25.25 -> y = 493.8
-# Gen 1: 76.55 -> y = 237.2
-# Gen 2: 84.25 -> y = 198.8
-# Gen 3: 85.75 -> y = 191.2
-# Gen 4: 84.25 -> y = 198.8
-# Gen 5: 91.93 -> y = 160.4
-# Gen 6: 91.87 -> y = 160.7
-# Gen 7: 82.70 -> y = 206.5
-# Gen 8 Projected: 96.5 -> y = 137.5
 
 SVG_CONTENT = f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 640" width="1100" height="640">
@@ -77,22 +32,17 @@ SVG_CONTENT = f'''<?xml version="1.0" encoding="UTF-8"?>
     <!-- Grounded Physical Track Gradient -->
     <linearGradient id="groundedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#ec4899" />
-      <stop offset="25%" stop-color="#f59e0b" />
-      <stop offset="55%" stop-color="#10b981" />
-      <stop offset="75%" stop-color="#06b6d4" />
-      <stop offset="90%" stop-color="#3b82f6" />
-      <stop offset="100%" stop-color="#8b5cf6" />
+      <stop offset="20%" stop-color="#f59e0b" />
+      <stop offset="45%" stop-color="#10b981" />
+      <stop offset="65%" stop-color="#06b6d4" />
+      <stop offset="85%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#a855f7" />
     </linearGradient>
 
     <linearGradient id="groundedArea" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#10b981" stop-opacity="0.30" />
-      <stop offset="50%" stop-color="#06b6d4" stop-opacity="0.15" />
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.25" />
+      <stop offset="50%" stop-color="#06b6d4" stop-opacity="0.12" />
       <stop offset="100%" stop-color="#070b14" stop-opacity="0.0" />
-    </linearGradient>
-
-    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.80" />
-      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
     </linearGradient>
   </defs>
 
@@ -100,17 +50,17 @@ SVG_CONTENT = f'''<?xml version="1.0" encoding="UTF-8"?>
   <rect x="2" y="2" width="1096" height="636" rx="16" fill="url(#bgGrad)" stroke="#1e293b" stroke-width="1.5" />
 
   <!-- Header -->
-  <g transform="translate(48, 42)">
-    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#f8fafc" letter-spacing="-0.02em">
+  <g transform="translate(45, 42)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="21" font-weight="700" fill="#f8fafc" letter-spacing="-0.02em">
       Software Quality &amp; Usability Trajectory: Standardized Execution Verification
     </text>
     <text x="0" y="24" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="400" fill="#94a3b8">
-      Retroactive correction penalizes unexecuted code: reveals true phase shift from synthetic markdown prose to physical container scratchpads
+      Retroactive correction penalizes unexecuted code: reveals true phase shift from synthetic prose to physical container scratchpads &amp; self-repair
     </text>
   </g>
 
   <!-- Legend -->
-  <g transform="translate(640, 36)">
+  <g transform="translate(670, 36)">
     <!-- Legacy Track -->
     <line x1="0" y1="8" x2="28" y2="8" stroke="#64748b" stroke-width="2.5" stroke-dasharray="4 3" />
     <circle cx="14" cy="8" r="3.5" fill="#94a3b8" />
@@ -120,97 +70,91 @@ SVG_CONTENT = f'''<?xml version="1.0" encoding="UTF-8"?>
 
     <!-- Grounded Track -->
     <line x1="0" y1="28" x2="28" y2="28" stroke="url(#groundedGrad)" stroke-width="3.5" stroke-linecap="round" />
-    <circle cx="14" cy="28" r="4.5" fill="#10b981" />
+    <circle cx="14" cy="28" r="4.5" fill="#a855f7" />
     <text x="36" y="32" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#38bdf8">
       Standardized Grounded Score (Physically Executable)
     </text>
   </g>
 
   <!-- Phase Shift Dividing Banner -->
-  <rect x="625" y="90" width="435" height="470" rx="12" fill="#0f172a" fill-opacity="0.45" stroke="#06b6d4" stroke-opacity="0.25" stroke-dasharray="6 4" />
-  <text x="842" y="112" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#38bdf8" text-anchor="middle" letter-spacing="0.05em">
-    ⚡ PHASE SHIFT: ACTIVE CONTAINER SCRATCHPADS &amp; LIVE PYTEST EXECUTION
+  <rect x="555" y="90" width="500" height="470" rx="12" fill="#0f172a" fill-opacity="0.45" stroke="#06b6d4" stroke-opacity="0.25" stroke-dasharray="6 4" />
+  <text x="805" y="112" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#38bdf8" text-anchor="middle" letter-spacing="0.05em">
+    ⚡ PHASE SHIFT: CONTAINER SCRATCHPADS, TEST DISCOVERY &amp; AUTONOMOUS SELF-REPAIR
   </text>
 
   <!-- Grid & Y Axis -->
-  <g transform="translate(60, 0)">
-    <!-- 100 -->
-    <line x1="0" y1="120" x2="1000" y2="120" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
-    <text x="-12" y="124" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">100</text>
+  <g transform="translate(55, 0)">
+    <line x1="0" y1="120" x2="1010" y2="120" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+    <text x="-10" y="124" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">100</text>
 
-    <!-- 90 -->
-    <line x1="0" y1="170" x2="1000" y2="170" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
-    <text x="-12" y="174" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">90</text>
+    <line x1="0" y1="170" x2="1010" y2="170" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+    <text x="-10" y="174" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">90</text>
 
-    <!-- 80 -->
-    <line x1="0" y1="220" x2="1000" y2="220" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
-    <text x="-12" y="224" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">80</text>
+    <line x1="0" y1="220" x2="1010" y2="220" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+    <text x="-10" y="224" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">80</text>
 
-    <!-- 70 -->
-    <line x1="0" y1="270" x2="1000" y2="270" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
-    <text x="-12" y="274" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">70</text>
+    <line x1="0" y1="270" x2="1010" y2="270" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+    <text x="-10" y="274" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">70</text>
 
-    <!-- 60 -->
-    <line x1="0" y1="320" x2="1000" y2="320" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
-    <text x="-12" y="324" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">60</text>
+    <line x1="0" y1="320" x2="1010" y2="320" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+    <text x="-10" y="324" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">60</text>
 
-    <!-- 50 -->
-    <line x1="0" y1="370" x2="1000" y2="370" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
-    <text x="-12" y="374" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">50</text>
+    <line x1="0" y1="370" x2="1010" y2="370" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+    <text x="-10" y="374" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">50</text>
 
-    <!-- 40 -->
-    <line x1="0" y1="420" x2="1000" y2="420" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
-    <text x="-12" y="424" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">40</text>
+    <line x1="0" y1="420" x2="1010" y2="420" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+    <text x="-10" y="424" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">40</text>
 
-    <!-- 30 -->
-    <line x1="0" y1="470" x2="1000" y2="470" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
-    <text x="-12" y="474" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">30</text>
+    <line x1="0" y1="470" x2="1010" y2="470" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+    <text x="-10" y="474" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">30</text>
 
-    <!-- 20 -->
-    <line x1="0" y1="520" x2="1000" y2="520" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
-    <text x="-12" y="524" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">20</text>
+    <line x1="0" y1="520" x2="1010" y2="520" stroke="#1e293b" stroke-width="1" stroke-dasharray="4 4" />
+    <text x="-10" y="524" font-family="system-ui, -apple-system, sans-serif" font-size="11" fill="#475569" text-anchor="end">20</text>
   </g>
 
   <!-- Area Fill under Grounded Track -->
   <polygon points="
     75,493.8
-    195,237.2
-    315,198.8
-    435,191.2
-    555,198.8
-    675,160.4
-    795,160.7
-    915,206.5
-    915,530
+    180,237.2
+    285,198.8
+    390,191.2
+    495,198.8
+    605,160.4
+    715,160.7
+    825,206.5
+    930,220.6
+    930,530
     75,530
   " fill="url(#groundedArea)" />
 
   <!-- Track A: Legacy Curve (Dashed Gray) -->
   <polyline points="
     75,368.8
-    195,237.2
-    315,147.5
-    435,136.2
-    555,136.2
-    675,160.4
-    795,160.7
-    915,206.5
+    180,237.2
+    285,147.5
+    390,136.2
+    495,136.2
+    605,160.4
+    715,160.7
+    825,206.5
+    930,146.0
   " fill="none" stroke="url(#legacyGrad)" stroke-width="2.5" stroke-dasharray="5 3" />
 
   <!-- Track B: Grounded Curve (Bold Glowing Gradient) -->
   <polyline points="
     75,493.8
-    195,237.2
-    315,198.8
-    435,191.2
-    555,198.8
-    675,160.4
-    795,160.7
-    915,206.5
+    180,237.2
+    285,198.8
+    390,191.2
+    495,198.8
+    605,160.4
+    715,160.7
+    825,206.5
+    930,220.6
   " fill="none" stroke="url(#groundedGrad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
 
-  <!-- Projected Gen 8 (Closed-Loop Self-Repair) -->
-  <polyline points="915,206.5 1015,137.5" fill="none" stroke="#a855f7" stroke-width="3" stroke-dasharray="4 4" stroke-linecap="round" />
+  <!-- Projected Gen 9 (Autonomous Morphogenesis) -->
+  <polyline points="930,220.6 1025,162.5" fill="none" stroke="#38bdf8" stroke-width="3" stroke-dasharray="4 4" stroke-linecap="round" />
 
   <!-- Generation Nodes & Data Badges -->
   <!-- Gen 0 -->
@@ -228,7 +172,7 @@ SVG_CONTENT = f'''<?xml version="1.0" encoding="UTF-8"?>
   </g>
 
   <!-- Gen 1 -->
-  <g transform="translate(195, 0)">
+  <g transform="translate(180, 0)">
     <line x1="0" y1="120" x2="0" y2="530" stroke="#1e293b" stroke-width="1" />
     <circle cx="0" cy="237.2" r="6" fill="#f59e0b" stroke="#070b14" stroke-width="2" />
     <text x="0" y="226" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#f59e0b" text-anchor="middle">76.55</text>
@@ -239,7 +183,7 @@ SVG_CONTENT = f'''<?xml version="1.0" encoding="UTF-8"?>
   </g>
 
   <!-- Gen 2 -->
-  <g transform="translate(315, 0)">
+  <g transform="translate(285, 0)">
     <line x1="0" y1="120" x2="0" y2="530" stroke="#1e293b" stroke-width="1" />
     <circle cx="0" cy="147.5" r="4" fill="#64748b" />
     <text x="0" y="140" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">94.50*</text>
@@ -253,7 +197,7 @@ SVG_CONTENT = f'''<?xml version="1.0" encoding="UTF-8"?>
   </g>
 
   <!-- Gen 3 -->
-  <g transform="translate(435, 0)">
+  <g transform="translate(390, 0)">
     <line x1="0" y1="120" x2="0" y2="530" stroke="#1e293b" stroke-width="1" />
     <circle cx="0" cy="136.2" r="4" fill="#64748b" />
     <text x="0" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">96.75*</text>
@@ -267,7 +211,7 @@ SVG_CONTENT = f'''<?xml version="1.0" encoding="UTF-8"?>
   </g>
 
   <!-- Gen 4 -->
-  <g transform="translate(555, 0)">
+  <g transform="translate(495, 0)">
     <line x1="0" y1="120" x2="0" y2="530" stroke="#1e293b" stroke-width="1" />
     <circle cx="0" cy="136.2" r="4" fill="#64748b" />
     <text x="0" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">96.75*</text>
@@ -281,62 +225,75 @@ SVG_CONTENT = f'''<?xml version="1.0" encoding="UTF-8"?>
   </g>
 
   <!-- Gen 5 -->
-  <g transform="translate(675, 0)">
+  <g transform="translate(605, 0)">
     <line x1="0" y1="120" x2="0" y2="530" stroke="#06b6d4" stroke-width="1.5" stroke-dasharray="2 2" />
     <circle cx="0" cy="160.4" r="7" fill="#06b6d4" stroke="#ffffff" stroke-width="2" />
     <text x="0" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#38bdf8" text-anchor="middle">91.93</text>
 
     <text x="0" y="546" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#38bdf8" text-anchor="middle">Gen 5</text>
     <text x="0" y="560" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#38bdf8" text-anchor="middle">14 Physical Files</text>
-    <text x="0" y="572" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#10b981" text-anchor="middle">Live Sandbox Scratchpad</text>
+    <text x="0" y="572" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#10b981" text-anchor="middle">Live Scratchpad</text>
   </g>
 
   <!-- Gen 6 -->
-  <g transform="translate(795, 0)">
+  <g transform="translate(715, 0)">
     <line x1="0" y1="120" x2="0" y2="530" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="2 2" />
     <circle cx="0" cy="160.7" r="7" fill="#3b82f6" stroke="#ffffff" stroke-width="2" />
     <text x="0" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#60a5fa" text-anchor="middle">91.87</text>
 
     <text x="0" y="546" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#60a5fa" text-anchor="middle">Gen 6</text>
     <text x="0" y="560" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#60a5fa" text-anchor="middle">17 Physical Files</text>
-    <text x="0" y="572" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#10b981" text-anchor="middle">egg-info / Dist Build</text>
+    <text x="0" y="572" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#10b981" text-anchor="middle">Dist Build Hardening</text>
   </g>
 
   <!-- Gen 7 -->
-  <g transform="translate(915, 0)">
+  <g transform="translate(825, 0)">
     <line x1="0" y1="120" x2="0" y2="530" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="2 2" />
     <circle cx="0" cy="206.5" r="7" fill="#8b5cf6" stroke="#ffffff" stroke-width="2" />
     <text x="0" y="196" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#c084fc" text-anchor="middle">82.70</text>
 
     <text x="0" y="546" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#c084fc" text-anchor="middle">Gen 7</text>
     <text x="0" y="560" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#c084fc" text-anchor="middle">13 Physical Files</text>
-    <text x="0" y="572" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#c084fc" text-anchor="middle">Universal Multi-Platform</text>
+    <text x="0" y="572" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#c084fc" text-anchor="middle">Multi-Platform Port</text>
   </g>
 
-  <!-- Gen 8 Projected -->
-  <g transform="translate(1015, 0)">
-    <line x1="0" y1="120" x2="0" y2="530" stroke="#a855f7" stroke-width="1" stroke-dasharray="3 3" />
-    <circle cx="0" cy="137.5" r="6" fill="#070b14" stroke="#a855f7" stroke-width="2" stroke-dasharray="3 2" />
-    <text x="0" y="128" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#a855f7" text-anchor="middle">~96.5*</text>
+  <!-- Gen 8 (Completed) -->
+  <g transform="translate(930, 0)">
+    <line x1="0" y1="120" x2="0" y2="530" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="2 2" />
+    <circle cx="0" cy="146.0" r="4" fill="#64748b" />
+    <text x="0" y="138" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#64748b" text-anchor="middle">94.80*</text>
 
-    <text x="0" y="546" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#a855f7" text-anchor="middle">Gen 8 (Next)</text>
-    <text x="0" y="560" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#a855f7" text-anchor="middle">Closed-Loop</text>
-    <text x="0" y="572" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#a855f7" text-anchor="middle">Code Self-Repair</text>
+    <circle cx="0" cy="220.6" r="7" fill="#a855f7" stroke="#ffffff" stroke-width="2" />
+    <text x="0" y="240" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#d8b4fe" text-anchor="middle">79.89</text>
+
+    <text x="0" y="546" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#d8b4fe" text-anchor="middle">Gen 8</text>
+    <text x="0" y="560" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#d8b4fe" text-anchor="middle">16 Max Files</text>
+    <text x="0" y="572" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#10b981" text-anchor="middle">Tests: PASS Verified!</text>
+  </g>
+
+  <!-- Gen 9 (Projected) -->
+  <g transform="translate(1025, 0)">
+    <line x1="0" y1="120" x2="0" y2="530" stroke="#38bdf8" stroke-width="1" stroke-dasharray="3 3" />
+    <circle cx="0" cy="162.5" r="6" fill="#070b14" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3 2" />
+    <text x="0" y="152" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#38bdf8" text-anchor="middle">~91.5*</text>
+
+    <text x="0" y="546" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="700" fill="#38bdf8" text-anchor="middle">Gen 9 (Next)</text>
+    <text x="0" y="560" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#38bdf8" text-anchor="middle">Autonomous</text>
+    <text x="0" y="572" font-family="system-ui, -apple-system, sans-serif" font-size="8" fill="#38bdf8" text-anchor="middle">Morphogenesis</text>
   </g>
 
   <!-- Explanatory Callout Box -->
-  <g transform="translate(48, 595)">
-    <rect x="0" y="0" width="1004" height="32" rx="6" fill="#0f172a" stroke="#1e293b" />
+  <g transform="translate(45, 595)">
+    <rect x="0" y="0" width="1010" height="32" rx="6" fill="#0f172a" stroke="#1e293b" />
     <text x="14" y="20" font-family="system-ui, -apple-system, sans-serif" font-size="10" fill="#94a3b8">
-      <tspan font-weight="700" fill="#f8fafc">Empirical Methodology Note:</tspan>
-      Dashed gray line (*) represents legacy unconstrained scores where tests were marked PASS via static markdown regex without container execution.
-      The solid line applies the standardized execution penalty (-6.25 pt deduction per unexecuted/failed gate), correctly reflecting the leap to true physical software engineering in Gens 5–7.
+      <tspan font-weight="700" fill="#f8fafc">Empirical Grounding Note:</tspan>
+      Dashed gray line (*) represents legacy unconstrained scores where tests were marked PASS via static markdown regex without live execution.
+      Standardized score deducts 6.25 pts per unexecuted/failed gate. Gen 8 achieved historical milestone with two firms passing physical pytest execution via self-repair.
     </text>
   </g>
 </svg>
 '''
 
-# Validate XML strictly
 tree = ET.fromstring(SVG_CONTENT.strip())
 print("[SUCCESS] XML is 100% VALID! Root tag:", tree.tag)
 
@@ -347,7 +304,6 @@ with open(svg_path, "w") as f:
     f.write(SVG_CONTENT.strip())
 print(f"[SUCCESS] Saved SVG to {svg_path}")
 
-# Render to high-res PNG via headless chrome
 html_wrapper = f"""<!DOCTYPE html>
 <html>
 <head><style>body {{ margin: 0; padding: 0; background: #070b14; overflow: hidden; }}</style></head>

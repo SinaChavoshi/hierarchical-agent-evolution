@@ -256,23 +256,35 @@ kubectl apply -f k8s/parallel-indexed-job-gen6-east4.yaml
 
 ---
 
-## 9. Active Generation & Future Evolutionary Roadmap: Generation 8 and Beyond
+## 9. Completed Benchmark: Generation 8 (Closed-Loop Sandbox Test Verification & Automated Code Self-Repair)
 
-### 9.1 Active Tournament: Generation 8 (Closed-Loop Sandbox Test Feedback & Automated Code Self-Repair)
-* **Closed-Loop Sandbox Test Verification (`src/company.py: Step 2.5`)**:
-  * Runs physical `pytest` within the live container scratchpad (`/tmp/hae_workspaces/{company_id}`).
-  * If assertions or syntax fail, extracts full stdout/stderr stack trace and triggers an iterative repair turn with technical specialists (`dept_systems_eng`, `dept_qa_redteam`).
-  * Specialists use `read_file`, `write_file`, and `execute_bash` to inspect code, patch implementation/fixtures, and re-verify tests before executive delivery.
-* **Target Objective**: Eliminate the persistent -6.25 pt test penalty and achieve 100% 4-Gate Sandbox Clearance across all virtual enterprises.
-* **Deployment**: 10 virtual enterprises (334 specialized agents) competing on GKE cluster (`parallel-firms-gen8-east4`).
+* **Closed-Loop Sandbox Test Verification & Automated Self-Repair (`src/company.py: Step 2.5`)**:
+  * Physical `pytest` executed inside live container scratchpads (`/tmp/hae_workspaces/{company_id}/`).
+  * Real-time stack trace extraction and iterative tool-assisted self-repair rounds with Systems Engineering specialists.
+  * Resolved critical dictionary membership check bug (`"test" in f` -> `"test" in f.get("path", "").lower()`) and virtualenv payload bloat guards.
+* **Historic Milestone — First Live `Tests: PASS` in Project History**:
+  * Generation 8 broke through the empirical test execution barrier with **two separate virtual enterprises** achieving 100% clean physical `pytest` test suite execution on disk:
+    * `gen_8_mutant_2` (Rank #2, Net Fitness: **74.42**, Gross: 88.6, 11 files on disk, **Tests: PASS, Telemetry: PASS**).
+    * `gen_8_consensus_2` (Rank #4, Net Fitness: **71.79**, Gross: 83.8, 12 files on disk, **Tests: PASS, Telemetry: PASS**).
+* **Tournament Champion & Podiums**:
+  * **Champion `gen_8_pareto_bonus_2` (Net Score: 79.89)**: 13 physical files on disk, cleared Build, Smoke, and Telemetry gates cleanly (-6.25 test penalty), OpEx $0.3802 USD (+0.39 bonus), 635k tokens.
+  * **Runner-Up `gen_8_mutant_2` (Net Score: 74.42)**: Live `Tests: PASS` breakthrough, 11 physical files on disk, AST self-repair lineage.
+  * **Third Place `gen_8_elite_1` (Net Score: 74.38)**: 4 physical files on disk, cleared Build and Smoke gates cleanly.
+  * See the full empirical report in the [Generation 8 Experiment Report](exp-010-parallel-gen8/README.md).
 
-### 9.2 Generation 9: Autonomous Morphogenesis & Dynamic Organizational Topologies
-* **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**:
-  * Eliminates the rigid 5-department corporate template (`default_company.json`). Given an arbitrary objective, a `MetaExecutive` synthesizes the optimal organizational topology (e.g. 2 lean pods for a lightweight utility vs. 6 specialized pods for a distributed database).
-* **Structural Allelic Crossover**:
-  * Enables genetic recombination across enterprises with differing numbers of departments and specialist roles using semantic role embeddings.
+---
 
-### 9.3 Generation 10: Cross-Cloud Federated Mesh & Autonomous Self-Evolving Evaluation Rubrics
+## 10. Active Generation & Future Evolutionary Roadmap: Generation 9 and Beyond
+
+### 10.1 Active Generation: Generation 9 (Autonomous Morphogenesis & Dynamic Topologies)
+* **Autonomous Topology Morphogenesis (`src/morphogenesis.py`)**:
+  * Eliminates the rigid 5-department corporate template (`default_company.json`). The architecture autonomously spawns, prunes, or merges departments (ranging from 3 to 7 pods) based on environmental selection pressure and domain complexity.
+  * Dynamic pod creation: specialized Formal Verification Pods (`dept_formal_verification`), Invariant Synthesis Units, and AST Rewriting Cores.
+* **Structural Allelic Crossover (`StructuralCrossoverEngine`)**:
+  * Recombines genomes across asymmetric topologies using functional semantic role mapping, preserving elite sub-department phenotypes even when firm organizational trees differ.
+* **Deployment Target**: 10 virtual enterprises across diverse topologies competing on GKE cluster (`parallel-firms-gen9-east4`).
+
+### 10.2 Generation 10: Cross-Cloud Federated Mesh & Autonomous Self-Evolving Evaluation Rubrics
 * **Cross-Cloud Multi-Agent Mesh**:
   * Enterprises dynamically distribute specialist pods across multi-cloud infrastructure (GCP GKE + AWS EKS + local edge nodes) with zero-trust mTLS peer communication.
 * **Self-Evolving Evaluation Rubrics**:
