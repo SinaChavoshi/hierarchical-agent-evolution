@@ -267,22 +267,16 @@ As the platform evolves across generational iterations, the virtual enterprises 
 | **Gen 2** | **Pragmatic Implementation Culture** | Rigid code-block and manifest formatting | Test assertion mismatches | **Structured Persona Discretization** (`backstory_traits`) | 94.50 |
 | **Gen 3** | **Hermetic Engineering & Invariant Mining** | Recombination of consensus operational alleles | High token OpEx across uniform Pro models | **Allelic Consensus Mining** & Pytest harness injection | **96.75** |
 | **Gen 4** | **Capital-Efficient Economic Enterprise** | Dynamic sizing & model tier cost accounting | Fixed organizational topologies | **Autonomous Sizing & OpEx token budgeting** | **96.75** |
-| **Gen 5** | **Asset-Sharing Commercial Commons** | IP registration & modular library reuse | Redundant re-implementation of common libraries | **Reusable Corporate Assets & IP Marketplace** | *Active* |
-| **Gen 6** | **Inter-Firm Strategic Co-opetition** | Bilateral executive term sheets & joint ventures | Zero-sum isolationism | **Cross-Company Communication & Consortia** | *Planned* |
+| **Gen 5** | **Asset-Sharing Commercial Commons** | IP registration & modular library reuse | Redundant re-implementation of common libraries | **Active Tool Sandboxing & IP Marketplace** | **91.93** |
+| **Gen 6** | **Inter-Firm Strategic Co-opetition** | Bilateral executive term sheets & joint ventures | Zero-sum isolationism | **Cross-Company Communication & Consortia** | *Active* |
 
 ### 5.2 Evolutionary Roadmap & Priority Matrix
 
-#### Active (In Progress — Generation 5)
-* **Active Tool Sandboxing (Agent Execution Runtimes)**:
-  * Transitions specialists from blind text generation to active sandboxed execution.
-  * Equips engineering agents with safe workspace primitives: `write_file`, `read_file`, `list_files`, and `execute_bash(command)`.
-  * Enables agents to write modules, run `pytest`, inspect failure tracebacks, and iteratively self-heal code in an isolated scratch workspace (`/tmp/hae_workspaces/{company_id}/`) *before* submitting deliverables to management.
-* **Reusable Corporate Assets & IP Marketplace (Cumulative Culture)**:
-  * Virtual enterprises package and register verified code modules, agent skills, and prompt libraries into a central **Corporate Asset Registry**.
-  * Offspring enterprises license pre-verified assets for a nominal royalty ($0.015 USD), mounting existing code directly into their scratch sandbox and saving token OpEx to focus exclusively on novel domain logic.
+#### Completed Benchmark: Generation 5 (Active Tool Sandboxing & IP Marketplace)
+* **Active Tool Sandboxing (Live Scratchpad Execution)**: Transitioned specialists from passive text generation to active sandboxed execution (`write_file`, `read_file`, `list_files`, `execute_bash`). Enterprises authored complete packaging trees (8 to 14 files per firm) directly on disk in `/tmp/hae_workspaces/{company_id}/`, installing packages and executing live `pytest`.
+* **Reusable Corporate Assets & IP Marketplace (Cumulative Culture)**: Mounted pre-licensed modules into offspring scratchpads, tracking balance-sheet royalties ($0.015 USD fee/credit) without exceeding the $0.45 budget envelope. Champion `gen_5_mutant_3` achieved **91.93** overall with 12 verified files.
 
-#### Priority 1 (P1 — Targeted for Next Generation / Generation 6)
-* **Inter-Firm Strategic Co-opetition & Consortiums (Cross-Company Communication)**:
+#### Priority 1 (P1 — Active in Generation 6): Inter-Firm Strategic Co-opetition & Consortiums
   * CEOs and VPs gain secure inter-firm communication channels to negotiate bilateral strategic alliances, technology licensing, and joint-venture consortiums.
   * **Game-Theoretic Coalitions**: Incorporates non-zero-sum game theory (Co-opetition, Tit-for-Tat, and Consortium Formation). Two specialized firms (e.g., a Systems Architecture champion and a GTM/Strategic Moats leader) can execute a bilateral joint-venture term sheet to co-author unified deliverables evaluated jointly under the sandbox.
 * **Pluggable Multi-Domain Evaluation & Autonomous Teleological OKRs**:

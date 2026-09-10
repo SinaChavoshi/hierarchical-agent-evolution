@@ -16,7 +16,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | [**`exp-004-parallel-gen2`**](exp-004-parallel-gen2/) | Persona Discretization (`backstory_traits`) & Sandbox Convergence | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (314 agents) | **94.50** | [`exp-004-parallel-gen2/`](exp-004-parallel-gen2/) |
 | [**`exp-005-parallel-gen3`**](exp-005-parallel-gen3/) | Allelic Consensus Mining & Hermetic Pytest Assertion Rigor | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (318 agents) | **96.75** | [`exp-005-parallel-gen3/`](exp-005-parallel-gen3/) ([Report](exp-005-parallel-gen3/experiment_report.md)) |
 | [**`exp-006-parallel-gen4`**](exp-006-parallel-gen4/) | Autonomous Sizing, Model Unit Economics & Token OpEx Envelope | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (320 agents) | **96.75** | [`exp-006-parallel-gen4/`](exp-006-parallel-gen4/) ([Report](exp-006-parallel-gen4/experiment_report.md)) |
-| [**`exp-007-parallel-gen5`**](#6-active-tournament-generation-5-active-tool-sandboxing--corporate-ip-marketplace) | Active Tool Sandboxing (Agent Execution Runtimes) & Corporate IP Marketplace | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (320 agents) | *Evaluating* | [Section 6](#6-active-tournament-generation-5-active-tool-sandboxing--corporate-ip-marketplace) |
+| [**`exp-007-parallel-gen5`**](exp-007-parallel-gen5/) | Active Tool Sandboxing (Agent Execution Scratchpads) & Corporate IP Marketplace | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (325 agents) | **91.93** | [`exp-007-parallel-gen5/`](exp-007-parallel-gen5/) ([Report](exp-007-parallel-gen5/experiment_report.md)) |
 
 ---
 
@@ -49,7 +49,7 @@ graph LR
         Gen1Cohort -->|Persona Discretization| Gen2Cohort
         Gen2Cohort -->|Allelic Consensus Mining| Gen3Cohort
         Gen3Cohort -->|Autonomous Sizing & OpEx Economics| Gen4Cohort["Gen 4 Cohort (Exp 006)<br/>Champion: gen_4_elite_2 (96.75)<br/>100% Code (10 Files) | $0.0305 OpEx"]
-        Gen4Cohort -->|Active Tool Sandboxing & IP Marketplace| Gen5Cohort["Gen 5 Cohort (Exp 007)<br/>Live Execution Scratchpads<br/>Corporate IP Registry (*Running*)"]
+        Gen4Cohort -->|Active Tool Sandboxing & IP Marketplace| Gen5Cohort["Gen 5 Cohort (Exp 007)<br/>Champion: gen_5_mutant_3 (91.93)<br/>12 Files on Disk | $0.4081 OpEx"]
     end
 ```
 
@@ -86,6 +86,11 @@ Where:
 | **`gen_4_elite_1`** (Gen 4 #2) | Gen 4 | 95.0 | 90.0 | 100.0 | 90.0 | 100.0 | **$0.00$** | **94.75** | **Build, Smoke, OTel, Tests (7 Files)** |
 | **`gen_4_mutant_1`** (Gen 4 #3) | Gen 4 | 95.0 | 85.0 | 100.0 | 80.0 | 100.0 | **$0.00$** | **92.00** | **Build, Smoke, OTel, Tests (6 Files)** |
 | **`gen_4_consensus_2`** (Gen 4 #4) | Gen 4 | 95.0 | 98.0 | 100.0 | 95.0 | 100.0 | $-12.50$ | **85.00** | Telemetry, Tests (5 Files) |
+| **`gen_5_mutant_3`** (Gen 5 Champ) | Gen 5 | 98.0 | 95.0 | 100.0 | 98.0 | 100.0 | $-6.25$ | **91.93** | **Build, Smoke, OTel (12 Files on Disk)** |
+| **`gen_5_consensus_3`** (Gen 5 #2) | Gen 5 | 95.0 | 98.0 | 100.0 | 90.0 | 100.0 | $-6.25$ | **90.95** | **Build, Smoke, OTel (10 Files on Disk)** |
+| **`gen_5_elite_2`** (Gen 5 #3) | Gen 5 | 92.0 | 95.0 | 98.0 | 92.0 | 100.0 | $-6.25$ | **88.93** | **Build, Smoke, OTel (11 Files on Disk)** |
+| **`gen_5_consensus_1`** (Gen 5 #4) | Gen 5 | 95.0 | 95.0 | 98.0 | 90.0 | 95.0 | $-6.25$ | **87.08** | **Build, Smoke, OTel (9 Files on Disk)** |
+| **`gen_5_consensus_2`** (Gen 5 #5) | Gen 5 | 90.0 | 90.0 | 95.0 | 90.0 | 95.0 | $-6.25$ | **85.13** | **Build, Smoke, OTel (3 Files on Disk)** |
 
 ---
 
@@ -156,24 +161,23 @@ kubectl apply -f k8s/parallel-indexed-job-gen4-east4.yaml
 
 ---
 
-## 6. Active Tournament: Generation 5 (Active Tool Sandboxing & Corporate IP Marketplace)
+## 6. Completed Benchmark: Generation 5 (Active Tool Sandboxing & Corporate IP Marketplace)
 
-* **Active Tool Sandboxing (Agent Execution Runtimes)**:
-  * Transitions specialist agents from passive text generation to active sandboxed execution.
+* **Active Tool Sandboxing (Live Scratchpad Execution)**:
+  * Transitioned specialist agents from passive text generation to active sandboxed execution on container scratchpads (`/tmp/hae_workspaces/{company_id}/`).
   * Equips engineering agents with safe workspace primitives: `write_file`, `read_file`, `list_files`, and `execute_bash(command)`.
-  * Enables agents to write modules, run `pytest`, inspect failure tracebacks, and iteratively self-heal code in an isolated scratch workspace (`/tmp/hae_workspaces/{company_id}/`) *before* submitting deliverables to management.
-* **Corporate IP Registration & Marketplace**:
-  * Virtual enterprises package and register reusable software assets (e.g., tested Python modules, OpenTelemetry exporters, pytest harness fixtures) and agent skills into an open **Corporate Asset Registry**.
-  * Pre-licensed assets are mounted directly into the scratch sandbox directory at initialization, enabling offspring to import and extend them.
-  * Originator firms receive a royalty credit ($0.015 USD) on their corporate balance sheet when peers license their verified assets.
-* **Distributed Cluster Execution**:
-  ```bash
-  kubectl apply -f k8s/parallel-indexed-job-gen5-east4.yaml
-  ```
+  * Virtual enterprises authored complete packaging trees directly on disk (8 to 14 files per firm), installing packages via `setup.py` and running live `pytest`.
+* **Corporate IP Registration & Cumulative Culture**:
+  * Offspring licensed verified assets from Generation 4 winners, mounting existing modules directly into scratchpads and saving token OpEx.
+  * Corporate ledger tracked royalty accounting ($0.015 USD fee/credit) against each firm's balance sheet.
+* **Empirical Findings & Champion Emergence**:
+  * **60% 3-Gate Pass Rate**: 6 of 10 virtual enterprises cleared Build, Smoke, and Telemetry gates cleanly, docked only -6.25 for live `pytest` assertion mismatches.
+  * **Champion `gen_5_mutant_3` (Score: 91.93)**: Produced 12 verified files on disk, passing 3 gates cleanly and maintaining $0.4081 OpEx under the $0.45 budget ceiling.
+  * See the full empirical report in the [Generation 5 Experiment Report](exp-007-parallel-gen5/experiment_report.md).
 
 ---
 
-## 7. Future Evolutionary Roadmap: Generation 6 and Beyond
+## 7. Active Generation & Future Evolutionary Roadmap: Generation 6 and Beyond
 
 ### 7.1 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Inter-Firm Strategic Co-opetition & Consortiums
 * **Cross-Company Executive Communication**:
