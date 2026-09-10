@@ -320,6 +320,56 @@ class HierarchicalCompanyRunner:
                 dept_id, brief = future.result()
                 departmental_briefs[dept_id] = brief
 
+        # Step 2.5: Closed-Loop Sandbox Test Verification & Automated Code Self-Repair
+        repair_brief = ""
+        has_tests = any("test" in f for f in self.workspace.list_files())
+        if has_tests:
+            test_run = self.workspace.execute_bash("python3 -m pytest tests/ -q", timeout=20)
+            if test_run.get("exit_code") != 0 and "No module named pytest" in test_run.get("stderr", ""):
+                test_run = self.workspace.execute_bash("python3 -m unittest discover -s tests/ -p 'test_*.py'", timeout=20)
+
+            if test_run.get("exit_code") != 0:
+                # Tests failed! Trigger Closed-Loop Self-Repair with technical specialist
+                repair_agent = None
+                for dept in self.genome.departments:
+                    if dept.dept_id in ["dept_systems_eng", "dept_qa_redteam"]:
+                        for a in dept.agents:
+                            role_l = a.role.lower()
+                            if "engineer" in role_l or "devops" in role_l or "specialist" in role_l or "qa" in role_l:
+                                repair_agent = a
+                                break
+                    if repair_agent:
+                        break
+                if not repair_agent:
+                    repair_agent = self.genome.departments[0].agents[0] if self.genome.departments[0].agents else self.genome.departments[0].manager
+
+                max_repair_passes = 2
+                current_res = test_run
+                for r_pass in range(max_repair_passes):
+                    repair_prompt = (
+                        f"CRITICAL TEST BREAKAGE: Sandbox test execution failed with exit code {current_res.get('exit_code')}!\n\n"
+                        f"FAILURE STDOUT:\n{current_res.get('stdout', '')[:1500]}\n\n"
+                        f"FAILURE STDERR:\n{current_res.get('stderr', '')[:1500]}\n\n"
+                        f"Current Workspace Tree:\n{self.workspace.get_file_tree()}\n\n"
+                        f"MANDATE: Analyze the failure traceback. Identify the broken mock, syntax error, missing import, or assertion mismatch. "
+                        f"Use 'read_file' to inspect the code, 'write_file' to patch the implementation or test fixtures, "
+                        f"and 'execute_bash' ('python3 -m pytest tests/ -q' or unittest) to verify the fix. Once tests pass, use Action: finish."
+                    )
+                    repair_summary = self._execute_agent(repair_agent, repair_prompt, max_turns=3)
+                    
+                    # Re-test in sandbox
+                    current_res = self.workspace.execute_bash("python3 -m pytest tests/ -q", timeout=20)
+                    if current_res.get("exit_code") != 0 and "No module named pytest" in current_res.get("stderr", ""):
+                        current_res = self.workspace.execute_bash("python3 -m unittest discover -s tests/ -p 'test_*.py'", timeout=20)
+
+                    if current_res.get("exit_code") == 0:
+                        repair_brief = f"[Self-Repair PASS]: All sandbox tests verified after repair turn {r_pass + 1}."
+                        break
+                else:
+                    repair_brief = f"[Self-Repair ATTEMPTED]: Completed repair passes. Exit code: {current_res.get('exit_code')}."
+            else:
+                repair_brief = "[Self-Repair STATUS]: All tests passed on initial execution."
+
         # Step 3: Executive Council Reconciliation & Master Strategic Synthesis
         all_briefs_text = "\n\n".join([
             f"==================== DEPARTMENT BRIEF: {dept_id.upper()} ====================\n{brief}"
@@ -327,6 +377,8 @@ class HierarchicalCompanyRunner:
         ])
 
         workspace_summary = f"Active Workspace File Tree:\n{self.workspace.get_file_tree()}\n"
+        if repair_brief:
+            workspace_summary += f"\nSandbox Test Status & Self-Repair Diagnostic:\n{repair_brief}\n"
         ceo_final_prompt = (
             f"As CEO, synthesize the final unified enterprise deliverable addressing the strategic objective:\n\n"
             f"{objective}\n\n"

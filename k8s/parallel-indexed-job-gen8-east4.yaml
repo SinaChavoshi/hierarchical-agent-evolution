@@ -1,0 +1,74 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parallel-firms-gen8-east4
+  namespace: agent-evolution
+  labels:
+    app: parallel-firms-gen8-east4
+spec:
+  completionMode: Indexed
+  completions: 10
+  parallelism: 3
+  backoffLimit: 8
+  template:
+    metadata:
+      labels:
+        app: parallel-firms-gen8-east4
+    spec:
+      serviceAccountName: agent-evolution-sa
+      restartPolicy: Never
+      containers:
+      - name: firm-evaluator
+        image: us-central1-docker.pkg.dev/gemle-gke-dev/chavoshi-repo/agent-evolution:latest
+        imagePullPolicy: Always
+        command:
+        - "python"
+        - "-m"
+        - "src.worker"
+        - "--generation"
+        - "8"
+        - "--region"
+        - "us-east4"
+        - "--population-file"
+        - "/configs/generation_8_population.json"
+        - "--output-dir"
+        - "/data/outputs"
+        - "--objective"
+        - "Design, implement, and self-heal the production-ready universal 'agent-org' platform: an open-source framework featuring zero-cloud lock-in, closed-loop sandbox test failure introspection & self-repair, inter-firm strategic consortiums, and autonomous teleological OKRs."
+        env:
+        - name: VERTEX_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vertex-token
+              key: token
+              optional: true
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "gemle-gke-dev"
+        - name: GOOGLE_CLOUD_LOCATION
+          value: "us-east4"
+        - name: WORKER_MODEL
+          value: "gemini-2.5-flash"
+        - name: EXECUTIVE_MODEL
+          value: "gemini-2.5-pro"
+        - name: JUDGE_MODEL
+          value: "gemini-2.5-pro"
+        - name: GCS_BUCKET
+          value: "gemle-gke-dev-agent-evolution"
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            cpu: "3000m"
+            memory: "6Gi"
+        volumeMounts:
+        - name: data-vol
+          mountPath: /data
+        - name: config-vol
+          mountPath: /configs
+      volumes:
+      - name: data-vol
+        emptyDir: {}
+      - name: config-vol
+        configMap:
+          name: gen8-population
