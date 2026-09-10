@@ -322,7 +322,7 @@ class HierarchicalCompanyRunner:
 
         # Step 2.5: Closed-Loop Sandbox Test Verification & Automated Code Self-Repair
         repair_brief = ""
-        has_tests = any("test" in f for f in self.workspace.list_files())
+        has_tests = any("test" in f.get("path", "").lower() for f in self.workspace.list_files())
         if has_tests:
             test_run = self.workspace.execute_bash("python3 -m pytest tests/ -q", timeout=20)
             if test_run.get("exit_code") != 0 and "No module named pytest" in test_run.get("stderr", ""):
@@ -355,7 +355,7 @@ class HierarchicalCompanyRunner:
                         f"Use 'read_file' to inspect the code, 'write_file' to patch the implementation or test fixtures, "
                         f"and 'execute_bash' ('python3 -m pytest tests/ -q' or unittest) to verify the fix. Once tests pass, use Action: finish."
                     )
-                    repair_summary = self._execute_agent(repair_agent, repair_prompt, max_turns=3)
+                    repair_summary = self._execute_agent_with_tools(repair_agent, repair_prompt, max_turns=3)
                     
                     # Re-test in sandbox
                     current_res = self.workspace.execute_bash("python3 -m pytest tests/ -q", timeout=20)
