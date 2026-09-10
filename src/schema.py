@@ -39,6 +39,10 @@ except ImportError:
 
 class CorporateAsset(BaseModel):
     """Reusable corporate asset (Code module, Agent Skill, Trait Pack) for IP marketplace."""
+    model_config = {"extra": "allow"}
+    class Config:
+        extra = "allow"
+
     asset_id: str = ""
     asset_type: str = "code_module"  # "code_module", "agent_skill", "trait_pack"
     name: str = ""
@@ -49,12 +53,18 @@ class CorporateAsset(BaseModel):
 
 class OpExBreakdown(BaseModel):
     """Financial balance sheet detailing token expenditure, model tiers, and unit economics."""
+    model_config = {"extra": "allow"}
+    class Config:
+        extra = "allow"
+
     flash_input_tokens: int = 0
     flash_output_tokens: int = 0
     pro_input_tokens: int = 0
     pro_output_tokens: int = 0
     total_tokens: int = 0
     estimated_cost_usd: float = 0.0
+    licensing_cost_usd: float = 0.0
+    royalty_revenue_usd: float = 0.0
     budget_usd: float = 0.50
     cost_penalty: float = 0.0
     efficiency_bonus: float = 0.0
@@ -65,10 +75,18 @@ class OpExBreakdown(BaseModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         for k, v in kwargs.items():
-            setattr(self, k, v)
+            if not hasattr(self, k):
+                try:
+                    setattr(self, k, v)
+                except Exception:
+                    pass
 
 class AgentGenome(BaseModel):
     """Genome representing an individual agent within a department or executive suite."""
+    model_config = {"extra": "allow"}
+    class Config:
+        extra = "allow"
+
     role: str = ""
     goal: str = ""
     backstory: str = ""
@@ -91,6 +109,10 @@ class AgentGenome(BaseModel):
 
 class DepartmentGenome(BaseModel):
     """Genome representing an operational department pod (Manager + Team Members)."""
+    model_config = {"extra": "allow"}
+    class Config:
+        extra = "allow"
+
     dept_id: str = ""
     name: str = ""
     mandate: str = ""
@@ -117,6 +139,10 @@ class DepartmentGenome(BaseModel):
 
 class CompanyGenome(BaseModel):
     """Genome representing the entire virtual enterprise (CEO + Departments + Budget)."""
+    model_config = {"extra": "allow"}
+    class Config:
+        extra = "allow"
+
     company_id: str = ""
     generation: int = 0
     parent_ids: List[str] = None
@@ -153,6 +179,10 @@ class CompanyGenome(BaseModel):
 
 class FitnessScore(BaseModel):
     """Multi-dimensional evaluation scorecard produced by LLM-as-a-Judge and OpEx engine."""
+    model_config = {"extra": "allow"}
+    class Config:
+        extra = "allow"
+
     strategic_depth: float = 0.0
     technical_feasibility: float = 0.0
     cross_functional_coherence: float = 0.0
@@ -171,6 +201,10 @@ class FitnessScore(BaseModel):
 
 class EvaluationResult(BaseModel):
     """Complete evaluation record for a company's performance, sandbox gates, and financials."""
+    model_config = {"extra": "allow"}
+    class Config:
+        extra = "allow"
+
     company_id: str = ""
     generation: int = 0
     objective: str = ""
@@ -197,6 +231,10 @@ class EvaluationResult(BaseModel):
 
 class EvaluationMetricSpec(BaseModel):
     """Specification of an endogenous success metric or OKR defined autonomously by an enterprise."""
+    model_config = {"extra": "allow"}
+    class Config:
+        extra = "allow"
+
     metric_id: str = ""
     name: str = ""
     metric_type: str = "deterministic"  # "deterministic", "financial", "rubric", "compliance"

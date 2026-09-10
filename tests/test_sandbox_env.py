@@ -82,5 +82,20 @@ class Runtime:
         self.assertTrue(score.test_passed)
         self.assertEqual(score.score_penalty, 0.0)
 
+    def test_opex_breakdown_schema_and_extras(self):
+        from src.schema import OpExBreakdown
+        opex = OpExBreakdown(
+            flash_input_tokens=100,
+            flash_output_tokens=200,
+            licensing_cost_usd=0.05,
+            royalty_revenue_usd=0.02,
+            arbitrary_future_field=123.45
+        )
+        self.assertEqual(opex.licensing_cost_usd, 0.05)
+        self.assertEqual(opex.royalty_revenue_usd, 0.02)
+        self.assertEqual(opex.arbitrary_future_field, 123.45)
+        d = opex.model_dump()
+        self.assertEqual(d["licensing_cost_usd"], 0.05)
+
 if __name__ == "__main__":
     unittest.main()
