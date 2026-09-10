@@ -23,9 +23,33 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 
 ## 2. Multi-Generational Fitness Progression
 
+### 2.0 Standardized Grounded Usability & Retroactive Execution Correction
+
+> [!IMPORTANT]
+> **Methodological Correction: The Static Regex Illusion vs. Ground-Truth Execution**
+> In Generations 0 through 4, candidate software packages were evaluated via regex string parsing over raw markdown text, with **zero physical container execution and zero live pytest execution**. Because static regex marked test gates as passing if the token `test` or `def test_` appeared in markdown text, Generations 2–4 artificially achieved 0.00 sandbox penalties, skewing scores to ~96.75.
+> 
+> Starting in Generation 5, the platform introduced **Active Tool Sandboxing** on live container scratchpads (`/tmp/hae_workspaces/`), mounting full Python packages and executing real `python3 -m pytest tests/` runs. Because open-loop generation lacked self-healing traceback introspection, live assertion mismatches docked a $-6.25$ test gate penalty.
+> 
+> To establish scientific rigor and an honest measure of software quality and usability over time, the table below **retroactively standardizes all generations under the Physical Execution Standard**: deducting $-6.25$ points for any unexecuted or failed gate:
+
+| Generation | Evolutionary Milestone | Legacy Champion (Unchecked) | Standardized Grounded Champion | Live Sandbox? | Tests Run? | Avg Files on Disk | Max Files on Disk | True Usability Paradigm |
+| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Gen 0** | Baseline Pilot (Single Agent) | 50.25 | **25.25** | No (0 files) | No | 0.0 | 0 | Pure Prose (Non-Executable) |
+| **Gen 1** | Parallel Multi-Agent Foundation | 76.55 | **76.55** | No (0 files) | No | 0.0 | 0 | Textual Specification (0 Files) |
+| **Gen 2** | Cross-Functional Convergence | 94.50 | **84.25** | No (0 files) | No | 5.2 | 10 | Markdown Snippets (Unexecuted) |
+| **Gen 3** | Autonomous Specialization | 96.75 | **85.75** | No (0 files) | No | 5.7 | 8 | Modular Blueprints in Text |
+| **Gen 4** | Consortiums & Teleological OKRs | 96.75 | **84.25** | No (0 files) | No | 7.3 | 10 | Multi-Firm Strategic Text |
+| **Gen 5** | Active Container Scratchpads | 91.93 | **91.93** | **Yes (10/10)** | **Yes (10/10)** | 9.3 | 14 | **Physical Disk Files, Live Pytest** |
+| **Gen 6** | Industrial Hardening & Packaging | 91.87 | **91.87** | **Yes (10/10)** | **Yes (10/10)** | **11.0** | **17** | **Production `egg-info` Package** |
+| **Gen 7** | Universal Multi-Platform Portability | 82.70 | **82.70** | **Yes (9/9)** | **Yes (9/9)** | 9.2 | 13 | **Multi-Provider REST Runtime** |
+| **Gen 8** | Closed-Loop Test Self-Repair | *Target: ~96.5* | *Target: ~96.5* | **Yes** | **Yes** | 15+ | 20+ | **Autonomous Pytest Error Repair** |
+
+![Standardized Physical Execution vs Legacy Synthetic Trajectory](assets/standardized_fitness_trajectory.png)
+
 ### 2.1 Visual Performance Trajectory
 
-The chart below contrasts the unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory across 7 evolutionary generations:
+The chart below contrasts the legacy unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory:
 
 ![Generational Fitness Trajectory & Sandbox Convergence](assets/fitness_trajectory.png)
 

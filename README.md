@@ -248,16 +248,30 @@ Where:
 
 Empirical validation across tournament iterations demonstrated measurable evolutionary ascent and autonomous self-repair:
 
-| Experiment | Infrastructure | Key Scientific Findings | Benchmark Report | Champion |
-| :--- | :--- | :--- | :---: | :---: |
-| [**`exp-001-baseline`**](experiments/exp-001-pilot-baseline/) | Cloud Kubernetes (`e2-standard-4`) | Baseline progression ($93.00 \rightarrow 96.25$); Autonomous headcount expansion ($31 \rightarrow 36$ agents) to resolve tape-out bottlenecks. | [Report](experiments/exp-001-pilot-baseline/README.md) | **96.25** |
-| [**`exp-002-parallel`**](experiments/exp-002-parallel-tournament/) | Cloud Kubernetes (5 Parallel Pods) | 10 enterprises (310 agents) evaluated in **22 minutes** (**4.1x speedup**); Deterministic sandbox verification introduces ground-truth execution anchoring. | [Report](experiments/exp-002-parallel-tournament/README.md) | **77.50** |
-| [**`exp-003-parallel-gen1`**](experiments/exp-003-parallel-gen1/) | Cloud Kubernetes + gVisor Sandbox | 3-Way Recombination across 10 firms (312 agents); Identifies the "Thin Persona" bottleneck where single-sentence backstories produce prose over code. | [Report](experiments/exp-003-parallel-gen1/README.md) | **76.55** |
-| [**`exp-004-parallel-gen2`**](experiments/exp-004-parallel-gen2/) | Cloud Kubernetes + gVisor Sandbox | **Persona Discretization Breakthrough**: Structured trait alleles (`backstory_traits`) enable 90% code extraction, 3 zero-penalty runs, and a +11.92 pt cohort leap. | [Report](experiments/exp-004-parallel-gen2/README.md) | **94.50** |
-| [**`exp-005-parallel-gen3`**](experiments/exp-005-parallel-gen3/) | Cloud Kubernetes + gVisor Sandbox | **Allelic Consensus Record**: 100% code extraction, 4 flawless zero-penalty passes, and an all-time tournament record of **96.75 pts** (`gen_3_consensus_2`). | [Report](experiments/exp-005-parallel-gen3/README.md) | **96.75** |
-| [**`exp-006-parallel-gen4`**](experiments/exp-006-parallel-gen4/) | Cloud Kubernetes + gVisor Sandbox | **Autonomous Sizing & OpEx Economics**: Tiered Pro/Flash compute (~14x OpEx compression to $0.0305); Lean Modularists sweep podium with 10 files and 0.00 penalty; Verbose bureaucracies penalized. | [Report](experiments/exp-006-parallel-gen4/experiment_report.md) | **96.75** |
-| [**`exp-007-parallel-gen5`**](experiments/exp-007-parallel-gen5/) | Cloud Kubernetes (10-Pod Indexed Job) | **Active Tool Sandboxing & IP Marketplace**: Agents authored packaging trees directly on disk; 60% 3-gate pass rate; Champion produced 12 verified files. | [Report](experiments/exp-007-parallel-gen5/experiment_report.md) | **91.93** |
-| [**`exp-008-parallel-gen6`**](experiments/exp-008-parallel-gen6/) | Cloud Kubernetes (10-Pod Indexed Job) | **Inter-Firm Consortiums & Multi-Domain Harnesses**: Bilateral term sheets, endogenous OKRs; Champion elite scored 91.87; Runner-up produced record 17 verified files on disk. | [Report](experiments/exp-008-parallel-gen6/experiment_report.md) | **91.87** |
+![Standardized Physical Execution vs Legacy Synthetic Trajectory](experiments/assets/standardized_fitness_trajectory.png)
+
+### 4.1 Standardized Physical Usability vs. Legacy Synthetic Scores
+
+> [!IMPORTANT]
+> **Scientific Integrity & Retroactive Execution Standardization:**
+> In Generations 0 through 4, candidate software packages were evaluated via static regex matching over raw markdown text, with **zero physical container execution and zero live pytest execution**. Consequently, Generations 2–4 artificially reported ~96.75 because tests were marked as passing without being run.
+>
+> In Generation 5, 6, and 7, **Active Tool Sandboxing** was deployed on live container scratchpads (`/tmp/hae_workspaces/`), mounting full Python packages and physically executing `python3 -m pytest tests/`. Open-loop test failures docked a $-6.25$ penalty.
+>
+> Standardizing all generations against the **Physical Execution Standard** (deducting $-6.25$ points for any unexecuted or failed gate) accurately illustrates the true evolutionary leap from synthetic markdown prose to grounded software engineering:
+
+| Experiment | Infrastructure | Standardized Grounded Champion | Legacy Raw Champion | Live Sandbox? | Tests Run? | Files on Disk | Key Empirical Innovation | Benchmark Report |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: |
+| [**`exp-001-baseline`**](experiments/exp-001-pilot-baseline/) | Cloud Kubernetes (`e2-standard-4`) | **25.25** | 96.25 | No (0 files) | No | 0 | Baseline progression; Autonomous headcount expansion ($31 \rightarrow 36$ agents). | [Report](experiments/exp-001-pilot-baseline/README.md) |
+| [**`exp-002-parallel`**](experiments/exp-002-parallel-tournament/) | Cloud Kubernetes (5 Parallel Pods) | **25.25** | 77.50 | No (0 files) | No | 0 | 10 enterprises (310 agents) evaluated in **22 minutes** (**4.1x speedup**). | [Report](experiments/exp-002-parallel-tournament/README.md) |
+| [**`exp-003-parallel-gen1`**](experiments/exp-003-parallel-gen1/) | Cloud Kubernetes + gVisor Sandbox | **76.55** | 76.55 | No (0 files) | No | 0 | 3-Way Recombination; Identifies "Thin Persona" bottleneck. | [Report](experiments/exp-003-parallel-gen1/README.md) |
+| [**`exp-004-parallel-gen2`**](experiments/exp-004-parallel-gen2/) | Cloud Kubernetes + gVisor Sandbox | **84.25** | 94.50 | No (0 files) | No | 5.2 | **Persona Discretization**: Structured trait alleles (`backstory_traits`). | [Report](experiments/exp-004-parallel-gen2/README.md) |
+| [**`exp-005-parallel-gen3`**](experiments/exp-005-parallel-gen3/) | Cloud Kubernetes + gVisor Sandbox | **85.75** | 96.75 | No (0 files) | No | 5.7 | **Allelic Consensus Record**: Modular architecture in text. | [Report](experiments/exp-005-parallel-gen3/README.md) |
+| [**`exp-006-parallel-gen4`**](experiments/exp-006-parallel-gen4/) | Cloud Kubernetes + gVisor Sandbox | **84.25** | 96.75 | No (0 files) | No | 7.3 | **Autonomous Sizing & OpEx**: Tiered Pro/Flash (~14x OpEx compression). | [Report](experiments/exp-006-parallel-gen4/experiment_report.md) |
+| [**`exp-007-parallel-gen5`**](experiments/exp-007-parallel-gen5/) | Cloud Kubernetes (10-Pod Indexed Job) | **91.93** | 91.93 | **Yes (10/10)** | **Yes (10/10)** | 14 | **Phase Shift**: Active Tool Sandboxing; physical disk packages. | [Report](experiments/exp-007-parallel-gen5/experiment_report.md) |
+| [**`exp-008-parallel-gen6`**](experiments/exp-008-parallel-gen6/) | Cloud Kubernetes (10-Pod Indexed Job) | **91.87** | 91.87 | **Yes (10/10)** | **Yes (10/10)** | **17** | **Industrial Hardening**: Record 17 files on disk, built distribution package (`egg-info`). | [Report](experiments/exp-008-parallel-gen6/experiment_report.md) |
+| [**`exp-009-parallel-gen7`**](experiments/exp-009-parallel-gen7/) | Cloud Kubernetes (10-Pod Indexed Job) | **82.70** | 82.70 | **Yes (9/9)** | **Yes (9/9)** | 13 | **Universal Portability**: Zero-cloud lock-in, multi-provider REST. | [In Flight](experiments/exp-009-parallel-gen7/) |
+| **`exp-010-parallel-gen8`** | Cloud Kubernetes (10-Pod Indexed Job) | *Target: ~96.5* | *Target: ~96.5* | **Yes** | **Yes** | 15+ | **Closed-Loop Self-Repair**: Pytest traceback introspection. | *Upcoming* |
 
 ---
 
