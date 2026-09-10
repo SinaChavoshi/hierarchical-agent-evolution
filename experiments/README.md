@@ -17,6 +17,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | [**`exp-005-parallel-gen3`**](exp-005-parallel-gen3/) | Allelic Consensus Mining & Hermetic Pytest Assertion Rigor | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (318 agents) | **96.75** | [`exp-005-parallel-gen3/`](exp-005-parallel-gen3/) ([Report](exp-005-parallel-gen3/experiment_report.md)) |
 | [**`exp-006-parallel-gen4`**](exp-006-parallel-gen4/) | Autonomous Sizing, Model Unit Economics & Token OpEx Envelope | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (320 agents) | **96.75** | [`exp-006-parallel-gen4/`](exp-006-parallel-gen4/) ([Report](exp-006-parallel-gen4/experiment_report.md)) |
 | [**`exp-007-parallel-gen5`**](exp-007-parallel-gen5/) | Active Tool Sandboxing (Agent Execution Scratchpads) & Corporate IP Marketplace | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (325 agents) | **91.93** | [`exp-007-parallel-gen5/`](exp-007-parallel-gen5/) ([Report](exp-007-parallel-gen5/experiment_report.md)) |
+| [**`exp-008-parallel-gen6`**](exp-008-parallel-gen6/) | Inter-Firm Strategic Consortiums, Teleological OKRs & Pluggable Multi-Domain Harnesses | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (327 agents) | **91.87** | [`exp-008-parallel-gen6/`](exp-008-parallel-gen6/) ([Report](exp-008-parallel-gen6/experiment_report.md)) |
 
 ---
 
@@ -24,7 +25,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 
 ### 2.1 Visual Performance Trajectory
 
-The chart below contrasts the unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory across 6 evolutionary generations:
+The chart below contrasts the unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory across 7 evolutionary generations:
 
 ![Generational Fitness Trajectory & Sandbox Convergence](assets/fitness_trajectory.png)
 
@@ -35,7 +36,7 @@ graph LR
         Firm3 --> Elite2["Gen 1 Champion<br/>Score: 96.25 (+3.25 pts)"]
     end
 
-    subgraph TrackB ["Track B: Ground-Truth Deterministic Sandbox (Exp 002 through 006+)"]
+    subgraph TrackB ["Track B: Ground-Truth Deterministic Sandbox (Exp 002 through 008)"]
         ParSeed["Gen 0 Parallel Cohort (Exp 002)<br/>Raw Semantic: ~95-98 pts"]
         Gates{"4 Deterministic Gates<br/>Build | Smoke | OTel | Test"}
         Penalized["Gen 0 Grounded Survivors<br/>Docked -18.75 to -25.0 pts<br/>Top: gen_0_firm_3 (77.50)"]
@@ -50,6 +51,7 @@ graph LR
         Gen2Cohort -->|Allelic Consensus Mining| Gen3Cohort
         Gen3Cohort -->|Autonomous Sizing & OpEx Economics| Gen4Cohort["Gen 4 Cohort (Exp 006)<br/>Champion: gen_4_elite_2 (96.75)<br/>100% Code (10 Files) | $0.0305 OpEx"]
         Gen4Cohort -->|Active Tool Sandboxing & IP Marketplace| Gen5Cohort["Gen 5 Cohort (Exp 007)<br/>Champion: gen_5_mutant_3 (91.93)<br/>12 Files on Disk | $0.4081 OpEx"]
+        Gen5Cohort -->|Inter-Firm Consortiums & Multi-Domain Harnesses| Gen6Cohort["Gen 6 Cohort (Exp 008)<br/>Champion: gen_6_elite_1 (91.87)<br/>15 Files on Disk | $0.3387 OpEx"]
     end
 ```
 
@@ -91,6 +93,11 @@ Where:
 | **`gen_5_elite_2`** (Gen 5 #3) | Gen 5 | 92.0 | 95.0 | 98.0 | 92.0 | 100.0 | $-6.25$ | **88.93** | **Build, Smoke, OTel (11 Files on Disk)** |
 | **`gen_5_consensus_1`** (Gen 5 #4) | Gen 5 | 95.0 | 95.0 | 98.0 | 90.0 | 95.0 | $-6.25$ | **87.08** | **Build, Smoke, OTel (9 Files on Disk)** |
 | **`gen_5_consensus_2`** (Gen 5 #5) | Gen 5 | 90.0 | 90.0 | 95.0 | 90.0 | 95.0 | $-6.25$ | **85.13** | **Build, Smoke, OTel (3 Files on Disk)** |
+| **`gen_6_elite_1`** (Gen 6 Champ) | Gen 6 | 95.0 | 98.0 | 100.0 | 95.0 | 100.0 | $-6.25$ | **91.87** | **Build, Smoke, OTel (15 Files on Disk)** |
+| **`gen_6_consensus_3`** (Gen 6 #2) | Gen 6 | 95.0 | 98.0 | 100.0 | 85.0 | 100.0 | $-6.25$ | **86.13** | **Build, Smoke, OTel (17 Files on Disk - Record)** |
+| **`gen_6_consensus_2`** (Gen 6 #3) | Gen 6 | 95.0 | 90.0 | 100.0 | 95.0 | 100.0 | $-6.25$ | **82.42** | **Build, Smoke, OTel (12 Files on Disk)** |
+| **`gen_6_consensus_1`** (Gen 6 #4) | Gen 6 | 95.0 | 98.0 | 100.0 | 95.0 | 100.0 | $-18.75$ | **77.24** | Telemetry Only (6 Files on Disk) |
+| **`gen_6_mutant_3`** (Gen 6 #5) | Gen 6 | 95.0 | 45.0 | 98.0 | 40.0 | 90.0 | $-6.25$ | **67.93** | **Build, Smoke, OTel (12 Files on Disk)** |
 
 ---
 
@@ -133,6 +140,18 @@ python3 -m src.main \
   --mode single-firm \
   --config experiments/exp-006-parallel-gen4/winning_champion_genome.json \
   --objective "Design and implement the production-ready 'agent-org' platform"
+
+# Replay Experiment 007 Champion (Gen 5 Champion: 91.93, 12 Files on Disk)
+python3 -m src.main \
+  --mode single-firm \
+  --config experiments/exp-007-parallel-gen5/winning_champion_genome.json \
+  --objective "Design and implement the production-ready 'agent-org' platform"
+
+# Replay Experiment 008 Champion (Gen 6 Champion: 91.87, 15 Files on Disk)
+python3 -m src.main \
+  --mode single-firm \
+  --config experiments/exp-008-parallel-gen6/winning_champion_genome.json \
+  --objective "Design and implement the production-ready 'agent-org' platform with inter-firm consortiums, teleological OKRs, and pluggable multi-domain evaluation"
 ```
 
 ### Distributed Cluster Replay (Full Tournament)
@@ -145,6 +164,12 @@ kubectl apply -f k8s/parallel-indexed-job-gen3-east4.yaml
 
 # Re-run Experiment 006 (Generation 4 tournament)
 kubectl apply -f k8s/parallel-indexed-job-gen4-east4.yaml
+
+# Re-run Experiment 007 (Generation 5 tournament)
+kubectl apply -f k8s/parallel-indexed-job-gen5-east4.yaml
+
+# Re-run Experiment 008 (Generation 6 tournament)
+kubectl apply -f k8s/parallel-indexed-job-gen6-east4.yaml
 ```
 
 ---
@@ -177,29 +202,25 @@ kubectl apply -f k8s/parallel-indexed-job-gen4-east4.yaml
 
 ---
 
-## 7. Active Generation & Future Evolutionary Roadmap: Generation 6 and Beyond
+## 7. Completed Benchmark: Generation 6 (Inter-Firm Strategic Consortiums, Autonomous Teleological OKRs & Pluggable Multi-Domain Harnesses)
 
-### 7.1 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Inter-Firm Strategic Co-opetition & Consortiums
-* **Cross-Company Executive Communication**:
-  * CEOs and VPs gain secure inter-firm communication channels to negotiate bilateral strategic alliances, technology licensing, and joint-venture consortiums.
-* **Game-Theoretic Coalitions**:
-  * Incorporates non-zero-sum game theory (Co-opetition, Tit-for-Tat, and Consortium Formation). Two specialized enterprises (e.g., a Systems Architecture champion and a GTM/Strategic Moats leader) can execute a bilateral joint-venture term sheet to co-author unified deliverables evaluated jointly under the sandbox.
-
-### 7.2 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Pluggable Multi-Domain Evaluation & Autonomous Teleological OKRs
-* **Multi-Domain Verification Harnesses**:
-  * Decouples evaluation from software development via a pluggable `BaseVerificationHarness` interface.
-  * Pluggable adapters for Quantitative Trading (`FinancialTradingHarness` backtesting Sharpe/PnL), Regulatory Auditing (`ComplianceHarness`), and Formal Scientific Papers (`ScientificPaperHarness`).
+* **Inter-Firm Strategic Co-opetition & Consortiums**:
+  * Introduced bilateral executive communication channels (`src/consortium.py`) allowing CEOs and Department Managers to negotiate corporate joint ventures, technology cross-licensing, and consortium bidding.
+* **Pluggable Multi-Domain Verification Harnesses**:
+  * Decoupled evaluation from monolithic software development via modular harnesses (`src/harnesses.py`), adding quantitative financial trading risk validation and statutory compliance auditing.
 * **Autonomous Teleological Metric Formulation (Endogenous OKRs)**:
-  * Under ambiguous strategic missions, CEOs autonomously synthesize and evolve their own `EvaluationMetricSpec` (internal OKRs, verifiable acceptance criteria, and priority weights). Offspring inherit and refine these metric specifications, modeling how real startups discover product-market fit.
+  * Empowered virtual enterprises to synthesize and track internal quantitative acceptance tests (`EvaluationMetricSpec` and `TeleologicalVerifier`) aligning strategic intent with verified technical output.
+* **Empirical Findings & Champion Emergence**:
+  * **Podium Sweep by Elite & Consensus Lineages**: Elite champion `gen_6_elite_1` achieved **91.87** Net Fitness (Gross: 97.5, 15 files on disk, $0.3387 OpEx against $0.45 budget, +0.62 efficiency bonus).
+  * **All-Time Record Disk Packaging (17 Files)**: Runner-up `gen_6_consensus_3` produced **17 distinct physical files on disk**, including complete packaging manifests, systems engineering specifications, adversarial test suites, and distribution metadata (`agent_org_mva.egg-info`), scoring **86.13** Net Fitness.
+  * **40% 3-Gate Sandbox Clearance**: 4 of 10 virtual enterprises cleared Build, Smoke, and Telemetry gates cleanly.
+  * See the full empirical report in the [Generation 6 Experiment Report](exp-008-parallel-gen6/experiment_report.md).
 
-### 7.3 Priority 1 (P1 — Targeted for Next Generation / Generation 6): Autonomous Morphogenesis & Dynamic Topologies
-* **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**:
-  * Eliminates the rigid 5-department corporate template (`default_company.json`).
-  * Given an arbitrary objective, a `MetaExecutive` synthesizes the optimal organizational topology (e.g. 2 lean pods for a lightweight utility vs. 6 specialized pods for a distributed database).
-* **Structural Allelic Crossover**:
-  * Enables genetic recombination across enterprises with differing numbers of departments and specialist roles using semantic role embeddings.
+---
 
-### 7.4 Priority 2 (P2 — Infrastructure & Portability Expansion): Universal Multi-Platform & LLM Provider Portability
+## 8. Active Generation & Future Evolutionary Roadmap: Generation 7 and Beyond
+
+### 8.1 Priority 2 (P2 — Immediate Target for Generation 7): Universal Multi-Platform & LLM Provider Portability
 * **Zero Cloud Lock-In / Universal LLM Providers**:
   * Decouples the platform from Google Cloud Vertex AI REST and service account requirements.
   * Direct support for **Gemini Developer API keys** (`GEMINI_API_KEY`), **OpenAI** (`OPENAI_API_KEY`), **Anthropic** (`ANTHROPIC_API_KEY`), and local open-source models via **Ollama / vLLM** (`http://localhost:11434/v1`).
@@ -208,3 +229,13 @@ kubectl apply -f k8s/parallel-indexed-job-gen4-east4.yaml
   * Single-command local execution (`hae run --objective "..."` via multi-threading / async).
   * Docker Compose execution engine with gVisor / container isolation.
   * Pluggable cluster backends: Ray and Slurm alongside Kubernetes Batch Indexed Jobs.
+
+### 8.2 Closed-Loop Self-Healing & Sandbox Test Repair
+* **Dynamic Test Failure Feedback**:
+  * Specialist engineering agents receive sandbox error traces and stderr logs to execute iterative test repair turns before deliverable submission.
+
+### 8.3 Autonomous Morphogenesis & Dynamic Topologies
+* **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**:
+  * Eliminates the rigid 5-department corporate template (`default_company.json`). Given an arbitrary objective, a `MetaExecutive` synthesizes the optimal organizational topology (e.g. 2 lean pods for a lightweight utility vs. 6 specialized pods for a distributed database).
+* **Structural Allelic Crossover**:
+  * Enables genetic recombination across enterprises with differing numbers of departments and specialist roles using semantic role embeddings.

@@ -78,7 +78,9 @@ hierarchical-agent-evolution/
 │   ├── generation_1_population.json # Evolved Gen 1 population genomes
 │   ├── generation_2_population.json # Evolved Gen 2 population genomes (Trait Alleles)
 │   ├── generation_3_population.json # Evolved Gen 3 population genomes (Consensus Peak)
-│   └── generation_4_population.json # Evolved Gen 4 population genomes (OpEx & Sizing)
+│   ├── generation_4_population.json # Evolved Gen 4 population genomes (OpEx & Sizing)
+│   ├── generation_5_population.json # Evolved Gen 5 population genomes (Tool Sandboxing & IP)
+│   └── generation_6_population.json # Evolved Gen 6 population genomes (Consortiums & OKRs)
 ├── experiments/                # Empirical experiment ledger & benchmarks
 │   ├── README.md               # Benchmark registry and artifact schema
 │   ├── assets/                 # High-resolution SVG/PNG fitness trajectory charts
@@ -87,7 +89,9 @@ hierarchical-agent-evolution/
 │   ├── exp-003-parallel-gen1/  # Gen 1 parallel tournament snapshots
 │   ├── exp-004-parallel-gen2/  # Gen 2 parallel tournament snapshots
 │   ├── exp-005-parallel-gen3/  # Gen 3 parallel tournament snapshots
-│   └── exp-006-parallel-gen4/  # Gen 4 parallel tournament snapshots
+│   ├── exp-006-parallel-gen4/  # Gen 4 parallel tournament snapshots
+│   ├── exp-007-parallel-gen5/  # Gen 5 parallel tournament snapshots
+│   └── exp-008-parallel-gen6/  # Gen 6 parallel tournament snapshots
 ├── src/
 │   ├── schema.py               # Genome schemas (Company, Department, Agent, Fitness)
 │   ├── company.py              # Federated hierarchical execution runner
@@ -95,6 +99,9 @@ hierarchical-agent-evolution/
 │   ├── mutator.py              # Genetic mutator & crossover operators
 │   ├── breeding.py             # 3-Way breeding engine (Consensus, Pareto, Directed)
 │   ├── sandbox_verifier.py     # Deterministic 4-gate sandbox verification engine
+│   ├── consortium.py           # Inter-firm executive communication & term sheets
+│   ├── harnesses.py            # Pluggable multi-domain evaluation harnesses
+│   ├── teleological.py         # Autonomous teleological OKRs & internal metric verifiers
 │   ├── telemetry.py            # OpenTelemetry instrumentation & token accounting
 │   ├── engine.py               # Tournament controller & generational orchestration
 │   ├── worker.py               # Distributed indexed worker entrypoint
@@ -249,8 +256,8 @@ Empirical validation across tournament iterations demonstrated measurable evolut
 | [**`exp-004-parallel-gen2`**](experiments/exp-004-parallel-gen2/) | Cloud Kubernetes + gVisor Sandbox | **Persona Discretization Breakthrough**: Structured trait alleles (`backstory_traits`) enable 90% code extraction, 3 zero-penalty runs, and a +11.92 pt cohort leap. | [Report](experiments/exp-004-parallel-gen2/README.md) | **94.50** |
 | [**`exp-005-parallel-gen3`**](experiments/exp-005-parallel-gen3/) | Cloud Kubernetes + gVisor Sandbox | **Allelic Consensus Record**: 100% code extraction, 4 flawless zero-penalty passes, and an all-time tournament record of **96.75 pts** (`gen_3_consensus_2`). | [Report](experiments/exp-005-parallel-gen3/README.md) | **96.75** |
 | [**`exp-006-parallel-gen4`**](experiments/exp-006-parallel-gen4/) | Cloud Kubernetes + gVisor Sandbox | **Autonomous Sizing & OpEx Economics**: Tiered Pro/Flash compute (~14x OpEx compression to $0.0305); Lean Modularists sweep podium with 10 files and 0.00 penalty; Verbose bureaucracies penalized. | [Report](experiments/exp-006-parallel-gen4/experiment_report.md) | **96.75** |
-
----
+| [**`exp-007-parallel-gen5`**](experiments/exp-007-parallel-gen5/) | Cloud Kubernetes (10-Pod Indexed Job) | **Active Tool Sandboxing & IP Marketplace**: Agents authored packaging trees directly on disk; 60% 3-gate pass rate; Champion produced 12 verified files. | [Report](experiments/exp-007-parallel-gen5/experiment_report.md) | **91.93** |
+| [**`exp-008-parallel-gen6`**](experiments/exp-008-parallel-gen6/) | Cloud Kubernetes (10-Pod Indexed Job) | **Inter-Firm Consortiums & Multi-Domain Harnesses**: Bilateral term sheets, endogenous OKRs; Champion elite scored 91.87; Runner-up produced record 17 verified files on disk. | [Report](experiments/exp-008-parallel-gen6/experiment_report.md) | **91.87** |
 
 ---
 
@@ -268,7 +275,8 @@ As the platform evolves across generational iterations, the virtual enterprises 
 | **Gen 3** | **Hermetic Engineering & Invariant Mining** | Recombination of consensus operational alleles | High token OpEx across uniform Pro models | **Allelic Consensus Mining** & Pytest harness injection | **96.75** |
 | **Gen 4** | **Capital-Efficient Economic Enterprise** | Dynamic sizing & model tier cost accounting | Fixed organizational topologies | **Autonomous Sizing & OpEx token budgeting** | **96.75** |
 | **Gen 5** | **Asset-Sharing Commercial Commons** | IP registration & modular library reuse | Redundant re-implementation of common libraries | **Active Tool Sandboxing & IP Marketplace** | **91.93** |
-| **Gen 6** | **Inter-Firm Strategic Co-opetition** | Bilateral executive term sheets & joint ventures | Zero-sum isolationism | **Cross-Company Communication & Consortia** | *Active* |
+| **Gen 6** | **Inter-Firm Strategic Co-opetition** | Bilateral executive term sheets & joint ventures | Zero-sum isolationism | **Cross-Company Communication & Consortia** | **91.87** |
+| **Gen 7** | **Universal Multi-Platform & Open Ecosystem** | Multi-runtime execution & vendor-neutral inference | Platform lock-in & cloud single-tenancy | **Universal LLM Abstraction & Local Runtimes** | *Active* |
 
 ### 5.2 Evolutionary Roadmap & Priority Matrix
 
@@ -276,17 +284,13 @@ As the platform evolves across generational iterations, the virtual enterprises 
 * **Active Tool Sandboxing (Live Scratchpad Execution)**: Transitioned specialists from passive text generation to active sandboxed execution (`write_file`, `read_file`, `list_files`, `execute_bash`). Enterprises authored complete packaging trees (8 to 14 files per firm) directly on disk in `/tmp/hae_workspaces/{company_id}/`, installing packages and executing live `pytest`.
 * **Reusable Corporate Assets & IP Marketplace (Cumulative Culture)**: Mounted pre-licensed modules into offspring scratchpads, tracking balance-sheet royalties ($0.015 USD fee/credit) without exceeding the $0.45 budget envelope. Champion `gen_5_mutant_3` achieved **91.93** overall with 12 verified files.
 
-#### Priority 1 (P1 — Active in Generation 6): Inter-Firm Strategic Co-opetition & Consortiums
-  * CEOs and VPs gain secure inter-firm communication channels to negotiate bilateral strategic alliances, technology licensing, and joint-venture consortiums.
-  * **Game-Theoretic Coalitions**: Incorporates non-zero-sum game theory (Co-opetition, Tit-for-Tat, and Consortium Formation). Two specialized firms (e.g., a Systems Architecture champion and a GTM/Strategic Moats leader) can execute a bilateral joint-venture term sheet to co-author unified deliverables evaluated jointly under the sandbox.
-* **Pluggable Multi-Domain Evaluation & Autonomous Teleological OKRs**:
-  * **Pluggable Multi-Domain Verification Harnesses**: Decouples evaluation from software development via an abstract `BaseVerificationHarness` interface. Pluggable adapters for Quantitative Trading (`FinancialTradingHarness` backtesting Sharpe/PnL), Regulatory Compliance (`ComplianceHarness`), and Formal Scientific Papers (`ScientificPaperHarness`).
-  * **Autonomous Teleological Metric Formulation (Endogenous OKRs)**: Under ambiguous strategic missions, CEOs autonomously synthesize and evolve their own `EvaluationMetricSpec` (internal OKRs, verifiable acceptance criteria, and priority weights). Offspring inherit and refine these metric specifications, modeling how real startups discover product-market fit.
-* **Autonomous Morphogenesis & Dynamic Topologies**:
-  * **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**: Eliminates the rigid 5-department corporate template (`default_company.json`) to dynamically spawn custom departments tailored to arbitrary objectives.
-  * **Structural Allelic Crossover**: Enables genetic recombination across enterprises with differing numbers of departments and specialist roles using semantic role embeddings.
+#### Completed Benchmark: Generation 6 (Inter-Firm Strategic Co-opetition, Autonomous Teleological OKRs & Pluggable Multi-Domain Harnesses)
+* **Inter-Firm Strategic Co-opetition & Consortiums**: CEOs and Department Managers leveraged bilateral executive communication channels (`src/consortium.py`) to negotiate corporate joint ventures, technology cross-licensing, and consortium bidding.
+* **Pluggable Multi-Domain Verification Harnesses**: Decoupled evaluation from monolithic software development via modular harnesses (`src/harnesses.py`), adding quantitative financial trading risk validation and statutory compliance auditing.
+* **Autonomous Teleological Metric Formulation (Endogenous OKRs)**: Empowered virtual enterprises to synthesize and track internal quantitative acceptance tests (`EvaluationMetricSpec` and `TeleologicalVerifier`) aligning strategic intent with verified technical output.
+* **Empirical Validation**: Podium sweep by elite and consensus lineages; champion `gen_6_elite_1` achieved **91.87** Net Fitness, and runner-up `gen_6_consensus_3` produced an all-time record **17 distinct physical files on disk**.
 
-#### Priority 2 (P2 — Infrastructure & Portability Expansion)
+#### Priority 2 (P2 — Active in Generation 7): Universal Multi-Platform & LLM Provider Portability
 * **Universal Multi-Platform & LLM Provider Portability (Zero Cloud Lock-In)**:
   * Decouples the platform from Google Cloud Vertex AI REST and service account requirements.
   * Direct support for **Gemini Developer API keys** (`GEMINI_API_KEY`), **OpenAI** (`OPENAI_API_KEY`), **Anthropic** (`ANTHROPIC_API_KEY`), and local open-source models via **Ollama / vLLM** (`http://localhost:11434/v1`).
@@ -295,6 +299,11 @@ As the platform evolves across generational iterations, the virtual enterprises 
   * Single-command local execution (`hae run --objective "..."` via multi-threading / async).
   * Docker Compose execution engine with gVisor / container isolation.
   * Pluggable cluster backends: Ray and Slurm alongside Kubernetes Batch Indexed Jobs.
+
+#### Future Generations: Closed-Loop Self-Healing & Autonomous Morphogenesis
+* **Closed-Loop Self-Healing in Active Sandboxes**: Dynamic closed-loop test failure feedback loops where compiler/pytest error traces trigger automated code repair turns.
+* **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**: Synthesizing optimal organizational topologies from arbitrary natural language goals.
+* **Structural Allelic Crossover**: Recombining genomes with heterogeneous departmental structures via semantic role embeddings.
 
 ---
 
