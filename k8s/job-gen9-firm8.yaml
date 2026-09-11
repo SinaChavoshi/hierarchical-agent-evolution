@@ -1,0 +1,93 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parallel-firms-gen9-firm8
+  namespace: agent-evolution
+  labels:
+    app: parallel-firms-gen9-firm8
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: parallel-firms-gen9-firm8
+    spec:
+      serviceAccountName: agent-evolution-sa
+      restartPolicy: Never
+      containers:
+      - name: firm-evaluator
+        image: us-central1-docker.pkg.dev/gemle-gke-dev/chavoshi-repo/agent-evolution:latest
+        imagePullPolicy: Always
+        command:
+        - "python"
+        - "-m"
+        - "src.worker"
+        - "--generation"
+        - "9"
+        - "--firm-index"
+        - "8"
+        - "--region"
+        - "us-east4"
+        - "--population-file"
+        - "/configs/generation_9_population.json"
+        - "--output-dir"
+        - "/data/outputs"
+        - "--objective"
+        - "Design and implement the production-ready universal 'agent-org' platform: an open-source framework featuring autonomous morphogenesis with dynamic organizational topologies (3-7 departments), structural allelic crossover, closed-loop sandbox test failure introspection & self-repair, inter-firm strategic consortiums, and autonomous teleological OKRs."
+        env:
+        - name: VERTEX_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: vertex-token
+              key: token
+              optional: true
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "gemle-gke-dev"
+        - name: GOOGLE_CLOUD_LOCATION
+          value: "us-east4"
+        - name: WORKER_MODEL
+          value: "gemini-2.5-flash"
+        - name: EXECUTIVE_MODEL
+          value: "gemini-2.5-pro"
+        - name: JUDGE_MODEL
+          value: "gemini-2.5-pro"
+        - name: GCS_BUCKET
+          value: "gemle-gke-dev-agent-evolution"
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            cpu: "3000m"
+            memory: "6Gi"
+        volumeMounts:
+        - name: data-vol
+          mountPath: /data
+        - name: config-vol
+          mountPath: /configs
+        - name: code-vol
+          mountPath: /app/src/company.py
+          subPath: company.py
+        - name: code-vol-morph
+          mountPath: /app/src/morphogenesis.py
+          subPath: morphogenesis.py
+      volumes:
+      - name: data-vol
+        emptyDir: {}
+      - name: config-vol
+        configMap:
+          name: gen9-population
+      - name: code-vol
+        configMap:
+          name: gen9-code
+          items:
+          - key: company.py
+            path: company.py
+      - name: code-vol-morph
+        configMap:
+          name: gen9-code
+          items:
+          - key: morphogenesis.py
+            path: morphogenesis.py
