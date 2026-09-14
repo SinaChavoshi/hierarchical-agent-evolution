@@ -22,7 +22,15 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | [**`exp-010-parallel-gen8`**](exp-010-parallel-gen8/) | Closed-Loop Sandbox Test Verification & Automated Code Self-Repair | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (334 agents) | **79.89** | [`exp-010-parallel-gen8/`](exp-010-parallel-gen8/) ([Report](exp-010-parallel-gen8/experiment_report.md)) |
 | [**`exp-011-parallel-gen9`**](exp-011-parallel-gen9/) | Autonomous Morphogenesis & Dynamic Organizational Topologies | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (319 agents) | **87.68** | [`exp-011-parallel-gen9/`](exp-011-parallel-gen9/) ([Report](exp-011-parallel-gen9/experiment_report.md)) |
 | [**`exp-012-parallel-gen10`**](exp-012-parallel-gen10/) | Cross-Cloud Federated Mesh & Autonomous Self-Evolving Evaluation Rubrics | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (341 agents) | **91.26** | [`exp-012-parallel-gen10/`](exp-012-parallel-gen10/) ([Report](exp-012-parallel-gen10/experiment_report.md)) |
-| [**`exp-013-parallel-gen11`**](exp-013-parallel-gen11/) | Execution-First Selection & In-Loop Ground-Truth Verification | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (342 agents) | *in progress* | [`exp-013-parallel-gen11/`](exp-013-parallel-gen11/) |
+| [**`exp-013-parallel-gen11`**](exp-013-parallel-gen11/) | Execution-First Selection & In-Loop Ground-Truth Verification | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (342 agents) | **FAILED RUN** — no valid score | [`exp-013-parallel-gen11/`](exp-013-parallel-gen11/) ([Failure analysis](exp-013-parallel-gen11/README.md)) |
+
+> [!CAUTION]
+> **Generation 11 did not complete and has no generation-level score.** Three of ten
+> firms — every structurally novel topology in the population — crashed at genome load
+> with a `tools_enabled` type error inherited from `morphogenesis.py`. Harvesting the
+> seven conservative survivors would have reproduced exactly the survivorship bias
+> retracted in §2.1, so the run was aborted. The V1 experiment set **closes at
+> Generation 10**. Full analysis: [`exp-013-parallel-gen11/README.md`](exp-013-parallel-gen11/README.md).
 
 ---
 

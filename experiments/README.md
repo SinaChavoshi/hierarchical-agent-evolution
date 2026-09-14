@@ -6,7 +6,7 @@ generations sharing one platform architecture and one fitness function.
 
 | Set | Generations | Status | Index |
 |---|---|---|---|
-| **V1** | Pilot → Gen 11 | **Closed** | [`v1/README.md`](v1/README.md) |
+| **V1** | Pilot → Gen 10 (Gen 11 aborted) | **Closed** | [`v1/README.md`](v1/README.md) |
 | **V2** | Gen 1 → … | Not started | [`v2/README.md`](v2/README.md) |
 
 ---
