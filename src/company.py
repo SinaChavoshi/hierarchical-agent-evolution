@@ -94,6 +94,14 @@ class HierarchicalCompanyRunner:
         self.flash_output_tokens = 0
         self.pro_input_tokens = 0
         self.pro_output_tokens = 0
+        # Provenance of the token counts above. Vertex returns usageMetadata on
+        # every response; when it is present those numbers are used verbatim.
+        # The len(text)/4 estimate is only a fallback, and it is a bad one: it
+        # cannot see reasoning tokens at all, so on a thinking model it
+        # understates real usage and inflates the efficiency bonus.
+        self.measured_calls = 0
+        self.estimated_calls = 0
+        self.thought_tokens = 0
 
         # Initialize active execution workspace
         self.workspace = AgentWorkspace(company_id=self.genome.company_id)
@@ -129,6 +137,34 @@ class HierarchicalCompanyRunner:
                 except Exception as e:
                     print(f" [WARNING] Error loading licensed assets: {e}")
 
+    def _account_tokens(self, is_pro: bool, prompt_text: str, system_text: str,
+                        response_text: str, usage: Dict[str, Any]) -> None:
+        """Adds one call's token usage to the running totals.
+
+        Prefers the provider's `usageMetadata`. Falls back to `len(text)/4`
+        only when the provider reported nothing, and records which happened so
+        the scorecard can say whether its cost figure is measured or guessed.
+        """
+        if usage.get("measured"):
+            in_tokens = int(usage.get("prompt_tokens", 0))
+            out_tokens = int(usage.get("output_tokens", 0))
+            thoughts = int(usage.get("thought_tokens", 0))
+            # Reasoning tokens bill at the output rate.
+            out_tokens += thoughts
+            self.thought_tokens += thoughts
+            self.measured_calls += 1
+        else:
+            in_tokens = int((len(prompt_text) + len(system_text)) / 4.0)
+            out_tokens = int(len(response_text) / 4.0)
+            self.estimated_calls += 1
+
+        if is_pro:
+            self.pro_input_tokens += in_tokens
+            self.pro_output_tokens += out_tokens
+        else:
+            self.flash_input_tokens += in_tokens
+            self.flash_output_tokens += out_tokens
+
     def _execute_agent(self, agent: AgentGenome, prompt: str, context: str = "") -> str:
         """Invokes a single agent without tools (fast prompt pass)."""
         traits_section = ""
@@ -149,24 +185,15 @@ class HierarchicalCompanyRunner:
         is_pro = (agent.model_tier == "executive")
         model_name = "gemini-2.5-pro" if is_pro else "gemini-2.5-flash"
         
-        in_tokens = int((len(full_prompt) + len(system_prompt)) / 4.0)
-        if is_pro:
-            self.pro_input_tokens += in_tokens
-        else:
-            self.flash_input_tokens += in_tokens
-
+        usage: Dict[str, Any] = {}
         resp = call_vertex_gemini_rest(
             prompt=full_prompt,
             model_name=model_name,
             temperature=agent.temperature,
-            system_instruction=system_prompt
+            system_instruction=system_prompt,
+            usage_sink=usage
         )
-
-        out_tokens = int(len(resp) / 4.0)
-        if is_pro:
-            self.pro_output_tokens += out_tokens
-        else:
-            self.flash_output_tokens += out_tokens
+        self._account_tokens(is_pro, full_prompt, system_prompt, resp, usage)
 
         return resp
 
@@ -219,24 +246,16 @@ class HierarchicalCompanyRunner:
         final_summary = ""
 
         for turn in range(max_turns):
-            in_tokens = int((len(conversation_history) + len(system_prompt)) / 4.0)
-            if is_pro:
-                self.pro_input_tokens += in_tokens
-            else:
-                self.flash_input_tokens += in_tokens
-
+            usage: Dict[str, Any] = {}
             step_resp = call_vertex_gemini_rest(
                 prompt=conversation_history,
                 model_name=model_name,
                 temperature=agent.temperature,
-                system_instruction=system_prompt
+                system_instruction=system_prompt,
+                usage_sink=usage
             )
-
-            out_tokens = int(len(step_resp) / 4.0)
-            if is_pro:
-                self.pro_output_tokens += out_tokens
-            else:
-                self.flash_output_tokens += out_tokens
+            self._account_tokens(is_pro, conversation_history, system_prompt,
+                                 step_resp, usage)
 
             parsed = parse_tool_action(step_resp)
             if not parsed or parsed[0] == "finish":
@@ -481,6 +500,14 @@ class HierarchicalCompanyRunner:
             "departmental_briefs": departmental_briefs,
             "elapsed_seconds": elapsed,
             "estimated_tokens": total_tokens,
+            "token_accounting": {
+                "measured_calls": self.measured_calls,
+                "estimated_calls": self.estimated_calls,
+                "thought_tokens": self.thought_tokens,
+                # True only if every call reported usageMetadata. A partially
+                # measured run still has an approximate cost figure.
+                "fully_measured": self.estimated_calls == 0 and self.measured_calls > 0,
+            },
             "workspace_files": workspace_bundle,
             "workspace_tree": self.workspace.get_file_tree(),
             "workspace_path": str(self.workspace.workspace_dir),

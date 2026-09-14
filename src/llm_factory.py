@@ -3,9 +3,10 @@
 import os
 import json
 import time
+import threading
 import urllib.request
 import urllib.error
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, Tuple
 from .config import DEFAULT_CONFIG
 
 # Default models per provider tier
@@ -98,54 +99,155 @@ def resolve_model_for_provider(model_name: Optional[str], provider: str, tier: s
 
     return model_name
 
-def get_adc_access_token() -> Optional[str]:
-    """Retrieve Google Cloud access token via env var, mounted secret, google-auth, or metadata server."""
-    env_token = os.environ.get("VERTEX_API_TOKEN")
-    if env_token and env_token.strip():
-        return env_token.strip()
+# Access tokens are cached with their expiry so every LLM call does not pay a
+# metadata-server round trip, and so a stale token can be evicted on a 401.
+#
+# The bug this replaces: the old implementation short-circuited on the
+# VERTEX_API_TOKEN environment variable and returned it forever. Vertex tokens
+# live about an hour, so a tournament longer than that lost every firm still
+# running when the token aged out -- observed in both Generation 9 and
+# Generation 10, each of which needed firms manually re-dispatched.
+_TOKEN_CACHE: Dict[str, Any] = {"token": None, "expires_at": 0.0, "source": None}
+_TOKEN_LOCK = threading.Lock()
 
-    if os.path.exists("/etc/vertex-token/token"):
-        try:
-            with open("/etc/vertex-token/token", "r") as f:
-                t = f.read().strip()
-                if t:
-                    return t
-        except Exception:
-            pass
+# Refresh this many seconds before nominal expiry so an in-flight request does
+# not straddle the boundary.
+_TOKEN_SKEW_S = 300.0
+# Fallback lifetime for sources that do not report one.
+_TOKEN_DEFAULT_TTL_S = 3000.0
 
-    try:
-        import google.auth
-        import google.auth.transport.requests
-        creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
-        creds.refresh(google.auth.transport.requests.Request())
-        return creds.token
-    except Exception:
-        pass
 
+def _fetch_token_from_metadata() -> Optional[Tuple[str, float]]:
+    """Workload Identity. Returns (token, seconds_until_expiry)."""
     try:
         req = urllib.request.Request(
             "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
             headers={"Metadata-Flavor": "Google"}
         )
-        with urllib.request.urlopen(req, timeout=2) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            return data.get("access_token")
+            token = data.get("access_token")
+            if token:
+                return token, float(data.get("expires_in", _TOKEN_DEFAULT_TTL_S))
     except Exception:
         pass
+    return None
 
+
+def _fetch_token_from_google_auth() -> Optional[Tuple[str, float]]:
+    try:
+        import google.auth
+        import google.auth.transport.requests
+        creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+        creds.refresh(google.auth.transport.requests.Request())
+        if not creds.token:
+            return None
+        ttl = _TOKEN_DEFAULT_TTL_S
+        expiry = getattr(creds, "expiry", None)
+        if expiry is not None:
+            try:
+                import datetime as _dt
+                now = _dt.datetime.utcnow()
+                ttl = max(0.0, (expiry - now).total_seconds())
+            except Exception:
+                pass
+        return creds.token, ttl
+    except Exception:
+        return None
+
+
+def _fetch_token_from_mounted_secret() -> Optional[Tuple[str, float]]:
+    """A projected service-account token, remounted by the kubelet as it rotates.
+
+    Re-read on every refresh rather than cached indefinitely, which is the
+    whole point of the projection.
+    """
+    path = "/etc/vertex-token/token"
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r") as fh:
+            token = fh.read().strip()
+        # Short TTL: the file is the source of truth and re-reading is cheap.
+        return (token, 600.0) if token else None
+    except Exception:
+        return None
+
+
+def _fetch_token_from_gcloud() -> Optional[Tuple[str, float]]:
     try:
         import subprocess
         out = subprocess.check_output(
             ["gcloud", "auth", "application-default", "print-access-token"],
             stderr=subprocess.DEVNULL
         ).decode("utf-8").strip()
-        if out:
-            return out
-        return None
+        return (out, _TOKEN_DEFAULT_TTL_S) if out else None
     except Exception:
-        pass
+        return None
 
-    return None
+
+def _fetch_token_from_env() -> Optional[Tuple[str, float]]:
+    """A statically injected token.
+
+    Deliberately last in the chain and given a finite TTL. It cannot be
+    refreshed, so once it expires the chain must fall through to a source that
+    can.
+    """
+    token = os.environ.get("VERTEX_API_TOKEN", "").strip()
+    return (token, _TOKEN_DEFAULT_TTL_S) if token else None
+
+
+# Refreshable sources first; the static env var is a last resort.
+_TOKEN_SOURCES = (
+    ("metadata", _fetch_token_from_metadata),
+    ("google-auth", _fetch_token_from_google_auth),
+    ("mounted-secret", _fetch_token_from_mounted_secret),
+    ("gcloud", _fetch_token_from_gcloud),
+    ("env", _fetch_token_from_env),
+)
+
+
+def get_adc_access_token(force_refresh: bool = False) -> Optional[str]:
+    """Returns a Google Cloud access token, refreshing it when it nears expiry.
+
+    Pass `force_refresh=True` after a 401 to evict a token the server has
+    rejected; otherwise a cached token is reused until `_TOKEN_SKEW_S` before
+    its expiry.
+    """
+    now = time.time()
+    with _TOKEN_LOCK:
+        if (not force_refresh
+                and _TOKEN_CACHE["token"]
+                and now < _TOKEN_CACHE["expires_at"] - _TOKEN_SKEW_S):
+            return _TOKEN_CACHE["token"]
+
+        for name, fetch in _TOKEN_SOURCES:
+            result = fetch()
+            if not result:
+                continue
+            token, ttl = result
+            if force_refresh and token == _TOKEN_CACHE["token"]:
+                # This source can only hand back the token that was just
+                # rejected. Keep looking for one that can actually rotate.
+                continue
+            _TOKEN_CACHE.update({
+                "token": token,
+                "expires_at": now + max(ttl, 60.0),
+                "source": name,
+            })
+            return token
+
+        if force_refresh and _TOKEN_CACHE["token"]:
+            # Nothing could rotate. Return the stale token so the caller fails
+            # with the real server error rather than a confusing None.
+            return _TOKEN_CACHE["token"]
+        return None
+
+
+def reset_token_cache() -> None:
+    """Clears the cached token. Exposed for tests."""
+    with _TOKEN_LOCK:
+        _TOKEN_CACHE.update({"token": None, "expires_at": 0.0, "source": None})
 
 def call_gemini_api_rest(
     prompt: str,
@@ -301,6 +403,33 @@ def call_anthropic_rest(
 
     raise RuntimeError(f"Anthropic API failed after {max_retries} attempts: {last_err}")
 
+def record_usage(sink: Optional[Dict[str, Any]], resp_data: Dict[str, Any]) -> None:
+    """Copies a response's usageMetadata into `sink`, accumulating across calls.
+
+    Vertex reports `promptTokenCount`, `candidatesTokenCount` and
+    `totalTokenCount`; the Gemini Developer API uses the same names. Reasoning
+    tokens appear in `thoughtsTokenCount` on models that emit them and are
+    already included in the total, so they are recorded separately rather than
+    added again.
+    """
+    if sink is None:
+        return
+    usage = resp_data.get("usageMetadata") or {}
+    if not usage:
+        return
+    prompt = int(usage.get("promptTokenCount", 0) or 0)
+    output = int(usage.get("candidatesTokenCount", 0) or 0)
+    thoughts = int(usage.get("thoughtsTokenCount", 0) or 0)
+    total = int(usage.get("totalTokenCount", 0) or 0) or (prompt + output + thoughts)
+
+    sink["prompt_tokens"] = sink.get("prompt_tokens", 0) + prompt
+    sink["output_tokens"] = sink.get("output_tokens", 0) + output
+    sink["thought_tokens"] = sink.get("thought_tokens", 0) + thoughts
+    sink["total_tokens"] = sink.get("total_tokens", 0) + total
+    sink["calls"] = sink.get("calls", 0) + 1
+    sink["measured"] = True
+
+
 def call_vertex_gemini_raw(
     prompt: str,
     model_name: str = "gemini-2.5-flash",
@@ -308,9 +437,17 @@ def call_vertex_gemini_raw(
     system_instruction: Optional[str] = None,
     project_id: Optional[str] = None,
     location: Optional[str] = None,
-    max_retries: int = 5
+    max_retries: int = 5,
+    usage_sink: Optional[Dict[str, Any]] = None
 ) -> str:
-    """Direct REST caller for Gemini on Vertex AI with exponential backoff."""
+    """Direct REST caller for Gemini on Vertex AI with exponential backoff.
+
+    If `usage_sink` is provided it is populated in place with the response's
+    `usageMetadata`: `prompt_tokens`, `output_tokens`, `total_tokens` and
+    `measured=True`. Callers that omit it fall back to estimating token counts
+    from string length, which understates reasoning tokens and biases both the
+    efficiency bonus and the cost penalty.
+    """
     project = project_id or DEFAULT_CONFIG.project_id
     loc = location or DEFAULT_CONFIG.location
     url = f"https://{loc}-aiplatform.googleapis.com/v1/projects/{project}/locations/{loc}/publishers/google/models/{model_name}:generateContent"
@@ -325,8 +462,10 @@ def call_vertex_gemini_raw(
     body = json.dumps(payload).encode("utf-8")
 
     last_err = None
+    force_token_refresh = False
     for attempt in range(max_retries):
-        token = get_adc_access_token()
+        token = get_adc_access_token(force_refresh=force_token_refresh)
+        force_token_refresh = False
         if not token:
             raise RuntimeError("Unable to obtain Google Cloud access token for Vertex AI.")
 
@@ -339,6 +478,7 @@ def call_vertex_gemini_raw(
         try:
             with urllib.request.urlopen(req, timeout=120) as resp:
                 resp_data = json.loads(resp.read().decode("utf-8"))
+                record_usage(usage_sink, resp_data)
                 candidates = resp_data.get("candidates", [])
                 if candidates:
                     parts = candidates[0].get("content", {}).get("parts", [])
@@ -347,6 +487,13 @@ def call_vertex_gemini_raw(
         except urllib.error.HTTPError as e:
             err_body = e.read().decode("utf-8", errors="replace")
             last_err = f"HTTP {e.code}: {err_body}"
+            if e.code == 401 and attempt < max_retries - 1:
+                # The token was rejected. Evict it and get a fresh one rather
+                # than replaying the same rejected credential, which is what
+                # stalled firms an hour into Generations 9 and 10.
+                force_token_refresh = True
+                time.sleep(1.0)
+                continue
             if (e.code in (429, 500, 503, 504) or e.code == 403) and attempt < max_retries - 1:
                 sleep_sec = (2 ** attempt) + 1.5
                 time.sleep(sleep_sec)
@@ -433,9 +580,16 @@ def call_vertex_gemini_rest(
     system_instruction: Optional[str] = None,
     project_id: Optional[str] = None,
     location: Optional[str] = None,
-    max_retries: int = 5
+    max_retries: int = 5,
+    usage_sink: Optional[Dict[str, Any]] = None
 ) -> str:
-    """Backward-compatible caller; routes through call_llm so existing callers automatically get multi-provider support."""
+    """Backward-compatible caller; routes through call_llm so existing callers automatically get multi-provider support.
+
+    `usage_sink`, when supplied, accumulates measured token counts from the
+    provider response. Only the Vertex path reports them today; other
+    providers leave the sink untouched, and `measured` stays absent so the
+    caller knows to fall back to estimation.
+    """
     active_provider = detect_llm_provider()
     if active_provider == "vertex":
         return call_vertex_gemini_raw(
@@ -445,7 +599,8 @@ def call_vertex_gemini_rest(
             system_instruction=system_instruction,
             project_id=project_id,
             location=location,
-            max_retries=max_retries
+            max_retries=max_retries,
+            usage_sink=usage_sink
         )
     return call_llm(
         prompt=prompt,
