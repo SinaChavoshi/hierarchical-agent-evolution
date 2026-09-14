@@ -7,7 +7,7 @@ import os
 from src.schema import CompanyGenome, DepartmentGenome, AgentGenome, EvaluationResult, CorporateAsset, EvaluationMetricSpec
 
 def breed_gen6():
-    top_5_path = "/tmp/hierarchical-agent-evolution-export/experiments/exp-007-parallel-gen5/top_5_survivor_genomes.json"
+    top_5_path = "/tmp/hierarchical-agent-evolution-export/experiments/v1/exp-007-parallel-gen5/top_5_survivor_genomes.json"
     with open(top_5_path) as f:
         survivors_raw = json.load(f)
 

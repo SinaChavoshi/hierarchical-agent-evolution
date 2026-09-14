@@ -4,7 +4,7 @@ import os
 import json
 import glob
 
-EXP6_DIR = "experiments/exp-006-parallel-gen4"
+EXP6_DIR = "experiments/v1/exp-006-parallel-gen4"
 scorecards = []
 for p in sorted(glob.glob(f"{EXP6_DIR}/scorecards/*.json")):
     with open(p) as f_in:

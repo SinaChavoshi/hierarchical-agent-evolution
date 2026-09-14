@@ -40,18 +40,18 @@ BUCKET = "gemle-gke-dev-agent-evolution"
 
 # Gate results for generations whose scorecards predate the execution harness.
 # Produced by scripts/backfill_execution_fitness.py.
-BACKFILL_PATH = "experiments/execution_grounded_fitness.json"
+BACKFILL_PATH = "experiments/v1/execution_grounded_fitness.json"
 
 # Generation -> experiment directory. Generations before 5 predate the
 # execution-grounded pipeline and are archived, not harvested.
 EXPERIMENT_DIRS = {
-    5: "experiments/exp-007-parallel-gen5",
-    6: "experiments/exp-008-parallel-gen6",
-    7: "experiments/exp-009-parallel-gen7",
-    8: "experiments/exp-010-parallel-gen8",
-    9: "experiments/exp-011-parallel-gen9",
-    10: "experiments/exp-012-parallel-gen10",
-    11: "experiments/exp-013-parallel-gen11",
+    5: "experiments/v1/exp-007-parallel-gen5",
+    6: "experiments/v1/exp-008-parallel-gen6",
+    7: "experiments/v1/exp-009-parallel-gen7",
+    8: "experiments/v1/exp-010-parallel-gen8",
+    9: "experiments/v1/exp-011-parallel-gen9",
+    10: "experiments/v1/exp-012-parallel-gen10",
+    11: "experiments/v1/exp-013-parallel-gen11",
 }
 
 GATES = ("syntax", "build", "smoke", "tests", "telemetry")

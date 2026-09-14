@@ -22,16 +22,16 @@ from src.artifacts import filter_bundle  # noqa: E402
 
 EXPERIMENTS = [
     ("Gen 0", "Baseline Pilot (1-Agent / Prose)", None),
-    ("Gen 1", "Parallel Multi-Agent Foundation", "experiments/exp-003-parallel-gen1"),
-    ("Gen 2", "Cross-Functional Convergence", "experiments/exp-004-parallel-gen2"),
-    ("Gen 3", "Autonomous Specialization & Multi-Region", "experiments/exp-005-parallel-gen3"),
-    ("Gen 4", "Consortiums & Autonomous Teleological OKRs", "experiments/exp-006-parallel-gen4"),
-    ("Gen 5", "Active Container Scratchpad Sandbox", "experiments/exp-007-parallel-gen5"),
-    ("Gen 6", "Industrial Hardening & Modular Architecture", "experiments/exp-008-parallel-gen6"),
-    ("Gen 7", "Universal Multi-Platform Portability", "experiments/exp-009-parallel-gen7"),
-    ("Gen 8", "Closed-Loop Sandbox Test Verification & Self-Repair", "experiments/exp-010-parallel-gen8"),
-    ("Gen 9", "Autonomous Morphogenesis & Dynamic Topologies", "experiments/exp-011-parallel-gen9"),
-    ("Gen 10", "Federated Mesh & Self-Evolving Rubrics", "experiments/exp-012-parallel-gen10"),
+    ("Gen 1", "Parallel Multi-Agent Foundation", "experiments/v1/exp-003-parallel-gen1"),
+    ("Gen 2", "Cross-Functional Convergence", "experiments/v1/exp-004-parallel-gen2"),
+    ("Gen 3", "Autonomous Specialization & Multi-Region", "experiments/v1/exp-005-parallel-gen3"),
+    ("Gen 4", "Consortiums & Autonomous Teleological OKRs", "experiments/v1/exp-006-parallel-gen4"),
+    ("Gen 5", "Active Container Scratchpad Sandbox", "experiments/v1/exp-007-parallel-gen5"),
+    ("Gen 6", "Industrial Hardening & Modular Architecture", "experiments/v1/exp-008-parallel-gen6"),
+    ("Gen 7", "Universal Multi-Platform Portability", "experiments/v1/exp-009-parallel-gen7"),
+    ("Gen 8", "Closed-Loop Sandbox Test Verification & Self-Repair", "experiments/v1/exp-010-parallel-gen8"),
+    ("Gen 9", "Autonomous Morphogenesis & Dynamic Topologies", "experiments/v1/exp-011-parallel-gen9"),
+    ("Gen 10", "Federated Mesh & Self-Evolving Rubrics", "experiments/v1/exp-012-parallel-gen10"),
 ]
 
 def recalculate():
@@ -136,7 +136,7 @@ def recalculate():
 
 if __name__ == "__main__":
     res = recalculate()
-    out_path = "experiments/standardized_execution_fitness.json"
+    out_path = "experiments/v1/standardized_execution_fitness.json"
     with open(out_path, "w") as f:
         json.dump(res, f, indent=2)
     print(f"Saved standardized execution fitness to {out_path}\n")

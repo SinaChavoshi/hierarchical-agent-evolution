@@ -1,7 +1,7 @@
 """Generates the publication-grade fitness trajectory chart (SVG + PNG).
 
 This generator is fully data-driven: it reads
-`experiments/standardized_execution_fitness.json` (produced by
+`experiments/v1/standardized_execution_fitness.json` (produced by
 `scripts/recalculate_standardized_fitness.py`) and derives every coordinate,
 axis bound, and label from that file.
 
@@ -19,9 +19,9 @@ import os
 import subprocess
 import xml.etree.ElementTree as ET
 
-DATA_PATH = "experiments/standardized_execution_fitness.json"
-OUT_SVG = "experiments/assets/standardized_fitness_trajectory.svg"
-OUT_PNG = "experiments/assets/standardized_fitness_trajectory.png"
+DATA_PATH = "experiments/v1/standardized_execution_fitness.json"
+OUT_SVG = "experiments/v1/assets/standardized_fitness_trajectory.svg"
+OUT_PNG = "experiments/v1/assets/standardized_fitness_trajectory.png"
 
 # Canvas geometry
 W, H = 1180, 660

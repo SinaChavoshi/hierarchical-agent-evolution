@@ -2,7 +2,7 @@ import glob
 import json
 import os
 
-scorecard_dir = '/tmp/hierarchical-agent-evolution-export/experiments/exp-008-parallel-gen6/scorecards'
+scorecard_dir = '/tmp/hierarchical-agent-evolution-export/experiments/v1/exp-008-parallel-gen6/scorecards'
 results = []
 for p in sorted(glob.glob(os.path.join(scorecard_dir, '*.json'))):
     with open(p) as f:

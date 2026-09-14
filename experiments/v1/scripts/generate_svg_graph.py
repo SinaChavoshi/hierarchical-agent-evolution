@@ -220,8 +220,8 @@ SVG_CONTENT = '''<?xml version="1.0" encoding="UTF-8"?>
 </svg>
 '''
 
-target_svg = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "experiments", "assets", "fitness_trajectory.svg")
-target_png = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "experiments", "assets", "fitness_trajectory.png")
+target_svg = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "experiments", "v1", "assets", "fitness_trajectory.svg")
+target_png = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "experiments", "v1", "assets", "fitness_trajectory.png")
 os.makedirs(os.path.dirname(target_svg), exist_ok=True)
 
 with open(target_svg, "w", encoding="utf-8") as f:

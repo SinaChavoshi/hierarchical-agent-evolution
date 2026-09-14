@@ -9,11 +9,11 @@ import os
 from src.schema import CompanyGenome, DepartmentGenome, AgentGenome
 
 def breed_gen8():
-    top_5_path = "experiments/exp-009-parallel-gen7/top_5_survivor_genomes.json"
+    top_5_path = "experiments/v1/exp-009-parallel-gen7/top_5_survivor_genomes.json"
     if not os.path.exists(top_5_path):
         # Fallback to loading directly from harvested scorecards
         import glob
-        files = sorted(glob.glob("experiments/exp-009-parallel-gen7/scorecards/*.json"))
+        files = sorted(glob.glob("experiments/v1/exp-009-parallel-gen7/scorecards/*.json"))
         data = []
         for f in files:
             with open(f) as fp:

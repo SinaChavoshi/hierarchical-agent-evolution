@@ -15,7 +15,7 @@ from src.schema import CompanyGenome
 from src.morphogenesis import MorphogenesisEngine, StructuralCrossoverEngine
 
 def breed_gen10():
-    sc_files = sorted(glob.glob("experiments/exp-011-parallel-gen9/scorecards/*.json"))
+    sc_files = sorted(glob.glob("experiments/v1/exp-011-parallel-gen9/scorecards/*.json"))
     if not sc_files:
         raise FileNotFoundError("No Generation 9 scorecards found.")
 

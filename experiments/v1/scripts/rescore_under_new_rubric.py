@@ -3,7 +3,7 @@
 Combines two things that already exist and need no new inference:
 
   * the per-dimension judge scores archived in each scorecard, and
-  * the executed gate results from `experiments/execution_grounded_fitness.json`.
+  * the executed gate results from `experiments/v1/execution_grounded_fitness.json`.
 
 The result answers the question the legacy numbers could not: **what would the
 leaderboard have looked like if the score had ever been coupled to whether the
@@ -28,16 +28,16 @@ from src.evaluator import (  # noqa: E402
 )
 
 EXPERIMENTS = [
-    ("Gen 5", "experiments/exp-007-parallel-gen5"),
-    ("Gen 6", "experiments/exp-008-parallel-gen6"),
-    ("Gen 7", "experiments/exp-009-parallel-gen7"),
-    ("Gen 8", "experiments/exp-010-parallel-gen8"),
-    ("Gen 9", "experiments/exp-011-parallel-gen9"),
-    ("Gen 10", "experiments/exp-012-parallel-gen10"),
+    ("Gen 5", "experiments/v1/exp-007-parallel-gen5"),
+    ("Gen 6", "experiments/v1/exp-008-parallel-gen6"),
+    ("Gen 7", "experiments/v1/exp-009-parallel-gen7"),
+    ("Gen 8", "experiments/v1/exp-010-parallel-gen8"),
+    ("Gen 9", "experiments/v1/exp-011-parallel-gen9"),
+    ("Gen 10", "experiments/v1/exp-012-parallel-gen10"),
 ]
 
-EXEC_PATH = "experiments/execution_grounded_fitness.json"
-OUT_PATH = "experiments/rubric_rescore.json"
+EXEC_PATH = "experiments/v1/execution_grounded_fitness.json"
+OUT_PATH = "experiments/v1/rubric_rescore.json"
 
 # Scorecards store actionability under a shortened key.
 KEY_ALIASES = {"actionability_and_synthesis": ("actionability_and_synthesis",

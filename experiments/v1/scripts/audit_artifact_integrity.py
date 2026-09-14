@@ -23,15 +23,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from src.artifacts import partition_bundle  # noqa: E402
 
 EXPERIMENTS = [
-    ("Gen 5", "experiments/exp-007-parallel-gen5"),
-    ("Gen 6", "experiments/exp-008-parallel-gen6"),
-    ("Gen 7", "experiments/exp-009-parallel-gen7"),
-    ("Gen 8", "experiments/exp-010-parallel-gen8"),
-    ("Gen 9", "experiments/exp-011-parallel-gen9"),
-    ("Gen 10", "experiments/exp-012-parallel-gen10"),
+    ("Gen 5", "experiments/v1/exp-007-parallel-gen5"),
+    ("Gen 6", "experiments/v1/exp-008-parallel-gen6"),
+    ("Gen 7", "experiments/v1/exp-009-parallel-gen7"),
+    ("Gen 8", "experiments/v1/exp-010-parallel-gen8"),
+    ("Gen 9", "experiments/v1/exp-011-parallel-gen9"),
+    ("Gen 10", "experiments/v1/exp-012-parallel-gen10"),
 ]
 
-OUT_PATH = "experiments/artifact_integrity_audit.json"
+OUT_PATH = "experiments/v1/artifact_integrity_audit.json"
 
 
 def audit_generation(gen_id, exp_dir):

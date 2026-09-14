@@ -37,8 +37,8 @@ from src.morphogenesis import MorphogenesisEngine, StructuralCrossoverEngine  # 
 from src.schema import CompanyGenome  # noqa: E402
 
 GEN = 11
-RESCORE_PATH = "experiments/rubric_rescore.json"
-SCORECARD_DIR = "experiments/exp-012-parallel-gen10/scorecards"
+RESCORE_PATH = "experiments/v1/rubric_rescore.json"
+SCORECARD_DIR = "experiments/v1/exp-012-parallel-gen10/scorecards"
 OUT_FILE = "configs/generation_11_population.json"
 
 # Every firm is told what its predecessors actually failed at. This is cohort

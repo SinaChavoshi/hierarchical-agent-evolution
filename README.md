@@ -248,7 +248,7 @@ Where:
 
 Empirical validation across tournament iterations demonstrated measurable evolutionary ascent and autonomous self-repair:
 
-![Standardized Physical Execution vs Legacy Synthetic Trajectory](experiments/assets/standardized_fitness_trajectory.png)
+![Standardized Physical Execution vs Legacy Synthetic Trajectory](experiments/v1/assets/standardized_fitness_trajectory.png)
 
 ### 4.1 Standardized Physical Usability vs. Legacy Synthetic Scores
 
@@ -262,15 +262,15 @@ Empirical validation across tournament iterations demonstrated measurable evolut
 
 | Experiment | Infrastructure | Standardized Grounded Champion | Legacy Raw Champion | Live Sandbox? | Tests Run? | Files on Disk | Key Empirical Innovation | Benchmark Report |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: |
-| [**`exp-001-baseline`**](experiments/exp-001-pilot-baseline/) | Cloud Kubernetes (`e2-standard-4`) | **25.25** | 96.25 | No (0 files) | No | 0 | Baseline progression; Autonomous headcount expansion ($31 \rightarrow 36$ agents). | [Report](experiments/exp-001-pilot-baseline/README.md) |
-| [**`exp-002-parallel`**](experiments/exp-002-parallel-tournament/) | Cloud Kubernetes (5 Parallel Pods) | **25.25** | 77.50 | No (0 files) | No | 0 | 10 enterprises (310 agents) evaluated in **22 minutes** (**4.1x speedup**). | [Report](experiments/exp-002-parallel-tournament/README.md) |
-| [**`exp-003-parallel-gen1`**](experiments/exp-003-parallel-gen1/) | Cloud Kubernetes + gVisor Sandbox | **76.55** | 76.55 | No (0 files) | No | 0 | 3-Way Recombination; Identifies "Thin Persona" bottleneck. | [Report](experiments/exp-003-parallel-gen1/README.md) |
-| [**`exp-004-parallel-gen2`**](experiments/exp-004-parallel-gen2/) | Cloud Kubernetes + gVisor Sandbox | **84.25** | 94.50 | No (0 files) | No | 5.2 | **Persona Discretization**: Structured trait alleles (`backstory_traits`). | [Report](experiments/exp-004-parallel-gen2/README.md) |
-| [**`exp-005-parallel-gen3`**](experiments/exp-005-parallel-gen3/) | Cloud Kubernetes + gVisor Sandbox | **85.75** | 96.75 | No (0 files) | No | 5.7 | **Allelic Consensus Record**: Modular architecture in text. | [Report](experiments/exp-005-parallel-gen3/README.md) |
-| [**`exp-006-parallel-gen4`**](experiments/exp-006-parallel-gen4/) | Cloud Kubernetes + gVisor Sandbox | **84.25** | 96.75 | No (0 files) | No | 7.3 | **Autonomous Sizing & OpEx**: Tiered Pro/Flash (~14x OpEx compression). | [Report](experiments/exp-006-parallel-gen4/experiment_report.md) |
-| [**`exp-007-parallel-gen5`**](experiments/exp-007-parallel-gen5/) | Cloud Kubernetes (10-Pod Indexed Job) | **91.93** | 91.93 | **Yes (10/10)** | **Yes (10/10)** | 14 | **Phase Shift**: Active Tool Sandboxing; physical disk packages. | [Report](experiments/exp-007-parallel-gen5/experiment_report.md) |
-| [**`exp-008-parallel-gen6`**](experiments/exp-008-parallel-gen6/) | Cloud Kubernetes (10-Pod Indexed Job) | **91.87** | 91.87 | **Yes (10/10)** | **Yes (10/10)** | **17** | **Industrial Hardening**: Record 17 files on disk, built distribution package (`egg-info`). | [Report](experiments/exp-008-parallel-gen6/experiment_report.md) |
-| [**`exp-009-parallel-gen7`**](experiments/exp-009-parallel-gen7/) | Cloud Kubernetes (10-Pod Indexed Job) | **82.70** | 82.70 | **Yes (9/9)** | **Yes (9/9)** | 13 | **Universal Portability**: Zero-cloud lock-in, multi-provider REST. | [In Flight](experiments/exp-009-parallel-gen7/) |
+| [**`exp-001-baseline`**](experiments/v1/exp-001-pilot-baseline/) | Cloud Kubernetes (`e2-standard-4`) | **25.25** | 96.25 | No (0 files) | No | 0 | Baseline progression; Autonomous headcount expansion ($31 \rightarrow 36$ agents). | [Report](experiments/v1/exp-001-pilot-baseline/README.md) |
+| [**`exp-002-parallel`**](experiments/v1/exp-002-parallel-tournament/) | Cloud Kubernetes (5 Parallel Pods) | **25.25** | 77.50 | No (0 files) | No | 0 | 10 enterprises (310 agents) evaluated in **22 minutes** (**4.1x speedup**). | [Report](experiments/v1/exp-002-parallel-tournament/README.md) |
+| [**`exp-003-parallel-gen1`**](experiments/v1/exp-003-parallel-gen1/) | Cloud Kubernetes + gVisor Sandbox | **76.55** | 76.55 | No (0 files) | No | 0 | 3-Way Recombination; Identifies "Thin Persona" bottleneck. | [Report](experiments/v1/exp-003-parallel-gen1/README.md) |
+| [**`exp-004-parallel-gen2`**](experiments/v1/exp-004-parallel-gen2/) | Cloud Kubernetes + gVisor Sandbox | **84.25** | 94.50 | No (0 files) | No | 5.2 | **Persona Discretization**: Structured trait alleles (`backstory_traits`). | [Report](experiments/v1/exp-004-parallel-gen2/README.md) |
+| [**`exp-005-parallel-gen3`**](experiments/v1/exp-005-parallel-gen3/) | Cloud Kubernetes + gVisor Sandbox | **85.75** | 96.75 | No (0 files) | No | 5.7 | **Allelic Consensus Record**: Modular architecture in text. | [Report](experiments/v1/exp-005-parallel-gen3/README.md) |
+| [**`exp-006-parallel-gen4`**](experiments/v1/exp-006-parallel-gen4/) | Cloud Kubernetes + gVisor Sandbox | **84.25** | 96.75 | No (0 files) | No | 7.3 | **Autonomous Sizing & OpEx**: Tiered Pro/Flash (~14x OpEx compression). | [Report](experiments/v1/exp-006-parallel-gen4/experiment_report.md) |
+| [**`exp-007-parallel-gen5`**](experiments/v1/exp-007-parallel-gen5/) | Cloud Kubernetes (10-Pod Indexed Job) | **91.93** | 91.93 | **Yes (10/10)** | **Yes (10/10)** | 14 | **Phase Shift**: Active Tool Sandboxing; physical disk packages. | [Report](experiments/v1/exp-007-parallel-gen5/experiment_report.md) |
+| [**`exp-008-parallel-gen6`**](experiments/v1/exp-008-parallel-gen6/) | Cloud Kubernetes (10-Pod Indexed Job) | **91.87** | 91.87 | **Yes (10/10)** | **Yes (10/10)** | **17** | **Industrial Hardening**: Record 17 files on disk, built distribution package (`egg-info`). | [Report](experiments/v1/exp-008-parallel-gen6/experiment_report.md) |
+| [**`exp-009-parallel-gen7`**](experiments/v1/exp-009-parallel-gen7/) | Cloud Kubernetes (10-Pod Indexed Job) | **82.70** | 82.70 | **Yes (9/9)** | **Yes (9/9)** | 13 | **Universal Portability**: Zero-cloud lock-in, multi-provider REST. | [In Flight](experiments/v1/exp-009-parallel-gen7/) |
 | **`exp-010-parallel-gen8`** | Cloud Kubernetes (10-Pod Indexed Job) | *Target: ~96.5* | *Target: ~96.5* | **Yes** | **Yes** | 15+ | **Closed-Loop Self-Repair**: Pytest traceback introspection. | *Upcoming* |
 
 ---
