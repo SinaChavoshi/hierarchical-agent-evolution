@@ -44,12 +44,22 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | **Gen 2** | Cross-Functional Convergence | 94.50 | **84.25** | No (0 files) | No | 5.2 | 10 | Markdown Snippets (Unexecuted) |
 | **Gen 3** | Autonomous Specialization | 96.75 | **85.75** | No (0 files) | No | 5.7 | 8 | Modular Blueprints in Text |
 | **Gen 4** | Consortiums & Teleological OKRs | 96.75 | **84.25** | No (0 files) | No | 7.3 | 10 | Multi-Firm Strategic Text |
-| **Gen 5** | Active Container Scratchpads | 91.93 | **91.93** | **Yes (10/10)** | **Yes (10/10)** | 9.3 | 14 | **Physical Disk Files, Live Pytest** |
-| **Gen 6** | Industrial Hardening & Packaging | 91.87 | **91.87** | **Yes (10/10)** | **Yes (10/10)** | **11.0** | **17** | **Production `egg-info` Package** |
-| **Gen 7** | Universal Multi-Platform Portability | 82.70 | **82.70** | **Yes (9/9)** | **Yes (9/9)** | 9.2 | 13 | **Multi-Provider REST Runtime** |
-| **Gen 8** | Closed-Loop Test Self-Repair | 79.89 | **79.89** | **Yes (10/10)** | **Yes (10/10)** | 10.3 | 16 | **First Live `Tests: PASS` (2/10 firms)** |
-| **Gen 9** | Autonomous Morphogenesis | 87.68 | **87.68** | **Yes (10/10)** | **Yes (10/10)** | 12.3 | 17 | **Dynamic 3–6 Pod Topologies** |
-| **Gen 10** | Federated Mesh & Self-Evolving Rubrics | 91.26 | **91.26** | **Yes (10/10)** | **Yes (10/10)** | **13.6** | **29** | **First Zero-Penalty 4-Gate Clearance** |
+| **Gen 5** | Active Container Scratchpads | 91.93 | **91.93** | **Yes (10/10)** | **Yes (10/10)** | 4.3 | 7 | **Physical Disk Files, Live Pytest** |
+| **Gen 6** | Industrial Hardening & Packaging | 91.87 | **91.87** | **Yes (10/10)** | **Yes (10/10)** | 4.7 | 6 | **Production `egg-info` Package** |
+| **Gen 7** | Universal Multi-Platform Portability | 82.70 | **82.70** | **Yes (10/10)** | **Yes (10/10)** | 4.7 | 7 | **Multi-Provider REST Runtime** |
+| **Gen 8** | Closed-Loop Test Self-Repair | 79.89 | **79.89** | **Yes (10/10)** | **Yes (10/10)** | 6.0 | 10 | **First Live `Tests: PASS` (2/10 firms)** |
+| **Gen 9** | Autonomous Morphogenesis | 87.68 | **87.68** | **Yes (10/10)** | **Yes (10/10)** | 5.1 | 7 | **Dynamic 3–6 Pod Topologies** |
+| **Gen 10** | Federated Mesh & Self-Evolving Rubrics | 91.26 | **91.26** | **Yes (10/10)** | **Yes (10/10)** | **7.7** | **18** | **First Zero-Penalty 4-Gate Clearance** |
+
+> [!IMPORTANT]
+> **File counts above are audited.** The runtime originally reported
+> `run_output["workspace_files"]` unfiltered, so `.pytest_cache/` and
+> `__pycache__` byproducts and markdown-contaminated paths (e.g. `routing.py**`)
+> were counted as agent deliverables. Across Generations 5-10 this inflated every
+> published file count by **42-59%**. The columns here are corrected; the raw
+> reconciliation is in [`artifact_integrity_audit.json`](artifact_integrity_audit.json),
+> reproducible via `PYTHONPATH=. python3 scripts/audit_artifact_integrity.py`.
+> The underlying bug is fixed in `src/artifacts.py` for future generations.
 
 ![Standardized Physical Execution vs Legacy Synthetic Trajectory](assets/standardized_fitness_trajectory.png)
 
@@ -302,9 +312,9 @@ kubectl apply -f k8s/parallel-indexed-job-gen6-east4.yaml
 * **Autonomous Self-Evolving Evaluation Rubrics (`src/rubric_evolution.py`)**:
   * `SelfEvolvingRubricEngine` scores workspaces against four structural invariants: AST well-formedness, security posture, assertion density, and type coverage.
 * **Empirical Findings & Champion Emergence**:
-  * **Champion `gen_10_mutant_3` (Score: 91.26)**: Lineage *"Hermetic AST Self-Healing & Property-Based Fuzzing Core"*. Authored **29 physical files on disk** — a 53% increase over the previous all-time single-firm record of 19 — at the second-lowest cost in the cohort ($0.3140). Build: PASS, Smoke: PASS, Telemetry: PASS, Tests: FAIL (−6.25 penalty).
+  * **Champion `gen_10_mutant_3` (Score: 91.26)**: Lineage *"Hermetic AST Self-Healing & Property-Based Fuzzing Core"*. Authored **18 audited files on disk** (29 raw entries before contamination filtering) — the highest audited single-firm count in benchmark history, against a previous best of 10 — at the second-lowest cost in the cohort ($0.3140). Build: PASS, Smoke: PASS, Telemetry: PASS, Tests: FAIL (−6.25 penalty).
   * **First Zero-Penalty Four-Gate Clearance in Benchmark History**: `gen_10_consensus_1` (89.23) passed Build, Smoke, Tests, **and** Telemetry simultaneously (`score_penalty = 0.0`, 4/4 tests, pass rate 1.0). No firm across Generations 1–9 had ever cleared all four gates.
-  * **All-Time Cohort Records**: Mean net fitness **84.52** (previous best 81.34, Gen 5) and mean artifact density **13.6 files/firm** (previous best 12.3, Gen 9). Mean cost held roughly flat at $0.4337 despite a 32% increase in artifact output over Gen 9.
+  * **All-Time Cohort Records**: Mean net fitness **84.52** (previous best 81.34, Gen 5) and mean audited artifact density **7.7 authored files/firm** (previous best 6.0, Gen 8). Mean cost held roughly flat at $0.4337 despite a 51% increase in audited artifact output over Gen 9. Note that under audited counts the artifact trend is *not* monotonic — Gen 9 (5.1) sits below Gen 8 (6.0).
   * **Larger Topologies Did Not Win**: The three highest-headcount firms (41, 37, 37 agents) finished 7th, 8th, and 10th; all four top finishers ran the 5-pod / 34-agent configuration.
   * See the full empirical report in the [Generation 10 Experiment Report](exp-012-parallel-gen10/experiment_report.md).
 

@@ -12,9 +12,15 @@ limiting factor**.
 
 **1. Cohort-wide performance records.**
 Mean net fitness reached **84.52**, surpassing the previous best of 81.34
-(Gen 5) and improving on Gen 9 by **+11.28**. Mean artifact production reached
-**13.6 files/firm** (previous record 12.3, Gen 9), and the champion authored
-**29 files** — a 53% increase over the prior all-time single-firm record of 19.
+(Gen 5) and improving on Gen 9 by **+11.28**. Mean *audited* artifact production
+reached **7.7 authored files/firm** (previous best 6.0, Gen 8), and the champion
+authored **18 genuine files** against a previous audited best of 10.
+
+> [!WARNING]
+> These artifact figures are **corrected**. The raw counts the runtime reported
+> (13.6 mean, 29 for the champion) included `.pytest_cache/` and `__pycache__`
+> byproducts and malformed markdown-contaminated paths. Across Gens 5-10,
+> 42-59% of every published file count was contamination. See §4.8.
 
 **2. First zero-penalty four-gate clearance in benchmark history.**
 `gen_10_consensus_1` passed Build, Smoke, Tests, and Telemetry simultaneously
@@ -23,12 +29,13 @@ firm had ever cleared all four gates. Its lineage is a structural recombination
 of `gen_9_consensus_1 × gen_9_mutant_1` carrying the federated-mesh trait.
 
 **3. Artifact production decoupled from cost.**
-The champion `gen_10_mutant_3` produced the most files (29) at the
+The champion `gen_10_mutant_3` authored the most files (18 audited) at the
 second-lowest cost in the cohort ($0.3140) and the second-lowest token count
 (519,318). Firms that spent the most did not build the most: `gen_10_elite_2`
-consumed 866,522 tokens and $0.5495 to produce only 6 files. Cohort mean cost
-($0.4337) held roughly flat against Gen 8 ($0.4128) and Gen 9 ($0.4289) despite
-a 32% increase in mean artifact output over Gen 9.
+consumed 866,522 tokens and $0.5495 to author only 6 files, just 1 of them a
+Python module. Cohort mean cost ($0.4337) held roughly flat against Gen 8
+($0.4128) and Gen 9 ($0.4289) despite a 51% increase in mean audited artifact
+output over Gen 9 (5.1 -> 7.7).
 
 **4. The Tests gate remains the hard ceiling.**
 Only 2 of 10 firms passed live `pytest`/`unittest` execution — the same count as
@@ -39,40 +46,52 @@ Gen 8, and the only two generations ever to register a pass. Build recovered to
 The three highest-headcount firms (`gen_10_consensus_3` at 41 agents,
 `gen_10_elite_2` and `gen_10_mutant_1` at 37) finished 7th, 8th, and 10th. The
 top four finishers all ran the 5-pod / 34-agent configuration. The leanest firm
-(`gen_10_pareto_bonus_2`, 3 pods / 21 agents) placed 9th but produced 19 files
-at the cohort's lowest cost of $0.2941, confirming that artifact throughput and
-organizational size are largely independent.
+(`gen_10_pareto_bonus_2`, 3 pods / 21 agents) placed 9th but authored 14 files
+at the cohort's lowest cost of $0.2941 — the second-highest audited count in the
+cohort — confirming that artifact throughput and organizational size are largely
+independent.
 
 ## 2. Complete Official Tournament Leaderboard
 
-| Rank | Company ID | Net | Gross | Penalty | B/S/T/Tel | Pods | Agents | Files | Tokens | Cost | Runtime |
-|---:|---|---:|---:|---:|:---:|---:|---:|---:|---:|---:|---:|
-| 1 | `gen_10_mutant_3` | **91.26** | 96.8 | −6.25 | P/P/F/P | 5 | 34 | **29** | 519,318 | $0.3140 | 18 min |
-| 2 | `gen_10_consensus_2` | 89.74 | 95.5 | −6.25 | P/P/F/P | 5 | 34 | 9 | 726,546 | $0.3616 | 19 min |
-| 3 | `gen_10_consensus_1` | 89.23 | 92.8 | **−0.00** | **P/P/P/P** | 5 | 34 | 15 | 910,254 | $0.6085 | 30 min |
-| 4 | `gen_10_mutant_2` | 89.19 | 95.2 | −6.25 | P/P/F/P | 5 | 34 | 17 | 786,947 | $0.4155 | 25 min |
-| 5 | `gen_10_pareto_bonus_1` | 89.01 | 97.0 | −6.25 | P/P/F/P | 6 | 36 | 12 | 924,692 | $0.5304 | 17 min |
-| 6 | `gen_10_elite_1` | 85.44 | 97.5 | −12.50 | F/F/P/P | 5 | 33 | 8 | 524,632 | $0.3712 | 13 min |
-| 7 | `gen_10_consensus_3` | 84.57 | 96.8 | −12.50 | P/P/F/F | 6 | 41 | 11 | 648,223 | $0.3930 | 18 min |
-| 8 | `gen_10_elite_2` | 76.84 | 97.8 | −18.75 | F/F/F/P | 6 | 37 | 6 | 866,522 | $0.5495 | 14 min |
-| 9 | `gen_10_pareto_bonus_2` | 75.52 | 93.4 | −18.75 | F/F/F/P | 3 | 21 | 19 | 529,544 | $0.2941 | 24 min |
-| 10 | `gen_10_mutant_1` | 74.36 | 81.7 | −6.25 | P/P/F/P | 6 | 37 | 10 | 865,580 | $0.4991 | 19 min |
+Artifact columns: **Auth** = audited authored files, **.py** = authored Python
+modules, **Raw** = the contaminated count originally reported (see §4.8).
+
+| Rank | Company ID | Net | Gross | Penalty | B/S/T/Tel | Pods | Agents | Auth | `.py` | Raw | Tokens | Cost | Runtime |
+|---:|---|---:|---:|---:|:---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | `gen_10_mutant_3` | **91.26** | 96.8 | −6.25 | P/P/F/P | 5 | 34 | **18** | 5 | 29 | 519,318 | $0.3140 | 18 min |
+| 2 | `gen_10_consensus_2` | 89.74 | 95.5 | −6.25 | P/P/F/P | 5 | 34 | 4 | 3 | 9 | 726,546 | $0.3616 | 19 min |
+| 3 | `gen_10_consensus_1` | 89.23 | 92.8 | **−0.00** | **P/P/P/P** | 5 | 34 | 7 | **6** | 15 | 910,254 | $0.6085 | 30 min |
+| 4 | `gen_10_mutant_2` | 89.19 | 95.2 | −6.25 | P/P/F/P | 5 | 34 | 9 | **6** | 17 | 786,947 | $0.4155 | 25 min |
+| 5 | `gen_10_pareto_bonus_1` | 89.01 | 97.0 | −6.25 | P/P/F/P | 6 | 36 | 5 | 2 | 12 | 924,692 | $0.5304 | 17 min |
+| 6 | `gen_10_elite_1` | 85.44 | 97.5 | −12.50 | F/F/P/P | 5 | 33 | 4 | 3 | 8 | 524,632 | $0.3712 | 13 min |
+| 7 | `gen_10_consensus_3` | 84.57 | 96.8 | −12.50 | P/P/F/F | 6 | 41 | 5 | 4 | 11 | 648,223 | $0.3930 | 18 min |
+| 8 | `gen_10_elite_2` | 76.84 | 97.8 | −18.75 | F/F/F/P | 6 | 37 | 6 | 1 | 6 | 866,522 | $0.5495 | 14 min |
+| 9 | `gen_10_pareto_bonus_2` | 75.52 | 93.4 | −18.75 | F/F/F/P | 3 | 21 | 14 | 4 | 19 | 529,544 | $0.2941 | 24 min |
+| 10 | `gen_10_mutant_1` | 74.36 | 81.7 | −6.25 | P/P/F/P | 6 | 37 | 5 | 2 | 10 | 865,580 | $0.4991 | 19 min |
 
 ## 3. Longitudinal Trajectory (Generations 5–10)
 
-| Gen | n | Net avg | Net max | Gross σ | Files avg | Files max | Tests | Build | Tel | 4-gate clean | Cost avg |
-|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|:---:|:---:|---:|
-| 5 | 10 | 81.34 | 91.93 | 3.35 | 9.3 | 14 | 0/10 | 6/10 | 10/10 | 0/10 | $0.4664 |
-| 6 | 10 | 72.25 | 91.87 | 8.09 | 11.0 | 17 | 0/10 | 4/10 | 10/10 | 0/10 | $0.5052 |
-| 7 | 10 | 70.36 | 82.70 | 9.23 | 8.8 | 13 | 0/10 | 3/10 | 10/10 | 0/10 | $0.6182 |
-| 8 | 10 | 68.98 | 79.89 | 7.05 | 10.3 | 16 | 2/10 | 3/10 | 7/10 | 0/10 | $0.4128 |
-| 9 | 10 | 73.24 | 87.68 | 4.84 | 12.3 | 17 | 0/10 | 3/10 | 9/10 | 0/10 | $0.4289 |
-| **10** | **10** | **84.52** | 91.26 | 4.54 | **13.6** | **29** | 2/10 | **7/10** | 9/10 | **1/10** | $0.4337 |
+Artifact columns are audited authored counts (§4.8).
 
-Artifact production shows a clean monotonic trend from Gen 7 onward
-(8.8 → 10.3 → 12.3 → 13.6 files/firm). This is the benchmark's most credible
-progress signal, because file count is directly observed rather than inferred
-from either the judge or the heuristic gates.
+| Gen | n | Net avg | Net max | Gross σ | Auth avg | `.py` avg | Auth max | Tests | Build | Tel | 4-gate clean | Cost avg |
+|---:|---:|---:|---:|---:|---:|---:|---:|:---:|:---:|:---:|:---:|---:|
+| 5 | 10 | 81.34 | 91.93 | 3.35 | 4.3 | 2.8 | 7 | 0/10 | 6/10 | 10/10 | 0/10 | $0.4664 |
+| 6 | 10 | 72.25 | 91.87 | 8.09 | 4.7 | 2.6 | 6 | 0/10 | 4/10 | 10/10 | 0/10 | $0.5052 |
+| 7 | 10 | 70.36 | 82.70 | 9.23 | 4.7 | 2.6 | 7 | 0/10 | 3/10 | 10/10 | 0/10 | $0.6182 |
+| 8 | 10 | 68.98 | 79.89 | 7.05 | 6.0 | 3.6 | 10 | 2/10 | 3/10 | 7/10 | 0/10 | $0.4128 |
+| 9 | 10 | 73.24 | 87.68 | 4.84 | 5.1 | 3.5 | 7 | 0/10 | 3/10 | 9/10 | 0/10 | $0.4289 |
+| **10** | **10** | **84.52** | 91.26 | 4.54 | **7.7** | **3.6** | **18** | 2/10 | **7/10** | 9/10 | **1/10** | $0.4337 |
+
+Audited artifact production runs 4.3 → 4.7 → 4.7 → 6.0 → 5.1 → **7.7**. Gen 10
+is a real step up, but the trend is **not monotonic**: Gen 9 regressed below
+Gen 8 once contamination is removed. An earlier draft of this report described a
+clean monotonic climb (8.8 → 10.3 → 12.3 → 13.6); that pattern was an artifact of
+counting `.pytest_cache/` entries, and it does not survive the audit.
+
+Authored Python modules are flatter still (2.8 → 2.6 → 2.6 → 3.6 → 3.5 → 3.6),
+which tempers any claim that the firms are producing materially more *code* each
+generation. The clearest genuine gain in Gen 10 is in non-`.py` supporting
+artifacts and in test files (0.7 → 1.1 per firm).
 
 ## 4. Validity Analysis: The Fitness Function Is Now the Bottleneck
 
@@ -130,18 +149,27 @@ feasibility is carrying nearly all of the judge's remaining signal.
 
 ### 4.4 The judge is blind to artifact production
 
-Correlating judge output against what firms actually built:
+Correlating judge output against what firms actually built. These use **audited**
+artifact counts, and the finding is robust to the correction:
 
-- `corr(files_authored, gross_score) = **+0.06**` — effectively zero.
-- `corr(files_authored, net_score) = +0.34` — the weak positive relationship
-  enters only through the penalty term, not the judge.
-- `corr(deliverable_length, gross_score) = −0.48`.
+| Correlation | Value |
+|---|---:|
+| `corr(authored_files, gross_score)` | **+0.10** |
+| `corr(authored_py_modules, gross_score)` | **+0.09** |
+| `corr(raw_files, gross_score)` | +0.06 |
+| `corr(deliverable_length, gross_score)` | −0.48 |
+| `corr(authored_py_modules, net_score)` | +0.54 |
 
-A firm that wrote 29 working files and one that wrote 6 are scored nearly
+A firm that authored 18 files and one that authored 4 are scored nearly
 identically by the judge. The rubric in `src/evaluator.py` (lines 96–99) contains
 no dimension that measures execution, so this is expected behavior rather than a
 judging failure — but it means gross score cannot be read as a measure of
 engineering output.
+
+Notably, `corr(authored_py_modules, net_score) = +0.54` is far stronger than the
+gross correlation. The only channel through which building real code improves
+fitness today is the penalty term — that is, the gates — and three of those four
+gates do not execute anything.
 
 ### 4.5 Silent judge fallback contaminates the breeding pool
 
@@ -179,6 +207,48 @@ Gemini API returns exact `usageMetadata.promptTokenCount` and
 efficiency bonus and cost penalty feed into net fitness, this introduces a
 systematic and uncorrected bias into the selection signal. All cost figures in
 this report should be treated as approximations.
+
+### 4.8 Reported artifact counts were inflated 42-59% by contamination
+
+`company.run()` applied its junk-exclusion list only to the text appended to the
+CEO deliverable, then returned the **unfiltered** workspace bundle as
+`run_output["workspace_files"]`. That unfiltered map is the source of every
+published "files authored on disk" figure, and it is also what the verifier's
+smoke gate counted when testing `len(files) >= 3`.
+
+| Gen | Reported avg | Authored avg | `.py` avg | Test files avg | Generated avg | Malformed avg | Inflation |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 5 | 9.3 | 4.3 | 2.8 | 0.7 | 3.6 | 1.4 | 53.8% |
+| 6 | 11.0 | 4.7 | 2.6 | 0.6 | 5.2 | 1.1 | 57.3% |
+| 7 | 8.8 | 4.7 | 2.6 | 0.8 | 2.9 | 1.2 | 46.6% |
+| 8 | 10.3 | 6.0 | 3.6 | 0.6 | 3.5 | 0.8 | 41.7% |
+| 9 | 12.3 | 5.1 | 3.5 | 0.7 | 6.7 | 0.5 | 58.5% |
+| 10 | 13.6 | 7.7 | 3.6 | 1.1 | 4.8 | 1.1 | 43.4% |
+
+Two contamination classes were counted as agent deliverables:
+
+- **Generated** — `.pytest_cache/CACHEDIR.TAG`, `__pycache__/*.pyc`,
+  `*.egg-info/`, and virtualenv trees. A firm that merely *ran* pytest was
+  credited with four extra "artifacts".
+- **Malformed** — paths where markdown decoration survived the ReAct text
+  protocol into the filename, e.g. `src/agent_org/routing.py**`. These are not
+  importable and typically duplicate a correctly named sibling.
+
+The perverse incentive is worth stating plainly: because `.pytest_cache/` was
+counted, a firm could raise its apparent artifact output simply by invoking
+pytest, independent of whether the tests passed or the code worked.
+
+**Remediation landed with this report.** `src/artifacts.py` is now the single
+source of truth for artifact accounting, consumed by the runtime, the verifier,
+and the analysis scripts. Agent paths are sanitized at write time so
+`routing.py**` lands at `routing.py`. Seven regression tests cover the rules.
+Re-audit at any time with:
+
+```
+PYTHONPATH=. python3 scripts/audit_artifact_integrity.py
+```
+
+Results are archived in `../artifact_integrity_audit.json`.
 
 ## 5. Recommended Remediation Before Generation 11
 

@@ -13,7 +13,12 @@ import os
 import re
 import glob
 import json
+import sys
 from typing import Dict, Any, List, Tuple
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from src.artifacts import filter_bundle  # noqa: E402
 
 EXPERIMENTS = [
     ("Gen 0", "Baseline Pilot (1-Agent / Prose)", None),
@@ -73,11 +78,19 @@ def recalculate():
             if is_live_sandbox:
                 live_sandbox_count += 1
 
-            m = re.search(r"(\d+)\s+files", details)
-            if m:
-                files_count = int(m.group(1))
+            # Count audited artifacts from the archived bundle rather than
+            # scraping the verifier's details string. That string reported the
+            # unfiltered workspace map, which counted .pytest_cache/ entries,
+            # __pycache__ byproducts, and markdown-contaminated paths as
+            # deliverables -- inflating every generation by 42-59%.
+            bundle = d.get("run_output", {}).get("workspace_files", {}) or {}
+            if bundle:
+                files_count = len(filter_bundle(bundle))
             else:
-                files_count = verif.get("files_found_count", 0)
+                # Pre-sandbox generations archived no bundle; fall back to the
+                # recorded count, which for those runs was 0 anyway.
+                m = re.search(r"(\d+)\s+files", details)
+                files_count = int(m.group(1)) if m else verif.get("files_found_count", 0)
             files_counts.append(files_count)
 
             # Standardized 4-Gate Execution Assessment:

@@ -9,6 +9,7 @@ from typing import Dict, Tuple, List, Any, Optional
 from .schema import CompanyGenome, DepartmentGenome, AgentGenome, OpExBreakdown
 from .llm_factory import call_vertex_gemini_rest
 from .sandbox_env import AgentWorkspace
+from .artifacts import filter_bundle
 
 # List token pricing per 1k tokens
 COST_TABLE = {
@@ -413,11 +414,12 @@ class HierarchicalCompanyRunner:
         )
         final_deliverable = self._execute_agent(self.genome.ceo, ceo_final_prompt)
 
-        # Append physical workspace files if deliverable did not include them
-        workspace_bundle = self.workspace.export_bundle()
+        # Append physical workspace files if deliverable did not include them.
+        # NOTE: the filtered bundle is what gets returned as `workspace_files`
+        # further down, so the reported artifact count and the verifier's view
+        # of the workspace agree with what is shown to the judge.
+        workspace_bundle = filter_bundle(self.workspace.export_bundle())
         for path, content in workspace_bundle.items():
-            if any(ignored in path for ignored in ("venv", ".venv", "__pycache__", ".git", ".pytest_cache")):
-                continue
             if len(content) > 50000:
                 content = content[:50000] + "\n# [TRUNCATED DUE TO SIZE]"
             if f"### File: {path}" not in final_deliverable and f"### File: `{path}`" not in final_deliverable:

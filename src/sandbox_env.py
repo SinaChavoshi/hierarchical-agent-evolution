@@ -10,6 +10,8 @@ import shutil
 import subprocess
 from typing import Dict, List, Any, Optional
 
+from .artifacts import EXCLUDED_DIR_SEGMENTS, EXCLUDED_DIR_SUFFIXES, sanitize_path
+
 class AgentWorkspace:
     """Isolated scratchpad environment for a virtual enterprise."""
 
@@ -25,8 +27,15 @@ class AgentWorkspace:
         return self.workspace_dir
 
     def _resolve_path(self, relative_path: str) -> str:
-        """Resolves a path relative to workspace_dir and guards against path traversal."""
-        clean_path = os.path.normpath(relative_path.strip().lstrip("/"))
+        """Resolves a path relative to workspace_dir and guards against path traversal.
+
+        Agent-supplied paths arrive through a free-text ReAct protocol, so
+        markdown decoration (``**bold**``, backticks) regularly leaks into the
+        filename. Stripping it here means the artifact lands at its intended
+        location rather than being written as an unusable sibling such as
+        ``routing.py**``.
+        """
+        clean_path = os.path.normpath(sanitize_path(relative_path).lstrip("/"))
         resolved = os.path.abspath(os.path.join(self.workspace_dir, clean_path))
         if not resolved.startswith(self.workspace_dir):
             raise ValueError(f"Path traversal detected: {relative_path} resolves outside workspace.")
@@ -77,7 +86,10 @@ class AgentWorkspace:
             if not os.path.exists(start_dir):
                 return results
             for root, dirs, files in os.walk(start_dir):
-                dirs[:] = [d for d in dirs if d not in ("venv", ".venv", "__pycache__", ".git", ".pytest_cache")]
+                dirs[:] = [
+                    d for d in dirs
+                    if d not in EXCLUDED_DIR_SEGMENTS and not d.endswith(EXCLUDED_DIR_SUFFIXES)
+                ]
                 for f in sorted(files):
                     full = os.path.join(root, f)
                     rel = os.path.relpath(full, self.workspace_dir)
