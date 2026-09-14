@@ -1,0 +1,85 @@
+# Generation 11: Execution-First Selection.
+#
+# Two changes from Gen 10's manifest, both deliberate:
+#
+#   1. No code ConfigMap mounts. Generation 10 patched four .py files over the
+#      image at runtime, so the image did not reproduce its own run. Everything
+#      is now baked in and the `gen10-code` ConfigMap is retired.
+#   2. No VERTEX_API_TOKEN. A statically injected token cannot be refreshed,
+#      and Vertex tokens expire after about an hour - which is what stalled
+#      firms mid-tournament in both Gen 9 and Gen 10. The pod authenticates via
+#      Workload Identity through the metadata server, which src/llm_factory.py
+#      now caches with expiry and force-refreshes on a 401.
+#
+# The image tag is pinned to `gen11` rather than `latest` so this run stays
+# reproducible after the next build moves `latest`.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parallel-firms-gen11-east4
+  namespace: agent-evolution
+  labels:
+    app: parallel-firms-gen11-east4
+spec:
+  completionMode: Indexed
+  completions: 10
+  parallelism: 3
+  backoffLimit: 8
+  template:
+    metadata:
+      labels:
+        app: parallel-firms-gen11-east4
+    spec:
+      serviceAccountName: agent-evolution-sa
+      restartPolicy: Never
+      containers:
+      - name: firm-evaluator
+        image: us-central1-docker.pkg.dev/gemle-gke-dev/chavoshi-repo/agent-evolution:gen11
+        imagePullPolicy: Always
+        command:
+        - "python"
+        - "-m"
+        - "src.worker"
+        - "--generation"
+        - "11"
+        - "--region"
+        - "us-east4"
+        - "--population-file"
+        - "/configs/generation_11_population.json"
+        - "--output-dir"
+        - "/data/outputs"
+        - "--objective"
+        - "Design and implement the production-ready universal 'agent-org' platform as a package that actually runs. It must install with `pip install -e .`, import cleanly, and ship a pytest suite that collects and passes. Required capabilities: cross-cloud federated multi-agent mesh routing with zero-trust mTLS peer consensus, autonomous self-evolving evaluation rubrics with property-based fuzz testing, dynamic organizational morphogenesis (3-7 pods), closed-loop sandbox test failure introspection and self-repair, and autonomous teleological OKRs, all instrumented with real OpenTelemetry spans. You are scored on execution, not description: 30% of your score is measured by parsing, installing, importing, testing and inspecting the code you write. Use `Action: verify` to see the exact gate report before you finish. A gate reported SKIP was not evaluated and earns nothing."
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "gemle-gke-dev"
+        - name: GOOGLE_CLOUD_LOCATION
+          value: "us-east4"
+        - name: WORKER_MODEL
+          value: "gemini-2.5-flash"
+        - name: EXECUTIVE_MODEL
+          value: "gemini-2.5-pro"
+        - name: JUDGE_MODEL
+          value: "gemini-2.5-pro"
+        - name: GCS_BUCKET
+          value: "gemle-gke-dev-agent-evolution"
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            # Raised from Gen 10's 3 CPU / 6Gi: the verification loop runs real
+            # pip installs and pytest collections inside the pod.
+            cpu: "4000m"
+            memory: "8Gi"
+        volumeMounts:
+        - name: data-vol
+          mountPath: /data
+        - name: config-vol
+          mountPath: /configs
+      volumes:
+      - name: data-vol
+        emptyDir: {}
+      - name: config-vol
+        configMap:
+          name: gen11-population

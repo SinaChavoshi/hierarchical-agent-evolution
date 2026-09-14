@@ -22,6 +22,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | [**`exp-010-parallel-gen8`**](exp-010-parallel-gen8/) | Closed-Loop Sandbox Test Verification & Automated Code Self-Repair | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (334 agents) | **79.89** | [`exp-010-parallel-gen8/`](exp-010-parallel-gen8/) ([Report](exp-010-parallel-gen8/experiment_report.md)) |
 | [**`exp-011-parallel-gen9`**](exp-011-parallel-gen9/) | Autonomous Morphogenesis & Dynamic Organizational Topologies | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (319 agents) | **87.68** | [`exp-011-parallel-gen9/`](exp-011-parallel-gen9/) ([Report](exp-011-parallel-gen9/experiment_report.md)) |
 | [**`exp-012-parallel-gen10`**](exp-012-parallel-gen10/) | Cross-Cloud Federated Mesh & Autonomous Self-Evolving Evaluation Rubrics | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (341 agents) | **91.26** | [`exp-012-parallel-gen10/`](exp-012-parallel-gen10/) ([Report](exp-012-parallel-gen10/experiment_report.md)) |
+| [**`exp-013-parallel-gen11`**](exp-013-parallel-gen11/) | Execution-First Selection & In-Loop Ground-Truth Verification | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (342 agents) | *in progress* | [`exp-013-parallel-gen11/`](exp-013-parallel-gen11/) |
 
 ---
 
@@ -459,19 +460,34 @@ Prioritized ahead of new capability work on the evidence gathered in Generation 
 * ✅ **Judge Rubric Repair** — `execution_integrity` at 30%, the heaviest dimension; coherence + actionability cut 35% → 20%; the silent `70/70/70/65/70` fallback replaced by an explicit `evaluation_failed` at 0.0. See [§2.2](#22-counterfactual-five-of-six-champions-change-under-the-rebuilt-rubric).
 * ✅ **Morphogenesis Phenotype Fix** — spawned verification pods could not write files; 127 → 139 of 279 agents tool-enabled.
 
-**Remaining before Generation 11 is bred:**
+* ✅ **Container Image Rebuild** — `scripts/` and `pyproject.toml` are baked in, the `gen10-code` and `gen8-code` ConfigMaps are deleted, and the build asserts at image-build time that `pip`, `pytest`, `opentelemetry` and the harness modules all import. Builds are tagged per generation, not just `latest`, so a run can be tied to an immutable image. `crewai`, `crewai-tools` and `langchain-google-vertexai` were removed along with the dead `get_crewai_llm()` that was their only caller.
+* ✅ **Measured Telemetry** — real `usageMetadata` token counts, including reasoning tokens billed at the output rate. `token_accounting.fully_measured` on each scorecard says whether the cost figure was measured or estimated. `len(text)/4` survives only as a fallback.
+* ✅ **Operational Hardening** — Vertex tokens are cached with their provider-reported expiry, refreshed 300s early, and force-re-fetched on a 401, which is now in the retry path. Source order was reversed so refreshable sources (metadata server / Workload Identity) come before the un-refreshable `VERTEX_API_TOKEN`, and a forced refresh skips any source that returns the token that was just rejected.
 
-* **Container Image Rebuild** — the current image predates `src/artifacts.py`, `src/execution_harness.py` and the `sandbox_env` cache-exclusion fix, and Generation 10 was run by mounting four `.py` files over it via the `gen10-code` ConfigMap. The image does not reproduce its own run. Rebuild and retire the ConfigMap patching pattern.
-* **Measured Telemetry** — record real `usageMetadata.promptTokenCount` / `candidatesTokenCount` instead of the `len(text)/4` estimate in `src/company.py`, which biases both the efficiency bonus and the cost penalty. `src/llm_factory.py` already receives this data and discards it.
-* **Operational Hardening** — fix Vertex OAuth refresh (Workload Identity via metadata server, cache with expiry, 401 → force re-fetch). Caused mid-tournament firm failures requiring manual retries in both Generation 9 and Generation 10.
+*All pre-Generation-11 blockers are closed.*
 
-### 12.2 Generation 11
+### 12.2 Generation 11: Execution-First Selection (in progress)
 
-Resumes once the remaining items above land, so that measured gains are attributable to genuine capability rather than proxy drift.
+**Capability: in-loop ground-truth verification** ([`src/verification_loop.py`](../src/verification_loop.py)).
+
+Through Generation 10 the agents and the evaluator were looking at different things. Agents could shell out to pytest, but the score came from gates they never saw — and those gates were heuristics, so even an agent that inspected them would have learned the wrong lesson. A technical agent can now issue `Action: verify` and receive the exact gate report that will score its firm, from the same `ExecutionHarness` the evaluator runs.
+
+Two constraints, both deliberate:
+
+* **Rate-limited** to 3 verifications per *firm* (not per pod), so departments coordinate rather than each burning attempts. This also preserves what is being measured: a firm needing three attempts to produce parseable code is not equivalent to one that gets it right first, and the scorecard records which happened — including whether the firm regressed after its best attempt.
+* **Verdicts, not coaching.** The report echoes real tracebacks and gate results and never suggests an edit. Selection pressure should come from the population, not from the harness steering every firm toward one answer.
+
+**Survivors are ranked by the rebuilt rubric, not legacy net.** Generation 10's champion under the honest function is `gen_10_elite_1` (89.10, `execution_integrity` 70.0), which finished **sixth** on the legacy board; the legacy champion `gen_10_mutant_3` is second. Bred by [`scripts/breed_gen11_population.py`](../scripts/breed_gen11_population.py) from [`rubric_rescore.json`](rubric_rescore.json) — deliberately *not* from `exp-012-parallel-gen10/top_5_survivor_genomes.json`, which is ordered by the legacy ranking that picked the wrong firm in five of six generations.
+
+Three directed mutants target the three measured deficits: unparseable modules (19/60 firms), prose telemetry (55/60 → 15/60), and uncollectable test suites (3/60 green).
 
 > [!IMPORTANT]
-> **Generation 11 must not be bred from `exp-012-parallel-gen10/top_5_survivor_genomes.json` as it stands.** That file ranks survivors by legacy net fitness, and [§2.2](#22-counterfactual-five-of-six-champions-change-under-the-rebuilt-rubric) shows that ranking put the wrong firm first in five of six generations. Re-derive the survivor set from [`rubric_rescore.json`](rubric_rescore.json), under which Generation 10's champion is `gen_10_elite_1` (89.10), not `gen_10_mutant_3`.
+> Generation 11 scores are on a new scale and are **not** comparable to Generations 1–10. The gates are now inside the gross score as `execution_integrity` rather than subtracted as a penalty, and the judge prompt changed.
 
-Generation 11 scores will be on a new scale and are **not** comparable to Generations 1–10.
+### 12.3 Beyond Generation 11
+
+* **Pillar 4 — recursive self-hosting.** Still open. No evolved artifact has ever been merged into `src/`. The project's stated end state is a platform that improves its own source; nothing in ten generations has crossed that line.
+* **Repository consolidation.** 22 near-identical manifests in `k8s/` and 10 one-off `breed_gen*` / `harvest_and_finalize_gen*` scripts. `ThreeWayBreedingEngine` in `src/breeding.py` has not run in production since Generation 5.
+* **Judge saturation.** `execution_integrity` fixed the score's coupling to reality, but the five judged dimensions are still produced by one model reading prose. Gross σ collapsed from 9.23 (Gen 7) to 4.54 (Gen 10).
 
 
