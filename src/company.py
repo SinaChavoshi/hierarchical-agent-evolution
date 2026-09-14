@@ -10,6 +10,7 @@ from .schema import CompanyGenome, DepartmentGenome, AgentGenome, OpExBreakdown
 from .llm_factory import call_vertex_gemini_rest
 from .sandbox_env import AgentWorkspace
 from .artifacts import filter_bundle
+from .verification_loop import VERIFY_TOOL_GUIDE, VerificationLoop
 
 # List token pricing per 1k tokens
 COST_TABLE = {
@@ -51,7 +52,7 @@ def is_technical_department(dept: DepartmentGenome) -> bool:
 
 def parse_tool_action(text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
     """Parses ReAct tool actions from agent response."""
-    action_match = re.search(r"Action:\s*(write_file|read_file|execute_bash|list_files|finish)", text, re.IGNORECASE)
+    action_match = re.search(r"Action:\s*(write_file|read_file|execute_bash|list_files|verify|finish)", text, re.IGNORECASE)
     if not action_match:
         return None
     action = action_match.group(1).lower()
@@ -80,6 +81,9 @@ def parse_tool_action(text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
     elif action == "list_files":
         return action, {}
 
+    elif action == "verify":
+        return action, {}
+
     elif action == "finish":
         return action, {"text": text}
 
@@ -105,6 +109,11 @@ class HierarchicalCompanyRunner:
 
         # Initialize active execution workspace
         self.workspace = AgentWorkspace(company_id=self.genome.company_id)
+
+        # Generation 11: agents can query the same harness that scores them.
+        # One budget for the whole firm, not per pod, so departments have to
+        # coordinate rather than each burning attempts independently.
+        self.verification_loop = VerificationLoop(self.workspace)
 
         # Load & mount pre-licensed corporate assets from marketplace
         self.licensed_assets_text = ""
@@ -223,6 +232,7 @@ class HierarchicalCompanyRunner:
             "  Command: <shell command, e.g. python3 -m pytest tests/ or python3 -m py_compile src/...>\n"
             "- To list workspace files:\n"
             "  Action: list_files\n"
+            + VERIFY_TOOL_GUIDE +
             "- To complete your assignment:\n"
             "  Action: finish\n"
             "  Summary: <your findings, contribution, and verification status>\n\n"
@@ -281,6 +291,9 @@ class HierarchicalCompanyRunner:
             elif action == "list_files":
                 tree = self.workspace.get_file_tree()
                 observation = f"Observation (list_files):\n{tree}"
+            elif action == "verify":
+                observation = self.verification_loop.verify(
+                    turn=turn, agent_role=agent.role)
 
             conversation_history += f"\nAssistant Response:\n{step_resp}\n\n{observation}\n"
             final_summary = step_resp
@@ -500,6 +513,7 @@ class HierarchicalCompanyRunner:
             "departmental_briefs": departmental_briefs,
             "elapsed_seconds": elapsed,
             "estimated_tokens": total_tokens,
+            "verification_loop": self.verification_loop.summary(),
             "token_accounting": {
                 "measured_calls": self.measured_calls,
                 "estimated_calls": self.estimated_calls,
