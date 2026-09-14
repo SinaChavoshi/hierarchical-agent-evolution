@@ -19,26 +19,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Application source, templates and configs.
-COPY src/ /app/src/
+# Everything the image needs to reproduce its own run. Generation 10 mounted
+# four .py files over this image via a ConfigMap because they were not baked
+# in, which meant the published image did not correspond to the published
+# results. Nothing is patched in at runtime any more.
+COPY hae/ /app/hae/
 COPY templates/ /app/templates/
 COPY configs/ /app/configs/
-
-# Harvest, breeding and backfill scripts. Generation 10 had to mount four .py
-# files over this image via the `gen10-code` ConfigMap because they were not
-# baked in, which meant the image did not reproduce its own run. Copying them
-# retires that pattern.
 COPY scripts/ /app/scripts/
+COPY tests/ /app/tests/
 COPY pyproject.toml /app/pyproject.toml
 
 ENV PYTHONPATH=/app
 
-# Fail the build rather than ship an image that cannot verify anything. Each of
-# these is a hard dependency of a specific execution gate.
+# Fail the build rather than ship an image that cannot verify anything. Each
+# import below is a hard dependency of a specific execution gate, and the
+# module imports catch a broken refactor before a tournament does.
 RUN python -c "import ast, importlib.util, pytest, opentelemetry; \
     assert importlib.util.find_spec('pip'), 'build gate needs pip'; \
-    import src.execution_harness, src.evaluator, src.artifacts; \
+    import hae.evaluation.harness, hae.evaluation.judge, hae.evaluation.artifacts; \
+    import hae.evaluation.benchmark, hae.orchestration.worker, hae.cli; \
     print('harness imports OK')"
 
-ENTRYPOINT ["python", "-m", "src.main"]
-CMD ["--mode", "tournament"]
+# The reachability guard runs at build time too: an image will not ship with a
+# capability module that no entry point can reach. Three such modules named
+# two V1 generations without ever executing.
+RUN python -m unittest tests.test_architecture -v
+
+ENTRYPOINT ["python", "-m", "hae.cli"]
+CMD ["--help"]

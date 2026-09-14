@@ -36,8 +36,8 @@ coaching every firm toward the same answer.
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from .artifacts import filter_bundle
-from .execution_harness import FAILED, PASSED, SKIPPED, ExecutionHarness
+from hae.evaluation.artifacts import filter_bundle
+from hae.evaluation.harness import FAILED, PASSED, SKIPPED, ExecutionHarness
 
 # Verification is the most expensive action an agent can take. Enough attempts
 # to fix a syntax error and re-check; not enough to brute-force.

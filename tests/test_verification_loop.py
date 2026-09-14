@@ -5,9 +5,9 @@ import unittest
 
 sys.path.insert(0, ".")
 
-from src.company import parse_tool_action
-from src.execution_harness import FAILED, PASSED, SKIPPED
-from src.verification_loop import VERIFY_TOOL_GUIDE, VerificationLoop
+from hae.runtime.company import parse_tool_action
+from hae.evaluation.harness import FAILED, PASSED, SKIPPED
+from hae.evaluation.verification_loop import VERIFY_TOOL_GUIDE, VerificationLoop
 
 WORKING_PACKAGE = {
     "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',
@@ -189,7 +189,7 @@ class TestToolWiring(unittest.TestCase):
 
     def test_runner_exposes_a_verification_loop(self):
         import inspect
-        from src import company
+        from hae.runtime import company
         source = inspect.getsource(company.HierarchicalCompanyRunner.__init__)
         self.assertIn("VerificationLoop", source)
 

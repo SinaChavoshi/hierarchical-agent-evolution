@@ -5,8 +5,8 @@ import json
 import random
 import re
 from typing import List, Dict, Any, Tuple
-from .schema import CompanyGenome, DepartmentGenome, AgentGenome, EvaluationResult
-from .llm_factory import call_vertex_gemini_rest
+from hae.genome.schema import CompanyGenome, DepartmentGenome, AgentGenome, EvaluationResult
+from hae.infra.llm import call_llm
 
 META_ARCHITECT_SYSTEM_PROMPT = """You are an Elite Meta-Architect and Evolutionary Systems Designer.
 Your task is to review the collective bottlenecks, failure modes, and architectural strengths of the top-performing
@@ -209,7 +209,7 @@ class ThreeWayBreedingEngine:
 {json.dumps(collective_bottlenecks[:8], indent=2)}
 
 BASELINE CHAMPION GENOME:
-{top_firms[0][0].model_dump_json(indent=2)}
+{top_firms[0][0].to_json(indent=2)}
 
 Formulate a mutated enterprise genome with novel specialist roles, adjusted delegation protocols, or altered team structures
 that directly solves these collective vulnerabilities. Return valid JSON only."""
@@ -219,7 +219,7 @@ that directly solves these collective vulnerabilities. Return valid JSON only.""
             try:
                 # Every 5th mutant receives an LLM meta-architect generation, others receive heuristic directed mutations
                 if i % 3 == 0:
-                    raw = call_vertex_gemini_rest(
+                    raw = call_llm(
                         prompt=prompt,
                         model_name="gemini-2.5-pro",
                         temperature=0.8,

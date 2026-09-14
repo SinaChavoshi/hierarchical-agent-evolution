@@ -12,7 +12,7 @@ from unittest import mock
 
 sys.path.insert(0, ".")
 
-from src import llm_factory as lf
+from hae.infra import llm as lf
 
 
 class TestUsageCapture(unittest.TestCase):
@@ -72,7 +72,7 @@ class TestUsageCapture(unittest.TestCase):
 class TestCompanyTokenAccounting(unittest.TestCase):
 
     def setUp(self):
-        from src.company import HierarchicalCompanyRunner
+        from hae.runtime.company import HierarchicalCompanyRunner
         self.runner = HierarchicalCompanyRunner.__new__(HierarchicalCompanyRunner)
         for attr in ("flash_input_tokens", "flash_output_tokens",
                      "pro_input_tokens", "pro_output_tokens",

@@ -30,8 +30,8 @@ import json
 import re
 from typing import Any, Dict, Mapping, Optional, Tuple
 
-from .llm_factory import call_vertex_gemini_rest
-from .schema import EvaluationResult, FitnessScore
+from hae.infra.llm import call_llm
+from hae.genome.schema import EvaluationResult, FitnessScore
 
 # Judged dimensions plus the one measured dimension. Must sum to 1.0.
 RUBRIC_WEIGHTS: Dict[str, float] = {
@@ -209,7 +209,7 @@ class StrategicFitnessEvaluator:
         reason = ""
         for attempt in range(self.repair_attempts + 1):
             try:
-                raw = call_vertex_gemini_rest(
+                raw = call_llm(
                     prompt=prompt,
                     model_name=self.model_name,
                     temperature=0.2,
@@ -238,12 +238,12 @@ class StrategicFitnessEvaluator:
         final_deliverable: str,
         departmental_briefs: Dict[str, str],
         elapsed_seconds: float = 0.0,
-        estimated_tokens: int = 0,
+        token_usage: int = 0,
         verification: Any = None,
     ) -> EvaluationResult:
         """Scores a firm on five judged dimensions plus measured execution integrity.
 
-        `verification` is a `VerificationScore` from `DeterministicSandboxVerifier`
+        `verification` is a `VerificationReport` from `ExecutionHarness`
         (anything exposing `gate_status` works). Omitting it scores the firm on
         prose alone and sets `execution_evaluable=False` on the result.
         """
@@ -278,13 +278,13 @@ Score this proposal rigorously according to your rubric. Return only the JSON ob
                 cross_functional_coherence=0.0,
                 risk_mitigation=0.0,
                 actionability_and_synthesis=0.0,
-                overall_score=0.0,
+                fitness_score=0.0,
                 qualitative_feedback=(
                     f"EVALUATION FAILED after {self.repair_attempts + 1} attempt(s): "
                     f"{failure_reason}. Raw response head: {raw_response[:500]}"
                 ),
                 identified_bottlenecks=[f"Judge evaluation failed: {failure_reason}"],
-                token_count=estimated_tokens,
+                token_usage=token_usage,
                 elapsed_seconds=elapsed_seconds,
             )
             fitness.evaluation_failed = True
@@ -302,10 +302,10 @@ Score this proposal rigorously according to your rubric. Return only the JSON ob
             cross_functional_coherence=judged["cross_functional_coherence"],
             risk_mitigation=judged["risk_mitigation"],
             actionability_and_synthesis=judged["actionability_and_synthesis"],
-            overall_score=overall,
+            fitness_score=overall,
             qualitative_feedback=str(parsed.get("qualitative_feedback", "")),
             identified_bottlenecks=list(parsed.get("identified_bottlenecks", [])),
-            token_count=estimated_tokens,
+            token_usage=token_usage,
             elapsed_seconds=elapsed_seconds,
         )
         fitness.evaluation_failed = False

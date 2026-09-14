@@ -39,7 +39,7 @@ def card(company_id, overall, gates=None, judged=95.0, failed=False):
     }
     out = {
         "company_id": company_id,
-        "overall_score": overall,
+        "fitness_score": overall,
         "gross_score": overall,
         "evaluation": {"fitness": fitness},
         "verification": {"authored_files": 4},

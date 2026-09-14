@@ -1,16 +1,28 @@
-"""CLI entrypoint for Hierarchical Agent Evolution."""
+"""Command line entry point.
+
+Four modes:
+
+    tournament   Run a population of firms for one or more generations.
+    single-firm  Run one firm against one objective. Useful for debugging.
+    breed        Produce the next generation's population from a declarative
+                 generation spec. Replaces ten one-off breeding scripts.
+    benchmark    Grade a firm's workspace against the self-hosting benchmark,
+                 or print the objective for a benchmark task.
+"""
 
 import os
 import sys
 import json
 import argparse
-from .schema import CompanyGenome
-from .company import HierarchicalCompanyRunner
-from .evaluator import StrategicFitnessEvaluator
-from .engine import EvolutionaryTournamentEngine
-from .sandbox_verifier import DeterministicSandboxVerifier
-from .llm_factory import detect_llm_provider, resolve_model_for_provider
-from .config import DEFAULT_CONFIG
+from hae.genome.schema import CompanyGenome
+from hae.runtime.company import HierarchicalCompanyRunner
+from hae.evaluation.judge import StrategicFitnessEvaluator
+from hae.orchestration.engine import EvolutionaryTournamentEngine
+from hae.evaluation.harness import ExecutionHarness
+from hae.infra.llm import detect_llm_provider, resolve_model_for_provider
+from hae.infra.config import DEFAULT_CONFIG
+from hae.orchestration.breeder import breed_generation
+from hae.evaluation.benchmark import TASKS, SelfHostingBenchmark
 
 DEFAULT_STRATEGIC_OBJECTIVE = (
     "Formulate an unassailable 5-year commercial and technical strategy for an enterprise "
@@ -22,8 +34,15 @@ DEFAULT_STRATEGIC_OBJECTIVE = (
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Hierarchical Agent Evolution System")
-    parser.add_argument("--mode", choices=["tournament", "single-firm"], default="tournament",
-                        help="Execution mode: full evolutionary tournament or single firm evaluation")
+    parser.add_argument("--mode",
+                        choices=["tournament", "single-firm", "breed", "benchmark"],
+                        default="tournament",
+                        help="tournament | single-firm | breed | benchmark")
+    parser.add_argument("--generation-spec", type=str, default=None,
+                        help="Path to configs/generations/genNN.json (--mode breed)")
+    parser.add_argument("--task", type=str, default=None,
+                        choices=sorted(TASKS),
+                        help="Self-hosting benchmark task id (--mode benchmark)")
     parser.add_argument("--objective", type=str, default=DEFAULT_STRATEGIC_OBJECTIVE,
                         help="The complex open-ended strategic research objective")
     parser.add_argument("--config", "--seed-config", dest="seed_config", type=str,
@@ -44,8 +63,43 @@ def parse_args():
                         help="Directory to store outputs, transcripts, and evaluation logs")
     return parser.parse_args()
 
+def run_breed(args) -> int:
+    """Produces the next generation's population file from its spec."""
+    if not args.generation_spec:
+        print("--mode breed requires --generation-spec "
+              "configs/generations/genNN.json")
+        return 2
+    path, population = breed_generation(args.generation_spec)
+    print(f"Wrote {len(population)} firms to {path}")
+    for genome in population:
+        lineage = genome.mutation_history[-1] if genome.mutation_history else ""
+        print(f"  {genome.company_id:28s} {genome.total_agent_count:3d} agents  {lineage}")
+    return 0
+
+
+def run_benchmark(args) -> int:
+    """Prints a benchmark task's objective, or grades a workspace against it."""
+    if not args.task:
+        print("--mode benchmark requires --task. Available: "
+              + ", ".join(sorted(TASKS)))
+        return 2
+    bench = SelfHostingBenchmark()
+    reference = bench.reference_run(args.task)
+    print(f"Reference run for {args.task!r}: "
+          f"{reference['passed']}/{reference['collected']} held-out tests pass.")
+    print("\n--- OBJECTIVE ---\n")
+    print(bench.objective_for(args.task))
+    return 0
+
+
 def main():
     args = parse_args()
+
+    if args.mode == "breed":
+        return run_breed(args)
+    if args.mode == "benchmark":
+        return run_benchmark(args)
+
     if args.llm_provider:
         DEFAULT_CONFIG.llm_provider = args.llm_provider
         os.environ["LLM_PROVIDER"] = args.llm_provider
@@ -70,10 +124,10 @@ def main():
         runner = HierarchicalCompanyRunner(seed_genome)
         result = runner.run(args.objective)
         
-        # Step 1: Deterministic Sandbox Verification
-        verifier = DeterministicSandboxVerifier()
-        v_score = verifier.verify_package(seed_genome.company_id, result["final_deliverable"], workspace=runner.workspace)
-        print(f"\n[Deterministic Gate Verification] {v_score.details} (Penalty: -{v_score.score_penalty} pts)")
+        # Step 1: execution gates -- run the code the firm actually wrote.
+        report = ExecutionHarness().verify_workspace(
+            runner.workspace, result["final_deliverable"])
+        print(f"\n{report.summary()}")
 
         # Step 2: LLM Strategic Evaluation
         evaluator = StrategicFitnessEvaluator()
@@ -84,21 +138,21 @@ def main():
             final_deliverable=result["final_deliverable"],
             departmental_briefs=result["departmental_briefs"],
             elapsed_seconds=result["elapsed_seconds"],
-            estimated_tokens=result["estimated_tokens"],
-            verification=v_score
+            token_usage=result["token_usage"],
+            verification=report
         )
 
         # Gate results already contribute 30% of the gross via
         # `execution_integrity`; subtracting the legacy penalty on top would
         # double-count them.
-        gross_score = eval_result.fitness.overall_score
+        gross_score = eval_result.fitness.fitness_score
         net_score = gross_score
 
         print("\n" + "="*80)
         print(f"FIRM EXECUTION COMPLETE: {seed_genome.company_id}")
         print(f"Net Fitness: {net_score}/100 "
               f"(Execution Integrity: {getattr(eval_result.fitness, 'execution_integrity', 0.0)}/100, "
-              f"legacy gate penalty would have been -{v_score.score_penalty})")
+              f"gate penalty would have been -{report.score_penalty})")
         print(f"Strategic Depth: {eval_result.fitness.strategic_depth}/100")
         print(f"Technical Feasibility: {eval_result.fitness.technical_feasibility}/100")
         print(f"Cross-Functional Coherence: {eval_result.fitness.cross_functional_coherence}/100")
@@ -127,4 +181,4 @@ def main():
         print(f"\nTournament Completed! Summary written to: {summary_path}")
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

@@ -5,9 +5,9 @@ import json
 import unittest
 from unittest.mock import patch, MagicMock
 
-from src.schema import CompanyGenome, AgentGenome, DepartmentGenome
-from src.company import HierarchicalCompanyRunner
-from src.sandbox_env import AgentWorkspace
+from hae.genome.schema import CompanyGenome, AgentGenome, DepartmentGenome
+from hae.runtime.company import HierarchicalCompanyRunner
+from hae.runtime.workspace import AgentWorkspace
 
 class TestSelfRepair(unittest.TestCase):
     def setUp(self):

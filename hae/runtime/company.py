@@ -6,11 +6,11 @@ import json
 import time
 import concurrent.futures
 from typing import Dict, Tuple, List, Any, Optional
-from .schema import CompanyGenome, DepartmentGenome, AgentGenome, OpExBreakdown
-from .llm_factory import call_vertex_gemini_rest
-from .sandbox_env import AgentWorkspace
-from .artifacts import filter_bundle
-from .verification_loop import VERIFY_TOOL_GUIDE, VerificationLoop
+from hae.genome.schema import CompanyGenome, DepartmentGenome, AgentGenome, OpExBreakdown
+from hae.infra.llm import call_llm
+from hae.runtime.workspace import AgentWorkspace
+from hae.evaluation.artifacts import filter_bundle
+from hae.evaluation.verification_loop import VERIFY_TOOL_GUIDE, VerificationLoop
 
 # List token pricing per 1k tokens
 COST_TABLE = {
@@ -90,9 +90,9 @@ def parse_tool_action(text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
     return None
 
 class HierarchicalCompanyRunner:
-    """Executes a virtual enterprise with active sandboxing, asset marketplace, and token OpEx accounting."""
+    """Executes one virtual firm: CEO, department pods, workspace, and OpEx."""
 
-    def __init__(self, genome: CompanyGenome, assets_registry_path: Optional[str] = None):
+    def __init__(self, genome: CompanyGenome):
         self.genome = genome
         self.flash_input_tokens = 0
         self.flash_output_tokens = 0
@@ -107,44 +107,14 @@ class HierarchicalCompanyRunner:
         self.estimated_calls = 0
         self.thought_tokens = 0
 
-        # Initialize active execution workspace
+        # Active execution workspace. Everything a firm is scored on must be
+        # written here; prose in the deliverable does not count.
         self.workspace = AgentWorkspace(company_id=self.genome.company_id)
 
-        # Generation 11: agents can query the same harness that scores them.
-        # One budget for the whole firm, not per pod, so departments have to
-        # coordinate rather than each burning attempts independently.
+        # Agents can query the same harness that scores them. One budget for
+        # the whole firm, not per pod, so departments have to coordinate
+        # rather than each burning attempts independently.
         self.verification_loop = VerificationLoop(self.workspace)
-
-        # Load & mount pre-licensed corporate assets from marketplace
-        self.licensed_assets_text = ""
-        licensed_ids = getattr(self.genome, "licensed_assets", []) or []
-        if licensed_ids:
-            reg_path = assets_registry_path or (
-                "/configs/generation_5_initial_assets.json"
-                if os.path.exists("/configs/generation_5_initial_assets.json")
-                else "configs/generation_5_initial_assets.json"
-            )
-            if os.path.exists(reg_path):
-                try:
-                    with open(reg_path, "r") as f_assets:
-                        all_assets = json.load(f_assets)
-                    matched = [a for a in all_assets if a.get("asset_id") in licensed_ids]
-                    if matched:
-                        # Physically mount assets into the workspace
-                        mounted_paths = self.workspace.mount_assets(matched)
-                        asset_blocks = []
-                        for ma in matched:
-                            asset_blocks.append(
-                                f"### File: {ma.get('name')}\n"
-                                f"# PRE-LICENSED CORPORATE ASSET (ID: {ma.get('asset_id')}, Author: {ma.get('author_company_id')})\n"
-                                f"{ma.get('content')}"
-                            )
-                        self.licensed_assets_text = (
-                            f"\n\n==================== PRE-LICENSED CORPORATE ASSETS ({len(mounted_paths)} MOUNTED) ====================\n"
-                            + "\n\n".join(asset_blocks)
-                        )
-                except Exception as e:
-                    print(f" [WARNING] Error loading licensed assets: {e}")
 
     def _account_tokens(self, is_pro: bool, prompt_text: str, system_text: str,
                         response_text: str, usage: Dict[str, Any]) -> None:
@@ -195,7 +165,7 @@ class HierarchicalCompanyRunner:
         model_name = "gemini-2.5-pro" if is_pro else "gemini-2.5-flash"
         
         usage: Dict[str, Any] = {}
-        resp = call_vertex_gemini_rest(
+        resp = call_llm(
             prompt=full_prompt,
             model_name=model_name,
             temperature=agent.temperature,
@@ -257,7 +227,7 @@ class HierarchicalCompanyRunner:
 
         for turn in range(max_turns):
             usage: Dict[str, Any] = {}
-            step_resp = call_vertex_gemini_rest(
+            step_resp = call_llm(
                 prompt=conversation_history,
                 model_name=model_name,
                 temperature=agent.temperature,
@@ -304,8 +274,6 @@ class HierarchicalCompanyRunner:
         """Runs a department's operational agents and manager synthesis."""
         is_technical = is_technical_department(dept)
         pod_context = ""
-        if self.licensed_assets_text:
-            pod_context += self.licensed_assets_text + "\n\n"
         if is_technical:
             pod_context += f"Current Workspace Tree:\n{self.workspace.get_file_tree()}\n"
 
@@ -354,10 +322,9 @@ class HierarchicalCompanyRunner:
             self.genome.ceo.model_tier = "executive"
 
         # Step 1: CEO Directive Generation
-        licensed_summary = f" (Licensed {len(self.genome.licensed_assets)} pre-existing assets)" if getattr(self.genome, "licensed_assets", None) else ""
         ceo_init_prompt = (
             f"As CEO, review this strategic business challenge:\n\n{objective}\n\n"
-            f"Target Token Operating Budget: ${self.genome.budget_usd:.2f} USD{licensed_summary}.\n"
+            f"Target Token Operating Budget: ${self.genome.budget_usd:.2f} USD.\n"
             f"Break this mission into targeted directives for your {len(self.genome.departments)} departments:\n"
             + "\n".join([f"- {d.name} ({d.dept_id}): {d.mandate}" for d in self.genome.departments]) +
             "\n\nIssue clear, actionable, and ambitious instructions for each Department Manager."
@@ -459,15 +426,13 @@ class HierarchicalCompanyRunner:
 
         elapsed = round(time.time() - start_time, 2)
         
-        # Calculate OpEx & Marketplace Royalties
+        # Calculate OpEx
         flash_cost = (self.flash_input_tokens / 1000.0) * COST_TABLE["gemini-2.5-flash"]["input_per_1k"] + \
                      (self.flash_output_tokens / 1000.0) * COST_TABLE["gemini-2.5-flash"]["output_per_1k"]
         pro_cost = (self.pro_input_tokens / 1000.0) * COST_TABLE["gemini-2.5-pro"]["input_per_1k"] + \
                    (self.pro_output_tokens / 1000.0) * COST_TABLE["gemini-2.5-pro"]["output_per_1k"]
         
-        licensing_cost = round(len(getattr(self.genome, "licensed_assets", []) or []) * 0.015, 4)
-        royalty_revenue = round(getattr(self.genome, "royalty_revenue_usd", 0.0) or 0.0, 4)
-        total_cost = round(flash_cost + pro_cost + licensing_cost - royalty_revenue, 4)
+        total_cost = round(flash_cost + pro_cost, 4)
         total_tokens = self.flash_input_tokens + self.flash_output_tokens + self.pro_input_tokens + self.pro_output_tokens
 
         pro_count = 1 if self.genome.ceo.model_tier == "executive" else 0
@@ -483,7 +448,7 @@ class HierarchicalCompanyRunner:
                 else:
                     flash_count += 1
 
-        budget = getattr(self.genome, "budget_usd", 0.50) or 0.50
+        budget = self.genome.budget_usd
         cost_penalty = 0.0
         efficiency_bonus = 0.0
         if total_cost > budget:
@@ -498,21 +463,23 @@ class HierarchicalCompanyRunner:
             pro_output_tokens=self.pro_output_tokens,
             total_tokens=total_tokens,
             estimated_cost_usd=total_cost,
-            licensing_cost_usd=licensing_cost,
-            royalty_revenue_usd=royalty_revenue,
             budget_usd=budget,
             cost_penalty=cost_penalty,
             efficiency_bonus=efficiency_bonus,
             headcount=self.genome.total_agent_count,
             pro_count=pro_count,
-            flash_count=flash_count
+            flash_count=flash_count,
+            # The efficiency bonus is worth up to +3 net points, so an
+            # understated cost is an unearned score. Record whether every
+            # call reported real usage so a reader can tell.
+            fully_measured=(self.estimated_calls == 0 and self.measured_calls > 0)
         )
 
         return {
             "final_deliverable": final_deliverable,
             "departmental_briefs": departmental_briefs,
             "elapsed_seconds": elapsed,
-            "estimated_tokens": total_tokens,
+            "token_usage": total_tokens,
             "verification_loop": self.verification_loop.summary(),
             "token_accounting": {
                 "measured_calls": self.measured_calls,
@@ -525,5 +492,5 @@ class HierarchicalCompanyRunner:
             "workspace_files": workspace_bundle,
             "workspace_tree": self.workspace.get_file_tree(),
             "workspace_path": str(self.workspace.workspace_dir),
-            "opex": opex.model_dump()
+            "opex": opex.to_dict()
         }

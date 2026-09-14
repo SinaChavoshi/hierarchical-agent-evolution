@@ -3,16 +3,16 @@
 import unittest
 import os
 from unittest.mock import patch, MagicMock
-from src.llm_factory import (
+from hae.infra.llm import (
     detect_llm_provider,
     resolve_model_for_provider,
     call_llm,
-    call_vertex_gemini_rest,
+    call_llm,
     call_gemini_api_rest,
     call_openai_compatible_rest,
     call_anthropic_rest,
 )
-from src.config import DEFAULT_CONFIG
+from hae.infra.config import DEFAULT_CONFIG
 
 class TestLLMFactory(unittest.TestCase):
 
@@ -54,7 +54,7 @@ class TestLLMFactory(unittest.TestCase):
         self.assertEqual(resolve_model_for_provider("gemini-2.5-flash", "gemini_api", "worker"), "gemini-2.5-flash")
         self.assertEqual(resolve_model_for_provider("gemini-2.5-pro", "vertex", "executive"), "gemini-2.5-pro")
 
-    @patch("src.llm_factory.call_openai_compatible_rest")
+    @patch("hae.infra.llm.call_openai_compatible_rest")
     def test_dispatch_to_openai(self, mock_openai):
         mock_openai.return_value = "Response from OpenAI"
         with patch.dict(os.environ, {"LLM_PROVIDER": "openai"}):
@@ -64,7 +64,7 @@ class TestLLMFactory(unittest.TestCase):
             args, kwargs = mock_openai.call_args
             self.assertEqual(kwargs["model_name"], "gpt-4o-mini")
 
-    @patch("src.llm_factory.call_gemini_api_rest")
+    @patch("hae.infra.llm.call_gemini_api_rest")
     def test_dispatch_to_gemini_api(self, mock_gemini):
         mock_gemini.return_value = "Response from Gemini API"
         with patch.dict(os.environ, {"LLM_PROVIDER": "gemini_api"}):
@@ -74,7 +74,7 @@ class TestLLMFactory(unittest.TestCase):
             args, kwargs = mock_gemini.call_args
             self.assertEqual(kwargs["model_name"], "gemini-2.5-pro")
 
-    @patch("src.llm_factory.call_anthropic_rest")
+    @patch("hae.infra.llm.call_anthropic_rest")
     def test_dispatch_to_anthropic(self, mock_anthropic):
         mock_anthropic.return_value = "Response from Anthropic"
         with patch.dict(os.environ, {"LLM_PROVIDER": "anthropic"}):

@@ -5,13 +5,13 @@ import json
 import time
 import concurrent.futures
 from typing import List, Dict, Any, Tuple
-from .schema import CompanyGenome, EvaluationResult
-from .company import HierarchicalCompanyRunner
-from .evaluator import StrategicFitnessEvaluator
-from .mutator import OrganizationalMutator
-from .breeding import ThreeWayBreedingEngine
-from .sandbox_verifier import DeterministicSandboxVerifier
-from .telemetry import ResearchLedger
+from hae.genome.schema import CompanyGenome, EvaluationResult
+from hae.runtime.company import HierarchicalCompanyRunner
+from hae.evaluation.judge import StrategicFitnessEvaluator
+from hae.genome.mutator import OrganizationalMutator
+from hae.genome.breeding import ThreeWayBreedingEngine
+from hae.evaluation.harness import ExecutionHarness
+from hae.infra.telemetry import ResearchLedger
 
 class EvolutionaryTournamentEngine:
     """Manages the full lifecycle of hierarchical multi-agent evolution tournaments."""
@@ -39,7 +39,7 @@ class EvolutionaryTournamentEngine:
         self.evaluator = StrategicFitnessEvaluator()
         self.mutator = OrganizationalMutator()
         self.breeding_engine = ThreeWayBreedingEngine(top_k=top_k_survivors, total_population=population_size)
-        self.verifier = DeterministicSandboxVerifier()
+        self.harness = ExecutionHarness()
         
         run_id = f"run_{int(time.time())}"
         self.ledger = ResearchLedger(run_id=run_id, output_dir=output_dir, gcs_bucket=gcs_bucket)
@@ -48,14 +48,14 @@ class EvolutionaryTournamentEngine:
         """Generates the initial Generation 0 population."""
         population: List[CompanyGenome] = []
         # Clone 0: Baseline Seed
-        clone_seed = self.seed_genome.model_copy(deep=True)
+        clone_seed = self.seed_genome.copy()
         clone_seed.company_id = "gen_0_firm_1"
         clone_seed.generation = 0
         population.append(clone_seed)
 
         # Generate diverse initial variations
         for i in range(1, self.population_size):
-            variant = self.seed_genome.model_copy(deep=True)
+            variant = self.seed_genome.copy()
             variant.company_id = f"gen_0_firm_{i+1}"
             variant.generation = 0
             # Jitter temperature
@@ -71,9 +71,10 @@ class EvolutionaryTournamentEngine:
         runner = HierarchicalCompanyRunner(firm)
         run_output = runner.run(self.objective)
 
-        # Step 1: Deterministic Sandbox Verification
-        v_score = self.verifier.verify_package(firm.company_id, run_output["final_deliverable"], workspace=runner.workspace)
-        print(f" [{firm.company_id} Deterministic Gate] {v_score.details} (Penalty: -{v_score.score_penalty} pts)")
+        # Step 1: execution gates -- run the code the firm actually wrote.
+        report = self.harness.verify_workspace(
+            runner.workspace, run_output["final_deliverable"])
+        print(f" [{firm.company_id}] {report.summary()}")
 
         # Step 2: LLM Strategic Evaluation
         print(f"---> Evaluating deliverables for {firm.company_id} via LLM Judge...")
@@ -84,24 +85,24 @@ class EvolutionaryTournamentEngine:
             final_deliverable=run_output["final_deliverable"],
             departmental_briefs=run_output["departmental_briefs"],
             elapsed_seconds=run_output["elapsed_seconds"],
-            estimated_tokens=run_output["estimated_tokens"],
-            verification=v_score
+            token_usage=run_output["token_usage"],
+            verification=report
         )
 
         # The gate results are already folded into the score as the
         # `execution_integrity` dimension (30% of the rubric), so the legacy
-        # `v_score.score_penalty` subtraction is deliberately not applied --
+        # `report.score_penalty` subtraction is deliberately not applied --
         # doing both would penalise the same failures twice.
         if getattr(eval_result.fitness, "evaluation_failed", False):
             print(f" [WARNING] {firm.company_id} has a FAILED evaluation and scores 0.0.")
 
-        print(f" [{firm.company_id}] Net Score: {eval_result.fitness.overall_score}/100 "
+        print(f" [{firm.company_id}] Net Score: {eval_result.fitness.fitness_score}/100 "
               f"(Strat: {eval_result.fitness.strategic_depth}, Tech: {eval_result.fitness.technical_feasibility}, "
               f"Risk: {eval_result.fitness.risk_mitigation})")
 
         firm_raw_output = {
             "company_id": firm.company_id,
-            "overall_score": eval_result.fitness.overall_score,
+            "fitness_score": eval_result.fitness.fitness_score,
             "strategic_depth": eval_result.fitness.strategic_depth,
             "technical_feasibility": eval_result.fitness.technical_feasibility,
             "cross_functional_coherence": eval_result.fitness.cross_functional_coherence,
@@ -110,10 +111,9 @@ class EvolutionaryTournamentEngine:
             "execution_integrity": getattr(eval_result.fitness, "execution_integrity", 0.0),
             "execution_evaluable": getattr(eval_result.fitness, "execution_evaluable", False),
             "evaluation_failed": getattr(eval_result.fitness, "evaluation_failed", False),
-            "sandbox_penalty": v_score.score_penalty,
             "elapsed_seconds": eval_result.fitness.elapsed_seconds,
-            "estimated_tokens": eval_result.fitness.token_count,
-            "verification": v_score.__dict__,
+            "token_usage": eval_result.fitness.token_usage,
+            "verification": report.to_dict(),
             "opex": run_output.get("opex", {})
         }
 
@@ -121,10 +121,10 @@ class EvolutionaryTournamentEngine:
         firm_output_file = os.path.join(gen_dir, f"{firm.company_id}_result.json")
         with open(firm_output_file, "w") as f:
             json.dump({
-                "genome": firm.model_dump(),
-                "evaluation": eval_result.model_dump(),
+                "genome": firm.to_dict(),
+                "evaluation": eval_result.to_dict(),
                 "run_output": run_output,
-                "verification": v_score.__dict__,
+                "verification": report.to_dict(),
                 "opex": run_output.get("opex", {})
             }, f, indent=2, default=str)
 
@@ -156,12 +156,12 @@ class EvolutionaryTournamentEngine:
                 raw_firm_outputs.append(firm_raw)
 
         # Sort leaderboard by overall score descending
-        gen_results.sort(key=lambda x: x[1].fitness.overall_score, reverse=True)
-        raw_firm_outputs.sort(key=lambda x: x["overall_score"], reverse=True)
+        gen_results.sort(key=lambda x: x[1].fitness.fitness_score, reverse=True)
+        raw_firm_outputs.sort(key=lambda x: x["fitness_score"], reverse=True)
 
         print(f"\n--- GENERATION {generation_idx} LEADERBOARD ---")
         for rank, (f_genome, e_res) in enumerate(gen_results, 1):
-            print(f"#{rank} {f_genome.company_id} | Score: {e_res.fitness.overall_score:.2f} | Agents: {f_genome.total_agent_count}")
+            print(f"#{rank} {f_genome.company_id} | Score: {e_res.fitness.fitness_score:.2f} | Agents: {f_genome.total_agent_count}")
 
         # Record to Research Telemetry Ledger
         self.ledger.record_generation(
@@ -194,8 +194,8 @@ class EvolutionaryTournamentEngine:
             all_generation_champions.append({
                 "generation": g,
                 "champion_id": best_firm.company_id,
-                "score": best_eval.fitness.overall_score,
-                "genome": best_firm.model_dump()
+                "score": best_eval.fitness.fitness_score,
+                "genome": best_firm.to_dict()
             })
             if not next_pop:
                 break

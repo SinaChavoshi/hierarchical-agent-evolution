@@ -9,7 +9,7 @@ import shutil
 import tempfile
 import unittest
 
-from src.artifacts import (
+from hae.evaluation.artifacts import (
     count_source_files,
     filter_bundle,
     is_generated_path,
@@ -17,7 +17,7 @@ from src.artifacts import (
     partition_bundle,
     sanitize_path,
 )
-from src.sandbox_env import AgentWorkspace
+from hae.runtime.workspace import AgentWorkspace
 
 
 class TestArtifactClassification(unittest.TestCase):

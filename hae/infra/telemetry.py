@@ -78,7 +78,7 @@ class ResearchLedger:
 
         # Update running cost / token accounting
         for f in firm_results:
-            tokens = f.get("estimated_tokens", 0)
+            tokens = f.get("token_usage", 0)
             # Roughly 70% Flash (specialists), 30% Pro (Managers/CEO/Judge)
             flash_tokens = int(tokens * 0.70)
             pro_tokens = int(tokens * 0.30)
@@ -130,7 +130,7 @@ class ResearchLedger:
             lines.append("| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
             for rank, entry in enumerate(g["leaderboard"], 1):
                 lines.append(
-                    f"| #{rank} | `{entry['company_id']}` | **{entry['overall_score']:.2f}** | "
+                    f"| #{rank} | `{entry['company_id']}` | **{entry['fitness_score']:.2f}** | "
                     f"{entry.get('strategic_depth', 0.0):.1f} | {entry.get('technical_feasibility', 0.0):.1f} | "
                     f"{entry.get('cross_functional_coherence', 0.0):.1f} | {entry.get('risk_mitigation', 0.0):.1f} | "
                     f"{entry.get('actionability', 0.0):.1f} | {entry.get('elapsed_seconds', 0.0):.1f}s |"

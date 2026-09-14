@@ -12,8 +12,8 @@ from unittest import mock
 
 sys.path.insert(0, ".")
 
-from src import evaluator as ev
-from src.evaluator import (
+from hae.evaluation import judge as ev
+from hae.evaluation.judge import (
     GATE_WEIGHTS,
     JUDGED_DIMENSIONS,
     RUBRIC_WEIGHTS,
@@ -53,7 +53,7 @@ def run_eval(judge_replies, verification=None, repair_attempts=1):
             raise reply
         return reply
 
-    with mock.patch.object(ev, "call_vertex_gemini_rest", side_effect=fake_call):
+    with mock.patch.object(ev, "call_llm", side_effect=fake_call):
         e = StrategicFitnessEvaluator(repair_attempts=repair_attempts)
         result = e.evaluate(
             company_id="test_firm",
@@ -157,7 +157,7 @@ class TestJudgeFailureIsNotSilent(unittest.TestCase):
         result, leftover = run_eval(["not json at all", "still not json"])
         f = result.fitness
         self.assertTrue(f.evaluation_failed)
-        self.assertEqual(f.overall_score, 0.0)
+        self.assertEqual(f.fitness_score, 0.0)
         self.assertEqual(leftover, [], "both attempts should have been consumed")
 
     def test_failure_never_returns_the_old_seventy_fallback(self):
@@ -168,7 +168,7 @@ class TestJudgeFailureIsNotSilent(unittest.TestCase):
         for dim in JUDGED_DIMENSIONS:
             self.assertEqual(getattr(f, dim), 0.0,
                              f"{dim} should be 0.0 on a failed evaluation")
-        self.assertNotEqual(f.overall_score, 70.0)
+        self.assertNotEqual(f.fitness_score, 70.0)
 
     def test_failure_reason_is_recorded(self):
         result, _ = run_eval(["garbage", "garbage"])
@@ -185,7 +185,7 @@ class TestJudgeFailureIsNotSilent(unittest.TestCase):
         result, _ = run_eval([RuntimeError("401 Unauthorized"),
                               RuntimeError("401 Unauthorized")])
         self.assertTrue(result.fitness.evaluation_failed)
-        self.assertEqual(result.fitness.overall_score, 0.0)
+        self.assertEqual(result.fitness.fitness_score, 0.0)
 
     def test_reply_missing_a_dimension_is_rejected(self):
         partial = json.dumps({"strategic_depth": 90.0, "technical_feasibility": 90.0})
@@ -209,7 +209,7 @@ class TestEvaluateWiring(unittest.TestCase):
         self.assertEqual(good.fitness.execution_integrity, 100.0)
         self.assertEqual(bad.fitness.execution_integrity, 0.0)
         self.assertAlmostEqual(
-            good.fitness.overall_score - bad.fitness.overall_score, 30.0, places=2)
+            good.fitness.fitness_score - bad.fitness.fitness_score, 30.0, places=2)
 
     def test_identical_prose_is_no_longer_scored_identically(self):
         # This is the whole point of the rebuild: under the old rubric these
@@ -218,7 +218,7 @@ class TestEvaluateWiring(unittest.TestCase):
         v_bad = VerificationStub(gates(**{g: "failed" for g in ALL_GATES}))
         a, _ = run_eval([GOOD_JUDGE_REPLY], verification=v_good)
         b, _ = run_eval([GOOD_JUDGE_REPLY], verification=v_bad)
-        self.assertNotAlmostEqual(a.fitness.overall_score, b.fitness.overall_score)
+        self.assertNotAlmostEqual(a.fitness.fitness_score, b.fitness.fitness_score)
 
     def test_missing_verification_marks_execution_unevaluable(self):
         result, _ = run_eval([GOOD_JUDGE_REPLY], verification=None)

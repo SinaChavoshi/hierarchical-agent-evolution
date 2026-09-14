@@ -7,7 +7,7 @@ and a gate that could not be evaluated is never scored as a pass.
 
 import unittest
 
-from src.execution_harness import ExecutionHarness, FAILED, PASSED, SKIPPED
+from hae.evaluation.harness import ExecutionHarness, FAILED, PASSED, SKIPPED
 
 BASE = {
     "pyproject.toml": '[project]\nname = "demo"\nversion = "0.1.0"\n',

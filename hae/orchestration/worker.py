@@ -7,11 +7,11 @@ import time
 import argparse
 from typing import Dict, Any, Optional, List
 
-from .schema import CompanyGenome, EvaluationResult
-from .company import HierarchicalCompanyRunner
-from .evaluator import StrategicFitnessEvaluator
-from .sandbox_verifier import DeterministicSandboxVerifier
-from .telemetry import ResearchLedger
+from hae.genome.schema import CompanyGenome, EvaluationResult
+from hae.runtime.company import HierarchicalCompanyRunner
+from hae.evaluation.judge import StrategicFitnessEvaluator
+from hae.evaluation.harness import ExecutionHarness
+from hae.infra.telemetry import ResearchLedger
 
 def evaluate_single_firm(
     firm_index: int,
@@ -69,10 +69,10 @@ def evaluate_single_firm(
     runner = HierarchicalCompanyRunner(firm_genome)
     run_output = runner.run(objective)
 
-    # Deterministic Gate Check
-    verifier = DeterministicSandboxVerifier()
-    v_score = verifier.verify_package(company_id, run_output["final_deliverable"], workspace=runner.workspace)
-    print(f" [Deterministic Gate] {v_score.details} (Penalty: -{v_score.score_penalty} pts)")
+    # Execution gates. Runs the code the firm actually wrote.
+    report = ExecutionHarness().verify_workspace(
+        runner.workspace, run_output["final_deliverable"])
+    print(f" {report.summary()}")
 
     # LLM Judge Evaluation
     print(f"---> LLM Judge scoring for {company_id}...")
@@ -84,23 +84,20 @@ def evaluate_single_firm(
         final_deliverable=run_output["final_deliverable"],
         departmental_briefs=run_output["departmental_briefs"],
         elapsed_seconds=run_output["elapsed_seconds"],
-        estimated_tokens=run_output["estimated_tokens"],
-        verification=v_score
+        token_usage=run_output["token_usage"],
+        verification=report
     )
 
-    gross_score = eval_res.fitness.overall_score
-    sandbox_penalty = v_score.score_penalty
+    gross_score = eval_res.fitness.fitness_score
     opex_data = run_output.get("opex", {})
     cost_penalty = opex_data.get("cost_penalty", 0.0)
     efficiency_bonus = opex_data.get("efficiency_bonus", 0.0)
 
-    # Net Fitness. The sandbox gates are NOT subtracted here: as of the rubric
-    # rebuild they enter the gross score directly as `execution_integrity`,
-    # worth 30%. Subtracting `v_score.score_penalty` as well would count the
-    # same failures twice. `sandbox_penalty` is still recorded on the scorecard
-    # for continuity with Generations 1-10.
+    # Net fitness. Gate failures are NOT subtracted here: they already enter
+    # the gross score as `execution_integrity`, worth 30%. Subtracting
+    # `report.score_penalty` as well would count the same failures twice.
     net_score = round(max(0.0, min(100.0, gross_score - cost_penalty + efficiency_bonus)), 2)
-    eval_res.fitness.overall_score = net_score
+    eval_res.fitness.fitness_score = net_score
 
     if getattr(eval_res.fitness, "evaluation_failed", False):
         print(f" [WARNING] {company_id} has a FAILED evaluation and scores 0.0. "
@@ -109,13 +106,13 @@ def evaluate_single_firm(
     cost_usd = opex_data.get("estimated_cost_usd", 0.0)
     budget_usd = opex_data.get("budget_usd", 0.50)
     print(f" [OpEx Balance Sheet] Cost: ${cost_usd:.4f} USD (Budget: ${budget_usd:.2f}) | Penalty: -{cost_penalty} pts | Bonus: +{efficiency_bonus} pts")
-    print(f" FINAL NET FITNESS: {eval_res.fitness.overall_score}/100 (Gross: {gross_score})")
+    print(f" FINAL NET FITNESS: {eval_res.fitness.fitness_score}/100 (Gross: {gross_score})")
 
     result_payload = {
         "company_id": company_id,
         "generation": generation,
         "region": region,
-        "overall_score": eval_res.fitness.overall_score,
+        "fitness_score": eval_res.fitness.fitness_score,
         "gross_score": gross_score,
         "strategic_depth": eval_res.fitness.strategic_depth,
         "technical_feasibility": eval_res.fitness.technical_feasibility,
@@ -125,14 +122,13 @@ def evaluate_single_firm(
         "execution_integrity": getattr(eval_res.fitness, "execution_integrity", 0.0),
         "execution_evaluable": getattr(eval_res.fitness, "execution_evaluable", False),
         "evaluation_failed": getattr(eval_res.fitness, "evaluation_failed", False),
-        "sandbox_penalty": sandbox_penalty,
         "elapsed_seconds": eval_res.fitness.elapsed_seconds,
-        "estimated_tokens": eval_res.fitness.token_count,
-        "verification": v_score.__dict__,
+        "token_usage": eval_res.fitness.token_usage,
+        "verification": report.to_dict(),
         "opex": opex_data,
-        "genome": firm_genome.model_dump(),
+        "genome": firm_genome.to_dict(),
         "run_output": run_output,
-        "evaluation": eval_res.model_dump()
+        "evaluation": eval_res.to_dict()
     }
 
     # Write locally
@@ -154,7 +150,7 @@ def evaluate_single_firm(
         except Exception as e1:
             try:
                 import urllib.request
-                from .llm_factory import get_adc_access_token
+                from hae.infra.llm import get_adc_access_token
                 token = get_adc_access_token()
                 if token:
                     object_name = f"parallel_runs/generation_{generation}/{company_id}_result.json"

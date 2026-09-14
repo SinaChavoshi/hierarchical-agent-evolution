@@ -10,7 +10,7 @@ import shutil
 import subprocess
 from typing import Dict, List, Any, Optional
 
-from .artifacts import EXCLUDED_DIR_SEGMENTS, EXCLUDED_DIR_SUFFIXES, sanitize_path
+from hae.evaluation.artifacts import EXCLUDED_DIR_SEGMENTS, EXCLUDED_DIR_SUFFIXES, sanitize_path
 
 class AgentWorkspace:
     """Isolated scratchpad environment for a virtual enterprise."""
@@ -133,18 +133,6 @@ class AgentWorkspace:
                 "stdout": "",
                 "stderr": str(e)
             }
-
-    def mount_assets(self, assets: List[Dict[str, Any]]) -> List[str]:
-        """Mounts pre-licensed corporate assets directly into the workspace."""
-        mounted = []
-        for a in assets:
-            name = a.get("name")
-            content = a.get("content")
-            if name and content:
-                res = self.write_file(name, content)
-                if res.get("status") == "ok":
-                    mounted.append(name)
-        return mounted
 
     def get_file_tree(self) -> str:
         """Returns an ASCII tree representation of workspace files."""

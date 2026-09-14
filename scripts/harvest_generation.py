@@ -30,7 +30,7 @@ from typing import Any, Dict, List, Optional
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.evaluator import (  # noqa: E402
+from hae.evaluation.judge import (  # noqa: E402
     JUDGED_DIMENSIONS,
     composite_score,
     execution_integrity,
@@ -141,7 +141,13 @@ def summarise(card: Dict[str, Any],
     accounting = card.get("run_output", {}).get("token_accounting") or {}
     return {
         "company_id": card.get("company_id"),
-        "legacy_net": round(float(card.get("overall_score") or 0.0), 2),
+        # V2 scorecards say `fitness_score`; archived V1 scorecards say
+        # `overall_score`. Reading only one would silently score every
+        # firm from the other era at zero.
+        "legacy_net": round(float(
+            card.get("fitness_score")
+            if card.get("fitness_score") is not None
+            else card.get("overall_score") or 0.0), 2),
         "gross_score": round(float(card.get("gross_score") or 0.0), 2),
         "rubric_score": composite_score(judged_dims(card), exec_score),
         "execution_integrity": exec_score,

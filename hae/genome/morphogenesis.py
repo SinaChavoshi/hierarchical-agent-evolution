@@ -10,8 +10,8 @@ import json
 import random
 from typing import List, Dict, Any, Optional, Tuple
 
-from .schema import CompanyGenome, DepartmentGenome, AgentGenome
-from .llm_factory import call_vertex_gemini_rest
+from hae.genome.schema import CompanyGenome, DepartmentGenome, AgentGenome
+from hae.infra.llm import call_llm
 
 # Standard functional categories for structural allelic alignment
 FUNCTIONAL_CATEGORIES = {

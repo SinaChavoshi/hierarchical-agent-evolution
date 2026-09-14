@@ -2,9 +2,9 @@
 
 import random
 import unittest
-from src.schema import CompanyGenome, AgentGenome, DepartmentGenome
-from src.company import is_technical_department
-from src.morphogenesis import MorphogenesisEngine, StructuralCrossoverEngine, classify_department_role
+from hae.genome.schema import CompanyGenome, AgentGenome, DepartmentGenome
+from hae.runtime.company import is_technical_department
+from hae.genome.morphogenesis import MorphogenesisEngine, StructuralCrossoverEngine, classify_department_role
 
 class TestMorphogenesis(unittest.TestCase):
     def setUp(self):

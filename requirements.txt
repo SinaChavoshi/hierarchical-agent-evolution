@@ -1,22 +1,24 @@
-# Runtime dependencies for the evolution platform.
+# Runtime dependencies. Deliberately minimal, and audited: every line below is
+# imported by code in this repository or required by a subprocess the execution
+# harness spawns. Anything that could not be traced to a caller was removed.
 #
-# Deliberately small. The platform talks to Vertex over raw REST via urllib in
-# src/llm_factory.py, so no vendor SDK is needed for inference. crewai,
-# crewai-tools and langchain-google-vertexai were previously listed but were
-# reachable only from get_crewai_llm(), which nothing ever called; they have
-# been removed along with that function.
-pydantic>=2.7.0
-google-cloud-storage>=2.18.0
-pyyaml>=6.0.1
-tabulate>=0.9.0
-rich>=13.7.0
-tenacity>=8.3.0
-click>=8.1.7
+# V1 declared pydantic, pyyaml, tabulate, rich, tenacity and click. None of
+# them were imported anywhere. pydantic was the worst of the six, because it
+# was declared as a hard dependency and then neutralised -- every model set
+# `extra: "allow"` and overrode `__init__`, so nothing was ever validated, and
+# when pydantic was missing a shim silently took over. hae/genome/schema.py now
+# validates with stdlib dataclasses and explicit checks.
 
-# Required by the execution harness, not by the platform itself. The harness
-# runs candidate test suites with pytest and imports candidate modules; an
-# agent that instruments its code with OpenTelemetry must be importable for the
-# smoke gate to reach a verdict rather than skipping.
+# The platform talks to Vertex over raw REST via urllib in hae/infra/llm.py, so
+# no inference SDK is needed. These two are for credentials and for uploading
+# scorecards.
+google-auth>=2.30.0
+google-cloud-storage>=2.18.0
+
+# Required by the execution harness rather than by the platform. The harness
+# runs candidate test suites under pytest and imports candidate modules; an
+# agent that instruments its code with OpenTelemetry must be importable or the
+# smoke gate skips instead of reaching a verdict.
 pytest>=8.0.0
 opentelemetry-api>=1.25.0
 opentelemetry-sdk>=1.25.0

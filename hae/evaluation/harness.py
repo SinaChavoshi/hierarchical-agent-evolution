@@ -1,33 +1,38 @@
 """Execution-grounded verification of agent-authored workspaces.
 
-Replaces the heuristics in `sandbox_verifier.py`, where three of four gates
-never executed anything:
+Five gates, each of which either runs the code or performs AST analysis on it:
 
-    Build     -> `"pyproject.toml" in f` and a filename matching
-                 `runtime|company|engine|orchestrator|core`. `pip install` was
-                 never invoked.
-    Smoke     -> `has_runtime and len(files) >= 3`. Nothing was imported.
-    Telemetry -> `"opentelemetry" in all_code.lower()`, where `all_code`
-                 included the CEO's markdown prose. Writing the word once in an
-                 essay passed the gate.
-    Tests     -> genuinely ran pytest. The only real gate.
+    syntax     Every authored .py file must parse (`ast.parse`).
+    build      The package must actually install (`pip install -e .`).
+    smoke      Its modules must actually import.
+    tests      Its test suite must actually collect and pass under pytest.
+    telemetry  OpenTelemetry must be imported by authored code, not merely
+               mentioned in prose.
 
-Every gate here either runs code or performs AST analysis, and each result
-carries the `method` used to reach it. A gate that could not be evaluated
-returns `SKIPPED` rather than `PASS`, so a missing tool can never be mistaken
-for a success.
+Each result carries the `method` used to reach it. A gate that could not be
+evaluated returns `SKIPPED` rather than `PASSED`, so a missing tool can never be
+mistaken for a success, and `SKIPPED` gates are excluded from the fitness
+denominator rather than scored as failures.
+
+The V1 verifier this replaces executed nothing in three of its four gates:
+`build` was a filename substring match, `smoke` was `len(files) >= 3`, and
+`telemetry` searched text that included the CEO's markdown prose, so an essay
+mentioning OpenTelemetry passed. Six generations were selected on those
+signals. The whole design rule here is that no gate may be satisfiable by
+writing about it.
 
 Usage:
-    from src.execution_harness import ExecutionHarness
+    from hae.evaluation.harness import ExecutionHarness
 
     harness = ExecutionHarness()
-    report = harness.verify_bundle({"pyproject.toml": "...", "src/a.py": "..."})
-    print(report.score_penalty, report.summary())
+    report = harness.verify_workspace(workspace, deliverable_text)
+    print(report.summary(), report.gate_status)
 """
 
 import ast
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -36,7 +41,7 @@ import time
 from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, List, Optional, Tuple
 
-from .artifacts import filter_bundle
+from hae.evaluation.artifacts import filter_bundle
 
 # Result of a gate that could not be evaluated in this environment. Distinct
 # from failure: a skipped gate must never be scored as a pass.
@@ -76,7 +81,8 @@ class VerificationReport:
     score_penalty: float
     authored_files: int
     python_files: int
-    harness_version: str = "2.0-execution"
+    source: str = "bundle"
+    harness_version: str = "3.0-execution"
 
     def gate(self, name: str) -> Optional[GateResult]:
         return next((g for g in self.gates if g.name == name), None)
@@ -89,21 +95,59 @@ class VerificationReport:
     def passed_gates(self) -> List[GateResult]:
         return [g for g in self.gates if g.passed]
 
+    @property
+    def gate_status(self) -> Dict[str, str]:
+        """Gate name -> PASSED | FAILED | SKIPPED. The fitness function's input."""
+        return {g.name: g.status for g in self.gates}
+
+    @property
+    def gate_detail(self) -> Dict[str, str]:
+        return {g.name: g.detail for g in self.gates}
+
+    @property
+    def pass_rate(self) -> float:
+        """Fraction of *evaluated* gates that passed. Skips are excluded."""
+        evaluated = self.evaluated_gates
+        if not evaluated:
+            return 0.0
+        return round(len(self.passed_gates) / len(evaluated), 3)
+
     def summary(self) -> str:
         parts = []
         for g in self.gates:
             mark = {PASSED: "PASS", FAILED: "FAIL", SKIPPED: "SKIP"}[g.status]
             parts.append(f"{g.name.capitalize()}: {mark}")
-        return (f"[Execution Harness] {self.authored_files} authored files "
-                f"({self.python_files} .py). " + ", ".join(parts) + ".")
+        return (f"[Execution Harness / {self.source}] {self.authored_files} "
+                f"authored files ({self.python_files} .py). "
+                + ", ".join(parts) + ".")
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
         d["summary"] = self.summary()
-        # Backwards-compatible keys so existing readers keep working.
-        for g in self.gates:
-            d[f"{g.name}_passed"] = g.passed
+        d["gate_status"] = self.gate_status
+        d["pass_rate"] = self.pass_rate
         return d
+
+
+_CODE_BLOCK_PATTERN = (
+    r'(?:###\s*File:\s*[`"]?([a-zA-Z0-9_\-\./]+)[`"]?'
+    r'|```(?:python|yaml|toml)\s*#?\s*([a-zA-Z0-9_\-\./]+)?)\n(.*?)```'
+)
+
+
+def extract_code_blocks(text: str) -> Dict[str, str]:
+    """Recovers a path->content map from fenced code blocks in a deliverable.
+
+    A last resort, used only when a firm produced no live workspace. Only the
+    contents of fenced blocks are returned; the surrounding prose is discarded
+    and never reaches a gate.
+    """
+    files: Dict[str, str] = {}
+    for match in re.findall(_CODE_BLOCK_PATTERN, text or "", re.DOTALL):
+        filename = match[0] or match[1]
+        if filename and "." in filename:
+            files[filename.strip()] = match[2].strip()
+    return files
 
 
 # Executed in a subprocess when pytest is unavailable. Collects and runs both
@@ -190,18 +234,41 @@ class ExecutionHarness:
     # Entry points
     # ------------------------------------------------------------------ #
 
-    def verify_bundle(self, bundle: Dict[str, str]) -> VerificationReport:
+    def verify_workspace(self, workspace: Any = None,
+                         deliverable_text: str = "") -> VerificationReport:
+        """Verifies whatever code a firm actually produced.
+
+        This is the entry point tournaments use. A firm normally writes into a
+        live `AgentWorkspace`; if it never did, we fall back to the fenced code
+        blocks embedded in its written deliverable.
+
+        `deliverable_text` is *only* mined for code blocks. Its prose is never
+        passed to a gate, because the entire point of this harness is that an
+        essay about OpenTelemetry cannot satisfy the telemetry gate.
+        """
+        if workspace is not None and workspace.list_files():
+            bundle = workspace.export_bundle()
+            source = "live workspace"
+        else:
+            bundle = extract_code_blocks(deliverable_text)
+            source = "extracted from deliverable"
+
+        return self.verify_bundle(bundle, source=source)
+
+    def verify_bundle(self, bundle: Dict[str, str],
+                      source: str = "bundle") -> VerificationReport:
         """Verifies an in-memory path->content map by writing it to a temp dir."""
         authored = filter_bundle(bundle)
         workdir = tempfile.mkdtemp(prefix="hae_harness_")
         try:
             self._materialize(authored, workdir)
-            return self.verify_directory(workdir, authored)
+            return self.verify_directory(workdir, authored, source=source)
         finally:
             shutil.rmtree(workdir, ignore_errors=True)
 
     def verify_directory(self, workdir: str,
-                         authored: Optional[Dict[str, str]] = None) -> VerificationReport:
+                         authored: Optional[Dict[str, str]] = None,
+                         source: str = "directory") -> VerificationReport:
         """Verifies an existing workspace directory."""
         if authored is None:
             authored = self._read_tree(workdir)
@@ -227,6 +294,7 @@ class ExecutionHarness:
             score_penalty=penalty,
             authored_files=len(authored),
             python_files=len(py_files),
+            source=source,
         )
 
     # ------------------------------------------------------------------ #

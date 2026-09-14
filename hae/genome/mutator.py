@@ -5,8 +5,8 @@ import json
 import random
 import re
 from typing import List, Tuple
-from .schema import CompanyGenome, DepartmentGenome, AgentGenome, EvaluationResult
-from .llm_factory import call_vertex_gemini_rest
+from hae.genome.schema import CompanyGenome, DepartmentGenome, AgentGenome, EvaluationResult
+from hae.infra.llm import call_llm
 
 MUTATOR_SYSTEM_PROMPT = """You are an Evolutionary Organizational Architect and Meta-Prompt Engineer.
 Your task is to analyze the performance, score, and identified bottlenecks of a virtual agent organization,
@@ -59,7 +59,7 @@ class OrganizationalMutator:
         prompt = f"""PERFORM ORGANIZATIONAL MUTATION:
 
 PARENT COMPANY ID: {parent.company_id}
-CURRENT OVERALL FITNESS SCORE: {eval_result.fitness.overall_score}/100
+CURRENT OVERALL FITNESS SCORE: {eval_result.fitness.fitness_score}/100
 IDENTIFIED BOTTLENECKS:
 {json.dumps(eval_result.fitness.identified_bottlenecks, indent=2)}
 
@@ -67,11 +67,11 @@ QUALITATIVE JUDGE FEEDBACK:
 {eval_result.fitness.qualitative_feedback}
 
 CURRENT PARENT GENOME STRUCTURE:
-{parent.model_dump_json(indent=2)}
+{parent.to_json(indent=2)}
 
 Design a mutated, upgraded organization that systematically overcomes these bottlenecks. Mutate backstories, roles, and rules. Return only the JSON."""
 
-        raw_response = call_vertex_gemini_rest(
+        raw_response = call_llm(
             prompt=prompt,
             model_name="gemini-2.5-pro",
             temperature=0.7,

@@ -3,9 +3,9 @@
 import unittest
 import os
 import shutil
-from src.sandbox_env import AgentWorkspace
-from src.company import parse_tool_action
-from src.sandbox_verifier import DeterministicSandboxVerifier
+from hae.runtime.workspace import AgentWorkspace
+from hae.runtime.company import parse_tool_action
+from hae.evaluation.harness import ExecutionHarness
 
 class TestActiveToolSandboxing(unittest.TestCase):
 
@@ -58,15 +58,6 @@ class Runtime:
         self.assertEqual(args["path"], "src/runtime.py")
         self.assertIn("class Runtime", args["content"])
 
-    def test_asset_mounting(self):
-        assets = [
-            {"name": "pyproject.toml", "content": "[project]\nname='test-pkg'\n"},
-            {"name": "src/core.py", "content": "VERSION = '1.0.0'\n"}
-        ]
-        mounted = self.workspace.mount_assets(assets)
-        self.assertEqual(len(mounted), 2)
-        self.assertTrue(os.path.exists(os.path.join(self.workspace.workspace_dir, "pyproject.toml")))
-        self.assertTrue(os.path.exists(os.path.join(self.workspace.workspace_dir, "src/core.py")))
 
     def test_live_sandbox_verification(self):
         """A self-contained, working package clears the executable gates."""
@@ -74,16 +65,16 @@ class Runtime:
         self.workspace.write_file("src/orchestrator.py", "class Orchestrator:\n    def run(self):\n        return 'ok'\n")
         self.workspace.write_file("tests/test_basic.py", "def test_ok():\n    assert 1 == 1\n")
 
-        verifier = DeterministicSandboxVerifier()
-        score = verifier.verify_package(
-            self.test_cid, "Deliverable text", workspace=self.workspace)
+        report = ExecutionHarness().verify_workspace(
+            self.workspace, "Deliverable text")
 
-        self.assertTrue(score.syntax_passed)
-        self.assertTrue(score.build_passed)
-        self.assertTrue(score.smoke_passed)
-        self.assertTrue(score.test_passed)
+        self.assertEqual(report.source, "live workspace")
+        self.assertTrue(report.gate("syntax").passed)
+        self.assertTrue(report.gate("build").passed)
+        self.assertTrue(report.gate("smoke").passed)
+        self.assertTrue(report.gate("tests").passed)
         # No instrumentation was written, so telemetry must not pass.
-        self.assertFalse(score.telemetry_passed)
+        self.assertFalse(report.gate("telemetry").passed)
 
     def test_prose_cannot_satisfy_telemetry_gate(self):
         """Regression: the old verifier searched text that included the CEO's prose."""
@@ -91,13 +82,11 @@ class Runtime:
         self.workspace.write_file("src/orchestrator.py", "class Orchestrator:\n    pass\n")
         self.workspace.write_file("tests/test_basic.py", "def test_ok():\n    assert 1 == 1\n")
 
-        verifier = DeterministicSandboxVerifier()
-        score = verifier.verify_package(
-            self.test_cid,
+        report = ExecutionHarness().verify_workspace(
+            self.workspace,
             "Our platform is fully instrumented with OpenTelemetry and uses "
-            "tracer.start_as_current_span throughout for distributed tracing.",
-            workspace=self.workspace)
-        self.assertFalse(score.telemetry_passed)
+            "tracer.start_as_current_span throughout for distributed tracing.")
+        self.assertFalse(report.gate("telemetry").passed)
 
     def test_bare_import_without_spans_fails_telemetry(self):
         """Importing the package but never creating a span is not observability."""
@@ -105,9 +94,8 @@ class Runtime:
         self.workspace.write_file("src/telemetry.py", "import opentelemetry\n\nVALUE = 1\n")
         self.workspace.write_file("tests/test_basic.py", "def test_ok():\n    assert 1 == 1\n")
 
-        verifier = DeterministicSandboxVerifier()
-        score = verifier.verify_package(self.test_cid, "", workspace=self.workspace)
-        self.assertFalse(score.telemetry_passed)
+        report = ExecutionHarness().verify_workspace(self.workspace, "")
+        self.assertFalse(report.gate("telemetry").passed)
 
     def test_broken_code_cannot_pass_syntax_gate(self):
         """The old verifier had no syntax gate at all."""
@@ -115,25 +103,30 @@ class Runtime:
         self.workspace.write_file("src/orchestrator.py", "class Orchestrator\n    pass\n")
         self.workspace.write_file("tests/test_basic.py", "def test_ok():\n    assert 1 == 1\n")
 
-        verifier = DeterministicSandboxVerifier()
-        score = verifier.verify_package(self.test_cid, "", workspace=self.workspace)
-        self.assertFalse(score.syntax_passed)
-        self.assertGreater(score.score_penalty, 0.0)
+        report = ExecutionHarness().verify_workspace(self.workspace, "")
+        self.assertFalse(report.gate("syntax").passed)
+        self.assertGreater(report.score_penalty, 0.0)
 
     def test_opex_breakdown_schema_and_extras(self):
-        from src.schema import OpExBreakdown
-        opex = OpExBreakdown(
-            flash_input_tokens=100,
-            flash_output_tokens=200,
-            licensing_cost_usd=0.05,
-            royalty_revenue_usd=0.02,
-            arbitrary_future_field=123.45
-        )
-        self.assertEqual(opex.licensing_cost_usd, 0.05)
-        self.assertEqual(opex.royalty_revenue_usd, 0.02)
-        self.assertEqual(opex.arbitrary_future_field, 123.45)
-        d = opex.model_dump()
-        self.assertEqual(d["licensing_cost_usd"], 0.05)
+        from hae.genome.schema import OpExBreakdown
+        # An undeclared field is a typo until proven otherwise, so the
+        # constructor rejects it. V1 accepted anything and silently attached it.
+        with self.assertRaises(TypeError):
+            OpExBreakdown(flash_input_tokens=100, arbitrary_future_field=123.45)
+
+        # Deserialising archived data is different: unknown keys are preserved
+        # in `extra` and survive a round trip, but are never promoted to
+        # attributes, so code cannot come to depend on them.
+        opex = OpExBreakdown.from_dict({
+            "flash_input_tokens": 100,
+            "flash_output_tokens": 200,
+            "arbitrary_future_field": 123.45,
+        })
+        self.assertEqual(opex.flash_input_tokens, 100)
+        self.assertFalse(hasattr(opex, "arbitrary_future_field"))
+        self.assertEqual(opex.extra["arbitrary_future_field"], 123.45)
+        d = opex.to_dict()
+        self.assertEqual(d["arbitrary_future_field"], 123.45)
 
 if __name__ == "__main__":
     unittest.main()

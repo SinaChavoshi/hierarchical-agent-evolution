@@ -7,7 +7,7 @@ import threading
 import urllib.request
 import urllib.error
 from typing import Optional, Any, Dict, Tuple
-from .config import DEFAULT_CONFIG
+from hae.infra.config import DEFAULT_CONFIG
 
 # Default models per provider tier
 DEFAULT_PROVIDER_MODELS: Dict[str, Dict[str, str]] = {
@@ -448,7 +448,7 @@ def call_vertex_gemini_raw(
     from string length, which understates reasoning tokens and biases both the
     efficiency bonus and the cost penalty.
     """
-    project = project_id or DEFAULT_CONFIG.project_id
+    project = project_id or DEFAULT_CONFIG.require_project()
     loc = location or DEFAULT_CONFIG.location
     url = f"https://{loc}-aiplatform.googleapis.com/v1/projects/{project}/locations/{loc}/publishers/google/models/{model_name}:generateContent"
 
@@ -512,9 +512,25 @@ def call_llm(
     temperature: float = 0.7,
     system_instruction: Optional[str] = None,
     provider: Optional[str] = None,
-    max_retries: int = 5
+    project_id: Optional[str] = None,
+    location: Optional[str] = None,
+    max_retries: int = 5,
+    usage_sink: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """Universal LLM entrypoint dynamically dispatching to the configured provider."""
+    """The only entry point for talking to a model.
+
+    Dispatches to whichever provider is configured. V1 also exported
+    `call_vertex_gemini_rest`, whose own docstring described it as a
+    "backward-compatible caller"; it has been removed, and every call site now
+    comes through here.
+
+    `usage_sink`, when supplied, accumulates the provider's *reported* token
+    counts. Only the Vertex path reports them today. Other providers leave the
+    sink untouched, and callers must treat an untouched sink as "unknown"
+    rather than as zero -- a measured usage of 2 output tokens was once
+    accompanied by 206 reasoning tokens, so anything inferred from response
+    length understates real usage by up to two orders of magnitude.
+    """
     active_provider = provider or detect_llm_provider()
     resolved_model = resolve_model_for_provider(model_name, active_provider, tier=model_tier)
 
@@ -570,43 +586,8 @@ def call_llm(
             model_name=resolved_model,
             temperature=temperature,
             system_instruction=system_instruction,
-            max_retries=max_retries
-        )
-
-def call_vertex_gemini_rest(
-    prompt: str,
-    model_name: str = "gemini-2.5-flash",
-    temperature: float = 0.7,
-    system_instruction: Optional[str] = None,
-    project_id: Optional[str] = None,
-    location: Optional[str] = None,
-    max_retries: int = 5,
-    usage_sink: Optional[Dict[str, Any]] = None
-) -> str:
-    """Backward-compatible caller; routes through call_llm so existing callers automatically get multi-provider support.
-
-    `usage_sink`, when supplied, accumulates measured token counts from the
-    provider response. Only the Vertex path reports them today; other
-    providers leave the sink untouched, and `measured` stays absent so the
-    caller knows to fall back to estimation.
-    """
-    active_provider = detect_llm_provider()
-    if active_provider == "vertex":
-        return call_vertex_gemini_raw(
-            prompt=prompt,
-            model_name=model_name,
-            temperature=temperature,
-            system_instruction=system_instruction,
             project_id=project_id,
             location=location,
             max_retries=max_retries,
-            usage_sink=usage_sink
+            usage_sink=usage_sink,
         )
-    return call_llm(
-        prompt=prompt,
-        model_name=model_name,
-        temperature=temperature,
-        system_instruction=system_instruction,
-        provider=active_provider,
-        max_retries=max_retries
-    )

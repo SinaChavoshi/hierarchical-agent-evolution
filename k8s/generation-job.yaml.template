@@ -1,0 +1,98 @@
+# Template for one generation's tournament Job.
+#
+# V1 kept 22 near-identical manifests, one per generation and region. They
+# drifted: some mounted code over the image via ConfigMap (so the published
+# image did not reproduce the published results), some injected a static
+# VERTEX_API_TOKEN that expired about an hour in and silently killed every
+# firm still running. Both defects were fixed in one manifest at a time.
+#
+# Render with:
+#   PYTHONPATH=. python3 scripts/render_job.py --generation 1 \
+#       --image-tag v2-gen1 > /tmp/job.yaml
+#
+# Placeholders are dollar-brace UPPER_SNAKE names. Every one must be supplied;
+# the renderer refuses to emit a manifest with any left unsubstituted.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ${JOB_NAME}
+  namespace: ${NAMESPACE}
+  labels:
+    app: ${JOB_NAME}
+    hae.generation: "${GENERATION}"
+    hae.experiment-set: v2
+spec:
+  completionMode: Indexed
+  completions: ${POPULATION_SIZE}
+  parallelism: ${PARALLELISM}
+  backoffLimit: ${BACKOFF_LIMIT}
+  template:
+    metadata:
+      labels:
+        app: ${JOB_NAME}
+        hae.generation: "${GENERATION}"
+    spec:
+      # Workload Identity only. No VERTEX_API_TOKEN secret: a statically
+      # injected token cannot be refreshed, and Vertex tokens expire after
+      # about an hour. hae/infra/llm.py caches with expiry and force-refreshes
+      # on a 401. There is deliberately no fallback to a human's token --
+      # a fallback that works silently is how V1 ran six generations on an
+      # engineer's credentials without anyone noticing.
+      serviceAccountName: ${SERVICE_ACCOUNT}
+      restartPolicy: Never
+      containers:
+      - name: firm-evaluator
+        # Pinned to an immutable per-generation tag, never :latest, so this
+        # run stays reproducible after the next build.
+        image: ${IMAGE}
+        imagePullPolicy: Always
+        command:
+        - "python"
+        - "-m"
+        - "hae.orchestration.worker"
+        - "--generation"
+        - "${GENERATION}"
+        - "--region"
+        - "${REGION}"
+        - "--population-file"
+        - "/configs/generation_${GENERATION}_population.json"
+        - "--output-dir"
+        - "/data/outputs"
+        - "--objective"
+        - "${OBJECTIVE}"
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "${PROJECT_ID}"
+        - name: GOOGLE_CLOUD_LOCATION
+          value: "${REGION}"
+        - name: GCS_BUCKET
+          value: "${GCS_BUCKET}"
+        - name: WORKER_MODEL
+          value: "${WORKER_MODEL}"
+        - name: EXECUTIVE_MODEL
+          value: "${EXECUTIVE_MODEL}"
+        - name: JUDGE_MODEL
+          value: "${JUDGE_MODEL}"
+        - name: FIRM_INDEX
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+        resources:
+          requests:
+            cpu: "${CPU}"
+            memory: "${MEMORY}"
+          limits:
+            cpu: "${CPU}"
+            memory: "${MEMORY}"
+        volumeMounts:
+        - name: population
+          mountPath: /configs
+        - name: workdir
+          mountPath: /data
+      volumes:
+      # Only data is mounted. Code is baked into the image.
+      - name: population
+        configMap:
+          name: ${POPULATION_CONFIGMAP}
+      - name: workdir
+        emptyDir: {}
