@@ -84,7 +84,8 @@ def evaluate_single_firm(
         final_deliverable=run_output["final_deliverable"],
         departmental_briefs=run_output["departmental_briefs"],
         elapsed_seconds=run_output["elapsed_seconds"],
-        estimated_tokens=run_output["estimated_tokens"]
+        estimated_tokens=run_output["estimated_tokens"],
+        verification=v_score
     )
 
     gross_score = eval_res.fitness.overall_score
@@ -93,9 +94,17 @@ def evaluate_single_firm(
     cost_penalty = opex_data.get("cost_penalty", 0.0)
     efficiency_bonus = opex_data.get("efficiency_bonus", 0.0)
 
-    # Net Fitness incorporating Sandbox Gate and OpEx Envelope
-    net_score = round(max(0.0, min(100.0, gross_score - sandbox_penalty - cost_penalty + efficiency_bonus)), 2)
+    # Net Fitness. The sandbox gates are NOT subtracted here: as of the rubric
+    # rebuild they enter the gross score directly as `execution_integrity`,
+    # worth 30%. Subtracting `v_score.score_penalty` as well would count the
+    # same failures twice. `sandbox_penalty` is still recorded on the scorecard
+    # for continuity with Generations 1-10.
+    net_score = round(max(0.0, min(100.0, gross_score - cost_penalty + efficiency_bonus)), 2)
     eval_res.fitness.overall_score = net_score
+
+    if getattr(eval_res.fitness, "evaluation_failed", False):
+        print(f" [WARNING] {company_id} has a FAILED evaluation and scores 0.0. "
+              f"It must be excluded from the breeding pool.")
 
     cost_usd = opex_data.get("estimated_cost_usd", 0.0)
     budget_usd = opex_data.get("budget_usd", 0.50)
@@ -113,6 +122,10 @@ def evaluate_single_firm(
         "cross_functional_coherence": eval_res.fitness.cross_functional_coherence,
         "risk_mitigation": eval_res.fitness.risk_mitigation,
         "actionability": eval_res.fitness.actionability_and_synthesis,
+        "execution_integrity": getattr(eval_res.fitness, "execution_integrity", 0.0),
+        "execution_evaluable": getattr(eval_res.fitness, "execution_evaluable", False),
+        "evaluation_failed": getattr(eval_res.fitness, "evaluation_failed", False),
+        "sandbox_penalty": sandbox_penalty,
         "elapsed_seconds": eval_res.fitness.elapsed_seconds,
         "estimated_tokens": eval_res.fitness.token_count,
         "verification": v_score.__dict__,

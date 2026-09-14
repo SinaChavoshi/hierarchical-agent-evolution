@@ -176,6 +176,14 @@ class FitnessScore(BaseModel):
     cross_functional_coherence: float = 0.0
     risk_mitigation: float = 0.0
     actionability_and_synthesis: float = 0.0
+    # Measured, not judged: computed from execution harness gate results.
+    execution_integrity: float = 0.0
+    # False when no gate could be evaluated, in which case `overall_score` is
+    # prose-only and `execution_integrity` is not meaningful.
+    execution_evaluable: bool = False
+    # True when the judge call or its JSON could not be parsed. Such a firm
+    # scores 0.0 and must never be bred forward.
+    evaluation_failed: bool = False
     overall_score: float = 0.0
     qualitative_feedback: str = ""
     identified_bottlenecks: List[str] = None

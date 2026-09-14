@@ -84,11 +84,16 @@ class EvolutionaryTournamentEngine:
             final_deliverable=run_output["final_deliverable"],
             departmental_briefs=run_output["departmental_briefs"],
             elapsed_seconds=run_output["elapsed_seconds"],
-            estimated_tokens=run_output["estimated_tokens"]
+            estimated_tokens=run_output["estimated_tokens"],
+            verification=v_score
         )
 
-        # Apply verification penalty
-        eval_result.fitness.overall_score = max(0.0, round(eval_result.fitness.overall_score - v_score.score_penalty, 2))
+        # The gate results are already folded into the score as the
+        # `execution_integrity` dimension (30% of the rubric), so the legacy
+        # `v_score.score_penalty` subtraction is deliberately not applied --
+        # doing both would penalise the same failures twice.
+        if getattr(eval_result.fitness, "evaluation_failed", False):
+            print(f" [WARNING] {firm.company_id} has a FAILED evaluation and scores 0.0.")
 
         print(f" [{firm.company_id}] Net Score: {eval_result.fitness.overall_score}/100 "
               f"(Strat: {eval_result.fitness.strategic_depth}, Tech: {eval_result.fitness.technical_feasibility}, "
@@ -102,6 +107,10 @@ class EvolutionaryTournamentEngine:
             "cross_functional_coherence": eval_result.fitness.cross_functional_coherence,
             "risk_mitigation": eval_result.fitness.risk_mitigation,
             "actionability": eval_result.fitness.actionability_and_synthesis,
+            "execution_integrity": getattr(eval_result.fitness, "execution_integrity", 0.0),
+            "execution_evaluable": getattr(eval_result.fitness, "execution_evaluable", False),
+            "evaluation_failed": getattr(eval_result.fitness, "evaluation_failed", False),
+            "sandbox_penalty": v_score.score_penalty,
             "elapsed_seconds": eval_result.fitness.elapsed_seconds,
             "estimated_tokens": eval_result.fitness.token_count,
             "verification": v_score.__dict__,

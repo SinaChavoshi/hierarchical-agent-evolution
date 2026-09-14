@@ -84,16 +84,21 @@ def main():
             final_deliverable=result["final_deliverable"],
             departmental_briefs=result["departmental_briefs"],
             elapsed_seconds=result["elapsed_seconds"],
-            estimated_tokens=result["estimated_tokens"]
+            estimated_tokens=result["estimated_tokens"],
+            verification=v_score
         )
 
+        # Gate results already contribute 30% of the gross via
+        # `execution_integrity`; subtracting the legacy penalty on top would
+        # double-count them.
         gross_score = eval_result.fitness.overall_score
-        net_score = max(0.0, round(gross_score - v_score.score_penalty, 2))
-        eval_result.fitness.overall_score = net_score
+        net_score = gross_score
 
         print("\n" + "="*80)
         print(f"FIRM EXECUTION COMPLETE: {seed_genome.company_id}")
-        print(f"Net Fitness: {net_score}/100 (Gross: {gross_score}, Penalty: -{v_score.score_penalty})")
+        print(f"Net Fitness: {net_score}/100 "
+              f"(Execution Integrity: {getattr(eval_result.fitness, 'execution_integrity', 0.0)}/100, "
+              f"legacy gate penalty would have been -{v_score.score_penalty})")
         print(f"Strategic Depth: {eval_result.fitness.strategic_depth}/100")
         print(f"Technical Feasibility: {eval_result.fitness.technical_feasibility}/100")
         print(f"Cross-Functional Coherence: {eval_result.fitness.cross_functional_coherence}/100")
