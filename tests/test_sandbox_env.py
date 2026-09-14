@@ -69,18 +69,56 @@ class Runtime:
         self.assertTrue(os.path.exists(os.path.join(self.workspace.workspace_dir, "src/core.py")))
 
     def test_live_sandbox_verification(self):
-        self.workspace.write_file("pyproject.toml", "[project]\nname='agent-org'\n")
-        self.workspace.write_file("src/orchestrator.py", "class Orchestrator: pass\n")
-        self.workspace.write_file("src/telemetry.py", "import opentelemetry; pass\n")
-        self.workspace.write_file("tests/test_basic.py", "def test_ok(): assert 1 == 1\n")
+        """A self-contained, working package clears the executable gates."""
+        self.workspace.write_file("pyproject.toml", "[project]\nname='agent-org'\nversion='0.1.0'\n")
+        self.workspace.write_file("src/orchestrator.py", "class Orchestrator:\n    def run(self):\n        return 'ok'\n")
+        self.workspace.write_file("tests/test_basic.py", "def test_ok():\n    assert 1 == 1\n")
 
         verifier = DeterministicSandboxVerifier()
-        score = verifier.verify_package(self.test_cid, "Deliverable with OpenTelemetry spans", workspace=self.workspace)
+        score = verifier.verify_package(
+            self.test_cid, "Deliverable text", workspace=self.workspace)
+
+        self.assertTrue(score.syntax_passed)
         self.assertTrue(score.build_passed)
         self.assertTrue(score.smoke_passed)
-        self.assertTrue(score.telemetry_passed)
         self.assertTrue(score.test_passed)
-        self.assertEqual(score.score_penalty, 0.0)
+        # No instrumentation was written, so telemetry must not pass.
+        self.assertFalse(score.telemetry_passed)
+
+    def test_prose_cannot_satisfy_telemetry_gate(self):
+        """Regression: the old verifier searched text that included the CEO's prose."""
+        self.workspace.write_file("pyproject.toml", "[project]\nname='agent-org'\nversion='0.1.0'\n")
+        self.workspace.write_file("src/orchestrator.py", "class Orchestrator:\n    pass\n")
+        self.workspace.write_file("tests/test_basic.py", "def test_ok():\n    assert 1 == 1\n")
+
+        verifier = DeterministicSandboxVerifier()
+        score = verifier.verify_package(
+            self.test_cid,
+            "Our platform is fully instrumented with OpenTelemetry and uses "
+            "tracer.start_as_current_span throughout for distributed tracing.",
+            workspace=self.workspace)
+        self.assertFalse(score.telemetry_passed)
+
+    def test_bare_import_without_spans_fails_telemetry(self):
+        """Importing the package but never creating a span is not observability."""
+        self.workspace.write_file("pyproject.toml", "[project]\nname='agent-org'\nversion='0.1.0'\n")
+        self.workspace.write_file("src/telemetry.py", "import opentelemetry\n\nVALUE = 1\n")
+        self.workspace.write_file("tests/test_basic.py", "def test_ok():\n    assert 1 == 1\n")
+
+        verifier = DeterministicSandboxVerifier()
+        score = verifier.verify_package(self.test_cid, "", workspace=self.workspace)
+        self.assertFalse(score.telemetry_passed)
+
+    def test_broken_code_cannot_pass_syntax_gate(self):
+        """The old verifier had no syntax gate at all."""
+        self.workspace.write_file("pyproject.toml", "[project]\nname='agent-org'\nversion='0.1.0'\n")
+        self.workspace.write_file("src/orchestrator.py", "class Orchestrator\n    pass\n")
+        self.workspace.write_file("tests/test_basic.py", "def test_ok():\n    assert 1 == 1\n")
+
+        verifier = DeterministicSandboxVerifier()
+        score = verifier.verify_package(self.test_cid, "", workspace=self.workspace)
+        self.assertFalse(score.syntax_passed)
+        self.assertGreater(score.score_penalty, 0.0)
 
     def test_opex_breakdown_schema_and_extras(self):
         from src.schema import OpExBreakdown
