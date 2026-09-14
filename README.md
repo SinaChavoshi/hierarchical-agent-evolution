@@ -1,30 +1,46 @@
 # Hierarchical Agent Evolution (HAE)
-### A Cloud-Native Platform for Recursively Self-Improving Agentic Workforces via Genetic Architecture Search
+### Evolving agent organisations against a fitness function that runs their code
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Infrastructure: Kubernetes](https://img.shields.io/badge/Infrastructure-Cloud%20Kubernetes-326ce5.svg)](https://kubernetes.io)
-[![Runtime: gVisor / Agent Sandbox](https://img.shields.io/badge/Security-gVisor%20Kernel%20Isolation-green.svg)](https://gvisor.dev)
 [![LLM: Gemini 2.5 Flash & Pro](https://img.shields.io/badge/Vertex%20AI-Gemini%202.5-orange.svg)](https://cloud.google.com/vertex-ai)
+
+> [!IMPORTANT]
+> **Experiment set V1 is closed; V2 has not started.** V1 ran thirteen
+> experiments and published a fitness curve that turned out to measure prose,
+> not software. The platform has been rebuilt around a fitness function with
+> ground truth. What V1 got wrong, and how we know, is in
+> [`experiments/README.md`](experiments/README.md) and
+> [`experiments/v1/execution_grounded_correction.md`](experiments/v1/execution_grounded_correction.md).
 
 ---
 
 ## 1. Vision & Research Premise
 
-Modern LLM-based multi-agent systems (e.g., CrewAI, AutoGen, MetaGPT) typically rely on flat communication graphs or static role topologies. When scaled beyond 10 agents, these flat structures suffer from severe context dilution, quadratic token communication overhead $\mathcal{O}(N^2)$, and reasoning collapse. Crucially, organizational hierarchies, persona backstories, and delegation protocols are conventionally hand-crafted through trial-and-error human prompt engineering.
+Modern LLM-based multi-agent systems (CrewAI, AutoGen, MetaGPT) rely on flat
+communication graphs or static role topologies. Scaled past ten agents, flat
+structures suffer context dilution, $\mathcal{O}(N^2)$ communication overhead,
+and reasoning collapse. Organisational hierarchies, personas, and delegation
+protocols are conventionally hand-crafted by human prompt engineering.
 
-**Hierarchical Agent Evolution (HAE)** is an open, cloud-native meta-platform designed to facilitate the creation of **recursively self-improving agentic workforces**. HAE models enterprises as federated hierarchies (30–50 specialized agents partitioned into operational departmental pods under an executive steering council) and optimizes their organizational topology, cognitive backstories, and delegation protocols via genetic programming.
+**HAE** models an enterprise as a federated hierarchy — 30–50 specialised
+agents in departmental pods under an executive council — and optimises its
+topology, cognitive backstories, and delegation protocols by genetic
+programming rather than by hand.
 
-Rather than relying on human prompt engineering, HAE investigates **recursive self-hosting**: competing virtual enterprises are tasked with designing, implementing, and verifying the next-generation engine of the platform itself—establishing an unattended evolutionary loop where software agents autonomously evolve their own organizational architecture.
+The goal is **recursive self-hosting**: competing virtual enterprises are
+tasked with designing, implementing, and verifying the next-generation engine
+of the platform itself.
 
 ```mermaid
 graph TD
     subgraph SelfImprovementLoop ["The Recursive Evolutionary Cycle"]
         Genome["1. Enterprise Genome<br/>(Topology, Roles, Prompts, Delegation Rules)"]
-        Execution["2. Distributed Execution Runtime<br/>(31–50 Agent Deliberation on Kubernetes)"]
-        Sandbox["3. Real-World Execution in Sandbox<br/>(Agent Sandbox / gVisor: Builds, Pytest, Benchmarks)"]
-        Fitness["4. Multi-Objective Fitness Evaluation<br/>(Deterministic Gates + Rubric Judging)"]
-        Breeding["5. 3-Way Genetic Selection & Mutation<br/>(Consensus, Pareto Extremes, Directed Mutants)"]
+        Execution["2. Distributed Execution Runtime<br/>(31-50 Agent Deliberation on Kubernetes)"]
+        Sandbox["3. Execution in a Real Workspace<br/>(pip install, import, pytest)"]
+        Fitness["4. Fitness: 70% Judged Prose + 30% Measured Execution"]
+        Breeding["5. Genetic Selection<br/>(Elites, Consensus, Pareto Extremes, Morphogenesis)"]
 
         Genome --> Execution
         Execution --> Sandbox
@@ -36,373 +52,247 @@ graph TD
 
 ---
 
-## 2. The Four Architectural Pillars
+## 2. The Four Architectural Pillars, and where each actually stands
 
-### Pillar 1: The Organism — The Enterprise Genome
-In HAE, an entire virtual organization is treated as a living, evolvable genome (`CompanyGenome`):
-* **Topology as Code**: An enterprise's organizational chart, executive council, departmental pods, team sizes, and communication channels are codified declaratively.
-* **Structural Plasticity**: The headcount, role specialization (e.g., injecting an SRE Chaos Engineer or Packaging Specialist), and temperature distributions are fully mutable between generations.
+The pillars are the programme's design. The status column is what the code
+does today, measured rather than asserted. V1's central failure was that this
+table was never written down, so four capability modules could name two
+generations without ever being imported.
 
-### Pillar 2: The Selection Pressure — Hard Deterministic Gates
-Autonomous self-improvement cannot exist on subjective LLM evaluations alone; unconstrained models inevitably drift into verbose, non-executable hallucination. HAE couples multi-dimensional LLM-as-a-Judge rubrics with **ground-truth deterministic execution gates**:
-* Emitted code must physically install (`pip install -e .`).
-* Generated test suites must execute and pass under `pytest`.
-* Observability anchors (OpenTelemetry spans and metrics) must be verified.
-* Non-executable submissions are heavily penalized, driving hard evolutionary selection toward working software.
+| Pillar | Status | Evidence |
+|---|---|---|
+| **1. The Organism** — the enterprise genome | **Working** | [`hae/genome/schema.py`](hae/genome/schema.py). Topology, headcount, personas and temperatures are declarative and mutable. Validated at construction; invalid genomes raise rather than loading degraded. |
+| **2. The Selection Pressure** — hard execution gates | **Working, and honest about what it cannot check** | [`hae/evaluation/harness.py`](hae/evaluation/harness.py). Five gates that parse, install, import, test and inspect. A gate that cannot be evaluated reports `SKIPPED` and is excluded from the denominator — never scored as a pass. |
+| **3. The Evolutionary Search** — breeding | **Working, newly unified** | [`hae/orchestration/breeder.py`](hae/orchestration/breeder.py). Elites, structural crossover, Pareto extremes, and topology morphogenesis, driven by a declarative per-generation config. |
+| **4. Recursive Self-Hosting** — the closed loop | **Implemented, never yet run in a tournament** | [`hae/evaluation/benchmark.py`](hae/evaluation/benchmark.py). Firms reimplement this repository's own modules against held-out tests. Graded end to end; no generation has been run against it. |
 
-### Pillar 3: The Evolutionary Search — 3-Way Breeding Engine
-To navigate the high-dimensional space of organizational charts and agent backstories without premature convergence, HAE executes a 3-way balanced reproduction strategy:
-1. **Consensus Exploitation (Group A)**: Identifies shared structural invariants across top performers (e.g., common dialectic review rules or strict specialist temperatures) and reinforces them.
-2. **Pareto Frontier Amplification (Group B)**: Clones and amplifies dimension-specific champions (e.g., Extreme Technical Rigor, Extreme Adversarial Risk Resilience).
-3. **Directed Meta-Architect Mutations (Group C)**: A high-reasoning Meta-Architect analyzes collective post-mortem failure modes and formulates targeted structural hypotheses (e.g., adding a dedicated build verification agent).
-4. **Elites**: Preserves top-ranking champions unaltered across generational transitions.
+### Pillar 1: The Organism
+An organisation is a genome. `CompanyGenome` holds a CEO, departmental pods,
+each pod's manager and team, their personas, temperatures and delegation
+rules. Structural plasticity is the point: headcount and role specialisation
+change between generations.
 
-### Pillar 4: Recursive Self-Hosting (The Closed Loop)
-The overarching objective of HAE is recursive bootstrapping:
-* In Generation 0, human-seeded baseline enterprises generate architectural blueprints.
-* In Generation 1, evolved enterprises emit structured code packages, CLI tools, and test suites.
-* In subsequent generations, the evolved agent workforces design, patch, and optimize the mutation operators, schedulers, and execution sandboxes governing their own evolution.
+### Pillar 2: The Selection Pressure
+Autonomous self-improvement cannot run on subjective evaluation alone; models
+drift into verbose, non-executable prose. Five gates run the code:
+
+| Gate | What it does | Weight within execution_integrity |
+|---|---|---|
+| `syntax` | `ast.parse` every authored `.py` | 20 |
+| `build` | `pip install -e .` | 15 |
+| `smoke` | import the modules | 20 |
+| `tests` | collect and run the suite | 30 |
+| `telemetry` | OpenTelemetry imported by code, not named in prose | 15 |
+
+`execution_integrity` is 30% of total fitness — the heaviest single term — and
+the LLM judge cannot see it.
+
+> [!WARNING]
+> V1's verifier executed nothing in three of its four gates. `build` was a
+> filename substring match, `smoke` was `len(files) >= 3`, and `telemetry`
+> searched text that *included the CEO's prose*, so an essay mentioning
+> OpenTelemetry passed. Six generations were selected on those signals. The
+> design rule now is that no gate may be satisfiable by writing about it.
+
+### Pillar 3: The Evolutionary Search
+Four operators, in a declared mixture per generation:
+
+1. **Elites** — top parents carried forward unchanged. The control group.
+2. **Structural crossover** — departments aligned by functional role, not by
+   position, then recombined.
+3. **Pareto extremes** — per-dimension champions, execution first. The best
+   executor is routinely not the best overall, and the aggregate ranking hides
+   it. In V1 the only firm ever to clear 4 of 5 gates finished sixth in its
+   cohort and was never bred forward.
+4. **Directed morphogenesis** — topology change, the only operator that can add
+   or remove a department.
+
+### Pillar 4: Recursive Self-Hosting
+The task with ground truth:
+
+> Given the modules `hae/<module>.py` depends on, and its docstring as the
+> specification, implement `hae/<module>.py` so that `tests/test_<module>.py`
+> — which the firm never sees — collects and passes.
+
+Fitness is the fraction of held-out tests that pass. That number is ungameable
+by writing well, monotonic, comparable across generations, and self-referential
+in the way the programme requires: **a firm that beats our implementation has
+produced a mergeable patch.**
+
+Three ways a firm could cheat, and what stops each, are documented and tested
+in [`tests/test_benchmark.py`](tests/test_benchmark.py).
 
 ---
 
 ## 3. Technical Deep Dive
 
-### 3.1 Project Architecture & Directory Layout
+### 3.1 Directory layout
 
 ```
-hierarchical-agent-evolution/
-├── pyproject.toml              # Packaging & dependencies
-├── Dockerfile                  # Container definition for Kubernetes execution
-├── cloudbuild.yaml             # Container image build automation
-├── configs/                    # Generational population archives
-│   ├── generation_1_population.json # Evolved Gen 1 population genomes
-│   ├── generation_2_population.json # Evolved Gen 2 population genomes (Trait Alleles)
-│   ├── generation_3_population.json # Evolved Gen 3 population genomes (Consensus Peak)
-│   ├── generation_4_population.json # Evolved Gen 4 population genomes (OpEx & Sizing)
-│   ├── generation_5_population.json # Evolved Gen 5 population genomes (Tool Sandboxing & IP)
-│   └── generation_6_population.json # Evolved Gen 6 population genomes (Consortiums & OKRs)
-├── experiments/                # Empirical experiment ledger & benchmarks
-│   ├── README.md               # Benchmark registry and artifact schema
-│   ├── assets/                 # High-resolution SVG/PNG fitness trajectory charts
-│   ├── exp-001-pilot-baseline/ # Pilot baseline experiment snapshots
-│   ├── exp-002-parallel-tournament/ # Parallel tournament experiment snapshots
-│   ├── exp-003-parallel-gen1/  # Gen 1 parallel tournament snapshots
-│   ├── exp-004-parallel-gen2/  # Gen 2 parallel tournament snapshots
-│   ├── exp-005-parallel-gen3/  # Gen 3 parallel tournament snapshots
-│   ├── exp-006-parallel-gen4/  # Gen 4 parallel tournament snapshots
-│   ├── exp-007-parallel-gen5/  # Gen 5 parallel tournament snapshots
-│   └── exp-008-parallel-gen6/  # Gen 6 parallel tournament snapshots
-├── src/
-│   ├── schema.py               # Genome schemas (Company, Department, Agent, Fitness)
-│   ├── company.py              # Federated hierarchical execution runner
-│   ├── evaluator.py            # LLM-as-a-Judge multi-dimensional rubric
-│   ├── mutator.py              # Genetic mutator & crossover operators
-│   ├── breeding.py             # 3-Way breeding engine (Consensus, Pareto, Directed)
-│   ├── sandbox_verifier.py     # Deterministic 4-gate sandbox verification engine
-│   ├── consortium.py           # Inter-firm executive communication & term sheets
-│   ├── harnesses.py            # Pluggable multi-domain evaluation harnesses
-│   ├── teleological.py         # Autonomous teleological OKRs & internal metric verifiers
-│   ├── telemetry.py            # OpenTelemetry instrumentation & token accounting
-│   ├── engine.py               # Tournament controller & generational orchestration
-│   ├── worker.py               # Distributed indexed worker entrypoint
-│   ├── llm_factory.py          # Vertex AI REST client with retry backoff & secret auth
-│   └── main.py                 # Platform CLI entrypoint
-├── k8s/
-│   ├── evolution-job.yaml      # Single-pod tournament job manifest
-│   ├── parallel-indexed-job-east4.yaml # Parallel indexed job (5 concurrent pods)
-│   ├── parallel-indexed-job-gen1-east4.yaml # Generation 1 parallel indexed job
-│   └── rbac.yaml               # Kubernetes ServiceAccount and RBAC bindings
-├── templates/
-│   └── default_company.json    # Generation 0 seed enterprise genome
-└── tests/
-    └── test_evolutionary_pipeline.py # Unit and integration test suite
+hae/
+├── genome/              Heritable structure
+│   ├── schema.py          CompanyGenome / DepartmentGenome / AgentGenome, validated
+│   ├── breeding.py        ThreeWayBreedingEngine
+│   ├── morphogenesis.py   Topology mutation and structural crossover
+│   └── mutator.py         LLM-driven genome mutation
+├── runtime/             Executing one firm
+│   ├── company.py         Hierarchical runner: CEO -> pods -> agents, ReAct tool loop
+│   └── workspace.py       The filesystem an agent writes into
+├── evaluation/          Scoring one firm
+│   ├── harness.py         Five execution gates
+│   ├── artifacts.py       What counts as an authored file
+│   ├── judge.py           LLM rubric + composite fitness
+│   ├── benchmark.py       Self-hosting benchmark (Pillar 4)
+│   └── verification_loop.py  Agents can query the harness mid-run
+├── infra/               Cross-cutting
+│   ├── llm.py             Multi-provider inference, token cache, measured usage
+│   ├── config.py          Environment resolution; fails loud on missing settings
+│   └── telemetry.py       Research ledger
+├── orchestration/       Running a tournament
+│   ├── engine.py          Local sequential / threaded tournament
+│   ├── worker.py          One firm per Kubernetes pod
+│   └── breeder.py         Next generation from a declarative spec
+└── cli.py               tournament | single-firm | breed | benchmark
+
+configs/generations/     One JSON per generation. Declarative, not scripted.
+k8s/                     One Job template; scripts/render_job.py fills it in
+experiments/v1/          Frozen V1 archive: scorecards, genomes, scripts, manifests
+experiments/v2/          Empty. Entry criteria listed in its README.
+tests/                   158 tests, including an architectural guard
 ```
+
+### 3.2 The fitness function
+
+```
+fitness = 0.20 * strategic_depth              (judged)
+        + 0.20 * technical_feasibility        (judged)
+        + 0.10 * cross_functional_coherence   (judged)
+        + 0.10 * risk_mitigation              (judged)
+        + 0.10 * actionability_and_synthesis  (judged)
+        + 0.30 * execution_integrity          (MEASURED)
+```
+
+The two lowest-signal judged dimensions were cut from a combined 35% to 20%.
+In Generation 10 both had a mean of 99.0 with $\sigma = 1.67$: the judge had
+stopped discriminating. The freed 30% went to the measured dimension.
+
+When the judge's JSON cannot be parsed, the result is `evaluation_failed=True`
+at 0.0 and the firm is excluded from breeding. V1 silently substituted a
+hardcoded `70/70/70/65/70` and bred the firm forward as though it had been
+evaluated.
+
+### 3.3 The architectural guard
+
+[`tests/test_architecture.py`](tests/test_architecture.py) walks the import
+graph from the entry points and fails on any module nothing can reach. This is
+not a style check. Five modules in V1 — 587 lines, each with passing unit tests
+— were imported by nothing but their own tests, and three V1 generations were
+named after them:
+
+| Generation | Announced capability | Reality |
+|---|---|---|
+| 6 | Inter-Firm Consortiums & Pluggable Harnesses | `consortium.py`, `harnesses.py` never imported |
+| 9 | Autonomous Morphogenesis & Dynamic Topologies | `morphogenesis.py` reachable only from one-off scripts |
+| 10 | Federated Mesh & Self-Evolving Rubrics | `federated_mesh.py`, `rubric_evolution.py` never imported |
+
+A unit test cannot catch this, because each module's own tests passed. Only a
+whole-graph check can. The guard found the morphogenesis case on its first run.
 
 ---
 
-### 3.2 The Enterprise Genome Specification
+## 4. Results
 
-The organization is codified in three hierarchical layers implemented via Pydantic in [`src/schema.py`](src/schema.py):
+No V2 results exist yet. V1's results, and the corrections applied to them, are
+in [`experiments/v1/README.md`](experiments/v1/README.md). The short version:
 
-```
-CompanyGenome (Enterprise Level)
- ├── CEO: AgentGenome
- ├── Executive Deliberation Rules: str
- └── Departments: List[DepartmentGenome]
-      ├── Manager: AgentGenome
-      ├── Departmental Mandate & Delegation Rules: str
-      └── Agents: List[AgentGenome] (Domain Specialists)
-```
-
-#### Annotated Genome Schema (`CompanyGenome`):
-```json
-{
-  "company_id": "gen_1_mutant_1",
-  "generation": 1,
-  "parent_ids": ["gen_0_firm_3"],
-  "mutation_history": [
-    "Parallel Generation 0 Variant 3",
-    "Hypothesis: Dedicated Packaging Specialist emits executable pyproject.toml & pytest suite"
-  ],
-  "ceo": {
-    "role": "Chief Executive Officer",
-    "goal": "Unify cross-departmental capabilities into an unassailable strategic execution roadmap.",
-    "backstory": "Veteran technology executive known for first-principles thinking and demanding quantifiable evidence.",
-    "temperature": 0.43,
-    "model_tier": "executive",
-    "system_instructions": "Challenge every assumption. Ensure total alignment between engineering and execution."
-  },
-  "executive_deliberation_rules": "Dialectical debate: actively pit engineering constraints against product ambition, force finance to stress-test unit economics, and mandate red-team mitigation before sign-off.",
-  "departments": [
-    {
-      "dept_id": "dept_systems_eng",
-      "name": "Core Systems & Infrastructure Engineering",
-      "mandate": "Architect distributed compute, memory management, and deterministic execution runtime.",
-      "delegation_rules": "Rigorous peer review; every specification must include operational constraints.",
-      "manager": {
-        "role": "VP of Core Systems Engineering",
-        "goal": "Deliver robust, production-ready system architecture.",
-        "backstory": "Former principal distributed systems architect.",
-        "temperature": 0.3,
-        "model_tier": "executive"
-      },
-      "agents": [
-        {
-          "role": "Distributed Systems Architect",
-          "goal": "Design cluster orchestration and consensus mechanisms.",
-          "backstory": "Expert in high-throughput distributed systems.",
-          "temperature": 0.3,
-          "model_tier": "worker"
-        },
-        {
-          "role": "Python Packaging & Test Automation Engineer",
-          "goal": "Generate complete, valid pyproject.toml, pytest test suites, and package layout.",
-          "backstory": "Staff DevOps & Build Engineer passionate about executable Python packages.",
-          "temperature": 0.2,
-          "model_tier": "worker"
-        }
-      ]
-    }
-  ]
-}
-```
+* `corr(generation, execution_score) = +0.045` across Generations 5–10. Six
+  generations of selection produced **no measurable improvement in whether the
+  code runs**, while published net fitness climbed at +0.50/generation.
+* **No firm in 60 ever passed all five gates.**
+* Under the rebuilt rubric, five of six champions change.
 
 ---
 
-### 3.3 Inter-Generational Genome Lifecycle & Storage Management
+## 5. Getting Started
 
-The evolutionary lifecycle follows a strictly versioned and distributed management pipeline:
+### Local
 
-```
-[Generation g Population File] ──► [Kubernetes Batch Indexed Job] ──► [Parallel Worker Pods (0..N-1)]
-                                                                               │
-                                                                               ▼
-                                                                     [Local Disk & Cloud Storage]
-                                                                               │
-[Generation g+1 Population File] ◄── [3-Way Breeding Engine] ◄── [Aggregated Survivor Scorecards]
-```
-
-1. **Population Serialization**:
-   Each generation's population is stored as a JSON array of `CompanyGenome` definitions in `configs/generation_{g}_population.json`.
-2. **Distributed Job Indexing**:
-   When launching a tournament on Kubernetes, a Batch Indexed Job is dispatched. The container runtime injects `$JOB_COMPLETION_INDEX` into each worker pod. Worker $k$ loads genome index $k$ directly from the population file:
-   ```python
-   firm_genome = CompanyGenome(**population[firm_index])
-   ```
-3. **Scorecard & Artifact Persistence**:
-   Upon completing execution, each worker stores its full scorecard and generated code package locally at `/data/outputs/generation_{g}/{company_id}_result.json` and syncs to cloud object storage:
-   ```
-   gs://<STORAGE_BUCKET>/parallel_runs/generation_{g}/{company_id}_result.json
-   ```
-4. **Breeding Transition ($g \rightarrow g+1$)**:
-   The tournament engine aggregates all generation scorecards, ranks enterprises by overall fitness, selects the top $K=5$ survivors, and executes the 3-way breeding pipeline to serialize `configs/generation_{g+1}_population.json`.
-
----
-
-### 3.4 Ground-Truth Sandbox Execution & Kubernetes Agent Sandbox
-
-To safely execute untrusted code synthesized by competing agent workforces, HAE integrates with the **Kubernetes Agent Sandbox** (`kubernetes-sigs/agent-sandbox`):
-
-* **Kernel-Level Isolation**: Sandboxes execute inside **gVisor** (`runtimeClassName: gvisor`), enforcing strict system call filtering and network isolation.
-* **Sub-Second Warm Pools**: Pre-initialized sandbox pods provide sub-second (`<1s`) warm container provisioning, eliminating multi-minute Kubernetes scheduling overhead during high-volume test evaluation.
-* **Deterministic Fitness Formulation**:
-
-$$
-\mathcal{F}(\mathcal{C}) = \left[ w_s S(\mathcal{C}) + w_t T(\mathcal{C}) + w_c C(\mathcal{C}) + w_r R(\mathcal{C}) + w_a A(\mathcal{C}) \right] - \mathcal{P}_{\text{sandbox}}
-$$
-
-Where:
-* $S, T, C, R, A$ are rubric scores (0–100) for Strategic Depth, Technical Feasibility, Cross-Functional Coherence, Risk Mitigation, and Actionability.
-* $\mathcal{P}_{\text{sandbox}} \in [0, 25.0]$ is the penalty docked by the 4-Gate Deterministic Sandbox Verifier:
-
-| Gate | Verification Target | Penalty if Failed |
-| :--- | :--- | :---: |
-| **Build Gate** | Package metadata (`pyproject.toml` or `setup.py`) and runtime entrypoint exist | -6.25 pts |
-| **Smoke Gate** | Package contains $\ge 3$ distinct functional code modules | -6.25 pts |
-| **Telemetry Gate** | OpenTelemetry spans/metrics or distributed trace hooks are present | -6.25 pts |
-| **Test Gate** | Test suites (`test_*.py`) exist and execute cleanly under `pytest` | -6.25 pts |
-
----
-
-## 4. Empirical Benchmark Highlights
-
-Empirical validation across tournament iterations demonstrated measurable evolutionary ascent and autonomous self-repair:
-
-![Standardized Physical Execution vs Legacy Synthetic Trajectory](experiments/v1/assets/standardized_fitness_trajectory.png)
-
-### 4.1 Standardized Physical Usability vs. Legacy Synthetic Scores
-
-> [!IMPORTANT]
-> **Scientific Integrity & Retroactive Execution Standardization:**
-> In Generations 0 through 4, candidate software packages were evaluated via static regex matching over raw markdown text, with **zero physical container execution and zero live pytest execution**. Consequently, Generations 2–4 artificially reported ~96.75 because tests were marked as passing without being run.
->
-> In Generation 5, 6, and 7, **Active Tool Sandboxing** was deployed on live container scratchpads (`/tmp/hae_workspaces/`), mounting full Python packages and physically executing `python3 -m pytest tests/`. Open-loop test failures docked a $-6.25$ penalty.
->
-> Standardizing all generations against the **Physical Execution Standard** (deducting $-6.25$ points for any unexecuted or failed gate) accurately illustrates the true evolutionary leap from synthetic markdown prose to grounded software engineering:
-
-| Experiment | Infrastructure | Standardized Grounded Champion | Legacy Raw Champion | Live Sandbox? | Tests Run? | Files on Disk | Key Empirical Innovation | Benchmark Report |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- | :---: |
-| [**`exp-001-baseline`**](experiments/v1/exp-001-pilot-baseline/) | Cloud Kubernetes (`e2-standard-4`) | **25.25** | 96.25 | No (0 files) | No | 0 | Baseline progression; Autonomous headcount expansion ($31 \rightarrow 36$ agents). | [Report](experiments/v1/exp-001-pilot-baseline/README.md) |
-| [**`exp-002-parallel`**](experiments/v1/exp-002-parallel-tournament/) | Cloud Kubernetes (5 Parallel Pods) | **25.25** | 77.50 | No (0 files) | No | 0 | 10 enterprises (310 agents) evaluated in **22 minutes** (**4.1x speedup**). | [Report](experiments/v1/exp-002-parallel-tournament/README.md) |
-| [**`exp-003-parallel-gen1`**](experiments/v1/exp-003-parallel-gen1/) | Cloud Kubernetes + gVisor Sandbox | **76.55** | 76.55 | No (0 files) | No | 0 | 3-Way Recombination; Identifies "Thin Persona" bottleneck. | [Report](experiments/v1/exp-003-parallel-gen1/README.md) |
-| [**`exp-004-parallel-gen2`**](experiments/v1/exp-004-parallel-gen2/) | Cloud Kubernetes + gVisor Sandbox | **84.25** | 94.50 | No (0 files) | No | 5.2 | **Persona Discretization**: Structured trait alleles (`backstory_traits`). | [Report](experiments/v1/exp-004-parallel-gen2/README.md) |
-| [**`exp-005-parallel-gen3`**](experiments/v1/exp-005-parallel-gen3/) | Cloud Kubernetes + gVisor Sandbox | **85.75** | 96.75 | No (0 files) | No | 5.7 | **Allelic Consensus Record**: Modular architecture in text. | [Report](experiments/v1/exp-005-parallel-gen3/README.md) |
-| [**`exp-006-parallel-gen4`**](experiments/v1/exp-006-parallel-gen4/) | Cloud Kubernetes + gVisor Sandbox | **84.25** | 96.75 | No (0 files) | No | 7.3 | **Autonomous Sizing & OpEx**: Tiered Pro/Flash (~14x OpEx compression). | [Report](experiments/v1/exp-006-parallel-gen4/experiment_report.md) |
-| [**`exp-007-parallel-gen5`**](experiments/v1/exp-007-parallel-gen5/) | Cloud Kubernetes (10-Pod Indexed Job) | **91.93** | 91.93 | **Yes (10/10)** | **Yes (10/10)** | 14 | **Phase Shift**: Active Tool Sandboxing; physical disk packages. | [Report](experiments/v1/exp-007-parallel-gen5/experiment_report.md) |
-| [**`exp-008-parallel-gen6`**](experiments/v1/exp-008-parallel-gen6/) | Cloud Kubernetes (10-Pod Indexed Job) | **91.87** | 91.87 | **Yes (10/10)** | **Yes (10/10)** | **17** | **Industrial Hardening**: Record 17 files on disk, built distribution package (`egg-info`). | [Report](experiments/v1/exp-008-parallel-gen6/experiment_report.md) |
-| [**`exp-009-parallel-gen7`**](experiments/v1/exp-009-parallel-gen7/) | Cloud Kubernetes (10-Pod Indexed Job) | **82.70** | 82.70 | **Yes (9/9)** | **Yes (9/9)** | 13 | **Universal Portability**: Zero-cloud lock-in, multi-provider REST. | [In Flight](experiments/v1/exp-009-parallel-gen7/) |
-| **`exp-010-parallel-gen8`** | Cloud Kubernetes (10-Pod Indexed Job) | *Target: ~96.5* | *Target: ~96.5* | **Yes** | **Yes** | 15+ | **Closed-Loop Self-Repair**: Pytest traceback introspection. | *Upcoming* |
-
----
-
-## 5. Evolutionary Roadmap & Organizational Phylogeny
-
-As the platform evolves across generational iterations, the virtual enterprises undergo continuous cultural and structural adaptations:
-
-### 5.1 Organizational Culture & Behavioral Phylogeny
-
-| Generation | Dominant Organizational Culture | Communication Paradigm | Behavioral Bottleneck | Key Innovation | Champion Score |
-| :---: | :--- | :--- | :--- | :--- | :---: |
-| **Gen 0** | **Polite Bureaucratic Consensus** | Departmental silos; gentle peer review | Superficial risk analysis; narrative prose without code | Establishing federated departmental hierarchies | 77.50 |
-| **Gen 1** | **Adversarial Dialectic Review** | Cross-departmental challenges & red-teaming | "Thin Persona" syndrome; prose over code formatting | Headcount expansion; dedicated packaging specialists | 76.55 |
-| **Gen 2** | **Pragmatic Implementation Culture** | Rigid code-block and manifest formatting | Test assertion mismatches | **Structured Persona Discretization** (`backstory_traits`) | 94.50 |
-| **Gen 3** | **Hermetic Engineering & Invariant Mining** | Recombination of consensus operational alleles | High token OpEx across uniform Pro models | **Allelic Consensus Mining** & Pytest harness injection | **96.75** |
-| **Gen 4** | **Capital-Efficient Economic Enterprise** | Dynamic sizing & model tier cost accounting | Fixed organizational topologies | **Autonomous Sizing & OpEx token budgeting** | **96.75** |
-| **Gen 5** | **Asset-Sharing Commercial Commons** | IP registration & modular library reuse | Redundant re-implementation of common libraries | **Active Tool Sandboxing & IP Marketplace** | **91.93** |
-| **Gen 6** | **Inter-Firm Strategic Co-opetition** | Bilateral executive term sheets & joint ventures | Zero-sum isolationism | **Cross-Company Communication & Consortia** | **91.87** |
-| **Gen 7** | **Universal Multi-Platform & Open Ecosystem** | Multi-runtime execution & vendor-neutral inference | Platform lock-in & cloud single-tenancy | **Universal LLM Abstraction & Local Runtimes** | *Active* |
-
-### 5.2 Evolutionary Roadmap & Priority Matrix
-
-#### Completed Benchmark: Generation 5 (Active Tool Sandboxing & IP Marketplace)
-* **Active Tool Sandboxing (Live Scratchpad Execution)**: Transitioned specialists from passive text generation to active sandboxed execution (`write_file`, `read_file`, `list_files`, `execute_bash`). Enterprises authored complete packaging trees (8 to 14 files per firm) directly on disk in `/tmp/hae_workspaces/{company_id}/`, installing packages and executing live `pytest`.
-* **Reusable Corporate Assets & IP Marketplace (Cumulative Culture)**: Mounted pre-licensed modules into offspring scratchpads, tracking balance-sheet royalties ($0.015 USD fee/credit) without exceeding the $0.45 budget envelope. Champion `gen_5_mutant_3` achieved **91.93** overall with 12 verified files.
-
-#### Completed Benchmark: Generation 6 (Inter-Firm Strategic Co-opetition, Autonomous Teleological OKRs & Pluggable Multi-Domain Harnesses)
-* **Inter-Firm Strategic Co-opetition & Consortiums**: CEOs and Department Managers leveraged bilateral executive communication channels (`src/consortium.py`) to negotiate corporate joint ventures, technology cross-licensing, and consortium bidding.
-* **Pluggable Multi-Domain Verification Harnesses**: Decoupled evaluation from monolithic software development via modular harnesses (`src/harnesses.py`), adding quantitative financial trading risk validation and statutory compliance auditing.
-* **Autonomous Teleological Metric Formulation (Endogenous OKRs)**: Empowered virtual enterprises to synthesize and track internal quantitative acceptance tests (`EvaluationMetricSpec` and `TeleologicalVerifier`) aligning strategic intent with verified technical output.
-* **Empirical Validation**: Podium sweep by elite and consensus lineages; champion `gen_6_elite_1` achieved **91.87** Net Fitness, and runner-up `gen_6_consensus_3` produced an all-time record **17 distinct physical files on disk**.
-
-#### Priority 2 (P2 — Active in Generation 7): Universal Multi-Platform & LLM Provider Portability
-* **Universal Multi-Platform & LLM Provider Portability (Zero Cloud Lock-In)**:
-  * Decouples the platform from Google Cloud Vertex AI REST and service account requirements.
-  * Direct support for **Gemini Developer API keys** (`GEMINI_API_KEY`), **OpenAI** (`OPENAI_API_KEY`), **Anthropic** (`ANTHROPIC_API_KEY`), and local open-source models via **Ollama / vLLM** (`http://localhost:11434/v1`).
-  * Tiered compute mapping across all providers: Executive (`gpt-4o`, `claude-3-5-sonnet`, `gemini-2.5-pro`) vs. Worker (`gpt-4o-mini`, `claude-3-5-haiku`, `gemini-2.5-flash`, `llama-3.3-70b`).
-* **Portable Runtimes Beyond Google Kubernetes Engine (GKE)**:
-  * Single-command local execution (`hae run --objective "..."` via multi-threading / async).
-  * Docker Compose execution engine with gVisor / container isolation.
-  * Pluggable cluster backends: Ray and Slurm alongside Kubernetes Batch Indexed Jobs.
-
-#### Future Generations: Closed-Loop Self-Healing & Autonomous Morphogenesis
-* **Closed-Loop Self-Healing in Active Sandboxes**: Dynamic closed-loop test failure feedback loops where compiler/pytest error traces trigger automated code repair turns.
-* **Natural Language Enterprise Bootstrapping (`hae bootstrap`)**: Synthesizing optimal organizational topologies from arbitrary natural language goals.
-* **Structural Allelic Crossover**: Recombining genomes with heterogeneous departmental structures via semantic role embeddings.
-
----
-
----
-
-## 6. Generalized Pluggable Evaluation & Teleological Goal Formulation
-
-While early benchmark tournaments focus on Python package engineering (with Build, Smoke, Telemetry, and Pytest gates), the HAE platform is fundamentally **domain-agnostic**. The platform is engineered to break out of software development and generalize across real-world commercial and strategic domains:
-
-```mermaid
-graph TD
-    subgraph ExogenousEvaluation ["Phase 1: Exogenous Domain Verification"]
-        Harness["Pluggable Verification Harness<br/>(Software Sandbox | Trading Backtest | Regulatory Audit)"]
-    end
-
-    subgraph EndogenousEvaluation ["Phase 2: Autonomous Teleological Metrics (Self-Defined OKRs)"]
-        CEO["CEO & Executive Council<br/>Receives Ambiguous Vision"] --> OKR["Emits EvaluationMetricSpec<br/>(Verifiable KPIs, Acceptance Tests, Weights)"]
-        OKR --> Execution["Operational Pods Deliver Against Internal OKRs"]
-        OKR --> Inheritance["Metric Genome Passed & Adjusted<br/>Across Generational Transitions (Startup Pivots)"]
-    end
-```
-
-### 6.1 Pluggable Multi-Domain Verification Harnesses
-The deterministic execution verifier is decoupled from software development through an abstract harness interface (`BaseVerificationHarness`):
-* **Software Engineering (`SoftwareSandboxHarness`)**: Deterministic syntax, packaging, OpenTelemetry trace spans, and `pytest` test suites (Current benchmark).
-* **Quantitative Finance & Trading (`FinancialTradingHarness`)**: Validates synthetic order books, backtests portfolio strategies against historical tick data, and verifies Risk/Sharpe ratios.
-* **Regulatory & Compliance (`ComplianceHarness`)**: Evaluates legal filings, SOC2/HIPAA guardrails, and adversarial red-team compliance penetration checks.
-* **Scientific Research (`ScientificPaperHarness`)**: Compiles formal LaTeX manuscripts, verifies mathematical proofs, and validates empirical ablation data integrity.
-
-### 6.2 Autonomous Teleological Goal Formulation (Endogenous OKRs)
-Under ambiguous strategic objectives, executive leadership in real companies does not merely execute; they **define what success looks like**:
-1. **CEO Metric Synthesis (`EvaluationMetricSpec`)**: Given a high-level mission, the CEO defines verifiable Key Performance Indicators (KPIs), quantitative acceptance tests, and priority weights.
-2. **Genomic Metric Inheritance**: The defined metric specification becomes an evolvable corporate asset (`CorporateMetricAsset`). When the enterprise breeds or pivots, offspring inherit and refine the metrics, modeling how real companies adjust their mission and unit metrics through product-market fit discovery.
-3. **Adversarial Goal Validation**: To prevent degenerate metric gaming ("grading their own homework"), an external Meta-Evaluator scores **Goal Ambition & Alignment**, penalizing trivial metrics while heavily rewarding high-ambition, verifiable customer-centric standards.
-
----
-
-## 7. Getting Started
-
-### Local Quickstart
 ```bash
-# Clone repository
 git clone https://github.com/SinaChavoshi/hierarchical-agent-evolution.git
 cd hierarchical-agent-evolution
+pip install -e ".[harness]"
 
-# Install dependencies in editable mode
-pip install -e .
+export GOOGLE_CLOUD_PROJECT=your-project     # required; not defaulted
+export GOOGLE_CLOUD_LOCATION=us-east4
 
-# Run unit and integration tests
-PYTHONPATH=. pytest tests/
+# Inspect a self-hosting benchmark task, including its reference run.
+python -m hae.cli --mode benchmark --task artifacts
 
-# Execute a single firm evaluation locally
-python3 -m src.main --mode single-firm --objective "Build next-generation telemetry engine"
+# Run one firm against one objective.
+python -m hae.cli --mode single-firm --objective "Build a telemetry engine"
+
+# Run the full suite, including the architectural guard.
+python -m unittest discover -s tests
 ```
 
-### Distributed Kubernetes Deployment
-To execute high-throughput parallel evolutionary tournaments:
+The platform talks to Vertex over raw REST, so no inference SDK is required.
+Other providers are selected with `--provider {gemini_api,openai,anthropic,ollama,vllm}`.
+
+### Distributed on Kubernetes
 
 ```bash
-# 1. Apply Kubernetes ServiceAccount and RBAC roles
-kubectl apply -f k8s/rbac.yaml
+# 1. Breed the population from a declarative generation spec.
+python -m hae.cli --mode breed --generation-spec configs/generations/gen1.json
 
-# 2. Mount Vertex AI authentication secret
-kubectl create secret generic vertex-token \
-  --from-literal=token="$(gcloud auth application-default print-access-token)" \
-  --namespace=agent-evolution
+# 2. Publish it as a ConfigMap (data only; code is baked into the image).
+kubectl create configmap hae-gen1-population -n agent-evolution \
+    --from-file=configs/generation_1_population.json
 
-# 3. Dispatch the parallel indexed job (5 concurrent enterprise pods)
-kubectl apply -f k8s/parallel-indexed-job-gen1-east4.yaml
+# 3. Render and apply the Job.
+PYTHONPATH=. python3 scripts/render_job.py \
+    --generation 1 --image-tag v2-gen1 \
+    --project "$GOOGLE_CLOUD_PROJECT" --bucket "$GCS_BUCKET" | kubectl apply -f -
+```
 
-# 4. Stream live multi-agent deliberations
-kubectl logs -n agent-evolution -l app=parallel-firms-gen1-east4 --tail=50 -f
+> [!CAUTION]
+> **Authentication is Workload Identity only, deliberately with no fallback.**
+> The pod's Kubernetes service account must be bound to a Google service
+> account holding `roles/aiplatform.user` and `roles/storage.objectAdmin`.
+>
+> Every V1 generation from 5 onward ran on a **human engineer's OAuth token**,
+> injected as a `vertex-token` Secret. Vertex tokens expire after about an
+> hour, which is why firms died mid-tournament in Generations 9 and 10 and had
+> to be re-dispatched by hand. The service account had zero project IAM roles
+> the whole time; nobody noticed, because the token fallback kept working.
+>
+> That secret is gone and no fallback replaces it. If Workload Identity is not
+> configured the run fails immediately and loudly, which is the point.
+
+Verify the binding before launching a generation:
+
+```bash
+gcloud projects get-iam-policy "$GOOGLE_CLOUD_PROJECT" \
+  --flatten="bindings[].members" \
+  --filter="bindings.members:agent-evolution-sa@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com" \
+  --format="value(bindings.role)"
 ```
 
 ---
 
-## 8. License & Citation
+## 6. Roadmap
 
-Licensed under the [Apache License, Version 2.0](LICENSE).
+V2 begins after expert review of this refactor. The entry criteria are tracked
+in [`experiments/v2/README.md`](experiments/v2/README.md).
 
-```bibtex
-@article{chavoshi2026hierarchical,
-  title={Bootstrapping Agentic Organizations: Recursive Self-Improvement and Hierarchical Architecture Search on Cloud Kubernetes},
-  author={Chavoshi, Sina and Autonomous Agent Systems Research Group},
-  journal={arXiv preprint},
-  year={2026}
-}
-```
+| Next | Why |
+|---|---|
+| Run Generation 1 against the self-hosting benchmark | Pillar 4 is implemented but has never driven a selection event |
+| Measure judged-vs-measured correlation on real V2 data | The 70/30 split is a considered guess, not a fitted parameter |
+| Merge the first firm that beats our implementation | The loop is not closed until a generated patch lands |
+| Retire the prose objective entirely if the benchmark discriminates | Two fitness functions is one too many |
+
+---
+
+## 7. License
+
+Apache 2.0. See [LICENSE](LICENSE).

@@ -22,7 +22,7 @@ All four gates were heuristics:
 | **Tests** | Ran pytest **if pytest happened to be installed**. When it was not — which was the common case — it fell back to a string match: `any("def test_" in c or "assert " in c for c in files)`. This reports `Tests: PASS` for a file that does not parse. |
 | **Telemetry** | Substring search for `opentelemetry` **across the entire bundle including the CEO's prose deliverable**. A firm that merely *wrote the word* passed. |
 
-These heuristics were replaced by [`src/execution_harness.py`](../../src/execution_harness.py),
+These heuristics were replaced by [`src/execution_harness.py`](https://github.com/SinaChavoshi/hierarchical-agent-evolution/blob/v1-final/src/execution_harness.py),
 which runs the code. This document reports what happened when all 60 archived
 firms were re-scored against it.
 

@@ -76,7 +76,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 > through 10 inherited these gates.
 
 `src/sandbox_verifier.py` has been rewritten to delegate to
-[`src/execution_harness.py`](../../src/execution_harness.py), which runs the code,
+[`src/execution_harness.py`](https://github.com/SinaChavoshi/hierarchical-agent-evolution/blob/v1-final/src/execution_harness.py), which runs the code,
 and all 60 archived firms were re-scored against it inside the project container
 (real `pip` 24.0, `pytest` 9.1.1, `opentelemetry`). Read each cell as
 `legacy → executed`:
@@ -454,8 +454,8 @@ Prioritized ahead of new capability work on the evidence gathered in Generation 
 
 **Done:**
 
-* ✅ **Real Execution Harness** — [`src/execution_harness.py`](../../src/execution_harness.py). Five gates that run the code: `ast.parse`, real `pip install -e .`, `importlib` in a fresh interpreter, real `pytest`, and an AST telemetry check requiring both an import node and a span call site. An unevaluable gate returns **SKIPPED, never PASSED**. `src/sandbox_verifier.py` delegates to it; no heuristic gates remain.
-* ✅ **Artifact Accounting** — [`src/artifacts.py`](../../src/artifacts.py). Single source of truth; `run()` no longer returns an unfiltered bundle. Published file counts were inflated 42–59%.
+* ✅ **Real Execution Harness** — [`src/execution_harness.py`](https://github.com/SinaChavoshi/hierarchical-agent-evolution/blob/v1-final/src/execution_harness.py). Five gates that run the code: `ast.parse`, real `pip install -e .`, `importlib` in a fresh interpreter, real `pytest`, and an AST telemetry check requiring both an import node and a span call site. An unevaluable gate returns **SKIPPED, never PASSED**. `src/sandbox_verifier.py` delegates to it; no heuristic gates remain.
+* ✅ **Artifact Accounting** — [`src/artifacts.py`](https://github.com/SinaChavoshi/hierarchical-agent-evolution/blob/v1-final/src/artifacts.py). Single source of truth; `run()` no longer returns an unfiltered bundle. Published file counts were inflated 42–59%.
 * ✅ **Full Retroactive Backfill** — all 60 archived scorecards re-scored in-container. See [§2.1](#21-execution-grounded-re-verification-generations-5-10-n60). Telemetry 55/60 → 15/60; 19 firms shipped unparseable Python.
 * ✅ **Judge Rubric Repair** — `execution_integrity` at 30%, the heaviest dimension; coherence + actionability cut 35% → 20%; the silent `70/70/70/65/70` fallback replaced by an explicit `evaluation_failed` at 0.0. See [§2.2](#22-counterfactual-five-of-six-champions-change-under-the-rebuilt-rubric).
 * ✅ **Morphogenesis Phenotype Fix** — spawned verification pods could not write files; 127 → 139 of 279 agents tool-enabled.
@@ -477,7 +477,7 @@ Prioritized ahead of new capability work on the evidence gathered in Generation 
 
 ### 12.2 Generation 11: Execution-First Selection (in progress)
 
-**Capability: in-loop ground-truth verification** ([`src/verification_loop.py`](../../src/verification_loop.py)).
+**Capability: in-loop ground-truth verification** ([`src/verification_loop.py`](https://github.com/SinaChavoshi/hierarchical-agent-evolution/blob/v1-final/src/verification_loop.py)).
 
 Through Generation 10 the agents and the evaluator were looking at different things. Agents could shell out to pytest, but the score came from gates they never saw — and those gates were heuristics, so even an agent that inspected them would have learned the wrong lesson. A technical agent can now issue `Action: verify` and receive the exact gate report that will score its firm, from the same `ExecutionHarness` the evaluator runs.
 
@@ -486,7 +486,7 @@ Two constraints, both deliberate:
 * **Rate-limited** to 3 verifications per *firm* (not per pod), so departments coordinate rather than each burning attempts. This also preserves what is being measured: a firm needing three attempts to produce parseable code is not equivalent to one that gets it right first, and the scorecard records which happened — including whether the firm regressed after its best attempt.
 * **Verdicts, not coaching.** The report echoes real tracebacks and gate results and never suggests an edit. Selection pressure should come from the population, not from the harness steering every firm toward one answer.
 
-**Survivors are ranked by the rebuilt rubric, not legacy net.** Generation 10's champion under the honest function is `gen_10_elite_1` (89.10, `execution_integrity` 70.0), which finished **sixth** on the legacy board; the legacy champion `gen_10_mutant_3` is second. Bred by [`scripts/breed_gen11_population.py`](../scripts/breed_gen11_population.py) from [`rubric_rescore.json`](rubric_rescore.json) — deliberately *not* from `exp-012-parallel-gen10/top_5_survivor_genomes.json`, which is ordered by the legacy ranking that picked the wrong firm in five of six generations.
+**Survivors are ranked by the rebuilt rubric, not legacy net.** Generation 10's champion under the honest function is `gen_10_elite_1` (89.10, `execution_integrity` 70.0), which finished **sixth** on the legacy board; the legacy champion `gen_10_mutant_3` is second. Bred by [`scripts/breed_gen11_population.py`](scripts/breed_gen11_population.py) from [`rubric_rescore.json`](rubric_rescore.json) — deliberately *not* from `exp-012-parallel-gen10/top_5_survivor_genomes.json`, which is ordered by the legacy ranking that picked the wrong firm in five of six generations.
 
 Three directed mutants target the three measured deficits: unparseable modules (19/60 firms), prose telemetry (55/60 → 15/60), and uncollectable test suites (3/60 green).
 
