@@ -464,6 +464,15 @@ Prioritized ahead of new capability work on the evidence gathered in Generation 
 * ✅ **Measured Telemetry** — real `usageMetadata` token counts, including reasoning tokens billed at the output rate. `token_accounting.fully_measured` on each scorecard says whether the cost figure was measured or estimated. `len(text)/4` survives only as a fallback.
 * ✅ **Operational Hardening** — Vertex tokens are cached with their provider-reported expiry, refreshed 300s early, and force-re-fetched on a 401, which is now in the retry path. Source order was reversed so refreshable sources (metadata server / Workload Identity) come before the un-refreshable `VERTEX_API_TOKEN`, and a forced refresh skips any source that returns the token that was just rejected.
 
+> [!IMPORTANT]
+> **Root cause of the Generation 9 and 10 mid-tournament failures, found while launching Generation 11.** The code fix above was necessary but not sufficient. Switching Generation 11 to Workload Identity produced an immediate `403 PERMISSION_DENIED` on `aiplatform.endpoints.predict` across all three pods, and the reason was that `agent-evolution-sa@gemle-gke-dev.iam.gserviceaccount.com` **held no project IAM roles at all**.
+>
+> So the pods had never been able to authenticate as themselves. Every generation from 5 onward ran on a human's access token injected through the `vertex-token` Secret — which is exactly why firms died roughly an hour into Generations 9 and 10: a user token expires in about an hour and nothing in the cluster could mint a new one.
+>
+> Fixed by granting the service account `roles/aiplatform.user` and `roles/storage.objectAdmin`. The `VERTEX_API_TOKEN` secret is now removed from the manifest entirely rather than kept as a fallback, because a fallback that silently works would hide a recurrence of this.
+>
+> The lesson generalises beyond this project: the failure looked like a token-refresh bug for two generations, and a refresh fix alone would have turned a loud hourly failure into a permanent silent one.
+
 *All pre-Generation-11 blockers are closed.*
 
 ### 12.2 Generation 11: Execution-First Selection (in progress)
