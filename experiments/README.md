@@ -274,19 +274,27 @@ kubectl apply -f k8s/parallel-indexed-job-gen6-east4.yaml
 
 ---
 
-## 10. Active Generation & Future Evolutionary Roadmap: Generation 9 and Beyond
+## 10. Completed Benchmark: Generation 9 (Autonomous Morphogenesis & Dynamic Organizational Topologies)
 
-### 10.1 Active Generation: Generation 9 (Autonomous Morphogenesis & Dynamic Topologies)
 * **Autonomous Topology Morphogenesis (`src/morphogenesis.py`)**:
-  * Eliminates the rigid 5-department corporate template (`default_company.json`). The architecture autonomously spawns, prunes, or merges departments (ranging from 3 to 7 pods) based on environmental selection pressure and domain complexity.
-  * Dynamic pod creation: specialized Formal Verification Pods (`dept_formal_verification`), Invariant Synthesis Units, and AST Rewriting Cores.
+  * Replaced the rigid 5-department corporate template (`default_company.json`) with dynamically synthesized organizational topologies ranging from **3 to 6 departmental pods** (21 to 37 agents per enterprise).
+  * Validated specialized functional pods: dedicated Formal Verification Pods (`dept_formal_verification`), AST Rewriting Cores, and Ultra-Lean 3-Pod Agile topologies.
 * **Structural Allelic Crossover (`StructuralCrossoverEngine`)**:
-  * Recombines genomes across asymmetric topologies using functional semantic role mapping, preserving elite sub-department phenotypes even when firm organizational trees differ.
-* **Deployment Target**: 10 virtual enterprises across diverse topologies competing on GKE cluster (`parallel-firms-gen9-east4`).
+  * Enabled genetic recombination across asymmetric departmental topologies using functional semantic role mapping.
+* **Empirical Findings & Champion Emergence**:
+  * **Champion `gen_9_consensus_1` (Score: 87.68)**: Structural recombinant achieving **87.68 Net Fitness** (+7.79 pts over Gen 8 Champion), Gross: 93.7, 11 physical files on disk, Build: PASS, Smoke: PASS, Telemetry: PASS, Tests: FAIL (-6.25 penalty), $0.4094 USD OpEx.
+  * **Runner-Up `gen_9_mutant_1` (Score: 81.00)**: Spawned a dedicated 6-pod Formal Verification topology (37 agents), clearing Build, Smoke, and Telemetry gates cleanly (-6.25 penalty).
+  * **All-Time Cohort File Density Record (12.3 Files/Firm)**: Generation 9 achieved an all-time record cohort average of **12.3 physical files authored on disk per firm**, with two separate firms (`gen_9_consensus_2` and `gen_9_mutant_2`) authoring **17 physical files on disk**.
+  * See the full empirical report in the [Generation 9 Experiment Report](exp-011-parallel-gen9/README.md).
 
-### 10.2 Generation 10: Cross-Cloud Federated Mesh & Autonomous Self-Evolving Evaluation Rubrics
-* **Cross-Cloud Multi-Agent Mesh**:
-  * Enterprises dynamically distribute specialist pods across multi-cloud infrastructure (GCP GKE + AWS EKS + local edge nodes) with zero-trust mTLS peer communication.
-* **Self-Evolving Evaluation Rubrics**:
-  * The evaluation harness evolves alongside agent code, autonomously synthesizing adversarial unit tests, fuzzing inputs, and formal verification proofs.
+---
+
+## 11. Active Generation & Future Evolutionary Roadmap: Generation 10 and Beyond
+
+### 11.1 Active Generation: Generation 10 (Cross-Cloud Federated Mesh & Autonomous Self-Evolving Evaluation Rubrics)
+* **Cross-Cloud Multi-Agent Federated Mesh (`src/federated_mesh.py`)**:
+  * Enterprises dynamically distribute specialist pods across heterogeneous infrastructure nodes (multi-cloud GKE + edge runtime nodes) with zero-trust mTLS peer communication and decentralized RPC consensus.
+* **Autonomous Self-Evolving Evaluation Rubrics (`src/rubric_evolution.py`)**:
+  * The evaluation harness evolves endogenously alongside the agent code, autonomously synthesizing adversarial unit tests, fuzzing inputs, and formal verification proofs to push software quality to the 95+ fitness frontier.
+* **Deployment Target**: 10 virtual enterprises competing on GKE cluster (`parallel-firms-gen10-east4`).
 
