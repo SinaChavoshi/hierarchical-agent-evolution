@@ -26,6 +26,7 @@ EXPERIMENTS = [
     ("Gen 7", "Universal Multi-Platform Portability", "experiments/exp-009-parallel-gen7"),
     ("Gen 8", "Closed-Loop Sandbox Test Verification & Self-Repair", "experiments/exp-010-parallel-gen8"),
     ("Gen 9", "Autonomous Morphogenesis & Dynamic Topologies", "experiments/exp-011-parallel-gen9"),
+    ("Gen 10", "Federated Mesh & Self-Evolving Rubrics", "experiments/exp-012-parallel-gen10"),
 ]
 
 def recalculate():

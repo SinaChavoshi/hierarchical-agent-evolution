@@ -18,6 +18,10 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | [**`exp-006-parallel-gen4`**](exp-006-parallel-gen4/) | Autonomous Sizing, Model Unit Economics & Token OpEx Envelope | Cloud Kubernetes + gVisor Agent Sandbox | 10 virtual enterprises (320 agents) | **96.75** | [`exp-006-parallel-gen4/`](exp-006-parallel-gen4/) ([Report](exp-006-parallel-gen4/experiment_report.md)) |
 | [**`exp-007-parallel-gen5`**](exp-007-parallel-gen5/) | Active Tool Sandboxing (Agent Execution Scratchpads) & Corporate IP Marketplace | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (325 agents) | **91.93** | [`exp-007-parallel-gen5/`](exp-007-parallel-gen5/) ([Report](exp-007-parallel-gen5/experiment_report.md)) |
 | [**`exp-008-parallel-gen6`**](exp-008-parallel-gen6/) | Inter-Firm Strategic Consortiums, Teleological OKRs & Pluggable Multi-Domain Harnesses | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (327 agents) | **91.87** | [`exp-008-parallel-gen6/`](exp-008-parallel-gen6/) ([Report](exp-008-parallel-gen6/experiment_report.md)) |
+| [**`exp-009-parallel-gen7`**](exp-009-parallel-gen7/) | Universal Multi-Platform & LLM Provider Portability | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (327 agents) | **82.70** | [`exp-009-parallel-gen7/`](exp-009-parallel-gen7/) ([Report](exp-009-parallel-gen7/experiment_report.md)) |
+| [**`exp-010-parallel-gen8`**](exp-010-parallel-gen8/) | Closed-Loop Sandbox Test Verification & Automated Code Self-Repair | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (334 agents) | **79.89** | [`exp-010-parallel-gen8/`](exp-010-parallel-gen8/) ([Report](exp-010-parallel-gen8/experiment_report.md)) |
+| [**`exp-011-parallel-gen9`**](exp-011-parallel-gen9/) | Autonomous Morphogenesis & Dynamic Organizational Topologies | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (319 agents) | **87.68** | [`exp-011-parallel-gen9/`](exp-011-parallel-gen9/) ([Report](exp-011-parallel-gen9/experiment_report.md)) |
+| [**`exp-012-parallel-gen10`**](exp-012-parallel-gen10/) | Cross-Cloud Federated Mesh & Autonomous Self-Evolving Evaluation Rubrics | Cloud Kubernetes (10-Pod Indexed Job) | 10 virtual enterprises (341 agents) | **91.26** | [`exp-012-parallel-gen10/`](exp-012-parallel-gen10/) ([Report](exp-012-parallel-gen10/experiment_report.md)) |
 
 ---
 
@@ -43,7 +47,9 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | **Gen 5** | Active Container Scratchpads | 91.93 | **91.93** | **Yes (10/10)** | **Yes (10/10)** | 9.3 | 14 | **Physical Disk Files, Live Pytest** |
 | **Gen 6** | Industrial Hardening & Packaging | 91.87 | **91.87** | **Yes (10/10)** | **Yes (10/10)** | **11.0** | **17** | **Production `egg-info` Package** |
 | **Gen 7** | Universal Multi-Platform Portability | 82.70 | **82.70** | **Yes (9/9)** | **Yes (9/9)** | 9.2 | 13 | **Multi-Provider REST Runtime** |
-| **Gen 8** | Closed-Loop Test Self-Repair | *Target: ~96.5* | *Target: ~96.5* | **Yes** | **Yes** | 15+ | 20+ | **Autonomous Pytest Error Repair** |
+| **Gen 8** | Closed-Loop Test Self-Repair | 79.89 | **79.89** | **Yes (10/10)** | **Yes (10/10)** | 10.3 | 16 | **First Live `Tests: PASS` (2/10 firms)** |
+| **Gen 9** | Autonomous Morphogenesis | 87.68 | **87.68** | **Yes (10/10)** | **Yes (10/10)** | 12.3 | 17 | **Dynamic 3–6 Pod Topologies** |
+| **Gen 10** | Federated Mesh & Self-Evolving Rubrics | 91.26 | **91.26** | **Yes (10/10)** | **Yes (10/10)** | **13.6** | **29** | **First Zero-Penalty 4-Gate Clearance** |
 
 ![Standardized Physical Execution vs Legacy Synthetic Trajectory](assets/standardized_fitness_trajectory.png)
 
@@ -289,12 +295,38 @@ kubectl apply -f k8s/parallel-indexed-job-gen6-east4.yaml
 
 ---
 
-## 11. Active Generation & Future Evolutionary Roadmap: Generation 10 and Beyond
+## 11. Completed Benchmark: Generation 10 (Cross-Cloud Federated Mesh & Autonomous Self-Evolving Evaluation Rubrics)
 
-### 11.1 Active Generation: Generation 10 (Cross-Cloud Federated Mesh & Autonomous Self-Evolving Evaluation Rubrics)
 * **Cross-Cloud Multi-Agent Federated Mesh (`src/federated_mesh.py`)**:
-  * Enterprises dynamically distribute specialist pods across heterogeneous infrastructure nodes (multi-cloud GKE + edge runtime nodes) with zero-trust mTLS peer communication and decentralized RPC consensus.
+  * `FederatedMeshRouter` and `MeshPeerNode` distribute specialist pods across heterogeneous infrastructure nodes with deterministic routing and HMAC `HAE-MESH-v1` authenticated peer tokens.
 * **Autonomous Self-Evolving Evaluation Rubrics (`src/rubric_evolution.py`)**:
-  * The evaluation harness evolves endogenously alongside the agent code, autonomously synthesizing adversarial unit tests, fuzzing inputs, and formal verification proofs to push software quality to the 95+ fitness frontier.
-* **Deployment Target**: 10 virtual enterprises competing on GKE cluster (`parallel-firms-gen10-east4`).
+  * `SelfEvolvingRubricEngine` scores workspaces against four structural invariants: AST well-formedness, security posture, assertion density, and type coverage.
+* **Empirical Findings & Champion Emergence**:
+  * **Champion `gen_10_mutant_3` (Score: 91.26)**: Lineage *"Hermetic AST Self-Healing & Property-Based Fuzzing Core"*. Authored **29 physical files on disk** — a 53% increase over the previous all-time single-firm record of 19 — at the second-lowest cost in the cohort ($0.3140). Build: PASS, Smoke: PASS, Telemetry: PASS, Tests: FAIL (−6.25 penalty).
+  * **First Zero-Penalty Four-Gate Clearance in Benchmark History**: `gen_10_consensus_1` (89.23) passed Build, Smoke, Tests, **and** Telemetry simultaneously (`score_penalty = 0.0`, 4/4 tests, pass rate 1.0). No firm across Generations 1–9 had ever cleared all four gates.
+  * **All-Time Cohort Records**: Mean net fitness **84.52** (previous best 81.34, Gen 5) and mean artifact density **13.6 files/firm** (previous best 12.3, Gen 9). Mean cost held roughly flat at $0.4337 despite a 32% increase in artifact output over Gen 9.
+  * **Larger Topologies Did Not Win**: The three highest-headcount firms (41, 37, 37 agents) finished 7th, 8th, and 10th; all four top finishers ran the 5-pod / 34-agent configuration.
+  * See the full empirical report in the [Generation 10 Experiment Report](exp-012-parallel-gen10/experiment_report.md).
+
+> [!WARNING]
+> **Validity caveat.** Generation 10 also produced decisive evidence that the fitness function has become the benchmark's limiting factor. Only the **Tests** gate physically executes code — Build, Smoke, and Telemetry are filename, file-count, and vocabulary heuristics respectively. 62% of net-fitness variance now derives from these gates, the LLM judge has saturated (two of five rubric dimensions pinned at mean 99.0), and `corr(files_authored, gross_score)` is **+0.06**, meaning the judge is effectively blind to how much working software a firm produced. Cross-generation net-fitness comparisons should be read as provisional until the execution harness lands. Full analysis in [§4 of the Gen 10 report](exp-012-parallel-gen10/experiment_report.md).
+
+---
+
+## 12. Future Evolutionary Roadmap: Generation 11 and Beyond
+
+### 12.1 Next Milestone: Grounded Execution Fitness (pre-Generation 11)
+
+Prioritized ahead of new capability work, on the evidence gathered in Generation 10:
+
+* **Real Execution Harness**: Replace the heuristic gates in `src/sandbox_verifier.py` with genuine venv install, import smoke test, `pytest --json-report`, and live OpenTelemetry span counting.
+* **Full Retroactive Backfill**: Re-score all 60 archived scorecards (Generations 5–10) against the new harness. Every scorecard retains its complete `run_output.workspace_files` payload, so this requires **no re-runs and no additional inference cost** — yielding the benchmark's first execution-grounded cross-generation trajectory.
+* **Judge Rubric Repair**: Add an execution dimension; remove or re-weight the two saturated dimensions (coherence, actionability); eliminate the silent `70/70/70/65/70` fallback in `src/evaluator.py` that currently lets failed evaluations enter the breeding pool undetected.
+* **Measured Telemetry**: Record real `usageMetadata` token counts instead of the `len(text)/4` estimate that currently biases the efficiency bonus and cost penalty.
+* **Operational Hardening**: Fix Vertex OAuth refresh (Workload Identity via metadata server, cache with expiry, 401 → force re-fetch), which caused mid-tournament firm failures requiring manual retries in both Generation 9 and Generation 10.
+
+### 12.2 Deferred Capability Track: Generation 11
+
+Resumes once the fitness function is grounded, so that measured gains are attributable to genuine capability rather than proxy drift.
+
 
