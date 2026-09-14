@@ -22,11 +22,32 @@ authored **18 genuine files** against a previous audited best of 10.
 > byproducts and malformed markdown-contaminated paths. Across Gens 5-10,
 > 42-59% of every published file count was contamination. See §4.8.
 
-**2. First zero-penalty four-gate clearance in benchmark history.**
-`gen_10_consensus_1` passed Build, Smoke, Tests, and Telemetry simultaneously
-(`score_penalty = 0.0`, 4/4 tests, pass rate 1.0). Across Generations 1–9, no
-firm had ever cleared all four gates. Its lineage is a structural recombination
-of `gen_9_consensus_1 × gen_9_mutant_1` carrying the federated-mesh trait.
+**2. ~~First zero-penalty four-gate clearance in benchmark history.~~ RETRACTED.**
+`gen_10_consensus_1` recorded `score_penalty = 0.0` under the legacy verifier —
+the first such result in ten generations. **The clearance does not survive
+execution.** Re-scored against `src/execution_harness.py`, which runs the code:
+
+| Gate | Legacy | Executed | Evidence |
+| :--- | :---: | :---: | :--- |
+| Syntax | *(no such gate)* | **PASS** | All files parse. |
+| Build | PASS | **PASS** | Editable install succeeded. |
+| Smoke | PASS | **PASS** | 4/4 modules imported. |
+| Tests | PASS | **FAIL** | `ERROR tests/test_agent_failure_introspection.py \| ERROR tests/test_economic_attack.py \| Interrupted: 2 errors during collection` |
+| Telemetry | PASS | **FAIL** | *No opentelemetry import in any authored Python file.* |
+
+The tests gate passed on `src/sandbox_verifier.py`'s string-match fallback
+(`any("def test_" in c or "assert " in c ...)`, used whenever pytest was
+unavailable). The telemetry gate passed on a substring search that included the
+CEO agent's prose deliverable. Executed, the firm is **3/5**.
+
+What is genuine and should not be lost with the retraction: a clean **4/4 module
+import**, the only perfect smoke result in Generation 10, and a real editable
+install. Its lineage is a structural recombination of
+`gen_9_consensus_1 × gen_9_mutant_1` carrying the federated-mesh trait — notable
+in hindsight because `gen_9_consensus_1` itself passes **zero** of five gates.
+
+Full re-verification of all 60 archived firms:
+[`experiments/execution_grounded_correction.md`](../execution_grounded_correction.md).
 
 **3. Artifact production decoupled from cost.**
 The champion `gen_10_mutant_3` authored the most files (18 audited) at the

@@ -49,7 +49,7 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 | **Gen 7** | Universal Multi-Platform Portability | 82.70 | **82.70** | **Yes (10/10)** | **Yes (10/10)** | 4.7 | 7 | **Multi-Provider REST Runtime** |
 | **Gen 8** | Closed-Loop Test Self-Repair | 79.89 | **79.89** | **Yes (10/10)** | **Yes (10/10)** | 6.0 | 10 | **First Live `Tests: PASS` (2/10 firms)** |
 | **Gen 9** | Autonomous Morphogenesis | 87.68 | **87.68** | **Yes (10/10)** | **Yes (10/10)** | 5.1 | 7 | **Dynamic 3–6 Pod Topologies** |
-| **Gen 10** | Federated Mesh & Self-Evolving Rubrics | 91.26 | **91.26** | **Yes (10/10)** | **Yes (10/10)** | **7.7** | **18** | **First Zero-Penalty 4-Gate Clearance** |
+| **Gen 10** | Federated Mesh & Self-Evolving Rubrics | 91.26 | **91.26** | **Yes (10/10)** | **Yes (10/10)** | **7.7** | **18** | **Highest Authored-File Output (7.7 avg)** |
 
 > [!IMPORTANT]
 > **File counts above are audited.** The runtime originally reported
@@ -63,7 +63,85 @@ Each experiment subfolder contains self-contained genomic definitions, tournamen
 
 ![Standardized Physical Execution vs Legacy Synthetic Trajectory](assets/standardized_fitness_trajectory.png)
 
-### 2.1 Visual Performance Trajectory
+### 2.1 Execution-Grounded Re-Verification (Generations 5-10, n=60)
+
+> [!CAUTION]
+> **The "4-Gate Deterministic Sandbox Verifier" did not execute code.** All four
+> gates in `src/sandbox_verifier.py` were heuristics: Build matched a manifest
+> *filename*, Smoke matched the `.py` extension, Telemetry substring-searched the
+> whole bundle — CEO prose included — for `opentelemetry`, and Tests fell back to
+> `any("def test_" in c or "assert " in c ...)` whenever pytest was not installed,
+> which was the common case. Every fitness number published for Generations 5
+> through 10 inherited these gates.
+
+`src/sandbox_verifier.py` has been rewritten to delegate to
+[`src/execution_harness.py`](../src/execution_harness.py), which runs the code,
+and all 60 archived firms were re-scored against it inside the project container
+(real `pip` 24.0, `pytest` 9.1.1, `opentelemetry`). Read each cell as
+`legacy → executed`:
+
+| Gen | Syntax (new gate) | Build | Smoke | Tests | Telemetry |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **Gen 5** | 7/10 | 6 → 7 | 6 → 0 | 0 → 0 | 10 → **5** |
+| **Gen 6** | 7/10 | 4 → 5 | 4 → 1 | 0 → 0 | 10 → **1** |
+| **Gen 7** | 7/10 | 3 → 5 | 3 → 2 | 0 → 0 | 10 → **3** |
+| **Gen 8** | **3/10** | 3 → 4 | 3 → 2 | 2 → 2 | 7 → **3** |
+| **Gen 9** | 9/10 | 3 → 7 | 3 → 7 | 0 → 0 | 9 → **1** |
+| **Gen 10** | 8/10 | **7 → 3** | 7 → 5 | 2 → **1** | 9 → **2** |
+| **All 60** | **41/60** | 26 → 31 | 26 → 17 | 4 → **3** | **55 → 15** |
+
+* **Telemetry collapses 55/60 → 15/60.** 40 firms were passing on prose. This is
+  the largest correction in the project's history.
+* **19 of 60 firms shipped Python that does not parse.** Structurally invisible
+  before, because no legacy gate parsed anything.
+* **Build genuinely improved, 26 → 31.** Not every correction is downward — real
+  `pip install -e .` accepts manifests the filename regex missed.
+* Smoke skips (21 firms) are uninstalled third-party imports. The harness returns
+  **SKIPPED, never PASSED**, for anything it cannot evaluate.
+
+**The corrected picture of quality over time.** Execution Score = gates passed ÷
+gates evaluable, cohort mean:
+
+| Gen | Execution Score | Mean gates passed (of 5) | Firms with **zero** gates | Legacy net avg |
+| :---: | :---: | :---: | :---: | :---: |
+| Gen 5 | 46.5% | 1.90 | 3 | 81.34 |
+| Gen 6 | 34.0% | 1.40 | 2 | 72.25 |
+| Gen 7 | 36.5% | 1.70 | 2 | 70.36 |
+| Gen 8 | 29.0% | 1.40 | 1 | 68.98 |
+| Gen 9 | **49.5%** | **2.40** | 1 | 73.24 |
+| Gen 10 | 40.0% | 1.90 | 1 | 84.52 |
+
+`corr(generation, execution_score) = +0.045`, a trend of **+0.19pp per
+generation** — flat. Over the same span published net climbed at +0.50/gen.
+Across all 60 firms `corr(legacy_net, gates_passed) = +0.286` and
+`corr(gross_judge_score, gates_passed) = +0.201`: **the signal we bred on
+explains roughly 8% of the variance in whether the code runs.**
+
+**Retracted.** `gen_10_consensus_1`'s "first zero-penalty four-gate clearance"
+does not survive. Real pytest errors on two collection failures, and the firm has
+no `opentelemetry` import in any authored file. Its 4/4 smoke import — the only
+perfect smoke result in Gen 10 — is genuine and is kept.
+
+**Confirmed.** Gen 8's first live `Tests: PASS` holds. `gen_8_consensus_2` and
+`gen_8_mutant_2` both come back green under real pytest.
+
+**New.** `gen_9_consensus_1` — net **87.68**, the Gen 9 champion, bred forward as
+a parent — passes **zero of five gates**; its `agent_org/core.py` is an indented
+fragment with no enclosing class. The best result in project history is **4/5**,
+from `gen_9_pareto_bonus_2`, which ranked sixth in its own cohort by legacy
+fitness and was never selected as a parent. **No firm in 60 has ever passed all
+five gates.**
+
+Full analysis, per-firm evidence and the honest leaderboard:
+[**`execution_grounded_correction.md`**](execution_grounded_correction.md).
+Raw data: [`execution_grounded_fitness.json`](execution_grounded_fitness.json).
+
+> [!WARNING]
+> `harness_net` is **not** comparable to `legacy_net`. A `SKIPPED` gate carries no
+> penalty, so a firm that executes less code can score higher. Compare gate pass
+> rates, not nets.
+
+### 2.2 Visual Performance Trajectory
 
 The chart below contrasts the legacy unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory:
 
@@ -97,7 +175,7 @@ graph LR
 
 ---
 
-### 2.2 Detailed Multi-Objective Score Breakdown
+### 2.3 Detailed Multi-Objective Score Breakdown
 
 $$
 \mathcal{F}(\mathcal{C}) = \left[ w_s S + w_t T + w_c C + w_r R + w_a A \right] - \mathcal{P}_{\text{sandbox}}
@@ -298,9 +376,11 @@ kubectl apply -f k8s/parallel-indexed-job-gen6-east4.yaml
 * **Structural Allelic Crossover (`StructuralCrossoverEngine`)**:
   * Enabled genetic recombination across asymmetric departmental topologies using functional semantic role mapping.
 * **Empirical Findings & Champion Emergence**:
-  * **Champion `gen_9_consensus_1` (Score: 87.68)**: Structural recombinant achieving **87.68 Net Fitness** (+7.79 pts over Gen 8 Champion), Gross: 93.7, 11 physical files on disk, Build: PASS, Smoke: PASS, Telemetry: PASS, Tests: FAIL (-6.25 penalty), $0.4094 USD OpEx.
+  * **Champion `gen_9_consensus_1` (Score: 87.68)**: Structural recombinant achieving **87.68 Net Fitness** (+7.79 pts over Gen 8 Champion), Gross: 93.7, 5 audited files on disk (11 raw entries before contamination filtering), $0.4094 USD OpEx. Legacy gates: Build PASS, Smoke PASS, Telemetry PASS, Tests FAIL (−6.25).
+    > [!CAUTION]
+    > **Under real execution this champion passes zero of five gates.** `agent_org/core.py` is an indented fragment with no enclosing class (`unexpected indent`, line 1), so Syntax, Smoke and Tests all fail; `pip install -e .` fails; and there is no `opentelemetry` import in any authored file. Its legacy Build/Smoke/Telemetry passes came from filename matching and a substring search over CEO prose. The strongest Gen 9 firm by executed gates is `gen_9_pareto_bonus_2` at **4/5** — the best result in project history — which finished sixth in the cohort by legacy fitness and was never bred forward. See [§2.1](#21-execution-grounded-re-verification-generations-5-10-n60).
   * **Runner-Up `gen_9_mutant_1` (Score: 81.00)**: Spawned a dedicated 6-pod Formal Verification topology (37 agents), clearing Build, Smoke, and Telemetry gates cleanly (-6.25 penalty).
-  * **All-Time Cohort File Density Record (12.3 Files/Firm)**: Generation 9 achieved an all-time record cohort average of **12.3 physical files authored on disk per firm**, with two separate firms (`gen_9_consensus_2` and `gen_9_mutant_2`) authoring **17 physical files on disk**.
+  * **~~All-Time Cohort File Density Record (12.3 Files/Firm)~~ — RETRACTED**: The 12.3 figure counted `.pytest_cache/`, `__pycache__` and markdown-mangled paths as deliverables. The audited cohort average is **5.1 authored files/firm**, which is *below* Gen 8's 6.0 — Generation 9 regressed on artifact density rather than setting a record. See [`artifact_integrity_audit.json`](artifact_integrity_audit.json).
   * See the full empirical report in the [Generation 9 Experiment Report](exp-011-parallel-gen9/README.md).
 
 ---
@@ -312,8 +392,8 @@ kubectl apply -f k8s/parallel-indexed-job-gen6-east4.yaml
 * **Autonomous Self-Evolving Evaluation Rubrics (`src/rubric_evolution.py`)**:
   * `SelfEvolvingRubricEngine` scores workspaces against four structural invariants: AST well-formedness, security posture, assertion density, and type coverage.
 * **Empirical Findings & Champion Emergence**:
-  * **Champion `gen_10_mutant_3` (Score: 91.26)**: Lineage *"Hermetic AST Self-Healing & Property-Based Fuzzing Core"*. Authored **18 audited files on disk** (29 raw entries before contamination filtering) — the highest audited single-firm count in benchmark history, against a previous best of 10 — at the second-lowest cost in the cohort ($0.3140). Build: PASS, Smoke: PASS, Telemetry: PASS, Tests: FAIL (−6.25 penalty).
-  * **First Zero-Penalty Four-Gate Clearance in Benchmark History**: `gen_10_consensus_1` (89.23) passed Build, Smoke, Tests, **and** Telemetry simultaneously (`score_penalty = 0.0`, 4/4 tests, pass rate 1.0). No firm across Generations 1–9 had ever cleared all four gates.
+  * **Champion `gen_10_mutant_3` (Score: 91.26)**: Lineage *"Hermetic AST Self-Healing & Property-Based Fuzzing Core"*. Authored **18 audited files on disk** (29 raw entries before contamination filtering) — the highest audited single-firm count in benchmark history, against a previous best of 10 — at the second-lowest cost in the cohort ($0.3140). Legacy gates: Build PASS, Smoke PASS, Telemetry PASS, Tests FAIL (−6.25). Executed, it is the best-verified champion in the project so far at **3/5** — Syntax PASS (all files parse), Build PASS (editable install succeeded), Telemetry PASS (2 imports, 8 span call sites), Tests FAIL, Smoke SKIPPED (uninstalled third-party deps).
+  * **~~First Zero-Penalty Four-Gate Clearance in Benchmark History~~ — RETRACTED**: `gen_10_consensus_1` (89.23) recorded `score_penalty = 0.0` under the legacy verifier, but the clearance does not survive execution. Real pytest returns `ERROR tests/test_agent_failure_introspection.py | ERROR tests/test_economic_attack.py`, and the firm has **no `opentelemetry` import in any authored Python file** — the legacy telemetry gate passed it on the CEO's prose. Executed, it is **3/5**. What is genuine and worth keeping: a clean **4/4 module import**, the only perfect smoke result in Generation 10. See [§2.1](#21-execution-grounded-re-verification-generations-5-10-n60).
   * **All-Time Cohort Records**: Mean net fitness **84.52** (previous best 81.34, Gen 5) and mean audited artifact density **7.7 authored files/firm** (previous best 6.0, Gen 8). Mean cost held roughly flat at $0.4337 despite a 51% increase in audited artifact output over Gen 9. Note that under audited counts the artifact trend is *not* monotonic — Gen 9 (5.1) sits below Gen 8 (6.0).
   * **Larger Topologies Did Not Win**: The three highest-headcount firms (41, 37, 37 agents) finished 7th, 8th, and 10th; all four top finishers ran the 5-pod / 34-agent configuration.
   * See the full empirical report in the [Generation 10 Experiment Report](exp-012-parallel-gen10/experiment_report.md).

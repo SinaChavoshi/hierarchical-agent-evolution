@@ -59,10 +59,16 @@ workspace files** (of 29 raw entries), the highest audited count in the
 benchmark's history — the previous best was 10 (`gen_8`) — at the second-lowest
 cost in the cohort ($0.3140).
 
-**Zero-penalty milestone: `gen_10_consensus_1`** — the first firm across all ten
-generations to pass Build, Smoke, Tests, *and* Telemetry simultaneously
-(penalty −0.00, 4/4 tests passing, pass rate 1.0). It also wrote the most Python
-modules in the cohort (6) alongside `gen_10_mutant_2`.
+**~~Zero-penalty milestone: `gen_10_consensus_1`~~ — RETRACTED.** Recorded
+penalty −0.00 under the legacy verifier, the first such result in ten
+generations, but the clearance **does not survive execution**. Real pytest
+returns `ERROR tests/test_agent_failure_introspection.py | ERROR
+tests/test_economic_attack.py`, and the firm has no `opentelemetry` import in any
+authored Python file — the legacy telemetry gate passed it on the CEO's prose.
+Executed, it is **3/5**: Syntax PASS, Build PASS, Smoke **4/4 modules imported**
+(the only perfect smoke result in Gen 10), Tests FAIL, Telemetry FAIL. It did
+write the most Python modules in the cohort (6) alongside `gen_10_mutant_2`. See
+[`execution_grounded_correction.md`](../execution_grounded_correction.md).
 
 ## 3. Cohort Statistics vs. Prior Generations
 
