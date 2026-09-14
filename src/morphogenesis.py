@@ -80,7 +80,8 @@ class MorphogenesisEngine:
                         backstory="Compiler engineer and test fixture architect.",
                         backstory_traits=["Zero-tolerance for flakey assertions", "Generates comprehensive edge-case inputs"],
                         temperature=0.1,
-                        model_tier="worker"
+                        model_tier="worker",
+                        tools_enabled=True
                     ),
                     AgentGenome(
                         role="Sandbox Fault-Injection Specialist",
@@ -88,7 +89,8 @@ class MorphogenesisEngine:
                         backstory="SRE red-teamer dedicated to proving software resilience.",
                         backstory_traits=["Simulates network dropouts and missing packages", "Hardens exception recovery pathways"],
                         temperature=0.2,
-                        model_tier="worker"
+                        model_tier="worker",
+                        tools_enabled=True
                     )
                 ]
             )
@@ -109,7 +111,8 @@ class MorphogenesisEngine:
                                 "Never alters working tests, only fixes implementation deficiencies"
                             ],
                             temperature=0.1,
-                            model_tier="worker"
+                            model_tier="worker",
+                            tools_enabled=True
                         )
                     )
                     break

@@ -26,6 +26,28 @@ COST_TABLE = {
     "vllm": {"input_per_1k": 0.0, "output_per_1k": 0.0},
 }
 
+# Capability keywords that mark a department as one which must be granted real
+# filesystem/shell tools. Derived from the department's identity rather than a
+# hardcoded id list so that pods invented by MorphogenesisEngine (which cannot be
+# enumerated ahead of time) are still able to author artifacts instead of prose.
+TECHNICAL_DEPT_KEYWORDS = (
+    "engineering", "systems_eng", "qa", "redteam", "red_team", "red team",
+    "verification", "formal", "test", "security", "infra", "platform",
+    "sre", "devops", "implementation", "acceleration", "compiler",
+)
+
+def is_technical_department(dept: DepartmentGenome) -> bool:
+    """Returns True if a department should be granted active workspace tools.
+
+    Membership is inferred from the department's id, name, and mandate so that
+    dynamically synthesized topologies are classified correctly.
+    """
+    dept_text = f"{dept.dept_id} {dept.name} {dept.mandate}".lower()
+    if any(kw in dept_text for kw in TECHNICAL_DEPT_KEYWORDS):
+        return True
+    # A department is also technical if its genome explicitly enables tools.
+    return any(bool(agent.tools_enabled) for agent in dept.agents)
+
 def parse_tool_action(text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
     """Parses ReAct tool actions from agent response."""
     action_match = re.search(r"Action:\s*(write_file|read_file|execute_bash|list_files|finish)", text, re.IGNORECASE)
@@ -247,7 +269,7 @@ class HierarchicalCompanyRunner:
 
     def _run_department_pod(self, dept: DepartmentGenome, ceo_directive: str) -> Tuple[str, str]:
         """Runs a department's operational agents and manager synthesis."""
-        is_technical = dept.dept_id in ["dept_systems_eng", "dept_qa_redteam"]
+        is_technical = is_technical_department(dept)
         pod_context = ""
         if self.licensed_assets_text:
             pod_context += self.licensed_assets_text + "\n\n"

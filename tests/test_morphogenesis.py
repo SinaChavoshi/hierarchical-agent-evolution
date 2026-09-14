@@ -1,7 +1,9 @@
 """Unit tests for MorphogenesisEngine and StructuralCrossoverEngine."""
 
+import random
 import unittest
 from src.schema import CompanyGenome, AgentGenome, DepartmentGenome
+from src.company import is_technical_department
 from src.morphogenesis import MorphogenesisEngine, StructuralCrossoverEngine, classify_department_role
 
 class TestMorphogenesis(unittest.TestCase):
@@ -60,6 +62,53 @@ class TestMorphogenesis(unittest.TestCase):
         self.assertEqual(child.company_id, "child_recombinant")
         self.assertEqual(len(child.parent_ids), 2)
         self.assertTrue(len(child.departments) >= 1)
+
+    def test_technical_department_classification(self):
+        """Engineering/verification pods get tools; pure-prose pods do not."""
+        self.assertTrue(is_technical_department(self.dept_eng))
+        self.assertTrue(is_technical_department(self.dept_qa))
+
+        strategy_agent = AgentGenome(
+            role="Market Analyst", goal="Analyze", backstory="Strategy",
+            temperature=0.7, model_tier="worker"
+        )
+        dept_strategy = DepartmentGenome(
+            dept_id="dept_market_strategy",
+            name="Market & Strategic Intelligence",
+            mandate="Assess competitive positioning and growth opportunities",
+            manager=strategy_agent,
+            agents=[strategy_agent]
+        )
+        self.assertFalse(is_technical_department(dept_strategy))
+
+        # An explicit tools_enabled genome overrides the keyword heuristic.
+        tooled_agent = AgentGenome(
+            role="Market Analyst", goal="Analyze", backstory="Strategy",
+            temperature=0.7, model_tier="worker", tools_enabled=True
+        )
+        dept_strategy.agents = [tooled_agent]
+        self.assertTrue(is_technical_department(dept_strategy))
+
+    def test_morphogenesis_spawns_tool_enabled_pods(self):
+        """Every department morphogenesis can produce must be able to author files.
+
+        Regression guard: synthesized pods previously had tools_enabled unset,
+        making them phenotypically inert -- they burned tokens on prose while
+        being unable to write a single artifact.
+        """
+        engine = MorphogenesisEngine()
+        for seed in range(30):
+            random.seed(seed)
+            morphed = engine.morph_genome_topology(
+                self.genome_a, "Tool Expression Probe", 9, f"child_{seed}"
+            )
+            for dept in morphed.departments:
+                if dept.dept_id in ("dept_market_strategy", "dept_product_ux", "dept_finance_ops"):
+                    continue
+                self.assertTrue(
+                    is_technical_department(dept),
+                    f"seed={seed}: department '{dept.dept_id}' cannot write files"
+                )
 
 if __name__ == "__main__":
     unittest.main()
