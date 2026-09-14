@@ -239,3 +239,105 @@ The fitness function then picked the one firm in the cohort that didn't work.
    0/5 profile been visible.
 5. **Generation 11 must be bred under the harness**, not the legacy verifier,
    or this correction will simply need to be repeated.
+
+---
+
+## 6. Re-scoring the archive under the rebuilt fitness function
+
+Sections 2–4 report what the *gates* say. This section asks the sharper
+question: **what would the leaderboard have looked like if the score had ever
+been coupled to whether the code ran?**
+
+`src/evaluator.py` has been rebuilt (see §5). The rubric is now:
+
+| Dimension | Old weight | New weight | Source |
+| :--- | :---: | :---: | :--- |
+| `strategic_depth` | 25% | 20% | LLM judge |
+| `technical_feasibility` | 25% | 20% | LLM judge |
+| `cross_functional_coherence` | 20% | **10%** | LLM judge |
+| `risk_mitigation` | 15% | 10% | LLM judge |
+| `actionability_and_synthesis` | 15% | **10%** | LLM judge |
+| **`execution_integrity`** | — | **30%** | **Measured by the harness** |
+
+Coherence and actionability are demoted because they are saturated: both sat at
+a mean of 99.0 with σ 1.67 across Generation 10 while carrying 35% of the weight
+between them. `execution_integrity` is computed deterministically from gate
+results — tests 30, syntax 20, smoke 20, build 15, telemetry 15, renormalised
+over evaluable gates — and the judge is explicitly told it cannot see or predict
+it.
+
+Applying this to all 60 archived firms, using each scorecard's own per-dimension
+judge scores and the executed gate results from §2 — no re-runs, no new
+inference:
+
+Reproduce with `PYTHONPATH=. python3 scripts/rescore_under_new_rubric.py`.
+Output: [`rubric_rescore.json`](rubric_rescore.json).
+
+### 6.1 Five of six champions change
+
+| Gen | Champion we bred | Its rank under the rebuilt rubric | Champion we *should* have bred | Δ |
+| :---: | :--- | :---: | :--- | :---: |
+| Gen 5 | `gen_5_mutant_3` (91.93) | **#1** of 10 ✅ | `gen_5_mutant_3` (87.15) | — |
+| Gen 6 | `gen_6_elite_1` (91.87) | #3 | `gen_6_consensus_3` (80.22) | −13.27 |
+| Gen 7 | `gen_7_mutant_1` (82.70) | #5 | `gen_7_pareto_bonus_1` (85.05) | −10.40 |
+| Gen 8 | `gen_8_pareto_bonus_2` (79.89) | #9 | `gen_8_consensus_2` (76.30) | −15.27 |
+| Gen 9 | `gen_9_consensus_1` (87.68) | **#10 of 10** | `gen_9_pareto_bonus_2` (86.00) | **−22.38** |
+| Gen 10 | `gen_10_mutant_3` (91.26) | #2 | `gen_10_elite_1` (89.10) | −4.91 |
+
+This is the most consequential finding in the correction. The champions were not
+merely mis-ranked — **in Generation 9 the firm we selected as the sole parent of
+the next generation was the worst firm in its cohort**, at `execution_integrity`
+0.0. Generation 8's champion ranked ninth of ten. Every genome bred from
+Generation 6 onward descends from a lineage chosen this way.
+
+Only Generation 5's champion survives selection under the honest function, and
+Generation 10's is close, at #2.
+
+### 6.2 The two rubrics agree only moderately
+
+`corr(legacy_net, rubric_score)` over 60 firms = **+0.650**. Substantial overlap
+— prose quality and code quality are not independent — but 58% of the ranking
+variance is unexplained, which is where the five champion changes come from.
+
+Largest movers:
+
+| Firm | Gen | Legacy | Rebuilt | `execution_integrity` | Δ |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| `gen_9_consensus_1` | 9 | 87.68 | 65.30 | **0.0** | **−22.38** |
+| `gen_5_consensus_2` | 5 | 85.13 | 63.50 | **0.0** | −21.63 |
+| `gen_8_pareto_bonus_2` | 8 | 79.89 | 64.62 | 18.75 | −15.27 |
+| `gen_8_mutant_1` | 8 | 60.90 | 47.40 | 0.0 | −13.50 |
+| `gen_6_elite_1` | 6 | 91.87 | 78.60 | 35.0 | −13.27 |
+| `gen_9_elite_1` | 9 | 69.39 | **82.90** | 55.0 | **+13.51** |
+| `gen_9_pareto_bonus_2` | 9 | 75.17 | **86.00** | **70.0** | +10.83 |
+| `gen_8_consensus_1` | 8 | 58.38 | 69.30 | 40.0 | +10.92 |
+| `gen_7_pareto_bonus_2` | 7 | 48.69 | 59.12 | 43.75 | +10.43 |
+| `gen_5_mutant_1` | 5 | 75.87 | 86.25 | 62.5 | +10.38 |
+
+The pattern is clean: firms that wrote working code and described it plainly
+were undervalued; firms that wrote a compelling memo over dead code were
+overvalued by up to 22 points.
+
+### 6.3 The trend is still flat
+
+| Gen | Legacy mean | Rebuilt mean |
+| :---: | :---: | :---: |
+| Gen 5 | 81.34 | 77.04 |
+| Gen 6 | 72.25 | 70.07 |
+| Gen 7 | 70.36 | 71.69 |
+| Gen 8 | 68.98 | 67.05 |
+| Gen 9 | 73.24 | 75.92 |
+| Gen 10 | 84.52 | 77.30 |
+
+Trend: **+0.41 points/generation** under the rebuilt rubric versus +0.50 under
+the legacy one. Correcting the fitness function does not retroactively produce
+improvement that was not there. It makes the absence of improvement legible, and
+it explains the mechanism: for five of six generations we bred from the wrong
+parent.
+
+> [!NOTE]
+> The rebuilt scores are **not** a new official leaderboard for Generations
+> 5–10. They are a counterfactual computed from archived judge scores under new
+> weights. The judge's prompt also changed — it is now told to use the full
+> 0–100 range and not to credit claimed testing — so live Generation 11 scores
+> will differ from this counterfactual as well as from the legacy series.

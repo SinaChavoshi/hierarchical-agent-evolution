@@ -141,7 +141,49 @@ Raw data: [`execution_grounded_fitness.json`](execution_grounded_fitness.json).
 > penalty, so a firm that executes less code can score higher. Compare gate pass
 > rates, not nets.
 
-### 2.2 Visual Performance Trajectory
+### 2.2 Counterfactual: Five of Six Champions Change Under the Rebuilt Rubric
+
+`src/evaluator.py` has been rebuilt. `execution_integrity` — measured by the
+harness, invisible to the judge — is now **30% of the rubric and its single
+heaviest dimension**. The two saturated judged dimensions (coherence and
+actionability, both at mean 99.0 / σ 1.67 in Gen 10) drop from a combined 35% to
+20%. The silent `70/70/70/65/70` fallback that admitted failed evaluations into
+the breeding pool is gone.
+
+Applying the new weights to all 60 archived firms — using each scorecard's own
+judge scores and the executed gates above, no re-runs — re-ranks the archive:
+
+| Gen | Champion we bred | Its rank under the rebuilt rubric | Champion we *should* have bred |
+| :---: | :--- | :---: | :--- |
+| Gen 5 | `gen_5_mutant_3` (91.93) | **#1** of 10 ✅ | `gen_5_mutant_3` (87.15) |
+| Gen 6 | `gen_6_elite_1` (91.87) | #3 | `gen_6_consensus_3` (80.22) |
+| Gen 7 | `gen_7_mutant_1` (82.70) | #5 | `gen_7_pareto_bonus_1` (85.05) |
+| Gen 8 | `gen_8_pareto_bonus_2` (79.89) | #9 | `gen_8_consensus_2` (76.30) |
+| Gen 9 | `gen_9_consensus_1` (87.68) | **#10 of 10** | `gen_9_pareto_bonus_2` (86.00) |
+| Gen 10 | `gen_10_mutant_3` (91.26) | #2 | `gen_10_elite_1` (89.10) |
+
+> [!CAUTION]
+> **In Generation 9 the firm selected as the sole parent of the next generation
+> was the worst firm in its cohort** (`execution_integrity` = 0.0 — nothing
+> parses, installs, imports, tests, or instruments). Generation 8's champion
+> ranked ninth of ten. Every genome bred from Generation 6 onward descends from
+> a lineage chosen this way.
+
+`corr(legacy_net, rebuilt_score)` = **+0.650** over 60 firms. The cohort-mean
+trend is **+0.41 points/generation** under the rebuilt rubric against +0.50
+under the legacy one — correcting the fitness function does not manufacture
+improvement that was not there, it explains why there wasn't any.
+
+Details, per-firm deltas and the largest movers:
+[`execution_grounded_correction.md` §6](execution_grounded_correction.md#6-re-scoring-the-archive-under-the-rebuilt-fitness-function).
+Reproduce: `PYTHONPATH=. python3 scripts/rescore_under_new_rubric.py`.
+
+> [!NOTE]
+> These are a **counterfactual**, not a new official leaderboard for Gens 5-10.
+> The judge prompt also changed, so live Generation 11 scores will differ from
+> both series.
+
+### 2.3 Visual Performance Trajectory
 
 The chart below contrasts the legacy unconstrained semantic search trajectory with the grounded deterministic sandbox verification trajectory:
 
@@ -175,7 +217,7 @@ graph LR
 
 ---
 
-### 2.3 Detailed Multi-Objective Score Breakdown
+### 2.4 Detailed Multi-Objective Score Breakdown
 
 $$
 \mathcal{F}(\mathcal{C}) = \left[ w_s S + w_t T + w_c C + w_r R + w_a A \right] - \mathcal{P}_{\text{sandbox}}
@@ -405,18 +447,31 @@ kubectl apply -f k8s/parallel-indexed-job-gen6-east4.yaml
 
 ## 12. Future Evolutionary Roadmap: Generation 11 and Beyond
 
-### 12.1 Next Milestone: Grounded Execution Fitness (pre-Generation 11)
+### 12.1 Grounded Execution Fitness (pre-Generation 11)
 
-Prioritized ahead of new capability work, on the evidence gathered in Generation 10:
+Prioritized ahead of new capability work on the evidence gathered in Generation 10.
 
-* **Real Execution Harness**: Replace the heuristic gates in `src/sandbox_verifier.py` with genuine venv install, import smoke test, `pytest --json-report`, and live OpenTelemetry span counting.
-* **Full Retroactive Backfill**: Re-score all 60 archived scorecards (Generations 5–10) against the new harness. Every scorecard retains its complete `run_output.workspace_files` payload, so this requires **no re-runs and no additional inference cost** — yielding the benchmark's first execution-grounded cross-generation trajectory.
-* **Judge Rubric Repair**: Add an execution dimension; remove or re-weight the two saturated dimensions (coherence, actionability); eliminate the silent `70/70/70/65/70` fallback in `src/evaluator.py` that currently lets failed evaluations enter the breeding pool undetected.
-* **Measured Telemetry**: Record real `usageMetadata` token counts instead of the `len(text)/4` estimate that currently biases the efficiency bonus and cost penalty.
-* **Operational Hardening**: Fix Vertex OAuth refresh (Workload Identity via metadata server, cache with expiry, 401 → force re-fetch), which caused mid-tournament firm failures requiring manual retries in both Generation 9 and Generation 10.
+**Done:**
 
-### 12.2 Deferred Capability Track: Generation 11
+* ✅ **Real Execution Harness** — [`src/execution_harness.py`](../src/execution_harness.py). Five gates that run the code: `ast.parse`, real `pip install -e .`, `importlib` in a fresh interpreter, real `pytest`, and an AST telemetry check requiring both an import node and a span call site. An unevaluable gate returns **SKIPPED, never PASSED**. `src/sandbox_verifier.py` delegates to it; no heuristic gates remain.
+* ✅ **Artifact Accounting** — [`src/artifacts.py`](../src/artifacts.py). Single source of truth; `run()` no longer returns an unfiltered bundle. Published file counts were inflated 42–59%.
+* ✅ **Full Retroactive Backfill** — all 60 archived scorecards re-scored in-container. See [§2.1](#21-execution-grounded-re-verification-generations-5-10-n60). Telemetry 55/60 → 15/60; 19 firms shipped unparseable Python.
+* ✅ **Judge Rubric Repair** — `execution_integrity` at 30%, the heaviest dimension; coherence + actionability cut 35% → 20%; the silent `70/70/70/65/70` fallback replaced by an explicit `evaluation_failed` at 0.0. See [§2.2](#22-counterfactual-five-of-six-champions-change-under-the-rebuilt-rubric).
+* ✅ **Morphogenesis Phenotype Fix** — spawned verification pods could not write files; 127 → 139 of 279 agents tool-enabled.
 
-Resumes once the fitness function is grounded, so that measured gains are attributable to genuine capability rather than proxy drift.
+**Remaining before Generation 11 is bred:**
+
+* **Container Image Rebuild** — the current image predates `src/artifacts.py`, `src/execution_harness.py` and the `sandbox_env` cache-exclusion fix, and Generation 10 was run by mounting four `.py` files over it via the `gen10-code` ConfigMap. The image does not reproduce its own run. Rebuild and retire the ConfigMap patching pattern.
+* **Measured Telemetry** — record real `usageMetadata.promptTokenCount` / `candidatesTokenCount` instead of the `len(text)/4` estimate in `src/company.py`, which biases both the efficiency bonus and the cost penalty. `src/llm_factory.py` already receives this data and discards it.
+* **Operational Hardening** — fix Vertex OAuth refresh (Workload Identity via metadata server, cache with expiry, 401 → force re-fetch). Caused mid-tournament firm failures requiring manual retries in both Generation 9 and Generation 10.
+
+### 12.2 Generation 11
+
+Resumes once the remaining items above land, so that measured gains are attributable to genuine capability rather than proxy drift.
+
+> [!IMPORTANT]
+> **Generation 11 must not be bred from `exp-012-parallel-gen10/top_5_survivor_genomes.json` as it stands.** That file ranks survivors by legacy net fitness, and [§2.2](#22-counterfactual-five-of-six-champions-change-under-the-rebuilt-rubric) shows that ranking put the wrong firm first in five of six generations. Re-derive the survivor set from [`rubric_rescore.json`](rubric_rescore.json), under which Generation 10's champion is `gen_10_elite_1` (89.10), not `gen_10_mutant_3`.
+
+Generation 11 scores will be on a new scale and are **not** comparable to Generations 1–10.
 
 
