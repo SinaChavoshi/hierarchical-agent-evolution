@@ -1,8 +1,10 @@
-crewai>=0.80.0
-crewai-tools>=0.14.0
-google-cloud-aiplatform>=1.70.0
-langchain-google-vertexai>=2.0.0
-langchain-community>=0.3.0
+# Runtime dependencies for the evolution platform.
+#
+# Deliberately small. The platform talks to Vertex over raw REST via urllib in
+# src/llm_factory.py, so no vendor SDK is needed for inference. crewai,
+# crewai-tools and langchain-google-vertexai were previously listed but were
+# reachable only from get_crewai_llm(), which nothing ever called; they have
+# been removed along with that function.
 pydantic>=2.7.0
 google-cloud-storage>=2.18.0
 pyyaml>=6.0.1
@@ -10,4 +12,11 @@ tabulate>=0.9.0
 rich>=13.7.0
 tenacity>=8.3.0
 click>=8.1.7
+
+# Required by the execution harness, not by the platform itself. The harness
+# runs candidate test suites with pytest and imports candidate modules; an
+# agent that instruments its code with OpenTelemetry must be importable for the
+# smoke gate to reach a verdict rather than skipping.
 pytest>=8.0.0
+opentelemetry-api>=1.25.0
+opentelemetry-sdk>=1.25.0

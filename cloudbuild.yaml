@@ -1,12 +1,30 @@
+# Builds the evolution platform image.
+#
+#   gcloud builds submit --config cloudbuild.yaml \
+#     --substitutions=_PROJECT_ID=gemle-gke-dev,_TAG=gen11 .
+#
+# Always build a dated or generation tag alongside `latest`. Generation 10 was
+# run against a `latest` that had since moved, so the run is not reproducible
+# from the registry.
+substitutions:
+  _PROJECT_ID: 'gemle-gke-dev'
+  _REPO: 'chavoshi-repo'
+  _TAG: 'latest'
+
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: [
-    'build',
-    '-t', 'us-central1-docker.pkg.dev/YOUR_PROJECT_ID/agent-evolution-repo/agent-evolution:latest',
-    '.'
-  ]
+  args:
+    - 'build'
+    - '-t'
+    - 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_REPO}/agent-evolution:${_TAG}'
+    - '-t'
+    - 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_REPO}/agent-evolution:latest'
+    - '.'
+
 images:
-- 'us-central1-docker.pkg.dev/YOUR_PROJECT_ID/agent-evolution-repo/agent-evolution:latest'
+- 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_REPO}/agent-evolution:${_TAG}'
+- 'us-central1-docker.pkg.dev/${_PROJECT_ID}/${_REPO}/agent-evolution:latest'
+
 options:
   logging: CLOUD_LOGGING_ONLY
   machineType: 'E2_HIGHCPU_8'
