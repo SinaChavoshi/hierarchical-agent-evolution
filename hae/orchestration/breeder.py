@@ -211,6 +211,57 @@ class Breeder:
             os.path.join(self.repo_root, self.spec.parent_scorecards))
         return ranked[: self.spec.survivors]
 
+    def seed_population(self) -> List[CompanyGenome]:
+        """The population for a generation with no ancestors.
+
+        Two of the four operators are meaningless here and saying so is the
+        whole point of this method. Crossover needs two parents; there is one.
+        Pareto extremes need per-dimension scores to be extreme on; nothing has
+        been scored yet. Filling those slots anyway would produce clones
+        labelled `crossover` and `pareto`, and the CompletenessGate classifies
+        firms by that label -- so a wiped-out operator class would be
+        undetectable precisely because the labels were fiction.
+
+        So a seeded generation has two honest classes: `elite`, meaning the
+        untouched seed, which is the control the next generation is measured
+        against; and `mutant`, topology variants that supply the initial
+        diversity. The population size the spec declares is preserved.
+        """
+        if not self.spec.seed_template:
+            raise BreedingError(
+                f"Generation {self.spec.generation} has neither "
+                "`parent_scorecards` nor `seed_template`; there is nothing to "
+                "breed from.")
+
+        path = os.path.join(self.repo_root, self.spec.seed_template)
+        if not os.path.exists(path):
+            raise BreedingError(f"seed_template not found: {path}")
+        with open(path, "r", encoding="utf-8") as fh:
+            seed = CompanyGenome.from_dict(json.load(fh))
+
+        gen = self.spec.generation
+        population: List[CompanyGenome] = []
+
+        for i in range(self.spec.elite):
+            population.append(self._with_mandate(
+                seed, f"gen_{gen}_elite_{i + 1}",
+                f"Unmodified seed from {self.spec.seed_template}"))
+
+        # Everything that is not the control is a topology variant. Counted
+        # from the spec's total so the population size stays what was declared.
+        variants = (self.spec.crossover + self.spec.pareto + self.spec.mutant)
+        for i in range(variants):
+            child = self.morphogenesis.morph_genome_topology(
+                seed,
+                mutation_name=f"Generation {gen} seed diversification {i + 1}",
+                target_generation=gen,
+                child_id=f"gen_{gen}_mutant_{i + 1}")
+            population.append(self._with_mandate(
+                child, child.company_id, "Seed topology variant"))
+
+        self._assert_distinct(population)
+        return population
+
     def _with_mandate(self, genome: CompanyGenome, company_id: str,
                       lineage: str) -> CompanyGenome:
         child = copy.deepcopy(genome)
@@ -226,6 +277,8 @@ class Breeder:
 
     def breed(self) -> List[CompanyGenome]:
         """The full population for this generation, in a deterministic order."""
+        if not self.spec.parent_scorecards:
+            return self.seed_population()
         parents = self.survivors()
         gen = self.spec.generation
         population: List[CompanyGenome] = []

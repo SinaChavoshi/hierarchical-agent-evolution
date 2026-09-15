@@ -145,3 +145,82 @@ class ControllerLoopTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SeedPopulationTest(unittest.TestCase):
+    """Generation 1 has no ancestors, and `breed()` did not handle that.
+
+    `survivors()` raised `BreedingError` pointing at a `seed_population()`
+    method that was never written, so the first generation of any campaign
+    failed before launching a single firm. Caught by attempting a real breed
+    rather than by any test -- which is why these exist.
+    """
+
+    REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def _spec(self, **over):
+        from hae.orchestration.breeder import GenerationSpec
+        base = dict(generation=1, name="seeded",
+                    seed_template="templates/default_company.json",
+                    elite=2, crossover=3, pareto=2, mutant=3,
+                    task_file="configs/tasks/self-hosting-artifacts.json")
+        base.update(over)
+        return GenerationSpec(**base)
+
+    def _breed(self, spec):
+        from hae.orchestration.breeder import Breeder
+        return Breeder(spec, repo_root=self.REPO).breed()
+
+    def test_seeded_generation_breeds(self):
+        pop = self._breed(self._spec())
+        self.assertEqual(len(pop), 10)
+
+    def test_population_size_is_preserved(self):
+        """Whatever the spec declares as the total must be what launches, even
+        though the composition differs from a descended generation."""
+        spec = self._spec(elite=1, crossover=2, pareto=1, mutant=4)
+        self.assertEqual(len(self._breed(spec)), spec.population_size)
+
+    def test_only_honest_operator_classes_are_used(self):
+        """No firm may be labelled `crossover` or `pareto` here. There is one
+        parent, so crossover is impossible, and nothing has been scored, so
+        there are no per-dimension extremes. The CompletenessGate classifies
+        by this label -- a fictional one would make a wiped-out class
+        undetectable."""
+        ids = [g.company_id for g in self._breed(self._spec())]
+        classes = {operator_class(i) for i in ids}
+        self.assertEqual(classes, {"elite", "mutant"})
+
+    def test_elites_are_the_untouched_seed(self):
+        """The control group. If the seed were mutated there would be nothing
+        to measure generation 2 against."""
+        pop = self._breed(self._spec())
+        elites = [g for g in pop if "_elite_" in g.company_id]
+        self.assertEqual(len(elites), 2)
+        for e in elites:
+            self.assertIn("Unmodified seed", " ".join(e.mutation_history))
+
+    def test_variants_actually_differ_from_the_seed(self):
+        """Diversity has to be real. Ten copies of one genome is not a
+        population, and every subsequent generation would inherit the
+        monoculture."""
+        pop = self._breed(self._spec())
+        shapes = {len(g.departments) for g in pop}
+        self.assertGreater(len(shapes), 1,
+                           f"all firms have the same topology: {shapes}")
+
+    def test_ids_are_distinct(self):
+        ids = [g.company_id for g in self._breed(self._spec())]
+        self.assertEqual(len(ids), len(set(ids)))
+
+    def test_missing_seed_template_is_refused(self):
+        from hae.orchestration.breeder import BreedingError
+        with self.assertRaises(BreedingError):
+            self._breed(self._spec(seed_template="templates/nope.json"))
+
+    def test_no_parents_and_no_seed_is_refused(self):
+        """Silently producing an empty population would launch a Job with zero
+        completions that reports success."""
+        from hae.orchestration.breeder import BreedingError
+        with self.assertRaises(BreedingError):
+            self._breed(self._spec(seed_template=""))
