@@ -250,6 +250,36 @@ class TestEvaluateWiring(unittest.TestCase):
         self.assertFalse(result.fitness.evaluation_failed)
         self.assertEqual(result.fitness.risk_mitigation, 80.0)
 
+    def test_benchmark_outcome_without_gates_weights_execution_score(self):
+        """Regression test for Issue #7: BenchmarkVerifier returns evaluable=True,
+        score=X, gate_status={}. The judge must weight score=X at 30%, never
+        drop execution and rescale prose to 100%."""
+        from hae.task.verifier import VerificationOutcome
+        v_pass = VerificationOutcome(
+            verifier="benchmark:artifacts",
+            evaluable=True,
+            score=100.0,
+            gate_status={},
+        )
+        v_zero = VerificationOutcome(
+            verifier="benchmark:artifacts",
+            evaluable=True,
+            score=0.0,
+            gate_status={},
+        )
+        res_pass, _ = run_eval([GOOD_JUDGE_REPLY], verification=v_pass)
+        res_zero, _ = run_eval([GOOD_JUDGE_REPLY], verification=v_zero)
+
+        self.assertTrue(res_pass.fitness.execution_evaluable)
+        self.assertEqual(res_pass.fitness.execution_integrity, 100.0)
+        self.assertTrue(res_zero.fitness.execution_evaluable)
+        self.assertEqual(res_zero.fitness.execution_integrity, 0.0)
+        self.assertAlmostEqual(
+            res_pass.fitness.fitness_score - res_zero.fitness.fitness_score,
+            30.0,
+            places=2,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

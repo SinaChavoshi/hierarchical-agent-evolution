@@ -164,7 +164,17 @@ class BenchmarkVerifier(Verifier):
 
     def verify(self, submission: Submission) -> VerificationOutcome:
         try:
-            result = self.benchmark.evaluate(self.task_id, submission.files)
+            task = self.benchmark.task(self.task_id)
+            # Fulfil the contract in the task prompt: "Nothing you write outside
+            # <target_module> is read." A firm running pytest inside its
+            # workspace will write scratch unit tests (`tests/test_*.py`); if
+            # the entire workspace bundle were forwarded, the benchmark's
+            # anti-tampering check would reject every firm that tested its own
+            # code -- penalising the exact behaviour V2 exists to select for.
+            target = task.target_module
+            candidate = ({target: submission.files[target]}
+                         if target in submission.files else {})
+            result = self.benchmark.evaluate(self.task_id, candidate)
         except BenchmarkError as exc:
             # The reference suite is not green, so the benchmark cannot grade
             # anyone. That is our bug, not the firm's, and it must not be

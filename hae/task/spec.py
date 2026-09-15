@@ -171,9 +171,18 @@ class Task:
         capabilities = (frozenset(caps) if caps is not None
                         else DEFAULT_CAPABILITIES)
 
+        objective = data["objective"]
+        if isinstance(verifier, BenchmarkVerifier):
+            bench_task = verifier.benchmark.task(verifier.task_id)
+            if bench_task.target_module not in objective:
+                objective = (
+                    f"{objective.rstrip()}\n\n"
+                    f"{verifier.benchmark.objective_for(verifier.task_id)}"
+                )
+
         return cls(
             task_id=data["task_id"],
-            objective=data["objective"],
+            objective=objective,
             verifier=verifier,
             budget=budget,
             capabilities=capabilities,

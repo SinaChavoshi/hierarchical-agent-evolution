@@ -192,6 +192,45 @@ def composite_score(judged: Mapping[str, float],
     return round(total, 2)
 
 
+def resolve_execution_score(verification: Any) -> Optional[float]:
+    """Resolves the measured execution score on [0, 100], or None if unevaluable.
+
+    Two kinds of verifier reach the judge:
+
+      * Gate verifiers (`ExecutionGateVerifier` / `VerificationReport`), which
+        populate `gate_status` and are weighted across the five gates via
+        `execution_integrity(gate_status)`.
+      * Direct verifiers (`BenchmarkVerifier`, `CompositeVerifier`), which
+        supply an authoritative `score` on [0, 100] with `evaluable=True` and
+        an empty `gate_status`.
+
+    Checking only `gate_status` silently discarded every benchmark score and
+    treated the run as unevaluable -- which dropped the 30% execution weight
+    and rescaled the five LLM-judged prose dimensions to 100%. Found live in
+    the in-cluster smoke firm: a submission scoring 0/7 on the held-out suite
+    received `execution_evaluable=False` and an overall fitness of 77.42.
+    """
+    if verification is None:
+        return None
+    gate_status = getattr(verification, "gate_status", None)
+    if gate_status is None and isinstance(verification, Mapping):
+        gate_status = verification.get("gate_status")
+    from_gates = execution_integrity(gate_status)
+    if from_gates is not None:
+        return from_gates
+
+    evaluable = getattr(verification, "evaluable", None)
+    score = getattr(verification, "score", None)
+    if isinstance(verification, Mapping):
+        if evaluable is None:
+            evaluable = verification.get("evaluable")
+        if score is None:
+            score = verification.get("score")
+    if evaluable is True and isinstance(score, (int, float)):
+        return _clamp(score)
+    return None
+
+
 class StrategicFitnessEvaluator:
     """Evaluates company outputs and produces structured multi-attribute scorecards."""
 
@@ -243,14 +282,12 @@ class StrategicFitnessEvaluator:
     ) -> EvaluationResult:
         """Scores a firm on five judged dimensions plus measured execution integrity.
 
-        `verification` is a `VerificationReport` from `ExecutionHarness`
-        (anything exposing `gate_status` works). Omitting it scores the firm on
+        `verification` may be a `VerificationOutcome` (from any `Verifier`), a
+        `VerificationReport` (from `ExecutionHarness`), or a dict carrying
+        `gate_status` or `evaluable`+`score`. Omitting it scores the firm on
         prose alone and sets `execution_evaluable=False` on the result.
         """
-        gate_status = getattr(verification, "gate_status", None)
-        if gate_status is None and isinstance(verification, Mapping):
-            gate_status = verification.get("gate_status")
-        exec_score = execution_integrity(gate_status)
+        exec_score = resolve_execution_score(verification)
 
         evaluation_prompt = f"""EVALUATE THIS PROPOSAL:
 

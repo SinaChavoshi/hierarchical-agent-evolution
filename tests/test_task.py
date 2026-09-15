@@ -241,6 +241,23 @@ class TaskDeclarationTest(unittest.TestCase):
         self.assertTrue(t.allows("workspace.read"))
         self.assertFalse(t.allows("workspace.shell"))
 
+    def test_benchmark_verifier_allows_firm_to_write_own_scratch_tests(self):
+        """Regression test for Issue #8: BenchmarkVerifier projects submission
+        files down to target_module so a firm writing tests/test_scratch.py in
+        its workspace is graded on target_module rather than rejected."""
+        from hae.task.verifier import BenchmarkVerifier, Submission
+        with open("hae/evaluation/artifacts.py", "r", encoding="utf-8") as fh:
+            real_artifacts = fh.read()
+        verifier = BenchmarkVerifier("artifacts")
+        submission = Submission(files={
+            "hae/evaluation/artifacts.py": real_artifacts,
+            "tests/test_my_scratch.py": "def test_scratch(): assert True\n",
+            "README.md": "We wrote tests!",
+        })
+        outcome = verifier.verify(submission)
+        self.assertTrue(outcome.evaluable)
+        self.assertEqual(outcome.score, 100.0)
+
 
 if __name__ == "__main__":
     unittest.main()

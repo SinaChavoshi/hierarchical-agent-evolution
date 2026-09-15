@@ -206,6 +206,91 @@ def module_docstring(path: str) -> str:
     return ast.get_docstring(tree) or ""
 
 
+def module_specification(path: str) -> str:
+    """Full specification for reimplementing `path`: docstring + public API contract.
+
+    Extracts the module docstring plus a stub of all public top-level constants,
+    functions, and classes (with signatures, docstrings, and bodies replaced by
+    `...`) so firms know the exact names and signatures imported by held-out
+    tests without leaking implementation details.
+    """
+    import ast
+
+    tree = ast.parse(_read(path), filename=path)
+    doc = ast.get_docstring(tree) or ""
+    stubs: List[ast.stmt] = []
+
+    def _stub_body(node: ast.AST) -> List[ast.stmt]:
+        d = ast.get_docstring(node, clean=False)
+        body: List[ast.stmt] = []
+        if d is not None:
+            body.append(ast.Expr(value=ast.Constant(value=d)))
+        body.append(ast.Expr(value=ast.Constant(value=Ellipsis)))
+        return body
+
+    for node in tree.body:
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = (node.targets if isinstance(node, ast.Assign)
+                       else [node.target])
+            if any(isinstance(t, ast.Name) and not t.id.startswith("_")
+                   for t in targets):
+                stubs.append(node)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if not node.name.startswith("_"):
+                stub_fn = type(node)(
+                    name=node.name,
+                    args=node.args,
+                    body=_stub_body(node),
+                    decorator_list=node.decorator_list,
+                    returns=node.returns,
+                )
+                ast.fix_missing_locations(stub_fn)
+                stubs.append(stub_fn)
+        elif isinstance(node, ast.ClassDef):
+            if not node.name.startswith("_"):
+                class_body: List[ast.stmt] = []
+                cdoc = ast.get_docstring(node, clean=False)
+                if cdoc is not None:
+                    class_body.append(ast.Expr(value=ast.Constant(value=cdoc)))
+                for item in node.body:
+                    if isinstance(item, (ast.Assign, ast.AnnAssign)):
+                        class_body.append(item)
+                    elif isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        if (not item.name.startswith("_")
+                                or item.name == "__init__"):
+                            stub_method = type(item)(
+                                name=item.name,
+                                args=item.args,
+                                body=_stub_body(item),
+                                decorator_list=item.decorator_list,
+                                returns=item.returns,
+                            )
+                            ast.fix_missing_locations(stub_method)
+                            class_body.append(stub_method)
+                if not class_body:
+                    class_body.append(ast.Expr(value=ast.Constant(value=Ellipsis)))
+                stub_cls = ast.ClassDef(
+                    name=node.name,
+                    bases=node.bases,
+                    keywords=node.keywords,
+                    body=class_body,
+                    decorator_list=node.decorator_list,
+                )
+                ast.fix_missing_locations(stub_cls)
+                stubs.append(stub_cls)
+
+    stub_module = ast.Module(body=stubs, type_ignores=[])
+    contract = ast.unparse(stub_module) if stubs else ""
+    if contract:
+        return (
+            f"{doc}\n\n"
+            "PUBLIC API CONTRACT (your implementation must define these exact "
+            "constants, functions, and classes with matching signatures):\n"
+            f"```python\n{contract}\n```"
+        )
+    return doc
+
+
 class SelfHostingBenchmark:
     """Grades submissions by running this repository's own held-out tests."""
 
@@ -236,7 +321,7 @@ class SelfHostingBenchmark:
     def objective_for(self, task_id: str) -> str:
         """The full prompt for a task, with its specification and context."""
         task = self.task(task_id)
-        spec = module_docstring(os.path.join(self.repo_root, task.target_module))
+        spec = module_specification(os.path.join(self.repo_root, task.target_module))
         context = {rel: _read(os.path.join(self.repo_root, rel))
                    for rel in task.visible_context}
         objective = task.objective(spec, context)

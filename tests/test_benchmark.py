@@ -142,5 +142,21 @@ class TestGradingRefusesOnABrokenReference(unittest.TestCase):
                                       "failures": [], "stderr": ""})
 
 
+class TestObjectiveContractSpecification(unittest.TestCase):
+    """Regression test for Issue #9: objective must specify the exact target
+    module path and public API signatures imported by held-out tests."""
+
+    def test_objective_includes_target_path_and_api_contract_without_oracle_leak(self):
+        bench = SelfHostingBenchmark()
+        obj = bench.objective_for("artifacts")
+        self.assertIn("hae/evaluation/artifacts.py", obj)
+        self.assertIn("PUBLIC API CONTRACT", obj)
+        for name in ("EXCLUDED_DIR_SEGMENTS", "EXCLUDED_DIR_SUFFIXES",
+                     "sanitize_path", "filter_bundle", "partition_bundle",
+                     "count_source_files", "is_generated_path", "is_malformed_path"):
+            self.assertIn(name, obj, f"API contract missing {name}")
+        self.assertNotIn("tests/test_artifacts.py", obj)
+
+
 if __name__ == "__main__":
     unittest.main()
