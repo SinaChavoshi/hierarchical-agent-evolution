@@ -61,9 +61,13 @@ class GenerationSpec:
     # Injected into every CEO's system_instructions. Cohort context, not a fix:
     # it names what previous generations failed at, never how to fix it.
     mandate: str = ""
-    # Either free-form prose or a self-hosting benchmark task id.
+    # Exactly one of these three declares what the generation is asked to do.
+    # `task_file` is the V2 form: it binds the objective to its verifier, its
+    # spend ceiling and its action space, rather than leaving those three to be
+    # configured somewhere else and hoped about.
     objective: str = ""
     benchmark_task: str = ""
+    task_file: str = ""
 
     @property
     def population_size(self) -> int:
@@ -81,12 +85,17 @@ class GenerationSpec:
                 "ignored setting is a generation that did not do what its "
                 "config says it did.")
         spec = cls(**data)
-        if not spec.objective and not spec.benchmark_task:
+        declared = [k for k in ("objective", "benchmark_task", "task_file")
+                    if getattr(spec, k)]
+        if not declared:
             raise BreedingError(
-                f"{path} sets neither `objective` nor `benchmark_task`.")
-        if spec.objective and spec.benchmark_task:
+                f"{path} declares no work: set one of `task_file` (preferred), "
+                f"`benchmark_task`, or `objective`.")
+        if len(declared) > 1:
             raise BreedingError(
-                f"{path} sets both `objective` and `benchmark_task`; pick one.")
+                f"{path} sets {declared}; pick exactly one. Two sources for "
+                f"the objective is two objectives, and only one of them ends "
+                f"up in front of the firms.")
         return spec
 
 

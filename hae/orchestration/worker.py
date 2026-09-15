@@ -10,10 +10,10 @@ from typing import Dict, Any, Optional, List
 from hae.genome.schema import CompanyGenome, EvaluationResult
 from hae.runtime.company import HierarchicalCompanyRunner
 from hae.evaluation.judge import StrategicFitnessEvaluator
-from hae.evaluation.harness import ExecutionHarness
 from hae.infra.telemetry import ResearchLedger
 from hae.infra.preflight import run_preflight
 from hae.infra.config import EvolutionConfig
+from hae.task import Submission, Task, legacy_task
 
 def evaluate_single_firm(
     firm_index: int,
@@ -23,9 +23,20 @@ def evaluate_single_firm(
     region: str,
     gcs_bucket: str = os.environ.get("GCS_BUCKET", "YOUR_GCS_BUCKET"),
     seed_config_path: str = "templates/default_company.json",
-    population_file: Optional[str] = None
+    population_file: Optional[str] = None,
+    task: Optional[Task] = None,
+    seed_files: Optional[Dict[str, str]] = None
 ) -> Dict[str, Any]:
-    """Executes and scores an individual firm in parallel, writing results to local disk and GCS."""
+    """Executes and scores an individual firm in parallel, writing results to local disk and GCS.
+
+    `task` carries the objective, its verifier, its spend ceiling and its
+    action space. When absent the V1 task is synthesised from `objective`, so
+    an un-migrated caller behaves exactly as before.
+
+    `seed_files` is the previous generation's artifact, when the task asks for
+    carryover. The firm continues from it rather than starting empty.
+    """
+    task = task or legacy_task(objective=objective)
     os.environ["GOOGLE_CLOUD_LOCATION"] = region
     print(f"=== PARALLEL WORKER: Firm Index {firm_index} (Generation {generation}) on Region {region} ===")
 
@@ -68,13 +79,33 @@ def evaluate_single_firm(
         )
 
     print(f"---> Running {firm_genome.company_id} ({firm_genome.total_agent_count} agents)...")
-    runner = HierarchicalCompanyRunner(firm_genome)
-    run_output = runner.run(objective)
+    print(f"     {task.describe()}")
+    if seed_files:
+        print(f"     Inheriting {len(seed_files)} file(s) from the previous generation.")
 
-    # Execution gates. Runs the code the firm actually wrote.
-    report = ExecutionHarness().verify_workspace(
-        runner.workspace, run_output["final_deliverable"])
-    print(f" {report.summary()}")
+    runner = HierarchicalCompanyRunner(
+        firm_genome, budget=task.budget, seed_files=seed_files)
+    run_output = runner.run(task.objective)
+
+    if run_output.get("budget_exhausted"):
+        print(f" [BUDGET] {firm_genome.company_id} reached its ceiling; the "
+              f"deliverable is truncated. {run_output.get('budget')}")
+
+    # Ground truth, via whichever verifier this task declares. The harness runs
+    # once, inside the verifier -- running it again to build a second report
+    # would double the wall clock and invite the two copies to disagree.
+    #
+    # The judge reads `.gate_status`, which VerificationOutcome provides. A
+    # task whose verifier is not gate-shaped (a benchmark, or none) yields an
+    # empty gate_status, so the judge's `execution_integrity` dimension
+    # reports itself unevaluable rather than returning a zero that reads like
+    # a measurement.
+    outcome = task.verifier.verify(Submission(
+        files=run_output.get("workspace_files", {}),
+        deliverable_text=run_output["final_deliverable"],
+        workspace=runner.workspace,
+    ))
+    print(f" [{outcome.verifier}] {outcome.detail}")
 
     # LLM Judge Evaluation
     print(f"---> LLM Judge scoring for {company_id}...")
@@ -82,12 +113,12 @@ def evaluate_single_firm(
     eval_res = evaluator.evaluate(
         company_id=company_id,
         generation=generation,
-        objective=objective,
+        objective=task.objective,
         final_deliverable=run_output["final_deliverable"],
         departmental_briefs=run_output["departmental_briefs"],
         elapsed_seconds=run_output["elapsed_seconds"],
         token_usage=run_output["token_usage"],
-        verification=report
+        verification=outcome
     )
 
     gross_score = eval_res.fitness.fitness_score
@@ -126,7 +157,9 @@ def evaluate_single_firm(
         "evaluation_failed": getattr(eval_res.fitness, "evaluation_failed", False),
         "elapsed_seconds": eval_res.fitness.elapsed_seconds,
         "token_usage": eval_res.fitness.token_usage,
-        "verification": report.to_dict(),
+        "verification": outcome.evidence if outcome.gate_status else outcome.to_dict(),
+        "verifier_outcome": outcome.to_dict(),
+        "task": task.to_dict(),
         "opex": opex_data,
         "genome": firm_genome.to_dict(),
         "run_output": run_output,
@@ -185,6 +218,15 @@ def main():
     parser.add_argument("--gcs-bucket", type=str, default=os.environ.get("GCS_BUCKET", "YOUR_GCS_BUCKET"), help="GCS Bucket for persistent results")
     parser.add_argument("--seed-config", type=str, default="templates/default_company.json", help="Path to seed company genome template")
     parser.add_argument("--population-file", type=str, default=None, help="Path to pre-bred JSON population array")
+    parser.add_argument("--task-file", type=str, default=None,
+                        help="Task declaration (JSON): objective, verifier, "
+                             "budget and capabilities in one place. Falls back "
+                             "to --objective with the V1 defaults.")
+    parser.add_argument("--seed-files", type=str, default=None,
+                        help="JSON map of path->content to pre-populate the "
+                             "workspace with, so this firm continues from the "
+                             "previous generation's artifact instead of an "
+                             "empty directory.")
     parser.add_argument("--skip-preflight", action="store_true",
                         help="Skip the startup environment probe. Only for "
                              "offline tests; a real run should never set it.")
@@ -222,7 +264,25 @@ def main():
         print(f"[Firm {firm_idx}] Preflight OK "
               f"({len(report.checks)} checks).", flush=True)
 
+    task = Task.load(args.task_file) if args.task_file else legacy_task(
+        objective=args.objective)
+
+    seed_files = None
+    if args.seed_files:
+        with open(args.seed_files, "r", encoding="utf-8") as fh:
+            seed_files = json.load(fh)
+        if not task.carry_artifacts:
+            # Refuse rather than quietly honour it: a run that inherits work
+            # its task says it should not have inherited produces a fitness
+            # number that cannot be compared to anything.
+            raise SystemExit(
+                f"--seed-files given but task {task.task_id!r} sets "
+                f"carry_artifacts=false. Inherited work would make this "
+                f"firm's score incomparable to the rest of its generation.")
+
     evaluate_single_firm(
+        task=task,
+        seed_files=seed_files,
         firm_index=firm_idx,
         generation=args.generation,
         objective=args.objective,

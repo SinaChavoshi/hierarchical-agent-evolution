@@ -11,6 +11,7 @@ from hae.infra.llm import call_llm
 from hae.runtime.workspace import AgentWorkspace
 from hae.evaluation.artifacts import filter_bundle
 from hae.evaluation.verification_loop import VERIFY_TOOL_GUIDE, VerificationLoop
+from hae.task.budget import Budget
 
 # List token pricing per 1k tokens
 COST_TABLE = {
@@ -92,8 +93,23 @@ def parse_tool_action(text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
 class HierarchicalCompanyRunner:
     """Executes one virtual firm: CEO, department pods, workspace, and OpEx."""
 
-    def __init__(self, genome: CompanyGenome):
+    def __init__(self, genome: CompanyGenome,
+                 budget: Optional[Budget] = None,
+                 seed_files: Optional[Dict[str, str]] = None):
+        """
+        `budget`, when given, is enforced: calls are refused once the ceiling
+        is reached. V1's `genome.budget_usd` was only ever used to compute a
+        score penalty after the fact, which is a scoring opinion rather than a
+        spend limit.
+
+        `seed_files` pre-populates the workspace, so a firm can continue from
+        a previous generation's artifact instead of starting from an empty
+        directory. Off unless a Task asks for it: it changes what a fitness
+        trajectory means, and that has to be a deliberate per-experiment
+        choice rather than something that quietly starts happening.
+        """
         self.genome = genome
+        self.budget = budget
         self.flash_input_tokens = 0
         self.flash_output_tokens = 0
         self.pro_input_tokens = 0
@@ -111,18 +127,31 @@ class HierarchicalCompanyRunner:
         # written here; prose in the deliverable does not count.
         self.workspace = AgentWorkspace(company_id=self.genome.company_id)
 
+        # Inherited artifacts, recorded so the scorecard can distinguish "this
+        # firm wrote 12 files" from "this firm was handed 11 and wrote 1".
+        self.seeded_files: Dict[str, str] = dict(seed_files or {})
+        for path, content in self.seeded_files.items():
+            self.workspace.write_file(path, content)
+
         # Agents can query the same harness that scores them. One budget for
         # the whole firm, not per pod, so departments have to coordinate
         # rather than each burning attempts independently.
         self.verification_loop = VerificationLoop(self.workspace)
 
     def _account_tokens(self, is_pro: bool, prompt_text: str, system_text: str,
-                        response_text: str, usage: Dict[str, Any]) -> None:
-        """Adds one call's token usage to the running totals.
+                        response_text: str, usage: Dict[str, Any],
+                        label: str = "", reserved: bool = False) -> None:
+        """Adds one call's token usage to the running totals, and bills it.
 
         Prefers the provider's `usageMetadata`. Falls back to `len(text)/4`
         only when the provider reported nothing, and records which happened so
         the scorecard can say whether its cost figure is measured or guessed.
+
+        Billing happens here because this is the only place that knows what a
+        call actually cost. The ceiling itself is enforced before the call, in
+        `_may_call`; by the time we get here the money is already spent, so the
+        budget can overshoot by at most one call. That residual is bounded and
+        reported rather than hidden.
         """
         if usage.get("measured"):
             in_tokens = int(usage.get("prompt_tokens", 0))
@@ -144,8 +173,38 @@ class HierarchicalCompanyRunner:
             self.flash_input_tokens += in_tokens
             self.flash_output_tokens += out_tokens
 
-    def _execute_agent(self, agent: AgentGenome, prompt: str, context: str = "") -> str:
+        if self.budget is not None:
+            model = "gemini-2.5-pro" if is_pro else "gemini-2.5-flash"
+            rates = COST_TABLE[model]
+            cost = ((in_tokens / 1000.0) * rates["input_per_1k"]
+                    + (out_tokens / 1000.0) * rates["output_per_1k"])
+            self.budget.charge(cost, label=label or model, reserved=reserved)
+
+    def _may_call(self, label: str, reserved: bool = False) -> bool:
+        """Whether this firm may make another billed call.
+
+        Returns False rather than raising. A firm that hits its ceiling should
+        return a degraded deliverable built from the work it already did, not
+        lose the run -- the department pods run concurrently, and an exception
+        escaping one of them would discard the others' completed work too.
+        """
+        if self.budget is None:
+            return True
+        if self.budget.can_spend(reserved=reserved):
+            return True
+        self.budget.refuse(label)
+        return False
+
+    @staticmethod
+    def _budget_notice(what: str) -> str:
+        return (f"[BUDGET EXHAUSTED] {what} was not performed: the firm reached "
+                f"its spend ceiling. This is a truncated result, not a finding.")
+
+    def _execute_agent(self, agent: AgentGenome, prompt: str, context: str = "",
+                       reserved: bool = False) -> str:
         """Invokes a single agent without tools (fast prompt pass)."""
+        if not self._may_call(agent.role, reserved=reserved):
+            return self._budget_notice(f"{agent.role}'s contribution")
         traits_section = ""
         if hasattr(agent, "backstory_traits") and agent.backstory_traits:
             traits_section = "\nCore Operational Axioms & Behavioral Traits:\n" + "\n".join([f"- {t}" for t in agent.backstory_traits]) + "\n"
@@ -172,7 +231,8 @@ class HierarchicalCompanyRunner:
             system_instruction=system_prompt,
             usage_sink=usage
         )
-        self._account_tokens(is_pro, full_prompt, system_prompt, resp, usage)
+        self._account_tokens(is_pro, full_prompt, system_prompt, resp, usage,
+                             label=agent.role, reserved=reserved)
 
         return resp
 
@@ -226,6 +286,11 @@ class HierarchicalCompanyRunner:
         final_summary = ""
 
         for turn in range(max_turns):
+            # Checked per turn: a tool loop is exactly the shape that runs away.
+            if not self._may_call(f"{agent.role} turn {turn + 1}"):
+                final_summary = (final_summary
+                                 or self._budget_notice(f"{agent.role}'s remaining turns"))
+                break
             usage: Dict[str, Any] = {}
             step_resp = call_llm(
                 prompt=conversation_history,
@@ -235,7 +300,7 @@ class HierarchicalCompanyRunner:
                 usage_sink=usage
             )
             self._account_tokens(is_pro, conversation_history, system_prompt,
-                                 step_resp, usage)
+                                 step_resp, usage, label=agent.role)
 
             parsed = parse_tool_action(step_resp)
             if not parsed or parsed[0] == "finish":
@@ -322,8 +387,19 @@ class HierarchicalCompanyRunner:
             self.genome.ceo.model_tier = "executive"
 
         # Step 1: CEO Directive Generation
+        inherited_section = ""
+        if self.seeded_files:
+            inherited_section = (
+                f"\nINHERITED WORK PRODUCT ({len(self.seeded_files)} files):\n"
+                f"{self.workspace.get_file_tree()}\n"
+                "This is the previous generation's deliverable. Your firm's job "
+                "is to IMPROVE it, not to restart from scratch. Read what is "
+                "there before writing. Rewriting working code from zero is a "
+                "regression, not a contribution.\n")
+
         ceo_init_prompt = (
             f"As CEO, review this strategic business challenge:\n\n{objective}\n\n"
+            f"{inherited_section}"
             f"Target Token Operating Budget: ${self.genome.budget_usd:.2f} USD.\n"
             f"Break this mission into targeted directives for your {len(self.genome.departments)} departments:\n"
             + "\n".join([f"- {d.name} ({d.dept_id}): {d.mandate}" for d in self.genome.departments]) +
@@ -411,7 +487,11 @@ class HierarchicalCompanyRunner:
             f"CRITICAL REQUIREMENT: Explicitly confirm the physical artifacts in the workspace and format all code "
             f"in standard fenced code blocks tagged with '### File: <path>'."
         )
-        final_deliverable = self._execute_agent(self.genome.ceo, ceo_final_prompt)
+        # `reserved=True`: this is the call the reserve exists for. Without it
+        # a firm can spend everything on departmental work and then have no
+        # budget left to write up what it found, scoring zero for work it did.
+        final_deliverable = self._execute_agent(
+            self.genome.ceo, ceo_final_prompt, reserved=True)
 
         # Append physical workspace files if deliverable did not include them.
         # NOTE: the filtered bundle is what gets returned as `workspace_files`
@@ -492,5 +572,16 @@ class HierarchicalCompanyRunner:
             "workspace_files": workspace_bundle,
             "workspace_tree": self.workspace.get_file_tree(),
             "workspace_path": str(self.workspace.workspace_dir),
+            # Carryover provenance. Without this a firm that inherited eleven
+            # files and wrote one reports the same "12 files" as a firm that
+            # wrote twelve, and the artifact-count trend becomes meaningless
+            # the moment carryover is switched on.
+            "inherited_files": sorted(self.seeded_files),
+            "authored_files": sorted(
+                p for p in workspace_bundle
+                if p not in self.seeded_files
+                or workspace_bundle[p] != self.seeded_files.get(p)),
+            "budget": self.budget.to_dict() if self.budget else None,
+            "budget_exhausted": bool(self.budget and self.budget.overrun),
             "opex": opex.to_dict()
         }

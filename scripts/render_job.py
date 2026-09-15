@@ -24,10 +24,20 @@ PLACEHOLDER = re.compile(r"\$\{([A-Z0-9_]+)\}")
 
 
 def build_values(args, spec: GenerationSpec) -> dict:
-    if spec.benchmark_task:
+    # The objective still goes on the command line because the judge prompt
+    # needs it, but when a task file is declared it is the task's objective --
+    # there is one source, not two that can drift.
+    if spec.task_file:
+        from hae.task import Task
+        task = Task.load(os.path.join(args.repo_root, spec.task_file))
+        objective = task.objective
+        task_file = spec.task_file
+    elif spec.benchmark_task:
         objective = SelfHostingBenchmark().objective_for(spec.benchmark_task)
+        task_file = ""
     else:
         objective = spec.objective
+        task_file = ""
     return {
         "JOB_NAME": args.job_name or f"hae-v2-gen{spec.generation}-{args.region}",
         "NAMESPACE": args.namespace,
@@ -39,6 +49,7 @@ def build_values(args, spec: GenerationSpec) -> dict:
         "IMAGE": f"{args.image_repo}:{args.image_tag}",
         "REGION": args.region,
         "OBJECTIVE": objective.replace("\\", "\\\\").replace('"', '\\"'),
+        "TASK_FILE": task_file,
         "PROJECT_ID": args.project,
         "GCS_BUCKET": args.bucket,
         "WORKER_MODEL": args.worker_model,
@@ -83,6 +94,8 @@ def main() -> int:
     p.add_argument("--judge-model", default="gemini-2.5-pro")
     p.add_argument("--job-name", default=None)
     p.add_argument("--configmap", default=None)
+    p.add_argument("--repo-root", dest="repo_root", default=".",
+                   help="Root used to resolve a spec's task_file.")
     args = p.parse_args()
 
     if args.image_tag == "latest":

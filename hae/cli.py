@@ -26,22 +26,34 @@ from hae.infra.config import DEFAULT_CONFIG
 from hae.orchestration.breeder import breed_generation
 from hae.evaluation.benchmark import TASKS, SelfHostingBenchmark
 from hae.infra.preflight import run_preflight
+from hae.task import Task, legacy_task
+from hae.orchestration.controller import (
+    CompletenessGate, GenerationController, StoppingCriteria)
+from hae.orchestration.runtimes import GcsHarvest, KubernetesRuntime
 
-DEFAULT_STRATEGIC_OBJECTIVE = (
-    "Formulate an unassailable 5-year commercial and technical strategy for an enterprise "
-    "aiming to establish a next-generation hyperscale AI compute cloud (100k+ custom accelerators). "
-    "Address physical power delivery and cooling limits, high-bandwidth interconnect fabric, "
-    "enterprise developer APIs, capital expenditure financing, unit economics, and competitive "
-    "counter-moves by incumbent cloud hyperscalers."
-)
+# The V1 objective now lives with the Task that describes it, so there is one
+# copy rather than one per entry point.
+from hae.task.spec import LEGACY_OBJECTIVE as DEFAULT_STRATEGIC_OBJECTIVE
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Hierarchical Agent Evolution System")
     parser.add_argument("--mode",
                         choices=["tournament", "single-firm", "breed",
-                                 "benchmark", "preflight"],
+                                 "benchmark", "preflight", "campaign"],
                         default="tournament",
-                        help="tournament | single-firm | breed | benchmark | preflight")
+                        help="tournament | single-firm | breed | benchmark | "
+                             "preflight | campaign")
+    parser.add_argument("--specs", type=str, nargs="+", default=None,
+                        help="(--mode campaign) Generation specs to run in "
+                             "order, e.g. configs/generations/gen1.json ...")
+    parser.add_argument("--max-total-usd", type=float, default=None,
+                        help="(--mode campaign) Ceiling on total spend across "
+                             "all generations. Without it an unattended loop "
+                             "has no brake.")
+    parser.add_argument("--ledger", type=str,
+                        default="experiments/v2/ledger.json",
+                        help="(--mode campaign) Where per-generation results "
+                             "are appended.")
     parser.add_argument("--repair", action="store_true",
                         help="(--mode preflight) Re-grant missing IAM roles "
                              "before probing. Latchkey reaps them on this "
@@ -51,6 +63,14 @@ def parse_args():
                              "grant roles to. Defaults to $AGENT_GSA.")
     parser.add_argument("--skip-gcs", action="store_true",
                         help="(--mode preflight) Skip the bucket write probe.")
+    parser.add_argument("--task-file", type=str, default=None,
+                        help="Path to a task declaration (JSON). Supersedes "
+                             "--objective: binds the objective, its verifier, "
+                             "its spend ceiling and its action space together.")
+    parser.add_argument("--budget-usd", type=float, default=None,
+                        help="Hard spend ceiling for a single firm. Enforced -- "
+                             "calls are refused at the limit, unlike the genome's "
+                             "budget_usd which only adjusted the score afterwards.")
     parser.add_argument("--generation-spec", type=str, default=None,
                         help="Path to configs/generations/genNN.json (--mode breed)")
     parser.add_argument("--task", type=str, default=None,
@@ -75,6 +95,65 @@ def parse_args():
     parser.add_argument("--output-dir", type=str, default=DEFAULT_CONFIG.local_output_dir,
                         help="Directory to store outputs, transcripts, and evaluation logs")
     return parser.parse_args()
+
+def run_campaign(args) -> int:
+    """Runs generations back to back until a stopping criterion fires.
+
+    This is the unattended path. It preflights before *every* generation rather
+    than once at the start, because Latchkey reaps the IAM bindings on its own
+    schedule and a check that passed an hour ago says nothing about now.
+    """
+    if not args.specs:
+        print("--mode campaign requires --specs configs/generations/genNN.json ...")
+        return 2
+
+    task = resolve_task(args)
+    print(f"Campaign task: {task.describe()}")
+    if not task.is_verified:
+        print("REFUSING: an unattended campaign against a task with no "
+              "ground-truth verifier would optimise a judge-only score, which "
+              "saturates. Declare a verifier in the task file.")
+        return 2
+
+    bucket = DEFAULT_CONFIG.require_bucket()
+    controller = GenerationController(
+        task=task,
+        spec_paths=args.specs,
+        launch=KubernetesRuntime(),
+        harvest=GcsHarvest(bucket=bucket),
+        stopping=StoppingCriteria(
+            max_generations=len(args.specs),
+            max_total_usd=args.max_total_usd),
+        gate=CompletenessGate(),
+        preflight=lambda: run_preflight().ok,
+        ledger_path=args.ledger,
+    )
+    history = controller.run()
+
+    print("\n" + "=" * 68)
+    print(f"CAMPAIGN COMPLETE: {len(history)} generation(s)")
+    for outcome in history:
+        flag = " ABORTED" if outcome.aborted else ""
+        print(f"  gen {outcome.generation}: best={outcome.best_score} "
+              f"mean={outcome.mean_score} ${outcome.spent_usd:.2f}{flag}")
+    print("=" * 68)
+    return 1 if any(o.aborted for o in history) else 0
+
+
+def resolve_task(args) -> Task:
+    """Builds the Task for this invocation.
+
+    A declared task file wins. Otherwise we synthesise the V1 task from the
+    flags, so the default path is a Task like any other rather than a second
+    code path that bypasses verifiers, budgets and capabilities entirely.
+    """
+    if args.task_file:
+        task = Task.load(args.task_file)
+        if args.budget_usd is not None:
+            print(f"NOTE: --budget-usd ignored; {args.task_file} declares the budget.")
+        return task
+    return legacy_task(objective=args.objective, budget_usd=args.budget_usd)
+
 
 def run_preflight_mode(args) -> int:
     """Answers "can this environment run a tournament?" with real requests.
@@ -126,6 +205,8 @@ def main():
 
     if args.mode == "preflight":
         return run_preflight_mode(args)
+    if args.mode == "campaign":
+        return run_campaign(args)
     if args.mode == "breed":
         return run_breed(args)
     if args.mode == "benchmark":
@@ -150,10 +231,17 @@ def main():
     seed_genome = CompanyGenome(**seed_data)
     print(f"Loaded Seed Genome: {seed_genome.company_id} with {seed_genome.total_agent_count} virtual agents.")
 
+    task = resolve_task(args)
+    print(f"Task: {task.describe()}")
+    if not task.is_verified:
+        print("WARNING: this task has no ground-truth verifier. Its score will "
+              "be judge-only, which saturates. Do not compare it to verified "
+              "runs.")
+
     if args.mode == "single-firm":
-        print(f"\nRunning Single Firm Execution on Objective:\n{args.objective[:120]}...\n")
-        runner = HierarchicalCompanyRunner(seed_genome)
-        result = runner.run(args.objective)
+        print(f"\nRunning Single Firm Execution on Objective:\n{task.objective[:120]}...\n")
+        runner = HierarchicalCompanyRunner(seed_genome, budget=task.budget)
+        result = runner.run(task.objective)
         
         # Step 1: execution gates -- run the code the firm actually wrote.
         report = ExecutionHarness().verify_workspace(
@@ -165,7 +253,7 @@ def main():
         eval_result = evaluator.evaluate(
             company_id=seed_genome.company_id,
             generation=seed_genome.generation,
-            objective=args.objective,
+            objective=task.objective,
             final_deliverable=result["final_deliverable"],
             departmental_briefs=result["departmental_briefs"],
             elapsed_seconds=result["elapsed_seconds"],
@@ -200,7 +288,7 @@ def main():
         parallel_w = args.workers if args.runtime == "parallel-local" else 1
         print(f"\nInitiating Evolutionary Tournament ({args.population_size} firms x {args.generations} generations, Workers: {parallel_w})...")
         engine = EvolutionaryTournamentEngine(
-            objective=args.objective,
+            objective=task.objective,
             seed_genome=seed_genome,
             population_size=args.population_size,
             num_generations=args.generations,

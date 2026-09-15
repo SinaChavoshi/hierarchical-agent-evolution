@@ -102,8 +102,78 @@ class AgentWorkspace:
             pass
         return sorted(results, key=lambda x: x["path"])
 
+    #: Environment variables that must never reach agent-authored code. Each of
+    #: these is either a credential or a path to one.
+    _CREDENTIAL_ENV = (
+        "CLOUDSDK_AUTH_ACCESS_TOKEN", "GOOGLE_APPLICATION_CREDENTIALS",
+        "VERTEX_API_TOKEN", "GEMINI_API_KEY", "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN",
+        "GITHUB_TOKEN",
+    )
+
+    #: The GKE metadata server. Reachable from any pod, and under Workload
+    #: Identity it will mint an access token for the node's service account to
+    #: anyone who asks.
+    _METADATA_HOSTS = ("metadata.google.internal", "metadata", "169.254.169.254")
+
+    def _sandbox_env(self) -> Dict[str, str]:
+        """The environment agent-authored code runs in.
+
+        Two things are removed.
+
+        **Credentials in the environment.** Straightforward: the firm is asked
+        to write a Python package, and nothing about that requires our API
+        keys.
+
+        **The metadata server.** Under Workload Identity any process in the pod
+        can GET
+
+            http://169.254.169.254/computeMetadata/v1/.../token
+
+        and receive a live token for a service account holding
+        `roles/aiplatform.user` and `roles/storage.objectAdmin`.
+
+        This deployment is single-tenant: one operator, one GCP project, and
+        isolation between users comes from the project boundary rather than
+        from anything in this process. So the threat is *not* one user reaching
+        another's data. It is narrower and still worth closing:
+
+          * An LLM-authored command acting on the operator's own project by
+            accident -- deleting objects in the results bucket, or launching
+            resources -- because the credentials happened to be in reach while
+            it was trying to run pytest.
+          * Runaway spend through a path the `Budget` cannot see, since the
+            budget only meters calls this process makes.
+          * Prompt injection through *fetched content*, which becomes real the
+            moment the action space grows a web tool. The objective is trusted;
+            a web page the agent reads while pursuing it is not.
+
+        Note this is orthogonal to gVisor, which isolates the host *kernel*
+        from the workload and does nothing about a network path -- a
+        gVisor-sandboxed pod reaches 169.254.169.254 just as successfully.
+
+        `GCE_METADATA_HOST` points at a discard port so Google client libraries
+        in the sandbox fail closed instead of reaching the real endpoint. That
+        is defence in depth, not a boundary: a process can still address the
+        metadata IP directly, which is what a NetworkPolicy is for.
+        """
+        env = {k: v for k, v in os.environ.items()
+               if k not in self._CREDENTIAL_ENV}
+        env["GCE_METADATA_HOST"] = "169.254.169.254:9"   # discard port
+        env["GCE_METADATA_IP"] = "169.254.169.254:9"
+        env["GOOGLE_CLOUD_DISABLE_GRPC"] = "true"
+        env["NO_GCE_CHECK"] = "true"
+        return env
+
     def execute_bash(self, command: str, timeout: int = 30) -> Dict[str, Any]:
-        """Executes a shell command inside the workspace directory."""
+        """Executes a shell command inside the workspace directory.
+
+        Runs with a scrubbed environment; see `_sandbox_env`. `shell=True` is
+        deliberate -- the agents are asked to run `python3 -m pytest` and
+        friends -- and is safe only to the extent that the surrounding
+        isolation holds, which is exactly why the environment is scrubbed
+        rather than inherited.
+        """
         try:
             res = subprocess.run(
                 command,
@@ -111,7 +181,8 @@ class AgentWorkspace:
                 cwd=self.workspace_dir,
                 capture_output=True,
                 text=True,
-                timeout=timeout
+                timeout=timeout,
+                env=self._sandbox_env(),
             )
             return {
                 "status": "ok" if res.returncode == 0 else "failed",

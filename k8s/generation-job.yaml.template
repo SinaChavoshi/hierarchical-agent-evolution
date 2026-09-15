@@ -56,6 +56,11 @@ spec:
         - "${REGION}"
         - "--population-file"
         - "/configs/generation_${GENERATION}_population.json"
+        # The task binds the objective to its verifier, spend ceiling and
+        # action space. Baked into the image rather than mounted, so the
+        # manifest cannot disagree with the code that reads it.
+        - "--task-file"
+        - "${TASK_FILE}"
         - "--output-dir"
         - "/data/outputs"
         - "--objective"

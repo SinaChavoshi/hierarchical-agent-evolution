@@ -130,6 +130,10 @@ in [`tests/test_benchmark.py`](tests/test_benchmark.py).
 
 ```
 hae/
+├── task/                What a firm is asked to do, and on what terms
+│   ├── spec.py            Task: objective + verifier + budget + capabilities
+│   ├── verifier.py        Verifier ABC; execution-gate, benchmark, null, composite
+│   └── budget.py          Enforced spend ceiling, with a synthesis reserve
 ├── genome/              Heritable structure
 │   ├── schema.py          CompanyGenome / DepartmentGenome / AgentGenome, validated
 │   ├── breeding.py        ThreeWayBreedingEngine
@@ -137,7 +141,7 @@ hae/
 │   └── mutator.py         LLM-driven genome mutation
 ├── runtime/             Executing one firm
 │   ├── company.py         Hierarchical runner: CEO -> pods -> agents, ReAct tool loop
-│   └── workspace.py       The filesystem an agent writes into
+│   └── workspace.py       The filesystem an agent writes into (credential-scrubbed)
 ├── evaluation/          Scoring one firm
 │   ├── harness.py         Five execution gates
 │   ├── artifacts.py       What counts as an authored file
@@ -145,20 +149,17 @@ hae/
 │   ├── benchmark.py       Self-hosting benchmark (Pillar 4)
 │   └── verification_loop.py  Agents can query the harness mid-run
 ├── infra/               Cross-cutting
-│   ├── llm.py             Multi-provider inference, token cache, measured usage
-│   ├── config.py          Environment resolution; fails loud on missing settings
-│   └── telemetry.py       Research ledger
-├── orchestration/       Running a tournament
-│   ├── engine.py          Local sequential / threaded tournament
-│   ├── worker.py          One firm per Kubernetes pod
-│   └── breeder.py         Next generation from a declarative spec
-└── cli.py               tournament | single-firm | breed | benchmark
-
-configs/generations/     One JSON per generation. Declarative, not scripted.
-k8s/                     One Job template; scripts/render_job.py fills it in
-experiments/v1/          Frozen V1 archive: scorecards, genomes, scripts, manifests
-experiments/v2/          Empty. Entry criteria listed in its README.
-tests/                   158 tests, including an architectural guard
+│   ├── llm.py             Provider dispatch, token cache, usage accounting
+│   ├── config.py          Environment resolution, no placeholder defaults
+│   ├── preflight.py       Pre-launch environment checks + IAM repair
+│   └── telemetry.py
+├── orchestration/       Running many firms
+│   ├── engine.py          Local tournament engine
+│   ├── worker.py          One firm per pod (k8s entry point)
+│   ├── breeder.py         Declarative generation breeding
+│   ├── controller.py      Unattended breed -> launch -> harvest -> repeat
+│   └── runtimes.py        Kubernetes launch + GCS harvest adapters
+└── cli.py               tournament | single-firm | breed | benchmark | preflight | campaign
 ```
 
 ### 3.2 The fitness function
@@ -333,6 +334,99 @@ checks, so one unset variable reports as one error rather than four.
 > Repair requires `roles/resourcemanager.projectIamAdmin` on the *operator's*
 > credentials. It is deliberately unavailable to worker pods: a pod that can
 > grant itself IAM is a privilege escalation with extra steps.
+
+---
+
+## 5.5 Tasks, budgets and unattended campaigns
+
+### The task model
+
+A **Task** binds four things that V1 kept in four unrelated places: the
+objective, how it is checked, what it may spend, and what it may do.
+
+```json
+{
+  "task_id": "self-hosting-artifacts",
+  "objective": "Implement the artifact-filtering module ...",
+  "benchmark_task": "artifacts",
+  "budget_usd": 1.50,
+  "max_calls": 120,
+  "capabilities": ["workspace.read", "workspace.write",
+                   "workspace.shell", "workspace.verify"],
+  "max_iterations": 1,
+  "carry_artifacts": false
+}
+```
+
+Unknown keys are rejected, for the same reason `GenerationSpec` rejects them: a
+silently ignored setting is a run that did not do what its config says it did.
+
+`verifier` is an interface, not a constant. `execution-gates` (the V1 default),
+`benchmark` (a held-out test suite), `none`, or a weighted `CompositeVerifier`.
+A task declaring `"verifier": "none"` is scored by the LLM judge alone — the
+system will run it, and will say so loudly every time, because a judge-only
+score saturates and is not a measurement.
+
+### Budgets are enforced
+
+`genome.budget_usd` in V1 was consulted only to compute a score penalty *after*
+the money was spent. `Task.budget` is a ceiling: calls are refused at the limit.
+
+A reserve fraction (default 10%) is held back for the CEO's final synthesis, so
+a firm that overruns returns a **truncated** deliverable rather than none at
+all. The scorecard records `budget_exhausted` and the refusal count, so a
+truncated run is never mistaken for a considered one.
+
+### Carryover: evolving the product, not just the factory
+
+By default each generation starts from an empty workspace, so evolution
+improves the *organisation* at making one-shot attempts and the deliverable is
+discarded. With `"carry_artifacts": true`, generation N+1 starts from N's best
+workspace and the firms are told to improve it rather than restart.
+
+> [!IMPORTANT]
+> This changes what a fitness trajectory means, so it is off by default and the
+> worker **refuses** `--seed-files` when the task does not ask for it. Scorecards
+> record `inherited_files` and `authored_files` separately — without that, a
+> firm handed eleven files and writing one reports the same "12 files" as a firm
+> that wrote twelve, and every artifact-count trend becomes meaningless.
+
+### Unattended campaigns
+
+```bash
+python -m hae.cli --mode campaign \
+  --task-file configs/tasks/self-hosting-artifacts.json \
+  --specs configs/generations/gen1.json configs/generations/gen2.json \
+  --max-total-usd 200
+```
+
+The controller runs breed → launch → wait → harvest → gate → repeat, and
+preflights before **every** generation rather than once at the start, because
+Latchkey reaps IAM bindings on its own schedule.
+
+It stops on any of: generation count, total spend, wall clock, or a fitness
+plateau.
+
+#### The completeness gate
+
+Before breeding from a generation's results, the controller checks that the
+survivors are a *fair sample* of what was launched.
+
+> [!CAUTION]
+> Generation 11 is the specification for this check. Ten firms launched, three
+> crashed at genome load — and those three were `gen_11_pareto_bonus_1`,
+> `gen_11_mutant_1` and `gen_11_mutant_2`: every structurally novel topology in
+> the population. The seven survivors were elites and crossovers.
+>
+> A naive controller would have harvested the seven, written a mean to the
+> ledger as "Generation 11", and bred generation 12 from a gene pool that had
+> silently had all its exploration removed. Over a few generations that is not
+> an error — it is a collapse of diversity reported as a rising fitness curve.
+
+So a completion-rate threshold is not sufficient, and the gate also fails when
+**any breeding operator class is wiped out**, even at an acceptable overall
+rate. Losing the single mutant from a population of ten is 90% completion and a
+total loss of the exploration arm.
 
 ---
 

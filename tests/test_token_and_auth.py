@@ -78,6 +78,10 @@ class TestCompanyTokenAccounting(unittest.TestCase):
                      "pro_input_tokens", "pro_output_tokens",
                      "measured_calls", "estimated_calls", "thought_tokens"):
             setattr(self.runner, attr, 0)
+        # These tests build the runner with __new__ to avoid constructing a
+        # workspace, so anything __init__ would have set has to be set here.
+        # Accounting bills the budget, and no budget means no ceiling.
+        self.runner.budget = None
 
     def test_measured_counts_are_used_verbatim(self):
         self.runner._account_tokens(

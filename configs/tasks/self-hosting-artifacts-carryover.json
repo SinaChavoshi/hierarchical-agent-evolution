@@ -1,0 +1,19 @@
+{
+  "task_id": "self-hosting-artifacts-carryover",
+  "objective": "Implement the artifact-filtering module for the Hierarchical Agent Evolution platform. Your submission is graded by running a held-out test suite against the module you write. Nothing you write outside the target module is read, and no part of the score is awarded for describing what you built.",
+  "benchmark_task": "artifacts",
+  "budget_usd": 1.5,
+  "max_calls": 120,
+  "capabilities": [
+    "workspace.read",
+    "workspace.write",
+    "workspace.shell",
+    "workspace.verify"
+  ],
+  "max_iterations": 1,
+  "carry_artifacts": true,
+  "metadata": {
+    "set": "v2",
+    "notes": "Identical to self-hosting-artifacts except that each generation starts from the previous generation's best workspace. Run as the B arm against that task's A arm: the difference isolates whether iterating on the deliverable beats restarting it, which is the one question the V1 design could not ask."
+  }
+}
