@@ -199,9 +199,68 @@ named after them:
 A unit test cannot catch this, because each module's own tests passed. Only a
 whole-graph check can. The guard found the morphogenesis case on its first run.
 
+### 3.4 The execution sandbox
+
+Firms write code and run it. That is the entire point of the fitness function,
+and it means LLM-authored shell commands execute inside a pod that holds a
+Workload Identity binding for `roles/aiplatform.user` and
+`roles/storage.objectAdmin`.
+
+**What we found.** The sandbox used to scrub credentials from the environment
+and point `GCE_METADATA_HOST` at a discard port. Measured in-cluster, on the
+real service account, from inside the sandbox:
+
+| Probe | Result |
+|---|---|
+| `google.auth.default()` | ✅ `DefaultCredentialsError` |
+| `curl http://169.254.169.254/computeMetadata/v1/.../token` | 🔴 **HTTP 200, live `access_token`** |
+| `curl http://metadata.google.internal/...` | 🔴 **HTTP 200, `expires_in: 3587`** |
+| `urllib.urlopen` straight to the IP | 🔴 **leaked** |
+
+An environment variable binds only the callers that read it. Google's client
+libraries read it; `curl` does not. The variable was doing real work and was
+never a boundary — the mistake was treating it as one.
+
+**What closes it.** Every `execute_bash` runs inside its own empty network
+namespace:
+
+```python
+subprocess.run(["unshare", "-rn", "/bin/sh", "-c", command], shell=False, ...)
+```
+
+Removing the network entirely is stronger and simpler than blocking the one
+address we happened to think of, and unlike a NetworkPolicy it does not depend
+on the cluster's dataplane enforcing anything. Verified in-cluster:
+
+| Probe | Result |
+|---|---|
+| metadata server inside the namespace | ✅ unreachable |
+| `pytest` inside the namespace | ✅ passes |
+| loopback bind inside the namespace | ✅ works |
+
+So the isolation costs the agents nothing they use. The cost of *not* having it
+was a live cloud credential handed to generated code.
+
+**It fails closed.** Tournament pods set `HAE_REQUIRE_NETWORK_ISOLATION=1`
+([`k8s/generation-job.yaml.template`](k8s/generation-job.yaml.template)). Where
+namespaces are unavailable the sandbox refuses to execute rather than quietly
+running unisolated — a sandbox that stops sandboxing without saying so is worse
+than one that was never claimed, because the surrounding code goes on trusting
+it. Locally the flag is unset, commands still run, and every result dict
+carries `network_isolated: bool` so the record never overstates what happened.
+[`tests/test_sandbox_isolation.py`](tests/test_sandbox_isolation.py) pins all of
+this, including the metadata leak inverted into a regression test.
+
+**Not gVisor.** gVisor isolates the host *kernel* from the workload and does
+nothing about a network path; a gVisor-sandboxed pod reaches
+`169.254.169.254` just as successfully. It becomes the right tool when
+untrusted third parties supply objectives. This deployment is single-tenant, so
+the network path was the live hole and the kernel was not.
+
 ---
 
 ## 4. Results
+
 
 No V2 results exist yet. V1's results, and the corrections applied to them, are
 in [`experiments/v1/README.md`](experiments/v1/README.md). The short version:

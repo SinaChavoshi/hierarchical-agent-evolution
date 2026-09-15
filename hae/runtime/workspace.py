@@ -102,8 +102,7 @@ class AgentWorkspace:
             pass
         return sorted(results, key=lambda x: x["path"])
 
-    #: Environment variables that must never reach agent-authored code. Each of
-    #: these is either a credential or a path to one.
+    #: Environment variables that must never reach agent-authored code.
     _CREDENTIAL_ENV = (
         "CLOUDSDK_AUTH_ACCESS_TOKEN", "GOOGLE_APPLICATION_CREDENTIALS",
         "VERTEX_API_TOKEN", "GEMINI_API_KEY", "OPENAI_API_KEY",
@@ -111,51 +110,42 @@ class AgentWorkspace:
         "GITHUB_TOKEN",
     )
 
-    #: The GKE metadata server. Reachable from any pod, and under Workload
-    #: Identity it will mint an access token for the node's service account to
-    #: anyone who asks.
-    _METADATA_HOSTS = ("metadata.google.internal", "metadata", "169.254.169.254")
+    #: Cached result of probing for rootless network namespaces. Class-level so
+    #: the probe runs once per process rather than once per command.
+    _NETNS_SUPPORTED: Optional[bool] = None
+
+    @classmethod
+    def _netns_available(cls) -> bool:
+        """Whether this environment can give a command an empty network stack.
+
+        Probed once, by doing it. Asking whether `unshare` exists on PATH is a
+        different question from whether the kernel will permit an unprivileged
+        user namespace, and the two disagree on hardened hosts.
+        """
+        if cls._NETNS_SUPPORTED is None:
+            try:
+                proc = subprocess.run(
+                    ["unshare", "-rn", "true"],
+                    capture_output=True, timeout=10)
+                cls._NETNS_SUPPORTED = proc.returncode == 0
+            except Exception:
+                cls._NETNS_SUPPORTED = False
+        return cls._NETNS_SUPPORTED
 
     def _sandbox_env(self) -> Dict[str, str]:
-        """The environment agent-authored code runs in.
+        """The environment agent-authored code runs in, minus credentials.
 
-        Two things are removed.
+        This is hygiene, not a boundary, and it is important to be precise
+        about which. Measured in-cluster on the real service account:
 
-        **Credentials in the environment.** Straightforward: the firm is asked
-        to write a Python package, and nothing about that requires our API
-        keys.
+          * `google.auth.default()` inside the sandbox raises
+            `DefaultCredentialsError` -- so `GCE_METADATA_HOST` does bind code
+            that consults it, which is most client-library code.
+          * `curl http://169.254.169.254/...` inside the same sandbox returned
+            **HTTP 200 with a live access token**, as did raw `urllib`.
 
-        **The metadata server.** Under Workload Identity any process in the pod
-        can GET
-
-            http://169.254.169.254/computeMetadata/v1/.../token
-
-        and receive a live token for a service account holding
-        `roles/aiplatform.user` and `roles/storage.objectAdmin`.
-
-        This deployment is single-tenant: one operator, one GCP project, and
-        isolation between users comes from the project boundary rather than
-        from anything in this process. So the threat is *not* one user reaching
-        another's data. It is narrower and still worth closing:
-
-          * An LLM-authored command acting on the operator's own project by
-            accident -- deleting objects in the results bucket, or launching
-            resources -- because the credentials happened to be in reach while
-            it was trying to run pytest.
-          * Runaway spend through a path the `Budget` cannot see, since the
-            budget only meters calls this process makes.
-          * Prompt injection through *fetched content*, which becomes real the
-            moment the action space grows a web tool. The objective is trusted;
-            a web page the agent reads while pursuing it is not.
-
-        Note this is orthogonal to gVisor, which isolates the host *kernel*
-        from the workload and does nothing about a network path -- a
-        gVisor-sandboxed pod reaches 169.254.169.254 just as successfully.
-
-        `GCE_METADATA_HOST` points at a discard port so Google client libraries
-        in the sandbox fail closed instead of reaching the real endpoint. That
-        is defence in depth, not a boundary: a process can still address the
-        metadata IP directly, which is what a NetworkPolicy is for.
+        An environment variable only constrains callers that read it. The
+        actual boundary is the network namespace; see `execute_bash`.
         """
         env = {k: v for k, v in os.environ.items()
                if k not in self._CREDENTIAL_ENV}
@@ -166,18 +156,46 @@ class AgentWorkspace:
         return env
 
     def execute_bash(self, command: str, timeout: int = 30) -> Dict[str, Any]:
-        """Executes a shell command inside the workspace directory.
+        """Runs a shell command in the workspace, with no network.
 
-        Runs with a scrubbed environment; see `_sandbox_env`. `shell=True` is
-        deliberate -- the agents are asked to run `python3 -m pytest` and
-        friends -- and is safe only to the extent that the surrounding
-        isolation holds, which is exactly why the environment is scrubbed
-        rather than inherited.
+        The command is executed inside its own empty network namespace via
+        `unshare -rn`. Agent code here compiles Python and runs tests; it has
+        no legitimate need to reach anything. Removing the network entirely is
+        both stronger and simpler than blocking the one address we happened to
+        think of, and unlike a NetworkPolicy it does not depend on the cluster
+        enforcing one.
+
+        Verified in-cluster: the metadata server is unreachable inside the
+        namespace, while `pytest` passes and loopback still binds -- so the
+        isolation costs the agents nothing they actually use.
+
+        Under `HAE_REQUIRE_NETWORK_ISOLATION=1` (set for tournament pods) this
+        refuses to run at all when namespaces are unavailable, rather than
+        quietly executing with a live path to the metadata server. A sandbox
+        that silently stops sandboxing is worse than one that was never
+        claimed, because the surrounding code goes on trusting it.
         """
+        isolated = self._netns_available()
+        required = os.getenv("HAE_REQUIRE_NETWORK_ISOLATION") == "1"
+
+        if required and not isolated:
+            return {
+                "status": "error", "exit_code": -1, "stdout": "",
+                "stderr": ("Refusing to execute: HAE_REQUIRE_NETWORK_ISOLATION=1 "
+                           "but this host cannot create a network namespace. "
+                           "Without one, agent-authored code can read a live "
+                           "Workload Identity token from 169.254.169.254."),
+                "network_isolated": False,
+            }
+
+        # No outer shell: the command goes to /bin/sh as a single argument, so
+        # there is no second round of quoting to get wrong.
+        argv = (["unshare", "-rn", "/bin/sh", "-c", command] if isolated
+                else ["/bin/sh", "-c", command])
+
         try:
             res = subprocess.run(
-                command,
-                shell=True,
+                argv,
                 cwd=self.workspace_dir,
                 capture_output=True,
                 text=True,
@@ -188,21 +206,24 @@ class AgentWorkspace:
                 "status": "ok" if res.returncode == 0 else "failed",
                 "exit_code": res.returncode,
                 "stdout": res.stdout,
-                "stderr": res.stderr
+                "stderr": res.stderr,
+                "network_isolated": isolated,
             }
         except subprocess.TimeoutExpired as e:
             return {
                 "status": "timeout",
                 "exit_code": -1,
                 "stdout": e.stdout or "",
-                "stderr": f"Command timed out after {timeout} seconds."
+                "stderr": f"Command timed out after {timeout} seconds.",
+                "network_isolated": isolated,
             }
         except Exception as e:
             return {
                 "status": "error",
                 "exit_code": -1,
                 "stdout": "",
-                "stderr": str(e)
+                "stderr": str(e),
+                "network_isolated": isolated,
             }
 
     def get_file_tree(self) -> str:

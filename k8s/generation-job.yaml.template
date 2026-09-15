@@ -78,6 +78,17 @@ spec:
           value: "${EXECUTIVE_MODEL}"
         - name: JUDGE_MODEL
           value: "${JUDGE_MODEL}"
+        # Agent-authored shell commands run in an empty network namespace.
+        # Measured here on the real service account: without one, a firm's
+        # `curl http://169.254.169.254/...` returns HTTP 200 with a live
+        # Workload Identity token, because GCE_METADATA_HOST only binds
+        # callers that read it and curl does not.
+        #
+        # Set to 1 so the sandbox refuses to execute rather than silently
+        # running unisolated. A pod that cannot sandbox should fail its firm,
+        # not hand agent code the cluster's credentials.
+        - name: HAE_REQUIRE_NETWORK_ISOLATION
+          value: "1"
         - name: FIRM_INDEX
           valueFrom:
             fieldRef:
