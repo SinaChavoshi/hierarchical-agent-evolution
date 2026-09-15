@@ -60,11 +60,30 @@ class BudgetCeilingTest(unittest.TestCase):
 
     def test_call_cap_is_independent_of_dollars(self):
         """A cheap model in a tight loop burns quota without approaching a
-        dollar limit."""
-        b = Budget(limit_usd=1000.0, max_calls=2)
+        dollar limit.
+
+        `reserve_fraction=0.0` isolates the raw ceiling. With a reserve
+        configured, one of the two calls is held back for the synthesis --
+        see `test_call_cap_holds_back_the_reserve`.
+        """
+        b = Budget(limit_usd=1000.0, max_calls=2, reserve_fraction=0.0)
         self.assertTrue(b.charge(0.001, "a"))
         self.assertTrue(b.charge(0.001, "b"))
         self.assertFalse(b.charge(0.001, "c"))
+
+    def test_call_cap_holds_back_the_reserve(self):
+        """With a reserve, the last call belongs to the synthesis.
+
+        This is the ceiling that binds in practice: at the rate measured from
+        Gen 11 (~$0.0077/call) a firm exhausts `max_calls` long before
+        `limit_usd`, so without this the closing synthesis is the thing that
+        gets cut.
+        """
+        b = Budget(limit_usd=1000.0, max_calls=2)
+        self.assertTrue(b.charge(0.001, "a"))
+        self.assertFalse(b.charge(0.001, "b"))              # ordinary: refused
+        self.assertTrue(b.charge(0.001, "synthesis", reserved=True))
+        self.assertFalse(b.charge(0.001, "c", reserved=True))  # now truly done
 
     def test_strict_mode_raises(self):
         b = Budget(limit_usd=0.10, reserve_fraction=0.0)

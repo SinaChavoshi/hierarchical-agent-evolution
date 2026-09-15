@@ -2,13 +2,18 @@
   "task_id": "self-hosting-artifacts",
   "objective": "Implement the artifact-filtering module for the Hierarchical Agent Evolution platform. Your submission is graded by running a held-out test suite against the module you write. Nothing you write outside the target module is read, and no part of the score is awarded for describing what you built.",
   "benchmark_task": "artifacts",
-  "budget_usd": 1.50,
-  "max_calls": 120,
-  "capabilities": ["workspace.read", "workspace.write", "workspace.shell", "workspace.verify"],
+  "budget_usd": 5.0,
+  "max_calls": 650,
+  "capabilities": [
+    "workspace.read",
+    "workspace.write",
+    "workspace.shell",
+    "workspace.verify"
+  ],
   "max_iterations": 1,
   "carry_artifacts": false,
   "metadata": {
     "set": "v2",
-    "notes": "V2 Generation 1. carry_artifacts stays false for the first generation so its fitness is comparable to the V1 single-shot record; the A/B against carryover is Generation 2's job."
+    "notes": "V2 Generation 1-3. carry_artifacts stays false for the whole campaign so the fitness trajectory measures evolution of the organisation alone; switching carryover on mid-campaign would confound better genomes with inherited working code and neither could be attributed. The carryover A/B needs two arms at the same generation, not two consecutive generations. Budget sized from measured Gen 11 telemetry: $0.0077/call, firms used 52-64 calls at $0.40-0.46. 650 calls x $0.0077 = $5.01, so the call and dollar ceilings bind at the same point and neither is decorative. ~10x observed V1 usage, leaving real room for the write-test-fix loop that V2 rewards and V1 never did."
   }
 }

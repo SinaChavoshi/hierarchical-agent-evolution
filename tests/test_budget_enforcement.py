@@ -71,3 +71,58 @@ class BudgetEnforcementTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CallCeilingReserveTest(unittest.TestCase):
+    """The call ceiling must hold back a reserve, like the dollar ceiling.
+
+    Found while sizing budgets for V2 Generation 1. At the rate measured from
+    Gen 11 scorecards (~$0.0077/call) a firm hits `max_calls` long before it
+    approaches `limit_usd`, so the call ceiling is the one that binds in
+    practice. It had no reserve, which meant the mechanism guaranteeing the
+    CEO's closing synthesis survives an overrun was guarding the ceiling that
+    never fires and not the one that always does.
+    """
+
+    def test_synthesis_survives_the_call_ceiling(self):
+        """The original symptom: dollars to spare, deliverable discarded."""
+        b = Budget(limit_usd=10.0, max_calls=5)
+        while b.can_spend():
+            b.charge(0.01, label="worker")
+        self.assertGreater(b.remaining_usd, 9.0)     # nowhere near the money
+        self.assertTrue(b.can_spend(reserved=True))  # but synthesis proceeds
+        b.charge(0.01, label="ceo-synthesis", reserved=True)
+        self.assertTrue(b.exhausted)
+
+    def test_reserve_never_rounds_away(self):
+        """A small `max_calls` must still hold back a call. `int()` on
+        `3 * 0.9` is 2, but `int()` on `1 * 0.9` is 0 -- and a reserve of zero
+        is the bug this test exists to prevent."""
+        for max_calls in (1, 2, 3, 10, 120, 400):
+            b = Budget(limit_usd=5.0, max_calls=max_calls)
+            held = max_calls - b.working_max_calls
+            self.assertGreaterEqual(
+                held, 1, f"no call held back at max_calls={max_calls}")
+
+    def test_no_reserve_configured_means_no_holdback(self):
+        b = Budget(limit_usd=5.0, max_calls=10, reserve_fraction=0.0)
+        self.assertEqual(b.working_max_calls, 10)
+
+    def test_absent_call_ceiling_is_unaffected(self):
+        b = Budget(limit_usd=1.0)
+        self.assertIsNone(b.working_max_calls)
+        self.assertFalse(b.working_exhausted)
+
+    def test_dollar_ceiling_still_independently_binds(self):
+        """Raising `max_calls` must not disable the money ceiling."""
+        b = Budget(limit_usd=0.10, max_calls=10_000)
+        while b.can_spend():
+            b.charge(0.01, label="worker")
+        self.assertFalse(b.can_spend())
+        self.assertLess(b.calls, 100)
+
+    def test_reported_in_to_dict(self):
+        """Scorecards read this. A ceiling that is enforced but not reported
+        makes a truncated run indistinguishable from a short one."""
+        b = Budget(limit_usd=3.0, max_calls=400)
+        self.assertEqual(b.to_dict()["working_max_calls"], 360)

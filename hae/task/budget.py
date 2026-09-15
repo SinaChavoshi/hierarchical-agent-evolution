@@ -80,6 +80,29 @@ class Budget:
         return self.limit_usd * (1.0 - self.reserve_fraction)
 
     @property
+    def working_max_calls(self) -> Optional[int]:
+        """How many calls ordinary work may make, holding back the reserve.
+
+        The call ceiling needs a reserve for the same reason the dollar ceiling
+        does, and in practice needs it more: at observed rates a firm hits
+        `max_calls` long before it approaches `limit_usd`, so this is the
+        ceiling that actually binds. Without a reserve here the CEO's final
+        synthesis is refused and the run ends with departmental output and
+        nothing assembled from it -- the budget deletes the deliverable instead
+        of truncating it, which is the precise failure the reserve exists to
+        prevent.
+
+        At least one call is always held back whenever a reserve is configured
+        and a ceiling exists; rounding must not leave the synthesis with zero.
+        """
+        if self.max_calls is None:
+            return None
+        working = int(self.max_calls * (1.0 - self.reserve_fraction))
+        if self.reserve_fraction > 0:
+            working = min(working, self.max_calls - 1)
+        return max(0, working)
+
+    @property
     def remaining_usd(self) -> float:
         return max(0.0, self.limit_usd - self.spent_usd)
 
@@ -91,11 +114,17 @@ class Budget:
     @property
     def working_exhausted(self) -> bool:
         """True when ordinary calls should stop. The reserve may remain."""
-        return self.spent_usd >= self.working_limit_usd or self._calls_exhausted
+        return (self.spent_usd >= self.working_limit_usd
+                or self._working_calls_exhausted)
 
     @property
     def _calls_exhausted(self) -> bool:
         return self.max_calls is not None and self.calls >= self.max_calls
+
+    @property
+    def _working_calls_exhausted(self) -> bool:
+        wmc = self.working_max_calls
+        return wmc is not None and self.calls >= wmc
 
     @property
     def overrun(self) -> bool:
@@ -151,6 +180,7 @@ class Budget:
         return {
             "limit_usd": round(self.limit_usd, 6),
             "working_limit_usd": round(self.working_limit_usd, 6),
+            "working_max_calls": self.working_max_calls,
             "spent_usd": round(self.spent_usd, 6),
             "remaining_usd": round(self.remaining_usd, 6),
             "calls": self.calls,
