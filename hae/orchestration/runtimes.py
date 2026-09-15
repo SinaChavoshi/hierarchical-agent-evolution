@@ -98,6 +98,7 @@ class KubernetesRuntime:
 
         configmap = self._publish_population(generation, population_file)
 
+        env = {**os.environ, "PYTHONPATH": os.path.abspath(self.repo_root)}
         rendered = subprocess.run(
             ["python3", "scripts/render_job.py",
              "--generation", str(generation),
@@ -105,7 +106,7 @@ class KubernetesRuntime:
              "--configmap", configmap,
              "--job-name", job,
              "--namespace", self.namespace],
-            capture_output=True, text=True, cwd=self.repo_root)
+            capture_output=True, text=True, cwd=self.repo_root, env=env)
         if rendered.returncode != 0:
             raise LaunchError(f"render_job failed: {rendered.stderr.strip()[:400]}")
         with open(manifest, "w", encoding="utf-8") as fh:
