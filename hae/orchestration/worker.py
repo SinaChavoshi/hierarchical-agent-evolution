@@ -12,6 +12,8 @@ from hae.runtime.company import HierarchicalCompanyRunner
 from hae.evaluation.judge import StrategicFitnessEvaluator
 from hae.evaluation.harness import ExecutionHarness
 from hae.infra.telemetry import ResearchLedger
+from hae.infra.preflight import run_preflight
+from hae.infra.config import EvolutionConfig
 
 def evaluate_single_firm(
     firm_index: int,
@@ -183,6 +185,9 @@ def main():
     parser.add_argument("--gcs-bucket", type=str, default=os.environ.get("GCS_BUCKET", "YOUR_GCS_BUCKET"), help="GCS Bucket for persistent results")
     parser.add_argument("--seed-config", type=str, default="templates/default_company.json", help="Path to seed company genome template")
     parser.add_argument("--population-file", type=str, default=None, help="Path to pre-bred JSON population array")
+    parser.add_argument("--skip-preflight", action="store_true",
+                        help="Skip the startup environment probe. Only for "
+                             "offline tests; a real run should never set it.")
 
     args = parser.parse_args()
 
@@ -194,6 +199,28 @@ def main():
             firm_idx = int(idx_env)
         else:
             firm_idx = 0
+
+    # Detection-only preflight. Repair is deliberately NOT available here: a
+    # worker that can grant itself IAM is a privilege escalation, and Latchkey
+    # would reap that permission too. The operator repairs before launch with
+    #     python -m hae.cli --mode preflight --repair
+    #
+    # What this buys us is failing in two seconds with a legible message
+    # instead of thirty pods each burning a retry budget against a 403. In
+    # Generation 11 that distinction was seven pods and about an hour.
+    if not args.skip_preflight:
+        os.environ.setdefault("GOOGLE_CLOUD_LOCATION", args.region)
+        os.environ.setdefault("GCS_BUCKET", args.gcs_bucket)
+        # A fresh config: DEFAULT_CONFIG resolved the environment at import
+        # time, before the two lines above ran.
+        report = run_preflight(config=EvolutionConfig())
+        if not report.ok:
+            print(report.render(), flush=True)
+            print(f"[Firm {firm_idx}] Aborting before any billed work.",
+                  flush=True)
+            raise SystemExit(2)
+        print(f"[Firm {firm_idx}] Preflight OK "
+              f"({len(report.checks)} checks).", flush=True)
 
     evaluate_single_firm(
         firm_index=firm_idx,

@@ -268,14 +268,71 @@ PYTHONPATH=. python3 scripts/render_job.py \
 > That secret is gone and no fallback replaces it. If Workload Identity is not
 > configured the run fails immediately and loudly, which is the point.
 
-Verify the binding before launching a generation:
+#### Preflight
+
+Do not launch a generation without running preflight first:
 
 ```bash
-gcloud projects get-iam-policy "$GOOGLE_CLOUD_PROJECT" \
-  --flatten="bindings[].members" \
-  --filter="bindings.members:agent-evolution-sa@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com" \
-  --format="value(bindings.role)"
+export GOOGLE_CLOUD_PROJECT=<project>
+export GOOGLE_CLOUD_LOCATION=us-east4
+export GCS_BUCKET=<bucket>
+export AGENT_GSA=agent-evolution-sa@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com
+
+python -m hae.cli --mode preflight --repair
 ```
+
+It takes about eight seconds and exits non-zero on failure, so a launch script
+can gate on it:
+
+```bash
+python -m hae.cli --mode preflight --repair || exit 1
+kubectl apply -f rendered-job.yaml
+```
+
+Every check makes a **real request** rather than inspecting configuration: a
+one-token `generateContent` against each model tier in the target region, and a
+write-then-delete probe against the results bucket. This distinction matters —
+`roles/aiplatform.user` appearing in an IAM policy and "this identity can call
+this model in this region" are different claims, and they have disagreed here.
+
+```
+====================================================================
+PREFLIGHT
+====================================================================
+  [PASS] config              project=... bucket=... location=us-east4
+  [PASS] credentials         token acquired (256 chars)
+  [PASS] iam-repair          all 2 required roles already bound
+  [PASS] vertex:gemini-2.5-flash   us-east4 reachable, 200
+  [PASS] vertex:gemini-2.5-pro     us-east4 reachable, 200
+  [PASS] gcs                 gs://... writable
+====================================================================
+  All checks passed. Safe to launch.
+====================================================================
+```
+
+On failure it prints the exact command to fix each problem and skips dependent
+checks, so one unset variable reports as one error rather than four.
+
+> [!WARNING]
+> **Latchkey reaps this project's IAM bindings on its own schedule.** Any grant
+> made to the tournament service account will be removed again. This is not a
+> problem that gets fixed once.
+>
+> `--repair` re-grants `roles/aiplatform.user` and `roles/storage.objectAdmin`
+> if they are missing, then blocks until a live Vertex call succeeds (IAM
+> changes are not synchronous; granting and launching immediately reproduces
+> the original failure with extra confidence).
+>
+> This is a **stopgap**. It narrows the exposure from "the whole time" to
+> "between launch and the next reap", and does nothing about a reap that lands
+> mid-run. The durable fix is a Latchkey exemption for the tournament service
+> account. Until then, worker pods also run a detection-only preflight at
+> startup and exit in ~2s rather than burning a retry budget against a 403 —
+> in Generation 11 that difference was seven pods and roughly an hour.
+>
+> Repair requires `roles/resourcemanager.projectIamAdmin` on the *operator's*
+> credentials. It is deliberately unavailable to worker pods: a pod that can
+> grant itself IAM is a privilege escalation with extra steps.
 
 ---
 

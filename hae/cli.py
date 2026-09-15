@@ -8,6 +8,8 @@ Four modes:
                  generation spec. Replaces ten one-off breeding scripts.
     benchmark    Grade a firm's workspace against the self-hosting benchmark,
                  or print the objective for a benchmark task.
+    preflight    Verify the environment can actually run a tournament before
+                 one is launched, and optionally repair IAM first.
 """
 
 import os
@@ -23,6 +25,7 @@ from hae.infra.llm import detect_llm_provider, resolve_model_for_provider
 from hae.infra.config import DEFAULT_CONFIG
 from hae.orchestration.breeder import breed_generation
 from hae.evaluation.benchmark import TASKS, SelfHostingBenchmark
+from hae.infra.preflight import run_preflight
 
 DEFAULT_STRATEGIC_OBJECTIVE = (
     "Formulate an unassailable 5-year commercial and technical strategy for an enterprise "
@@ -35,9 +38,19 @@ DEFAULT_STRATEGIC_OBJECTIVE = (
 def parse_args():
     parser = argparse.ArgumentParser(description="Hierarchical Agent Evolution System")
     parser.add_argument("--mode",
-                        choices=["tournament", "single-firm", "breed", "benchmark"],
+                        choices=["tournament", "single-firm", "breed",
+                                 "benchmark", "preflight"],
                         default="tournament",
-                        help="tournament | single-firm | breed | benchmark")
+                        help="tournament | single-firm | breed | benchmark | preflight")
+    parser.add_argument("--repair", action="store_true",
+                        help="(--mode preflight) Re-grant missing IAM roles "
+                             "before probing. Latchkey reaps them on this "
+                             "project, so this is expected to be needed often.")
+    parser.add_argument("--service-account", type=str, default=None,
+                        help="(--mode preflight --repair) Tournament GSA to "
+                             "grant roles to. Defaults to $AGENT_GSA.")
+    parser.add_argument("--skip-gcs", action="store_true",
+                        help="(--mode preflight) Skip the bucket write probe.")
     parser.add_argument("--generation-spec", type=str, default=None,
                         help="Path to configs/generations/genNN.json (--mode breed)")
     parser.add_argument("--task", type=str, default=None,
@@ -62,6 +75,22 @@ def parse_args():
     parser.add_argument("--output-dir", type=str, default=DEFAULT_CONFIG.local_output_dir,
                         help="Directory to store outputs, transcripts, and evaluation logs")
     return parser.parse_args()
+
+def run_preflight_mode(args) -> int:
+    """Answers "can this environment run a tournament?" with real requests.
+
+    Exits non-zero on any failure so a launch script can gate on it:
+
+        python -m hae.cli --mode preflight --repair || exit 1
+    """
+    report = run_preflight(
+        repair=args.repair,
+        service_account=args.service_account,
+        skip_gcs=args.skip_gcs,
+    )
+    print(report.render())
+    return 0 if report.ok else 1
+
 
 def run_breed(args) -> int:
     """Produces the next generation's population file from its spec."""
@@ -95,6 +124,8 @@ def run_benchmark(args) -> int:
 def main():
     args = parse_args()
 
+    if args.mode == "preflight":
+        return run_preflight_mode(args)
     if args.mode == "breed":
         return run_breed(args)
     if args.mode == "benchmark":
