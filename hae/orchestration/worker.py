@@ -53,13 +53,45 @@ def evaluate_single_firm(
 
     if resolved_pop_file and os.path.exists(resolved_pop_file):
         with open(resolved_pop_file, "r") as f:
-            pop = json.load(f)
-        if firm_index < len(pop):
-            firm_genome = CompanyGenome(**pop[firm_index])
-            company_id = firm_genome.company_id
-            print(f"---> Loaded pre-bred genome from {resolved_pop_file}: {company_id} ({firm_genome.total_agent_count} agents)")
+            raw = json.load(f)
+
+        # Two shapes reach this code. `Breeder.write` emits an envelope --
+        # {"generation": N, "name": ..., "population": [...]} -- while V1
+        # archives are a bare list of genomes.
+        #
+        # This used to index `raw` directly, guarded by `firm_index <
+        # len(raw)`. On the envelope that check compares against the number of
+        # *keys*, which is 5, so index 0-4 sailed through and then failed with
+        # `KeyError: 0`. The guard was real but measured the wrong collection,
+        # which is worse than no guard: it reported the population as large
+        # enough when it had not found the population at all.
+        if isinstance(raw, dict):
+            pop = raw.get("population")
+            if pop is None:
+                raise ValueError(
+                    f"{resolved_pop_file} is an object with no `population` "
+                    f"key (found {sorted(raw)[:6]}). Refusing to guess which "
+                    f"field holds the genomes.")
+        elif isinstance(raw, list):
+            pop = raw
         else:
-            raise IndexError(f"firm_index {firm_index} out of range for population size {len(pop)}")
+            raise ValueError(
+                f"{resolved_pop_file} holds {type(raw).__name__}; expected a "
+                f"list of genomes or an object with a `population` key.")
+
+        if not isinstance(pop, list):
+            raise ValueError(
+                f"{resolved_pop_file}: `population` is "
+                f"{type(pop).__name__}, expected a list.")
+        if firm_index >= len(pop):
+            raise IndexError(
+                f"firm_index {firm_index} out of range for population size "
+                f"{len(pop)} in {resolved_pop_file}")
+
+        firm_genome = CompanyGenome.from_dict(pop[firm_index])
+        company_id = firm_genome.company_id
+        print(f"---> Loaded pre-bred genome from {resolved_pop_file}: "
+              f"{company_id} ({firm_genome.total_agent_count} agents)")
     else:
         # Load seed template
         with open(seed_config_path, "r") as f:
