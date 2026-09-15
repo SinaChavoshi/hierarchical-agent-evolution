@@ -234,12 +234,22 @@ on the cluster's dataplane enforcing anything. Verified in-cluster:
 
 | Probe | Result |
 |---|---|
-| metadata server inside the namespace | ✅ unreachable |
-| `pytest` inside the namespace | ✅ passes |
-| loopback bind inside the namespace | ✅ works |
+| metadata server inside the namespace | ✅ unreachable (IP, DNS name, and raw `urllib`) |
+| `pytest` inside the namespace | ✅ `1 passed` |
+| loopback bind inside the namespace | ✅ `bound True` |
 
 So the isolation costs the agents nothing they use. The cost of *not* having it
 was a live cloud credential handed to generated code.
+
+This is reproducible, not anecdotal:
+[`scripts/verify_sandbox_isolation.py`](scripts/verify_sandbox_isolation.py)
+runs in-cluster on the tournament service account and prints `VERDICT PASS` or
+the reasons it failed. It begins with a **control** — reaching the metadata
+server *outside* the sandbox and confirming the token is still there — because
+a probe that cannot reproduce the hole cannot testify that it is shut. Last run
+against image `:v2-netns`: control positive, all three leak paths closed,
+`VERDICT PASS`.
+
 
 **It fails closed.** Tournament pods set `HAE_REQUIRE_NETWORK_ISOLATION=1`
 ([`k8s/generation-job.yaml.template`](k8s/generation-job.yaml.template)). Where

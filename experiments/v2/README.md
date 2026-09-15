@@ -33,7 +33,11 @@ Platform work added after the V1 retrospective (complete):
       gate
 - [x] **Preflight with IAM repair** — run before every generation, because
       Latchkey reaps the binding on its own schedule
-- [x] Sandbox environment scrubbed of credentials; metadata server blackholed
+- [x] **Agent commands run with no network** — each `execute_bash` gets its own
+      empty network namespace. Env-var scrubbing alone did *not* hold: measured
+      in-cluster, a firm's `curl` to `169.254.169.254` returned a live Workload
+      Identity token. Tournament pods set `HAE_REQUIRE_NETWORK_ISOLATION=1` and
+      fail closed
 
 Remaining:
 
