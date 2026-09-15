@@ -54,6 +54,12 @@ def parse_args():
                         default="experiments/v2/ledger.json",
                         help="(--mode campaign) Where per-generation results "
                              "are appended.")
+    parser.add_argument("--image-tag", type=str, default=None,
+                        help="(--mode campaign) Immutable container tag every "
+                             "generation runs. Required, and never 'latest': "
+                             "a campaign spanning hours must not race the next "
+                             "build and then report differing code as "
+                             "evolution.")
     parser.add_argument("--repair", action="store_true",
                         help="(--mode preflight) Re-grant missing IAM roles "
                              "before probing. Latchkey reaps them on this "
@@ -106,6 +112,11 @@ def run_campaign(args) -> int:
     if not args.specs:
         print("--mode campaign requires --specs configs/generations/genNN.json ...")
         return 2
+    if not args.image_tag:
+        print("--mode campaign requires --image-tag. Pin the code every "
+              "generation runs; otherwise a rebuild mid-campaign changes the "
+              "thing being measured and the trajectory means nothing.")
+        return 2
 
     task = resolve_task(args)
     print(f"Campaign task: {task.describe()}")
@@ -119,7 +130,7 @@ def run_campaign(args) -> int:
     controller = GenerationController(
         task=task,
         spec_paths=args.specs,
-        launch=KubernetesRuntime(),
+        launch=KubernetesRuntime(image_tag=args.image_tag),
         harvest=GcsHarvest(bucket=bucket),
         stopping=StoppingCriteria(
             max_generations=len(args.specs),
