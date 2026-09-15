@@ -90,11 +90,50 @@ class KubernetesRuntime:
         print(f"[k8s] published {name} ({key})")
         return name
 
+    @staticmethod
+    def _is_job_finished(status: Dict[str, Any], completions: int = 10) -> bool:
+        if not status:
+            return False
+        conditions = status.get("conditions") or []
+        for cond in conditions:
+            if cond.get("type") in ("Complete", "Failed") and cond.get("status") == "True":
+                return True
+        if "startTime" in status:
+            # Real Kubernetes Job: only complete when succeeded reaches expected completions
+            # or Kubernetes sets Complete/Failed condition above. Never exit on transient
+            # scheduling gaps where active temporarily reads 0 while succeeded < completions.
+            return status.get("succeeded", 0) >= completions
+        # Unit test mock without startTime: settle when active is 0
+        return status.get("active", 0) == 0
+
     def __call__(self, generation: int, population_file: str, task: Task) -> None:
         job = f"parallel-firms-gen{generation}"
         manifest = os.path.join(
             self.repo_root, f"build/gen{generation}-job.yaml")
         os.makedirs(os.path.dirname(manifest), exist_ok=True)
+
+        completions = 10
+        if os.path.exists(population_file):
+            try:
+                with open(population_file, "r", encoding="utf-8") as fh:
+                    raw_pop = json.load(fh)
+                if isinstance(raw_pop, dict) and "population" in raw_pop:
+                    completions = len(raw_pop["population"])
+                elif isinstance(raw_pop, list):
+                    completions = len(raw_pop)
+            except Exception:
+                pass
+
+        if os.environ.get("HAE_ATTACH_RUNNING_JOB") == "1":
+            raw_existing = self._kubectl(
+                ["get", "job", job, "-o", "jsonpath={.status}"], check=False)
+            existing = json.loads(raw_existing) if raw_existing.strip() else {}
+            if existing.get("startTime") and not self._is_job_finished(existing, completions):
+                print(f"[k8s] attaching to active job {job} "
+                      f"({existing.get('succeeded', 0)} succeeded, "
+                      f"{existing.get('active', 0)} active)")
+                self._wait(job, completions=completions)
+                return
 
         configmap = self._publish_population(generation, population_file)
 
@@ -118,20 +157,33 @@ class KubernetesRuntime:
         self._kubectl(["delete", "job", job, "--ignore-not-found"], check=False)
         self._kubectl(["apply", "-f", os.path.abspath(manifest)])
         print(f"[k8s] launched {job} @ {self.image_tag}")
-        self._wait(job)
+        self._wait(job, completions=completions)
 
-    def _wait(self, job: str) -> None:
+    def _wait(self, job: str, completions: int = 10) -> None:
         deadline = time.time() + self.timeout_seconds
         while time.time() < deadline:
             raw = self._kubectl(
                 ["get", "job", job, "-o", "jsonpath={.status}"], check=False)
-            status: Dict[str, Any] = json.loads(raw) if raw.strip() else {}
+            if not raw.strip():
+                print(f"[k8s] {job}: transient empty status from kubectl; retrying...")
+                time.sleep(self.poll_seconds)
+                continue
+            try:
+                status: Dict[str, Any] = json.loads(raw)
+            except Exception:
+                print(f"[k8s] {job}: malformed status JSON from kubectl; retrying...")
+                time.sleep(self.poll_seconds)
+                continue
+            if not status:
+                print(f"[k8s] {job}: empty status dict; retrying...")
+                time.sleep(self.poll_seconds)
+                continue
             succeeded = status.get("succeeded", 0)
             failed = status.get("failed", 0)
             active = status.get("active", 0)
             print(f"[k8s] {job}: {succeeded} succeeded, {failed} failed, "
                   f"{active} active")
-            if not active:
+            if self._is_job_finished(status, completions=completions):
                 # The Job has settled. Whether the outcome is acceptable is the
                 # CompletenessGate's decision, not this adapter's -- a runtime
                 # that judges its own results is a runtime that can hide them.

@@ -220,7 +220,8 @@ def rank_scorecards(scorecard_dir: str) -> List[RankedFirm]:
         if status:
             gates_passed = sum(1 for v in status.values() if v == "passed")
         else:
-            details = ((card.get("verification") or {}).get("details") or {})
+            ver = card.get("verification") or {}
+            details = ver.get("evidence") or ver.get("details") or {}
             gates_passed = int(details.get("tests_passed", 1 if exec_score >= 100.0 else 0))
 
         ranked.append(RankedFirm(
@@ -431,6 +432,14 @@ class Breeder:
 def breed_generation(spec_path: str, repo_root: str = ".") -> Tuple[str, List[CompanyGenome]]:
     """Loads a generation spec, breeds it, and writes the population file."""
     spec = GenerationSpec.load(spec_path)
+    existing_path = os.path.join(
+        repo_root, POPULATION_OUTPUT_DIR, f"generation_{spec.generation}_population.json")
+    if os.environ.get("HAE_REUSE_EXISTING_POPULATION") == "1" and os.path.exists(existing_path):
+        with open(existing_path, "r", encoding="utf-8") as fh:
+            payload = json.load(fh)
+        population = [CompanyGenome.from_dict(g) for g in payload.get("population", [])]
+        if population:
+            return existing_path, population
     breeder = Breeder(spec, repo_root=repo_root)
     population = breeder.breed()
     path = breeder.write(population)
