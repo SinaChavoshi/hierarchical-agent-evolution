@@ -114,6 +114,35 @@ class TestRanking(unittest.TestCase):
         with self.assertRaises(BreedingError):
             rank_scorecards(self.dir)
 
+    def test_benchmark_scorecards_with_empty_gate_status_are_ranked(self):
+        """Regression test: BenchmarkVerifier produces evaluable=True,
+        gate_status={}. rank_scorecards must rank them by execution score."""
+        c_pass = scorecard("bench_pass", {}, judged=80.0, legacy=80.0)
+        c_pass["verification"] = {
+            "verifier": "benchmark:artifacts",
+            "evaluable": True,
+            "score": 100.0,
+            "gate_status": {},
+            "details": {"tests_passed": 36},
+        }
+        c_fail = scorecard("bench_fail", {}, judged=95.0, legacy=95.0)
+        c_fail["verification"] = {
+            "verifier": "benchmark:artifacts",
+            "evaluable": True,
+            "score": 0.0,
+            "gate_status": {},
+            "details": {"tests_passed": 0},
+        }
+        self.write(c_pass)
+        self.write(c_fail)
+
+        ranked = rank_scorecards(self.dir)
+        self.assertEqual([r.company_id for r in ranked],
+                         ["bench_pass", "bench_fail"])
+        self.assertEqual(ranked[0].execution_integrity, 100.0)
+        self.assertEqual(ranked[0].gates_passed, 36)
+        self.assertEqual(ranked[1].execution_integrity, 0.0)
+
 
 class TestGenerationSpec(unittest.TestCase):
 

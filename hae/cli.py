@@ -118,6 +118,12 @@ def run_campaign(args) -> int:
               "thing being measured and the trajectory means nothing.")
         return 2
 
+    if not args.task_file and args.specs:
+        from hae.orchestration.breeder import GenerationSpec
+        first_spec = GenerationSpec.load(args.specs[0])
+        if first_spec.task_file:
+            args.task_file = first_spec.task_file
+
     task = resolve_task(args)
     print(f"Campaign task: {task.describe()}")
     if not task.is_verified:
@@ -136,7 +142,10 @@ def run_campaign(args) -> int:
             max_generations=len(args.specs),
             max_total_usd=args.max_total_usd),
         gate=CompletenessGate(),
-        preflight=lambda: run_preflight().ok,
+        preflight=lambda: run_preflight(
+            repair=True,
+            service_account=args.service_account or os.getenv("AGENT_GSA"),
+        ).ok,
         ledger_path=args.ledger,
     )
     history = controller.run()

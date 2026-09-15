@@ -144,9 +144,11 @@ class KubernetesRuntime:
 class GcsHarvest:
     """Reads a generation's scorecards back out of the results bucket."""
 
-    def __init__(self, bucket: str, prefix: str = "parallel_runs"):
+    def __init__(self, bucket: str, prefix: str = "parallel_runs",
+                 local_dir: str = "experiments/v2"):
         self.bucket = bucket
         self.prefix = prefix
+        self.local_dir = local_dir
 
     def __call__(self, generation: int) -> List[Dict[str, Any]]:
         token = get_adc_access_token()
@@ -160,6 +162,9 @@ class GcsHarvest:
         with urllib.request.urlopen(req, timeout=60) as resp:
             items = json.load(resp).get("items", [])
 
+        out_dir = os.path.join(self.local_dir, f"generation_{generation}_results")
+        os.makedirs(out_dir, exist_ok=True)
+
         cards: List[Dict[str, Any]] = []
         for item in items:
             if not item["name"].endswith("_result.json"):
@@ -170,6 +175,10 @@ class GcsHarvest:
             r = urllib.request.Request(
                 media, headers={"Authorization": f"Bearer {token}"})
             with urllib.request.urlopen(r, timeout=120) as resp:
-                cards.append(json.load(resp))
-        print(f"[harvest] generation {generation}: {len(cards)} scorecards")
+                card = json.load(resp)
+                cards.append(card)
+                fname = os.path.basename(item["name"])
+                with open(os.path.join(out_dir, fname), "w", encoding="utf-8") as fh:
+                    json.dump(card, fh, indent=2)
+        print(f"[harvest] generation {generation}: {len(cards)} scorecards -> {out_dir}")
         return cards

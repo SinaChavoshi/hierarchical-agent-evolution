@@ -30,6 +30,7 @@ from hae.evaluation.judge import (
     JUDGED_DIMENSIONS,
     composite_score,
     execution_integrity,
+    resolve_execution_score,
 )
 from hae.genome.morphogenesis import MorphogenesisEngine, StructuralCrossoverEngine
 from hae.genome.schema import CompanyGenome, GenomeValidationError
@@ -128,21 +129,77 @@ def _gate_status(card: Dict[str, Any]) -> Optional[Dict[str, str]]:
     return None
 
 
-def rank_scorecards(scorecard_dir: str) -> List[RankedFirm]:
-    """Ranks a generation's firms by the rebuilt rubric. Refuses without gates."""
+def _load_scorecard_entries(scorecard_dir: str) -> List[Tuple[str, Dict[str, Any]]]:
+    """Loads (source_path, scorecard_dict) pairs from a local directory or gs:// URI."""
+    if scorecard_dir.startswith("gs://"):
+        import re
+        import urllib.parse
+        import urllib.request
+        from hae.infra.llm import get_adc_access_token
+
+        # Check local mirror first if harvested to experiments/v2/generation_<N>_results
+        m = re.search(r"generation_(\d+)/?$", scorecard_dir.rstrip("/"))
+        if m:
+            local_mirror = os.path.join("experiments/v2", f"generation_{m.group(1)}_results")
+            local_paths = sorted(glob.glob(os.path.join(local_mirror, "*.json")))
+            if local_paths:
+                out = []
+                for p in local_paths:
+                    with open(p, "r", encoding="utf-8") as fh:
+                        out.append((p, json.load(fh)))
+                return out
+
+        # Otherwise fetch directly from GCS
+        without_scheme = scorecard_dir[len("gs://"):]
+        bucket, _, prefix = without_scheme.partition("/")
+        prefix = prefix.rstrip("/") + "/"
+        token = get_adc_access_token()
+        if not token:
+            raise BreedingError(f"No ADC access token available to read {scorecard_dir}")
+        listing = urllib.parse.quote(prefix)
+        url = f"https://storage.googleapis.com/storage/v1/b/{bucket}/o?prefix={listing}"
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            items = json.load(resp).get("items", [])
+        out: List[Tuple[str, Dict[str, Any]]] = []
+        for item in sorted(items, key=lambda x: x.get("name", "")):
+            name = item.get("name", "")
+            if not name.endswith("_result.json"):
+                continue
+            obj = urllib.parse.quote(name, safe="")
+            media = f"https://storage.googleapis.com/storage/v1/b/{bucket}/o/{obj}?alt=media"
+            r = urllib.request.Request(media, headers={"Authorization": f"Bearer {token}"})
+            with urllib.request.urlopen(r, timeout=120) as resp:
+                out.append((f"gs://{bucket}/{name}", json.load(resp)))
+        return out
+
     paths = sorted(glob.glob(os.path.join(scorecard_dir, "*.json")))
-    if not paths:
+    out = []
+    for path in paths:
+        with open(path, "r", encoding="utf-8") as fh:
+            out.append((path, json.load(fh)))
+    return out
+
+
+def rank_scorecards(scorecard_dir: str) -> List[RankedFirm]:
+    """Ranks a generation's firms by the rebuilt rubric. Refuses without execution scores."""
+    entries = _load_scorecard_entries(scorecard_dir)
+    if not entries:
         raise BreedingError(f"No scorecards found in {scorecard_dir}")
 
     ranked: List[RankedFirm] = []
     ungated: List[str] = []
-    for path in paths:
-        with open(path, "r", encoding="utf-8") as fh:
-            card = json.load(fh)
+    for path, card in entries:
         company_id = card.get("company_id") or os.path.basename(path)
 
         status = _gate_status(card)
-        if status is None:
+        exec_score = resolve_execution_score(card.get("verification"))
+        if exec_score is None and card.get("execution_evaluable") is True:
+            raw_exec = card.get("execution_integrity")
+            if isinstance(raw_exec, (int, float)):
+                exec_score = float(raw_exec)
+
+        if exec_score is None:
             ungated.append(company_id)
             continue
 
@@ -152,7 +209,6 @@ def rank_scorecards(scorecard_dir: str) -> List[RankedFirm]:
             judged["actionability_and_synthesis"] = float(
                 card.get("actionability", 0.0))
 
-        exec_score = execution_integrity(status)
         genome_data = card.get("genome")
         if not genome_data:
             raise BreedingError(f"{path} has no genome to breed from")
@@ -161,12 +217,18 @@ def rank_scorecards(scorecard_dir: str) -> List[RankedFirm]:
         except GenomeValidationError as exc:
             raise BreedingError(f"{path} holds an invalid genome: {exc}") from exc
 
+        if status:
+            gates_passed = sum(1 for v in status.values() if v == "passed")
+        else:
+            details = ((card.get("verification") or {}).get("details") or {})
+            gates_passed = int(details.get("tests_passed", 1 if exec_score >= 100.0 else 0))
+
         ranked.append(RankedFirm(
             company_id=company_id,
             genome=genome,
             rubric_score=composite_score(judged, exec_score),
             execution_integrity=exec_score or 0.0,
-            gates_passed=sum(1 for v in status.values() if v == "passed"),
+            gates_passed=gates_passed,
             legacy_net=float(card.get("fitness_score")
                              if card.get("fitness_score") is not None
                              else card.get("overall_score") or 0.0),
@@ -176,7 +238,7 @@ def rank_scorecards(scorecard_dir: str) -> List[RankedFirm]:
 
     if ungated:
         raise BreedingError(
-            f"{len(ungated)} of {len(paths)} firms have no execution gate data: "
+            f"{len(ungated)} of {len(entries)} firms have no execution gate data: "
             f"{', '.join(sorted(ungated)[:8])}. Ranking them would produce a "
             "prose-only ordering that looks authoritative and is not. Run the "
             "execution backfill first.")
@@ -207,8 +269,10 @@ class Breeder:
             raise BreedingError(
                 f"Generation {self.spec.generation} declares no parent "
                 "scorecards. Use `seed_population()` for a seeded generation.")
-        ranked = rank_scorecards(
-            os.path.join(self.repo_root, self.spec.parent_scorecards))
+        target = (self.spec.parent_scorecards
+                  if self.spec.parent_scorecards.startswith("gs://")
+                  else os.path.join(self.repo_root, self.spec.parent_scorecards))
+        ranked = rank_scorecards(target)
         return ranked[: self.spec.survivors]
 
     def seed_population(self) -> List[CompanyGenome]:
