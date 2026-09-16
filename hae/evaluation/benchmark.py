@@ -194,6 +194,38 @@ def _first_exception(report: str) -> str:
     return "unknown import failure"
 
 
+def _extract_failures(report: str) -> List[str]:
+    """Extracts each FAIL/ERROR test header with its final exception line.
+
+    Appends the final AssertionError/Exception line (e.g. `AssertionError:
+    False is not true : notes.`) without leaking any test source lines, giving
+    firms actionable ground-truth feedback for iterative self-repair.
+    """
+    results: List[str] = []
+    for block in report.split("=" * 70):
+        lines = [l.strip() for l in block.splitlines() if l.strip()]
+        if not lines:
+            continue
+        header = lines[0]
+        if not header.startswith(("FAIL:", "ERROR:")):
+            continue
+        exc_line = ""
+        for line in reversed(lines[1:]):
+            if (line.startswith("-" * 20) or line.startswith("Ran ")
+                    or line in ("OK", "FAILED") or line.startswith("FAILED (")):
+                continue
+            exc_line = line[:250]
+            break
+        if exc_line and not exc_line.startswith(("File ", "Traceback")):
+            results.append(f"{header} -> {exc_line}")
+        else:
+            results.append(header)
+    if not results:
+        results = [l.strip() for l in report.splitlines()
+                   if l.startswith(("FAIL:", "ERROR:"))]
+    return results
+
+
 def _read(path: str) -> str:
     with open(path, "r", encoding="utf-8") as fh:
         return fh.read()
@@ -441,8 +473,7 @@ class SelfHostingBenchmark:
                     "stderr": report[-2000:]}
 
         passed = max(0, collected - failures - errors)
-        named = [l.strip() for l in report.splitlines()
-                 if l.startswith(("FAIL:", "ERROR:"))]
+        named = _extract_failures(report)
         return {
             "passed": passed,
             "collected": collected,

@@ -119,5 +119,156 @@ class PopulationShapeTest(unittest.TestCase):
             self._load_only(path)
 
 
+class IterativeRepairTest(unittest.TestCase):
+    """Tests ground-truth failure extraction and multi-iteration repair loop."""
+
+    def test_extract_failures_includes_assertion_without_source(self):
+        from hae.evaluation.benchmark import _extract_failures
+        sample = (
+            "======================================================================\n"
+            "FAIL: test_markdown_contaminated_paths_are_malformed (test_artifacts.TestArtifacts)\n"
+            "----------------------------------------------------------------------\n"
+            "Traceback (most recent call last):\n"
+            "  File \"/tmp/work/tests/test_artifacts.py\", line 62, in test_markdown_contaminated_paths_are_malformed\n"
+            "    self.assertTrue(is_malformed_path(p), p)\n"
+            "AssertionError: False is not true : notes.\n"
+            "\n----------------------------------------------------------------------\n"
+            "Ran 7 tests in 0.002s\n\nFAILED (failures=1)\n"
+        )
+        failures = _extract_failures(sample)
+        self.assertEqual(len(failures), 1)
+        self.assertIn("FAIL: test_markdown_contaminated_paths_are_malformed", failures[0])
+        self.assertIn("AssertionError: False is not true : notes.", failures[0])
+        self.assertNotIn("File ", failures[0])
+        self.assertNotIn("self.assertTrue", failures[0])
+
+    def test_multi_iteration_early_stops_on_convergence_and_rolls_back_regression(self):
+        import hae.orchestration.worker as w
+        from hae.task import Task, VerificationOutcome
+
+        tmp = tempfile.mkdtemp()
+        pop_path = os.path.join(tmp, "pop.json")
+        with open(pop_path, "w") as fh:
+            json.dump({"population": [_genome("repair_firm")]}, fh)
+
+        objectives_seen = []
+
+        class FakeWorkspace:
+            def __init__(self):
+                self.files = {}
+            def write_file(self, p, c):
+                self.files[p] = c
+
+        class FakeVLoop:
+            def __init__(self):
+                self.used = 0
+
+        class FakeRunner:
+            def __init__(self, genome, **kw):
+                self.genome = genome
+                self.workspace = FakeWorkspace()
+                self.verification_loop = FakeVLoop()
+                self.calls = 0
+
+            def run(self, objective):
+                self.calls += 1
+                objectives_seen.append(objective)
+                # Simulate writing different workspace snapshots per iteration
+                files = {"hae/evaluation/artifacts.py": f"# iter {self.calls}"}
+                self.workspace.write_file("hae/evaluation/artifacts.py", files["hae/evaluation/artifacts.py"])
+                return {
+                    "final_deliverable": f"deliverable {self.calls}",
+                    "departmental_briefs": {"eng": f"brief {self.calls}"},
+                    "elapsed_seconds": 1.5,
+                    "token_usage": 1000 * self.calls,
+                    "workspace_files": files,
+                    "budget_exhausted": False,
+                    "opex": {"estimated_cost_usd": 0.10 * self.calls, "budget_usd": 5.0},
+                }
+
+        class FakeVerifier:
+            name = "benchmark:artifacts"
+            def __init__(self):
+                self.verifications = 0
+            def describe(self):
+                return "fake-verifier"
+            def to_dict(self):
+                return {"type": "fake"}
+            def verify(self, submission):
+                self.verifications += 1
+                if self.verifications == 1:
+                    # Iter 1: 85.71%
+                    return VerificationOutcome(
+                        evaluable=True, score=85.71, verifier=self.name,
+                        detail="6/7 held-out tests passed",
+                        evidence={"failures": ["FAIL: test_x -> AssertionError: notes."]}
+                    )
+                elif self.verifications == 2:
+                    # Iter 2: Regression to 71.43%
+                    return VerificationOutcome(
+                        evaluable=True, score=71.43, verifier=self.name,
+                        detail="5/7 held-out tests passed",
+                        evidence={"failures": ["FAIL: test_x", "FAIL: test_y"]}
+                    )
+                else:
+                    # Iter 3: Converged 100.0%
+                    return VerificationOutcome(
+                        evaluable=True, score=100.0, verifier=self.name,
+                        detail="7/7 held-out tests passed",
+                        evidence={"failures": []}
+                    )
+
+        class FakeJudge:
+            def evaluate(self, **kw):
+                class Res:
+                    class Fitness:
+                        fitness_score = 95.0
+                        strategic_depth = 90.0
+                        technical_feasibility = 95.0
+                        cross_functional_coherence = 90.0
+                        risk_mitigation = 90.0
+                        actionability_and_synthesis = 90.0
+                        execution_integrity = kw["verification"].score
+                        execution_evaluable = True
+                        evaluation_failed = False
+                        elapsed_seconds = kw["elapsed_seconds"]
+                        token_usage = kw["token_usage"]
+                    fitness = Fitness()
+                    def to_dict(self):
+                        return {"score": 95.0}
+                return Res()
+
+        real_runner = w.HierarchicalCompanyRunner
+        real_judge = w.StrategicFitnessEvaluator
+        w.HierarchicalCompanyRunner = FakeRunner
+        w.StrategicFitnessEvaluator = FakeJudge
+        try:
+            task = Task(
+                task_id="test-iter",
+                objective="Implement artifacts",
+                verifier=FakeVerifier(),
+                max_iterations=10,
+            )
+            res = evaluate_single_firm(
+                firm_index=0, generation=4, objective=task.objective,
+                output_dir=tmp, region="us-east4", gcs_bucket="",
+                population_file=pop_path, task=task
+            )
+            self.assertEqual(res["iterations_used"], 3)
+            self.assertEqual(len(res["iterations_history"]), 3)
+            self.assertEqual(res["iterations_history"][0]["score"], 85.71)
+            self.assertEqual(res["iterations_history"][1]["score"], 71.43)
+            self.assertEqual(res["iterations_history"][2]["score"], 100.0)
+            self.assertEqual(res["verifier_outcome"]["score"], 100.0)
+            self.assertEqual(res["elapsed_seconds"], 4.5)
+            # Iteration 2 objective should contain ground-truth failure from Iteration 1
+            self.assertIn("AssertionError: notes.", objectives_seen[1])
+            # Iteration 3 objective should still reference best score (85.71), not regressed 71.43
+            self.assertIn("85.71/100.0", objectives_seen[2])
+        finally:
+            w.HierarchicalCompanyRunner = real_runner
+            w.StrategicFitnessEvaluator = real_judge
+
+
 if __name__ == "__main__":
     unittest.main()

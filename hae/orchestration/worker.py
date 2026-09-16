@@ -117,27 +117,98 @@ def evaluate_single_firm(
 
     runner = HierarchicalCompanyRunner(
         firm_genome, budget=task.budget, seed_files=seed_files)
-    run_output = runner.run(task.objective)
 
-    if run_output.get("budget_exhausted"):
-        print(f" [BUDGET] {firm_genome.company_id} reached its ceiling; the "
-              f"deliverable is truncated. {run_output.get('budget')}")
+    max_iters = max(1, int(getattr(task, "max_iterations", 1)))
+    total_elapsed = 0.0
+    iterations_history: List[Dict[str, Any]] = []
+    best_outcome = None
+    best_workspace_files: Dict[str, str] = {}
+    best_deliverable = ""
+    best_briefs: Dict[str, str] = {}
+    run_output: Dict[str, Any] = {}
+    outcome = None
 
-    # Ground truth, via whichever verifier this task declares. The harness runs
-    # once, inside the verifier -- running it again to build a second report
-    # would double the wall clock and invite the two copies to disagree.
-    #
-    # The judge reads `.gate_status`, which VerificationOutcome provides. A
-    # task whose verifier is not gate-shaped (a benchmark, or none) yields an
-    # empty gate_status, so the judge's `execution_integrity` dimension
-    # reports itself unevaluable rather than returning a zero that reads like
-    # a measurement.
-    outcome = task.verifier.verify(Submission(
-        files=run_output.get("workspace_files", {}),
-        deliverable_text=run_output["final_deliverable"],
-        workspace=runner.workspace,
-    ))
-    print(f" [{outcome.verifier}] {outcome.detail}")
+    for it in range(1, max_iters + 1):
+        if it == 1:
+            current_objective = task.objective
+        else:
+            runner.verification_loop.used = 0
+            failures_list = (best_outcome.evidence.get("failures", [])
+                             if best_outcome and best_outcome.evidence else [])
+            failures_text = (
+                "\n".join(f"  - {f}" for f in failures_list)
+                if failures_list else f"  - {best_outcome.detail if best_outcome else 'verification failed'}"
+            )
+            current_objective = (
+                f"{task.objective}\n\n"
+                f"======================================================================\n"
+                f"ITERATION {it}/{max_iters} — GROUND-TRUTH VERIFIER FEEDBACK\n"
+                f"======================================================================\n"
+                f"Your workspace already contains the files authored in previous iterations.\n"
+                f"Best ground-truth score achieved so far: {best_outcome.score if best_outcome else 0.0}/100.0 "
+                f"({best_outcome.detail if best_outcome else ''})\n"
+                f"Failing ground-truth checks:\n"
+                f"{failures_text}\n\n"
+                f"INSTRUCTIONS FOR ITERATION {it}:\n"
+                f"1. Read and inspect the existing implementation in your workspace using `Action: read_file`.\n"
+                f"2. Fix the specific failing edge cases or assertion errors identified above without breaking passing tests.\n"
+                f"3. Write the updated implementation back to the workspace file using `Action: write_file` and run `Action: verify` to confirm."
+            )
+            print(f"---> [ITERATION {it}/{max_iters}] Re-running {firm_genome.company_id} with ground-truth repair feedback...")
+
+        run_output = runner.run(current_objective)
+        total_elapsed += run_output.get("elapsed_seconds", 0.0)
+
+        if run_output.get("budget_exhausted"):
+            print(f" [BUDGET] {firm_genome.company_id} reached its ceiling; the "
+                  f"deliverable is truncated. {run_output.get('budget')}")
+
+        outcome = task.verifier.verify(Submission(
+            files=run_output.get("workspace_files", {}),
+            deliverable_text=run_output["final_deliverable"],
+            workspace=runner.workspace,
+        ))
+        score_val = float(outcome.score) if outcome.score is not None else 0.0
+        passed_flag = bool(outcome.evaluable and score_val >= 100.0)
+        print(f" [Iteration {it}/{max_iters}] [{outcome.verifier}] {outcome.detail} (score={score_val})")
+
+        iterations_history.append({
+            "iteration": it,
+            "score": score_val,
+            "passed": passed_flag,
+            "detail": outcome.detail,
+            "failures": outcome.evidence.get("failures", []) if outcome.evidence else [],
+            "elapsed_seconds": run_output.get("elapsed_seconds", 0.0),
+            "cumulative_cost_usd": run_output.get("opex", {}).get("estimated_cost_usd", 0.0),
+        })
+
+        best_score_val = (float(best_outcome.score)
+                          if best_outcome and best_outcome.score is not None else -1.0)
+        if best_outcome is None or score_val >= best_score_val:
+            best_outcome = outcome
+            best_workspace_files = dict(run_output.get("workspace_files", {}))
+            best_deliverable = run_output["final_deliverable"]
+            best_briefs = dict(run_output.get("departmental_briefs", {}))
+        else:
+            print(f" [REGRESSION] Iteration {it} scored {score_val} < best {best_score_val}; restoring best workspace snapshot.")
+            for path, content in best_workspace_files.items():
+                runner.workspace.write_file(path, content)
+
+        if passed_flag:
+            print(f" [CONVERGED] {firm_genome.company_id} achieved 100.0% ground-truth verification on iteration {it}/{max_iters}!")
+            break
+
+        if run_output.get("budget_exhausted") or (task.budget and task.budget.working_exhausted):
+            print(f" [STOP] Stopping iterative repair: budget exhausted after iteration {it}/{max_iters}.")
+            break
+
+    outcome = best_outcome
+    run_output["workspace_files"] = best_workspace_files
+    run_output["final_deliverable"] = best_deliverable
+    run_output["departmental_briefs"] = best_briefs
+    run_output["elapsed_seconds"] = round(total_elapsed, 2)
+    run_output["iterations_used"] = len(iterations_history)
+    run_output["iterations_history"] = iterations_history
 
     # LLM Judge Evaluation
     print(f"---> LLM Judge scoring for {company_id}...")
@@ -171,7 +242,7 @@ def evaluate_single_firm(
     cost_usd = opex_data.get("estimated_cost_usd", 0.0)
     budget_usd = opex_data.get("budget_usd", 0.50)
     print(f" [OpEx Balance Sheet] Cost: ${cost_usd:.4f} USD (Budget: ${budget_usd:.2f}) | Penalty: -{cost_penalty} pts | Bonus: +{efficiency_bonus} pts")
-    print(f" FINAL NET FITNESS: {eval_res.fitness.fitness_score}/100 (Gross: {gross_score})")
+    print(f" FINAL NET FITNESS: {eval_res.fitness.fitness_score}/100 (Gross: {gross_score}) | Iterations: {len(iterations_history)}/{max_iters}")
 
     result_payload = {
         "company_id": company_id,
@@ -189,6 +260,8 @@ def evaluate_single_firm(
         "evaluation_failed": getattr(eval_res.fitness, "evaluation_failed", False),
         "elapsed_seconds": eval_res.fitness.elapsed_seconds,
         "token_usage": eval_res.fitness.token_usage,
+        "iterations_used": len(iterations_history),
+        "iterations_history": iterations_history,
         "verification": outcome.evidence if outcome.gate_status else outcome.to_dict(),
         "verifier_outcome": outcome.to_dict(),
         "task": task.to_dict(),

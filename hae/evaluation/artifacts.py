@@ -53,12 +53,14 @@ def is_generated_path(path: str) -> bool:
 
 
 def is_malformed_path(path: str) -> bool:
-    """True if markdown formatting or stray whitespace leaked into the filename.
+    """True if markdown formatting, stray whitespace, or invalid punctuation leaked into the filename.
 
-    Agents emit paths through a ReAct text protocol, so bold markers and
-    backticks periodically survive into `write_file` calls. The resulting files
-    are unusable -- `routing.py**` is not importable -- but they were previously
-    counted as delivered artifacts, and often duplicated a correctly named file.
+    Agents emit paths through a ReAct text protocol, so bold markers (`*`),
+    backticks (`` ` ``), leading/trailing whitespace, trailing dots (`.`) or
+    tildes (`~`), or leading hyphens (`-`) periodically survive into `write_file`
+    calls. The resulting files are unusable -- `routing.py**` or `notes.` is not
+    valid -- so any path containing `*` or `` ` ``, leading/trailing whitespace,
+    starting with `-`, or ending with `.` or `~` is malformed.
     """
     if path != path.strip():
         return True
