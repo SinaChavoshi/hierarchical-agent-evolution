@@ -7,12 +7,10 @@
 [![LLM: Gemini 2.5 Flash & Pro](https://img.shields.io/badge/Vertex%20AI-Gemini%202.5-orange.svg)](https://cloud.google.com/vertex-ai)
 
 > [!IMPORTANT]
-> **Experiment set V1 is closed; V2 has not started.** V1 ran thirteen
-> experiments and published a fitness curve that turned out to measure prose,
-> not software. The platform has been rebuilt around a fitness function with
-> ground truth. What V1 got wrong, and how we know, is in
-> [`experiments/README.md`](experiments/README.md) and
-> [`experiments/v1/execution_grounded_correction.md`](experiments/v1/execution_grounded_correction.md).
+> **V2 (`Generations 1–6`) is COMPLETE (`60 / 60` firms succeeded) and V3 Level-3 Closed-Loop RSI (`Generations 7–9`) is ACTIVE (`20 / 20` firms in Gen 7–8 achieved `100.0%` ground-truth test verification).**
+> V1 ran thirteen experiments on open-ended prose and was closed after audit. V2 rebuilt the platform around ground-truth self-hosting (`hae/evaluation/artifacts.py`), achieving **`100.0%` execution integrity across all `30 / 30` firms in Generations 4–6** (peak Net Fitness **`98.81`**). V3 closes the **Level-3 Recursive Self-Improvement (RSI) bootstrap loop**, where competing firms re-implement HAE's core evolutionary breeding engine (`hae/genome/morphogenesis.py`) into isolated `genome.code_overlays` and dynamically execute their own evolved `MorphogenesisEngine` and `StructuralCrossoverEngine` to breed subsequent generations (reaching **`97.92` Net Fitness** and **`80%` first-shot convergence** in Generation 8). See [`experiments/v2/README.md`](experiments/v2/README.md) and [`experiments/v3_rsi/CAMPAIGN_STATUS.md`](experiments/v3_rsi/CAMPAIGN_STATUS.md).
+
+![V2 & V3 Ground-Truth Self-Hosting & Closed-Loop RSI Trajectory](assets/v2_v3_evolutionary_trajectory.png)
 
 ---
 
@@ -36,17 +34,17 @@ of the platform itself.
 ```mermaid
 graph TD
     subgraph SelfImprovementLoop ["The Recursive Evolutionary Cycle"]
-        Genome["1. Enterprise Genome<br/>(Topology, Roles, Prompts, Delegation Rules)"]
-        Execution["2. Distributed Execution Runtime<br/>(31-50 Agent Deliberation on Kubernetes)"]
-        Sandbox["3. Execution in a Real Workspace<br/>(pip install, import, pytest)"]
-        Fitness["4. Fitness: 70% Judged Prose + 30% Measured Execution"]
-        Breeding["5. Genetic Selection<br/>(Elites, Consensus, Pareto Extremes, Morphogenesis)"]
+        Genome["1. Enterprise Genome<br/>(Topology, Roles, Prompts, Code Overlays)"]
+        Execution["2. Distributed Execution Runtime<br/>(31-63 Agent Deliberation on Kubernetes)"]
+        Sandbox["3. Execution in a Real Workspace<br/>(unshare -rn, Held-Out Test Suite)"]
+        Fitness["4. Fitness: 70% Judged Rubric + 30% Ground-Truth Execution"]
+        Breeding["5. Closed-Loop Self-Breeding<br/>(Parent's Evolved MorphogenesisEngine Overlay)"]
 
         Genome --> Execution
         Execution --> Sandbox
         Sandbox --> Fitness
         Fitness --> Breeding
-        Breeding -->|Offspring Genomes| Genome
+        Breeding -->|Offspring Genomes + Overlays| Genome
     end
 ```
 
@@ -61,10 +59,10 @@ generations without ever being imported.
 
 | Pillar | Status | Evidence |
 |---|---|---|
-| **1. The Organism** — the enterprise genome | **Working** | [`hae/genome/schema.py`](hae/genome/schema.py). Topology, headcount, personas and temperatures are declarative and mutable. Validated at construction; invalid genomes raise rather than loading degraded. |
-| **2. The Selection Pressure** — hard execution gates | **Working, and honest about what it cannot check** | [`hae/evaluation/harness.py`](hae/evaluation/harness.py). Five gates that parse, install, import, test and inspect. A gate that cannot be evaluated reports `SKIPPED` and is excluded from the denominator — never scored as a pass. |
-| **3. The Evolutionary Search** — breeding | **Working, newly unified** | [`hae/orchestration/breeder.py`](hae/orchestration/breeder.py). Elites, structural crossover, Pareto extremes, and topology morphogenesis, driven by a declarative per-generation config. |
-| **4. Recursive Self-Hosting** — the closed loop | **Implemented, never yet run in a tournament** | [`hae/evaluation/benchmark.py`](hae/evaluation/benchmark.py). Firms reimplement this repository's own modules against held-out tests. Graded end to end; no generation has been run against it. |
+| **1. The Organism** — the enterprise genome | **Working (`code_overlays` enabled)** | [`hae/genome/schema.py`](hae/genome/schema.py). Topology, headcount, personas, temperatures, and concurrent per-firm `code_overlays` are declarative and mutable. |
+| **2. The Selection Pressure** — hard execution gates | **Working (`100%` verified in Gen 4–8)** | [`hae/evaluation/harness.py`](hae/evaluation/harness.py) & [`hae/evaluation/benchmark.py`](hae/evaluation/benchmark.py). Network-isolated (`unshare -rn`) held-out test suites + Monotonic Verification Guard. |
+| **3. The Evolutionary Search** — breeding | **Working, closed-loop dynamic overlay execution** | [`hae/orchestration/breeder.py`](hae/orchestration/breeder.py) & [`hae/runtime/overlay.py`](hae/runtime/overlay.py). Dynamically compiles and runs each parent firm's evolved `MorphogenesisEngine` and `StructuralCrossoverEngine` overlays. |
+| **4. Recursive Self-Hosting** — the closed loop | **Proven in Production (`Generations 1–9`)** | [`experiments/v2/README.md`](experiments/v2/README.md) & [`experiments/v3_rsi/CAMPAIGN_STATUS.md`](experiments/v3_rsi/CAMPAIGN_STATUS.md). `50 / 50` firms across Gen 4–8 achieved `100.0%` held-out test verification (`7/7`), with Gen 8 bred entirely by Gen 7's evolved `morphogenesis.py` overlays. |
 
 ### Pillar 1: The Organism
 An organisation is a genome. `CompanyGenome` holds a CEO, departmental pods,

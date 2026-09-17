@@ -21,6 +21,11 @@ All six generations executed with `carry_artifacts: false` (each firm starts fro
 | **Gen 4** | **Campaign 2 (`iter=10`)** | [`gen4.json`](../../configs/generations/gen4.json) | **`98.14`** (`gen_4_crossover_3`) | `86.76` | **`10 / 10` (`100%`)** | **`100.0%`** | **`2.20`** | `10 / 10` (`100%`) | `$7.26` | `COMPLETE` |
 | **Gen 5** | **Campaign 2 (`iter=10`)** | [`gen5.json`](../../configs/generations/gen5.json) | **`98.81`** (`gen_5_pareto_2`) | `79.40` | **`10 / 10` (`100%`)** | **`100.0%`** | **`1.60`** | `10 / 10` (`100%`) | `$5.83` | `COMPLETE` |
 | **Gen 6** | **Campaign 2 (`iter=10`)** | [`gen6.json`](../../configs/generations/gen6.json) | **`98.39`** (`gen_6_crossover_3`) | **`87.48`** | **`10 / 10` (`100%`)** | **`100.0%`** | **`1.30`** | `10 / 10` (`100%`) | **`$4.87`** | `COMPLETE` |
+| **Gen 7** | **V3 Level-3 RSI Seed (`morphogenesis.py`)** | [`gen7.json`](../../configs/generations/gen7.json) | **`96.83`** (`gen_7_pareto_1`) | `71.77` | **`10 / 10` (`100%`)** | **`100.0%`** | `1.50` | `10 / 10` (`100%`) | `$6.69` | `COMPLETE` |
+| **Gen 8** | **V3 Closed-Loop Bootstrap #1 (`morphogenesis.py`)** | [`gen8.json`](../../configs/generations/gen8.json) | **`97.92`** (`gen_8_pareto_2`) | `74.52` (`79.00` med) | **`10 / 10` (`100%`)** | **`100.0%`** | **`1.30`** | `10 / 10` (`100%`) | `$6.34` | `COMPLETE` |
+| **Gen 9** | **V3 Closed-Loop Bootstrap #2 (`morphogenesis.py`)** | [`gen9.json`](../../configs/generations/gen9.json) | *Running (`86.96` so far)* | *Running* | *`4/4` (`100%` so far)* | *`100.0%`* | *`1.00`* | *In Progress* | *Running* | `RUNNING` |
+
+![V2 & V3 Ground-Truth Self-Hosting & Closed-Loop RSI Trajectory](assets/v2_v3_evolutionary_trajectory.png)
 
 ---
 
