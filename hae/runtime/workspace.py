@@ -66,7 +66,9 @@ class AgentWorkspace:
                         task_map = {
                             "hae/evaluation/artifacts.py": "artifacts",
                             "hae/evaluation/harness.py": "harness",
+                            "hae/genome/morphogenesis.py": "morphogenesis",
                             "hae/evolution/morphogenesis.py": "morphogenesis",
+                            "hae/evaluation/verification_loop.py": "verification_loop",
                             "hae/runtime/verification_loop.py": "verification_loop",
                         }
                         norm_rel = relative_path.replace("\\", "/").lstrip("./")
