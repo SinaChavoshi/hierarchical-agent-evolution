@@ -112,8 +112,17 @@ def evaluate_single_firm(
 
     print(f"---> Running {firm_genome.company_id} ({firm_genome.total_agent_count} agents)...")
     print(f"     {task.describe()}")
+    target_mod = getattr(getattr(task, "verifier", None), "target_module", None)
+    seed_files = dict(seed_files or {})
+    if getattr(firm_genome, "code_overlays", None):
+        for ov_path, ov_code in firm_genome.code_overlays.items():
+            clean_ov = ov_path.lstrip("./")
+            if not getattr(task, "carry_artifacts", False) and target_mod and clean_ov == target_mod.lstrip("./"):
+                continue
+            seed_files.setdefault(clean_ov, ov_code)
+        print(f"     [LEVEL-3 RSI] Active code overlays on genome: {sorted(firm_genome.code_overlays.keys())}")
     if seed_files:
-        print(f"     Inheriting {len(seed_files)} file(s) from the previous generation.")
+        print(f"     Inheriting {len(seed_files)} file(s) in workspace.")
 
     runner = HierarchicalCompanyRunner(
         firm_genome, budget=task.budget, seed_files=seed_files)
@@ -216,6 +225,15 @@ def evaluate_single_firm(
     run_output["elapsed_seconds"] = round(total_elapsed, 2)
     run_output["iterations_used"] = len(iterations_history)
     run_output["iterations_history"] = iterations_history
+
+    # Level 3 RSI: Promote 100%-verified hae/ modules into firm_genome.code_overlays
+    if outcome and outcome.score is not None and float(outcome.score) >= 100.0:
+        for path, content in best_workspace_files.items():
+            clean_path = path.lstrip("./")
+            if (clean_path.startswith("hae/") and clean_path.endswith(".py")
+                    and "test" not in os.path.basename(clean_path)):
+                firm_genome.code_overlays[clean_path] = content
+                print(f" [LEVEL-3 RSI] Promoted 100%-verified {clean_path} ({len(content)} bytes) into {company_id}.code_overlays")
 
     # LLM Judge Evaluation
     print(f"---> LLM Judge scoring for {company_id}...")

@@ -34,6 +34,7 @@ from hae.evaluation.judge import (
 )
 from hae.genome.morphogenesis import MorphogenesisEngine, StructuralCrossoverEngine
 from hae.genome.schema import CompanyGenome, GenomeValidationError
+from hae.runtime.overlay import get_overlay_class
 
 GENERATION_CONFIG_DIR = "configs/generations"
 POPULATION_OUTPUT_DIR = "configs"
@@ -217,6 +218,15 @@ def rank_scorecards(scorecard_dir: str) -> List[RankedFirm]:
         except GenomeValidationError as exc:
             raise BreedingError(f"{path} holds an invalid genome: {exc}") from exc
 
+        if exec_score is not None and exec_score >= 100.0:
+            ws_files = (card.get("run_output") or {}).get("workspace_files") or {}
+            for fpath, fcontent in ws_files.items():
+                clean_p = fpath.lstrip("./")
+                if (clean_p.startswith("hae/") and clean_p.endswith(".py")
+                        and "test" not in os.path.basename(clean_p)
+                        and isinstance(fcontent, str)):
+                    genome.code_overlays[clean_p] = fcontent
+
         if status:
             gates_passed = sum(1 for v in status.values() if v == "passed")
         else:
@@ -364,11 +374,28 @@ class Breeder:
         for i in range(self.spec.crossover):
             a = parents[i % len(parents)]
             b = parents[(i + 1) % len(parents)]
-            child = self.crossover.recombine(
-                a.genome, b.genome,
-                child_id=f"gen_{gen}_crossover_{i + 1}",
-                target_generation=gen,
-                label=f"Structural crossover {a.company_id} x {b.company_id}")
+            crossover_cls = get_overlay_class(
+                a.genome.code_overlays or b.genome.code_overlays,
+                "hae/genome/morphogenesis.py",
+                "StructuralCrossoverEngine",
+                StructuralCrossoverEngine,
+                firm_id=a.company_id,
+            )
+            try:
+                child = crossover_cls().recombine(
+                    a.genome, b.genome,
+                    child_id=f"gen_{gen}_crossover_{i + 1}",
+                    target_generation=gen,
+                    label=f"Structural crossover {a.company_id} x {b.company_id}")
+            except Exception:
+                child = self.crossover.recombine(
+                    a.genome, b.genome,
+                    child_id=f"gen_{gen}_crossover_{i + 1}",
+                    target_generation=gen,
+                    label=f"Structural crossover {a.company_id} x {b.company_id}")
+            merged_overlays = dict(b.genome.code_overlays or {})
+            merged_overlays.update(a.genome.code_overlays or {})
+            child.code_overlays = merged_overlays
             population.append(self._with_mandate(
                 child, child.company_id,
                 f"Crossover of {a.company_id} and {b.company_id}"))
@@ -386,11 +413,26 @@ class Breeder:
         # can add or remove a department.
         for i in range(self.spec.mutant):
             parent = parents[i % len(parents)]
-            child = self.morphogenesis.morph_genome_topology(
-                parent.genome,
-                mutation_name=f"Generation {gen} directed morphogenesis {i + 1}",
-                target_generation=gen,
-                child_id=f"gen_{gen}_mutant_{i + 1}")
+            morph_cls = get_overlay_class(
+                parent.genome.code_overlays,
+                "hae/genome/morphogenesis.py",
+                "MorphogenesisEngine",
+                MorphogenesisEngine,
+                firm_id=parent.company_id,
+            )
+            try:
+                child = morph_cls().morph_genome_topology(
+                    parent.genome,
+                    mutation_name=f"Generation {gen} directed morphogenesis {i + 1}",
+                    target_generation=gen,
+                    child_id=f"gen_{gen}_mutant_{i + 1}")
+            except Exception:
+                child = self.morphogenesis.morph_genome_topology(
+                    parent.genome,
+                    mutation_name=f"Generation {gen} directed morphogenesis {i + 1}",
+                    target_generation=gen,
+                    child_id=f"gen_{gen}_mutant_{i + 1}")
+            child.code_overlays = dict(parent.genome.code_overlays or {})
             population.append(self._with_mandate(
                 child, child.company_id,
                 f"Morphogenesis from {parent.company_id}"))
@@ -426,6 +468,17 @@ class Breeder:
         }
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(payload, fh, indent=2)
+
+        overlays_root = os.path.join(
+            self.repo_root, "experiments", "v3_rsi", "overlays", f"generation_{self.spec.generation}"
+        )
+        for g in population:
+            if g.code_overlays:
+                for mod_path, mod_code in g.code_overlays.items():
+                    full_ov = os.path.join(overlays_root, g.company_id, mod_path.lstrip("./"))
+                    os.makedirs(os.path.dirname(full_ov), exist_ok=True)
+                    with open(full_ov, "w", encoding="utf-8") as ov_fh:
+                        ov_fh.write(mod_code)
         return path
 
 

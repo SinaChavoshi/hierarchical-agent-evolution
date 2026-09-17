@@ -110,5 +110,33 @@ class TestMorphogenesis(unittest.TestCase):
                     f"seed={seed}: department '{dept.dept_id}' cannot write files"
                 )
 
+    def test_morphogenesis_immutability_and_overlay_isolation(self):
+        """Morphing a genome must never mutate the parent in-place and must deep-copy code_overlays."""
+        self.genome_a.code_overlays = {"hae/evaluation/artifacts.py": "# v1"}
+        orig_json = self.genome_a.to_json()
+        engine = MorphogenesisEngine()
+        child = engine.morph_genome_topology(self.genome_a, "Immutability Check", 9, "child_imm")
+        self.assertEqual(self.genome_a.to_json(), orig_json)
+        self.assertEqual(child.code_overlays.get("hae/evaluation/artifacts.py"), "# v1")
+        child.code_overlays["new_mod.py"] = "# child only"
+        self.assertNotIn("new_mod.py", self.genome_a.code_overlays)
+
+    def test_crossover_overlay_merge_precedence(self):
+        """Sexual crossover must merge code_overlays from both parents, with Parent A taking precedence."""
+        self.genome_a.code_overlays = {
+            "hae/evaluation/artifacts.py": "# from A",
+            "hae/genome/morphogenesis.py": "# from A",
+        }
+        self.genome_b.code_overlays = {
+            "hae/evaluation/artifacts.py": "# from B",
+            "hae/orchestration/worker.py": "# from B",
+        }
+        crossover_engine = StructuralCrossoverEngine()
+        child = crossover_engine.recombine(self.genome_a, self.genome_b, "child_overlay_merge", 9)
+        self.assertEqual(child.code_overlays.get("hae/evaluation/artifacts.py"), "# from A")
+        self.assertEqual(child.code_overlays.get("hae/genome/morphogenesis.py"), "# from A")
+        self.assertEqual(child.code_overlays.get("hae/orchestration/worker.py"), "# from B")
+
+
 if __name__ == "__main__":
     unittest.main()

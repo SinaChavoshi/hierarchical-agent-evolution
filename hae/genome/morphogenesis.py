@@ -25,7 +25,12 @@ FUNCTIONAL_CATEGORIES = {
 }
 
 def classify_department_role(dept: DepartmentGenome) -> str:
-    """Classifies a department into a functional category based on id and mandate."""
+    """Classifies a department into a functional category based on id, name, and mandate.
+
+    Checks `(dept.dept_id + " " + dept.name + " " + dept.mandate).lower()` against
+    the keyword lists in `FUNCTIONAL_CATEGORIES` in declaration order. Returns the
+    first matching category key, or `"custom_specialized"` if no keywords match.
+    """
     dept_text = (dept.dept_id + " " + dept.name + " " + dept.mandate).lower()
     for cat, keywords in FUNCTIONAL_CATEGORIES.items():
         if any(kw in dept_text for kw in keywords):
@@ -45,7 +50,20 @@ class MorphogenesisEngine:
         target_generation: int,
         child_id: str
     ) -> CompanyGenome:
-        """Morphs an existing genome by adding, pruning, or reshaping departmental pods."""
+        """Morphs an existing genome by adding, pruning, or reshaping departmental pods.
+
+        Invariants:
+          1. Deep-copy isolation: Must never mutate `parent` in-place. `child.code_overlays`
+             must be an independent copy of `parent.code_overlays`.
+          2. Lineage: Sets `child.company_id = child_id`, `child.generation = target_generation`,
+             `child.parent_ids = [parent.company_id]`, and appends `mutation_name` to
+             `child.mutation_history`.
+          3. Tool enablement: Any newly spawned technical department (`formal_verification`,
+             `systems_eng`, `qa_testing`, `ai_acceleration`) must set `tools_enabled=True` on
+             its worker `AgentGenome` instances so they can write files.
+          4. Protected pods: Must retain at least 2 departments and must never prune
+             `dept_systems_eng` or `dept_qa_redteam`.
+        """
         child = copy.deepcopy(parent)
         child.company_id = child_id
         child.generation = target_generation
@@ -137,7 +155,22 @@ class StructuralCrossoverEngine:
         target_generation: int,
         label: str = "Recombinant"
     ) -> CompanyGenome:
-        """Aligns departments by functional role category and performs allelic crossover."""
+        """Aligns departments by functional role category and performs allelic crossover.
+
+        Invariants:
+          1. Deep-copy isolation: Must never mutate `parent_a` or `parent_b` in-place.
+          2. Lineage: Sets `child.company_id = child_id`, `child.generation = target_generation`,
+             `child.parent_ids = [parent_a.company_id, parent_b.company_id]`.
+          3. Level 3 RSI Code Overlay Inheritance: Merges `code_overlays` from both parents
+             such that `child.code_overlays` contains all keys from both parents, with
+             `parent_a.code_overlays` taking precedence over `parent_b.code_overlays` on key
+             collisions (`{**parent_b.code_overlays, **parent_a.code_overlays}`).
+          4. CEO Crossover: Combines and deduplicates `ceo.backstory_traits` from both parents
+             (preserving order, capped at 6 traits) and sets `ceo.temperature` to the rounded
+             average of `parent_a.ceo.temperature` and `parent_b.ceo.temperature`.
+          5. Department Alignment: Aligns departments by `classify_department_role` to recombine
+             manager traits/temperatures and interleave specialist agents.
+        """
         child = copy.deepcopy(parent_a)
         child.company_id = child_id
         child.generation = target_generation
@@ -145,6 +178,9 @@ class StructuralCrossoverEngine:
         child.mutation_history = [
             f"Gen {target_generation} Structural Morphogenesis: Recombined {parent_a.company_id} x {parent_b.company_id} ({label})"
         ]
+        merged_overlays = dict(getattr(parent_b, "code_overlays", {}) or {})
+        merged_overlays.update(getattr(parent_a, "code_overlays", {}) or {})
+        child.code_overlays = merged_overlays
 
         # CEO traits crossover
         ceo_a_traits = getattr(parent_a.ceo, "backstory_traits", []) or []

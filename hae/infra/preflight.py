@@ -326,16 +326,13 @@ def _gcloud(args: List[str], timeout: int = 120) -> "subprocess.CompletedProcess
     """Runs gcloud with the ambient operator credentials.
 
     Context Aware Access blocks plain `gcloud` in some environments while
-    allowing it with an explicit ADC token, so we pass one through when we can
-    get one. A failure to obtain a token is not fatal here; gcloud may well
-    have its own working credentials.
+    allowing it with an explicit ADC token, so we pass one through via
+    get_adc_access_token() (which reads ADC directly via Python google.auth
+    without shelling out to gcloud).
     """
     env = dict(os.environ)
     try:
-        token = subprocess.run(
-            ["gcloud", "auth", "application-default", "print-access-token"],
-            capture_output=True, text=True, timeout=60,
-        ).stdout.strip()
+        token = get_adc_access_token()
         if token:
             env["CLOUDSDK_AUTH_ACCESS_TOKEN"] = token
     except Exception:

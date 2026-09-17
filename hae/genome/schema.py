@@ -192,6 +192,7 @@ class CompanyGenome(_Model):
     executive_deliberation_rules: str = (
         "Dialectic review: challenge assumptions, stress-test trade-offs")
     budget_usd: float = 0.50
+    code_overlays: Dict[str, str] = field(default_factory=dict)
     extra: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -219,6 +220,13 @@ class CompanyGenome(_Model):
                 f"CompanyGenome.budget_usd must be positive, got {self.budget_usd}")
         self.parent_ids = list(self.parent_ids or [])
         self.mutation_history = list(self.mutation_history or [])
+        if self.code_overlays is None:
+            self.code_overlays = {}
+        elif not isinstance(self.code_overlays, Mapping):
+            raise GenomeValidationError(
+                f"CompanyGenome.code_overlays must be a mapping, got {type(self.code_overlays).__name__}")
+        else:
+            self.code_overlays = {str(k): str(v) for k, v in self.code_overlays.items()}
 
     @property
     def total_agent_count(self) -> int:
