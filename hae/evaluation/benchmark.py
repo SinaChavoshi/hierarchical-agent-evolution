@@ -55,7 +55,7 @@ from typing import Any, Dict, List, Optional
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-DEFAULT_TIMEOUT_S = 300
+DEFAULT_TIMEOUT_S = 30
 
 
 class BenchmarkError(RuntimeError):
