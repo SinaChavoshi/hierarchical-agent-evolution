@@ -63,6 +63,34 @@ class AgentWorkspace:
                                 ),
                             }
                         ast.parse(content)
+                        task_map = {
+                            "hae/evaluation/artifacts.py": "artifacts",
+                            "hae/evaluation/harness.py": "harness",
+                            "hae/evolution/morphogenesis.py": "morphogenesis",
+                            "hae/runtime/verification_loop.py": "verification_loop",
+                        }
+                        norm_rel = relative_path.replace("\\", "/").lstrip("./")
+                        if norm_rel in task_map:
+                            try:
+                                from hae.evaluation.benchmark import SelfHostingBenchmark
+                                bm = SelfHostingBenchmark()
+                                t_id = task_map[norm_rel]
+                                old_res = bm.evaluate(t_id, {norm_rel: existing_src})
+                                if old_res.score > 0.0:
+                                    new_res = bm.evaluate(t_id, {norm_rel: content})
+                                    if new_res.score < old_res.score:
+                                        return {
+                                            "status": "error",
+                                            "path": relative_path,
+                                            "error": (
+                                                f"Monotonic Verification Guard: refused to overwrite {norm_rel} "
+                                                f"(current ground-truth score: {old_res.score}%) with a lower-scoring "
+                                                f"implementation ({new_res.score}%). Write tests or red-team scripts "
+                                                f"to a separate file (e.g., tests/test_red_team.py)."
+                                            ),
+                                        }
+                            except Exception:
+                                pass
                 except SyntaxError as syn_err:
                     return {
                         "status": "error",
