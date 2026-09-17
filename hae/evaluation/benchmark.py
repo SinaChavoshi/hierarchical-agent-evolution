@@ -474,6 +474,8 @@ class SelfHostingBenchmark:
 
         passed = max(0, collected - failures - errors)
         named = _extract_failures(report)
+        if not named and (collected == 0 or proc.returncode != 0):
+            named = ["suite failed to import: " + _first_exception(report)]
         return {
             "passed": passed,
             "collected": collected,

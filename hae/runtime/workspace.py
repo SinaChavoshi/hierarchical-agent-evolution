@@ -45,6 +45,35 @@ class AgentWorkspace:
         """Writes content to a file in the workspace, creating parent directories."""
         try:
             target_path = self._resolve_path(relative_path)
+            if relative_path.endswith(".py") and os.path.exists(target_path):
+                try:
+                    import ast
+                    with open(target_path, "r", encoding="utf-8", errors="replace") as existing_f:
+                        existing_src = existing_f.read()
+                    if len(existing_src.strip()) > 200:
+                        ast.parse(existing_src)
+                        # Existing file is valid, non-trivial Python. Verify candidate is valid Python.
+                        if content.lstrip().startswith("Action:") or len(content.strip()) < 100:
+                            return {
+                                "status": "error",
+                                "path": relative_path,
+                                "error": (
+                                    f"Refused to overwrite valid Python module ({len(existing_src)} bytes) "
+                                    f"with truncated/ReAct-header snippet ({len(content)} bytes)."
+                                ),
+                            }
+                        ast.parse(content)
+                except SyntaxError as syn_err:
+                    return {
+                        "status": "error",
+                        "path": relative_path,
+                        "error": (
+                            f"Refused to overwrite valid Python module with invalid syntax "
+                            f"({syn_err.msg} at line {syn_err.lineno})."
+                        ),
+                    }
+                except Exception:
+                    pass
             os.makedirs(os.path.dirname(target_path), exist_ok=True)
             with open(target_path, "w", encoding="utf-8") as f:
                 f.write(content)

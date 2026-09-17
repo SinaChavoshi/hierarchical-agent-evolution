@@ -34,7 +34,7 @@ class KubernetesRuntime:
                  namespace: str = "agent-evolution",
                  template: str = "k8s/generation-job.yaml.template",
                  poll_seconds: int = 30,
-                 timeout_seconds: int = 7200,
+                 timeout_seconds: int = 14400,
                  repo_root: str = "."):
         if not image_tag or image_tag == "latest":
             # A campaign spanning hours must not race the next build. `latest`
@@ -53,14 +53,9 @@ class KubernetesRuntime:
     def _kubectl(self, args: List[str], check: bool = True) -> str:
         env = dict(os.environ)
         if "CLOUDSDK_AUTH_ACCESS_TOKEN" not in env:
-            try:
-                tok = subprocess.run(
-                    ["gcloud", "auth", "application-default", "print-access-token"],
-                    capture_output=True, text=True, timeout=60).stdout.strip()
-                if tok:
-                    env["CLOUDSDK_AUTH_ACCESS_TOKEN"] = tok
-            except Exception:
-                pass
+            tok = get_adc_access_token()
+            if tok:
+                env["CLOUDSDK_AUTH_ACCESS_TOKEN"] = tok
         proc = subprocess.run(["kubectl", "-n", self.namespace] + args,
                               capture_output=True, text=True, env=env)
         if check and proc.returncode != 0:
@@ -128,7 +123,12 @@ class KubernetesRuntime:
             raw_existing = self._kubectl(
                 ["get", "job", job, "-o", "jsonpath={.status}"], check=False)
             existing = json.loads(raw_existing) if raw_existing.strip() else {}
-            if existing.get("startTime") and not self._is_job_finished(existing, completions):
+            if existing.get("startTime"):
+                if self._is_job_finished(existing, completions):
+                    print(f"[k8s] attached to already-settled job {job} "
+                          f"({existing.get('succeeded', 0)} succeeded, "
+                          f"{existing.get('failed', 0)} failed)")
+                    return
                 print(f"[k8s] attaching to active job {job} "
                       f"({existing.get('succeeded', 0)} succeeded, "
                       f"{existing.get('active', 0)} active)")

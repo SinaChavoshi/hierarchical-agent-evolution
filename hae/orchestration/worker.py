@@ -132,6 +132,8 @@ def evaluate_single_firm(
         if it == 1:
             current_objective = task.objective
         else:
+            for path, content in best_workspace_files.items():
+                runner.workspace.write_file(path, content)
             runner.verification_loop.used = 0
             failures_list = (best_outcome.evidence.get("failures", [])
                              if best_outcome and best_outcome.evidence else [])
@@ -184,13 +186,18 @@ def evaluate_single_firm(
 
         best_score_val = (float(best_outcome.score)
                           if best_outcome and best_outcome.score is not None else -1.0)
-        if best_outcome is None or score_val >= best_score_val:
+        curr_files = run_output.get("workspace_files", {})
+        curr_bytes = sum(len(v) for v in curr_files.values())
+        best_bytes = sum(len(v) for v in best_workspace_files.values())
+        if best_outcome is None or score_val > best_score_val or (
+            score_val == best_score_val and curr_bytes >= best_bytes
+        ):
             best_outcome = outcome
-            best_workspace_files = dict(run_output.get("workspace_files", {}))
+            best_workspace_files = dict(curr_files)
             best_deliverable = run_output["final_deliverable"]
             best_briefs = dict(run_output.get("departmental_briefs", {}))
         else:
-            print(f" [REGRESSION] Iteration {it} scored {score_val} < best {best_score_val}; restoring best workspace snapshot.")
+            print(f" [REGRESSION] Iteration {it} scored {score_val} ({curr_bytes}B) < best {best_score_val} ({best_bytes}B); restoring best workspace snapshot.")
             for path, content in best_workspace_files.items():
                 runner.workspace.write_file(path, content)
 
