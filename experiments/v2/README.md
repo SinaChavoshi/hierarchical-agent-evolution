@@ -23,7 +23,7 @@ All six generations executed with `carry_artifacts: false` (each firm starts fro
 | **Gen 6** | **Campaign 2 (`iter=10`)** | [`gen6.json`](../../configs/generations/gen6.json) | **`98.39`** (`gen_6_crossover_3`) | **`87.48`** | **`10 / 10` (`100%`)** | **`100.0%`** | **`1.30`** | `10 / 10` (`100%`) | **`$4.87`** | `COMPLETE` |
 | **Gen 7** | **V3 Level-3 RSI Seed (`morphogenesis.py`)** | [`gen7.json`](../../configs/generations/gen7.json) | **`96.83`** (`gen_7_pareto_1`) | `71.77` | **`10 / 10` (`100%`)** | **`100.0%`** | `1.50` | `10 / 10` (`100%`) | `$6.69` | `COMPLETE` |
 | **Gen 8** | **V3 Closed-Loop Bootstrap #1 (`morphogenesis.py`)** | [`gen8.json`](../../configs/generations/gen8.json) | **`97.92`** (`gen_8_pareto_2`) | `74.52` (`79.00` med) | **`10 / 10` (`100%`)** | **`100.0%`** | **`1.30`** | `10 / 10` (`100%`) | `$6.34` | `COMPLETE` |
-| **Gen 9** | **V3 Closed-Loop Bootstrap #2 (`morphogenesis.py`)** | [`gen9.json`](../../configs/generations/gen9.json) | *Running (`86.96` so far)* | *Running* | *`4/4` (`100%` so far)* | *`100.0%`* | *`1.00`* | *In Progress* | *Running* | `RUNNING` |
+| **Gen 9** | **V3 Closed-Loop Bootstrap #2 (`morphogenesis.py`)** | [`gen9.json`](../../configs/generations/gen9.json) | **`94.89`** (`gen_9_crossover_1`) | `72.71` (`71.91` med) | **`10 / 10` (`100%`)** | **`100.0%`** | **`1.00`** | `10 / 10` (`100%`) | **`$5.88`** | `COMPLETE` |
 
 ![V2 & V3 Ground-Truth Self-Hosting & Closed-Loop RSI Trajectory](assets/v2_v3_evolutionary_trajectory.png)
 
@@ -58,6 +58,10 @@ All six generations executed with `carry_artifacts: false` (each firm starts fro
 ### Finding 5 — Multi-Department Workspace Protection (`Monotonic Verification Guard`)
 - Live telemetry during Campaign 2 revealed a structural failure mode in multi-department agent organizations: upstream engineering departments (`Systems Engineering & Infrastructure Architecture`) frequently authored a `100.0%`-passing `hae/evaluation/artifacts.py`, only for downstream audit/verification departments (`Adversarial Audit & Red Team Verification` or `Formal Verification`) to overwrite `artifacts.py` with a mock stub or inline test script at the end of the pass.
 - Implementing the **Monotonic Verification Guard** in `AgentWorkspace.write_file` ([`hae/runtime/workspace.py`](../../hae/runtime/workspace.py)) resolved this permanently: whenever an agent attempts to overwrite a self-hosting target module with code that degrades its ground-truth verification score, `write_file` rejects the destructive overwrite and instructs the agent to write red-team/test suites to separate files (e.g. `tests/test_artifacts.py`).
+
+### Finding 6 — Level 3 Closed-Loop Recursive Self-Improvement (`Generations 7–9`: `60%` $\to$ `80%` $\to$ `100%` First-Shot Convergence)
+- In **V3 (`Generations 7–9`)**, competing organizations re-implemented HAE's core evolutionary breeding engine (`hae/genome/morphogenesis.py`: `MorphogenesisEngine` and `StructuralCrossoverEngine`). Verified `100.0%`-passing implementations were promoted into each firm's `genome.code_overlays` and dynamically loaded (`hae/runtime/overlay.py:get_overlay_class`) by `Breeder` to breed the subsequent generation.
+- Across two full closed-loop self-breeding cycles (`Gen 7` $\to$ `Gen 8` $\to$ `Gen 9`), **`30 / 30` (`100.0%`) firms achieved `100.0%` (`7/7`) ground-truth verification**, while **First-Shot (`Iteration 1/10`) Convergence climbed monotonically from `60%` (`6/10` in Gen 7) to `80%` (`8/10` in Gen 8) to a perfect `100%` (`10/10` in Gen 9, `Mean Iterations = 1.00`)**, and generational compute spend dropped continuously (`$6.69` $\to$ `$6.34` $\to$ `$5.88`).
 
 ---
 

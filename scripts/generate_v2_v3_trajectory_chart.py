@@ -173,8 +173,10 @@ def build_svg(rows):
 
         # Peak Net circle + label
         ypk = y_of(r["peak_net"])
+        yit = y_of(r["iter1_rate"])
         parts.append(f'<circle cx="{xx}" cy="{ypk}" r="5.5" fill="#58a6ff" stroke="#0d1117" stroke-width="1.5"/>')
-        parts.append(f'<text x="{xx}" y="{ypk - 10}" fill="#58a6ff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">{r["peak_net"]:.2f}</text>')
+        pk_label_y = ypk + 18 if r["iter1_rate"] >= 95 else ypk - 10
+        parts.append(f'<text x="{xx}" y="{pk_label_y}" fill="#58a6ff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">{r["peak_net"]:.2f}</text>')
 
         # Median Net square + label
         ymd = y_of(r["median_net"])
@@ -187,9 +189,9 @@ def build_svg(rows):
         parts.append(f'<circle cx="{xx}" cy="{yvr}" r="4.5" fill="#3fb950" stroke="#0d1117" stroke-width="1.2"/>')
 
         # Iteration-1 convergence triangle + label
-        yit = y_of(r["iter1_rate"])
         parts.append(f'<circle cx="{xx}" cy="{yit}" r="4.5" fill="#f0883e" stroke="#0d1117" stroke-width="1.2"/>')
-        parts.append(f'<text x="{xx}" y="{yit + 15}" fill="#ffa657" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">{r["iter1_rate"]:.0f}%</text>')
+        it_label_y = yit - 10 if r["iter1_rate"] >= 95 else yit + 15
+        parts.append(f'<text x="{xx}" y="{it_label_y}" fill="#ffa657" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">{r["iter1_rate"]:.0f}%</text>')
 
     # Legend on the right
     lx = PAD_L + plot_w + 22
