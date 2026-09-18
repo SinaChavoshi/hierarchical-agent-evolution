@@ -112,17 +112,24 @@ def evaluate_single_firm(
 
     print(f"---> Running {firm_genome.company_id} ({firm_genome.total_agent_count} agents)...")
     print(f"     {task.describe()}")
-    target_mod = getattr(getattr(task, "verifier", None), "target_module", None)
+    verifier = getattr(task, "verifier", None)
+    target_mod = getattr(verifier, "target_module", None)
+    if not target_mod and hasattr(verifier, "benchmark") and hasattr(verifier, "task_id"):
+        try:
+            target_mod = verifier.benchmark.task(verifier.task_id).target_module
+        except Exception:
+            target_mod = None
     seed_files = dict(seed_files or {})
     if getattr(firm_genome, "code_overlays", None):
         for ov_path, ov_code in firm_genome.code_overlays.items():
             clean_ov = ov_path.lstrip("./")
             if not getattr(task, "carry_artifacts", False) and target_mod and clean_ov == target_mod.lstrip("./"):
+                print(f"     [carry_artifacts=False] Excluded active target module {clean_ov} from workspace seed_files.")
                 continue
             seed_files.setdefault(clean_ov, ov_code)
         print(f"     [LEVEL-3 RSI] Active code overlays on genome: {sorted(firm_genome.code_overlays.keys())}")
     if seed_files:
-        print(f"     Inheriting {len(seed_files)} file(s) in workspace.")
+        print(f"     Inheriting {len(seed_files)} file(s) in workspace: {sorted(seed_files.keys())}")
 
     runner = HierarchicalCompanyRunner(
         firm_genome, budget=task.budget, seed_files=seed_files)
