@@ -8,7 +8,7 @@ generations sharing one platform architecture and one fitness function.
 |---|---|---|---|
 | **V1** | Pilot → Gen 10 (Gen 11 aborted) | **Closed** | [`v1/README.md`](v1/README.md) |
 | **V2** | Gen 1 → Gen 6 (`artifacts.py`, Single-Pass & Iterative Self-Repair) | **Complete (`60/60` firms, `100%` pass in Gen 4–6)** | [`v2/README.md`](v2/README.md) |
-| **V3 (Level-3 RSI)** | Gen 7 → Gen 9 (`morphogenesis.py` + Closed-Loop Self-Breeding Overlays) | **Complete (`30/30` at `100%`, `100%` First-Shot Convergence in Gen 9)** | [`v3_rsi/CAMPAIGN_STATUS.md`](v3_rsi/CAMPAIGN_STATUS.md) |
+| **V3 (Level-3 RSI)** | Gen 7 → Gen 9 (`morphogenesis.py` + Closed-Loop Self-Breeding Overlays) | **Complete (`Gen 7` Zero-Seed `60%` Iter-1; `Gen 8–9` Overlay-Seeded* — see Audit Note)** | [`v3_rsi/CAMPAIGN_STATUS.md`](v3_rsi/CAMPAIGN_STATUS.md) |
 
 ![V2 & V3 Ground-Truth Self-Hosting & Closed-Loop RSI Trajectory](v2/assets/v2_v3_evolutionary_trajectory.png)
 

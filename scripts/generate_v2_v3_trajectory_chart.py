@@ -133,7 +133,7 @@ def build_svg(rows):
         parts.append(f'<line x1="{bx:.1f}" y1="{PAD_T - 44}" x2="{bx:.1f}" y2="{PAD_T + plot_h}" stroke="#d2a8ff" stroke-dasharray="5,5" stroke-width="1.5"/>')
         parts.append(f'<rect x="{bx + 6:.1f}" y="{PAD_T - 44}" width="{bw - 12:.1f}" height="36" rx="6" fill="#161b22" stroke="#a371f7" stroke-width="1.2"/>')
         parts.append(f'<text x="{bx + bw/2:.1f}" y="{PAD_T - 28}" fill="#d2a8ff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">PHASE 3: V3 CLOSED-LOOP RSI</text>')
-        parts.append(f'<text x="{bx + bw/2:.1f}" y="{PAD_T - 14}" fill="#8b949e" font-family="sans-serif" font-size="10" text-anchor="middle">morphogenesis.py + Overlays</text>')
+        parts.append(f'<text x="{bx + bw/2:.1f}" y="{PAD_T - 14}" fill="#8b949e" font-family="sans-serif" font-size="10" text-anchor="middle">Gen 7 Zero-Seed | Gen 8-9 Overlay-Seeded*</text>')
 
     # Title & Subtitle
     parts.append(f'<text x="{PAD_L}" y="42" fill="#f0f6fc" font-family="sans-serif" font-size="20" font-weight="bold">Hierarchical Agent Evolution — V2 &amp; V3 Ground-Truth Self-Hosting &amp; Closed-Loop RSI Trajectory</text>')
@@ -196,7 +196,7 @@ def build_svg(rows):
     # Legend on the right
     lx = PAD_L + plot_w + 22
     ly = PAD_T + 20
-    parts.append(f'<rect x="{lx - 10}" y="{ly - 18}" width="238" height="210" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>')
+    parts.append(f'<rect x="{lx - 10}" y="{ly - 18}" width="238" height="242" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.2"/>')
     parts.append(f'<text x="{lx + 4}" y="{ly + 4}" fill="#f0f6fc" font-family="sans-serif" font-size="12" font-weight="bold">Trajectory Metrics</text>')
 
     for idx, (_, color, dash, _, label) in enumerate(series_cfg):
@@ -206,8 +206,9 @@ def build_svg(rows):
         parts.append(f'<circle cx="{lx + 19}" cy="{cy}" r="4.5" fill="{color}"/>')
         parts.append(f'<text x="{lx + 44}" y="{cy + 4}" fill="#c9d1d9" font-family="sans-serif" font-size="11">{esc(label)}</text>')
 
-    parts.append(f'<text x="{lx + 4}" y="{ly + 178}" fill="#8b949e" font-family="sans-serif" font-size="10">Bottom labels show module,</text>')
-    parts.append(f'<text x="{lx + 4}" y="{ly + 192}" fill="#8b949e" font-family="sans-serif" font-size="10">mean iterations &amp; cohort spend.</text>')
+    parts.append(f'<text x="{lx + 4}" y="{ly + 176}" fill="#8b949e" font-family="sans-serif" font-size="10">Gen 1-7: Zero-Seed (0/10 inherited)</text>')
+    parts.append(f'<text x="{lx + 4}" y="{ly + 191}" fill="#f0883e" font-family="sans-serif" font-size="10">*Gen 8-9: Overlay-Seeded (10/10</text>')
+    parts.append(f'<text x="{lx + 4}" y="{ly + 205}" fill="#f0883e" font-family="sans-serif" font-size="10">inherited via worker.py; fixed 71a7da4)</text>')
 
     parts.append("</svg>")
     return "\n".join(parts)
