@@ -121,7 +121,12 @@ data:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [llm-d-gateway] %(message)s")
     logger = logging.getLogger("llmd-gateway")
 
-    HEADLESS_SVC = os.environ.get("BACKEND_HEADLESS_SVC", "qwen38-flash-next-180b-headless")
+    HEADLESS_SERVICES = [
+        s.strip() for s in os.environ.get(
+            "BACKEND_HEADLESS_SVC",
+            "qwen3-coder-32b-headless,qwen38-flash-next-180b-headless"
+        ).split(",") if s.strip()
+    ]
     BACKEND_PORT = int(os.environ.get("BACKEND_PORT", "8000"))
     BOUNDED_LOAD_FACTOR = float(os.environ.get("BOUNDED_LOAD_FACTOR", "1.35"))
     MAX_RESPONSE_CACHE_ENTRIES = int(os.environ.get("MAX_RESPONSE_CACHE_ENTRIES", "4096"))
@@ -140,6 +145,7 @@ data:
         "per_backend_inflight": {},
         "per_backend_total": {},
         "backends": [],
+        "pools": {},
     }
 
     # Global cross-company response cache: canonical_prompt_hash -> (status, body_bytes, headers_dict)
@@ -151,13 +157,23 @@ data:
         while True:
             try:
                 loop = asyncio.get_running_loop()
-                infos = await loop.getaddrinfo(HEADLESS_SVC, BACKEND_PORT, proto=socket.IPPROTO_TCP)
-                ips = sorted(list({info[4][0] for info in infos}))
-                backends = [f"http://{ip}:{BACKEND_PORT}" for ip in ips]
-                if backends != stats["backends"]:
-                    logger.info(f"Discovered {len(backends)} active vLLM KV-cache replicas: {backends}")
-                    stats["backends"] = backends
-                    for b in backends:
+                pools = {}
+                all_backends = []
+                for svc in HEADLESS_SERVICES:
+                    try:
+                        infos = await loop.getaddrinfo(svc, BACKEND_PORT, proto=socket.IPPROTO_TCP)
+                        ips = sorted(list({info[4][0] for info in infos}))
+                        svc_backends = [f"http://{ip}:{BACKEND_PORT}" for ip in ips]
+                        if svc_backends:
+                            pools[svc] = svc_backends
+                            all_backends.extend(svc_backends)
+                    except Exception:
+                        pass
+                if pools != stats["pools"]:
+                    logger.info(f"Discovered active vLLM KV-cache pools: {pools}")
+                    stats["pools"] = pools
+                    stats["backends"] = all_backends
+                    for b in all_backends:
                         stats["per_backend_inflight"].setdefault(b, 0)
                         stats["per_backend_total"].setdefault(b, 0)
             except Exception as e:
@@ -209,10 +225,17 @@ data:
         fallback = hashlib.sha256(payload_bytes).hexdigest()
         return fallback, fallback[:32], False
 
-    def select_backend(prefix_key: str) -> str:
-        backends = stats["backends"]
+    def select_backend(prefix_key: str, requested_model: str = "") -> str:
+        pools = stats.get("pools", {})
+        if "32B" in requested_model and pools.get("qwen3-coder-32b-headless"):
+            backends = pools["qwen3-coder-32b-headless"]
+        elif pools.get("qwen38-flash-next-180b-headless"):
+            backends = pools["qwen38-flash-next-180b-headless"]
+        else:
+            backends = stats["backends"]
+
         if not backends:
-            return f"http://{HEADLESS_SVC}:{BACKEND_PORT}"
+            return f"http://{HEADLESS_SERVICES[0]}:{BACKEND_PORT}"
         if len(backends) == 1:
             stats["prefix_kv_affinity_hits"] += 1
             return backends[0]
@@ -243,22 +266,28 @@ data:
         stats["cached_unique_answers"] = len(response_cache)
         return web.json_response(stats)
 
-    def prepare_backend_payload(payload_bytes: bytes) -> bytes:
+    def prepare_backend_payload(payload_bytes: bytes) -> tuple[bytes, str]:
+        requested_model = ""
         try:
             data = json.loads(payload_bytes.decode("utf-8", errors="ignore"))
-            if isinstance(data, dict) and "messages" in data:
-                # Default to fast, low-noise non-thinking mode on Qwen3.8-Flash-Next-NVFP4 unless explicitly overridden
-                ct_kwargs = data.get("chat_template_kwargs") or {}
-                if "enable_thinking" not in ct_kwargs:
-                    ct_kwargs["enable_thinking"] = False
-                    data["chat_template_kwargs"] = ct_kwargs
-                # Allow generous output tokens on 131,072 context window
-                if data.get("max_tokens", 0) == 4096:
-                    data["max_tokens"] = 8192
-                return json.dumps(data).encode("utf-8")
+            if isinstance(data, dict):
+                requested_model = str(data.get("model", ""))
+                # If qwen3-coder-32b pool is drained, seamlessly map model alias to nvidia/Qwen3.8-Flash-Next-NVFP4
+                pools = stats.get("pools", {})
+                if "32B" in requested_model and not pools.get("qwen3-coder-32b-headless") and pools.get("qwen38-flash-next-180b-headless"):
+                    data["model"] = "nvidia/Qwen3.8-Flash-Next-NVFP4"
+                    requested_model = data["model"]
+                if "messages" in data:
+                    ct_kwargs = data.get("chat_template_kwargs") or {}
+                    if "enable_thinking" not in ct_kwargs:
+                        ct_kwargs["enable_thinking"] = False
+                        data["chat_template_kwargs"] = ct_kwargs
+                    if data.get("max_tokens", 0) == 4096 and "Qwen3.8" in requested_model:
+                        data["max_tokens"] = 8192
+                return json.dumps(data).encode("utf-8"), requested_model
         except Exception:
             pass
-        return payload_bytes
+        return payload_bytes, requested_model
 
     def strip_residual_thinking(resp_body: bytes) -> bytes:
         try:
@@ -281,7 +310,10 @@ data:
         stats["total_requests"] += 1
 
         is_completion_endpoint = request.path.endswith("/completions")
-        body = prepare_backend_payload(raw_body) if is_completion_endpoint else raw_body
+        if is_completion_endpoint:
+            body, requested_model = prepare_backend_payload(raw_body)
+        else:
+            body, requested_model = raw_body, ""
         full_key, prefix_key, is_cacheable = extract_canonical_keys(body)
 
         # 1. Global Cross-Company Answer Short-Circuit Check
@@ -312,7 +344,7 @@ data:
             fut = None
 
         # 3. Shared Content-Prefix KV-Cache Routing across vLLM Replicas
-        backend = select_backend(prefix_key)
+        backend = select_backend(prefix_key, requested_model)
         stats["per_backend_inflight"][backend] = stats["per_backend_inflight"].get(backend, 0) + 1
         stats["per_backend_total"][backend] = stats["per_backend_total"].get(backend, 0) + 1
 
@@ -374,6 +406,22 @@ data:
     if __name__ == "__main__":
         web.run_app(app, host="0.0.0.0", port=8000)
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen3-coder-32b-headless
+  namespace: default
+  labels:
+    app: qwen3-coder-32b
+spec:
+  clusterIP: None
+  selector:
+    app: qwen3-coder-32b
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -404,7 +452,7 @@ spec:
             - pip install --no-cache-dir aiohttp && python3 /app/gateway.py
           env:
             - name: BACKEND_HEADLESS_SVC
-              value: qwen38-flash-next-180b-headless
+              value: qwen3-coder-32b-headless,qwen38-flash-next-180b-headless
             - name: BACKEND_PORT
               value: "8000"
           ports:
@@ -424,6 +472,20 @@ apiVersion: v1
 kind: Service
 metadata:
   name: vllm-qwen38-gateway
+  namespace: default
+spec:
+  selector:
+    app: llmd-inference-gateway
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-qwen3-coder
   namespace: default
 spec:
   selector:
