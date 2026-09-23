@@ -1,0 +1,306 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-flash-next-180b-headless
+  namespace: default
+  labels:
+    app: qwen38-flash-next-180b
+spec:
+  clusterIP: None
+  selector:
+    app: qwen38-flash-next-180b
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-flash-next-180b
+  namespace: default
+  labels:
+    app: qwen38-flash-next-180b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qwen38-flash-next-180b
+  template:
+    metadata:
+      labels:
+        app: qwen38-flash-next-180b
+    spec:
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Gi
+        - name: hf-cache
+          emptyDir: {}
+      containers:
+        - name: vllm
+          image: vllm/vllm-openai:nightly
+          command:
+            - python3
+            - -m
+            - vllm.entrypoints.openai.api_server
+          args:
+            - --model
+            - nvidia/Qwen3.8-Flash-Next-NVFP4
+            - --served-model-name
+            - nvidia/Qwen3.8-Flash-Next-NVFP4
+            - Qwen/Qwen3-Coder-32B-Instruct
+            - --tensor-parallel-size
+            - "2"
+            - --max-model-len
+            - "131072"
+            - --gpu-memory-utilization
+            - "0.92"
+            - --kv-cache-dtype
+            - fp8
+            - --enable-prefix-caching
+            - --swap-space
+            - "64"
+            - --max-num-seqs
+            - "64"
+            - --enforce-eager
+            - --trust-remote-code
+            - --port
+            - "8000"
+          ports:
+            - containerPort: 8000
+          env:
+            - name: HF_HOME
+              value: /root/.cache/huggingface
+            - name: VLLM_USE_V1
+              value: "1"
+          resources:
+            requests:
+              cpu: "24"
+              memory: "220Gi"
+              nvidia.com/gpu: "2"
+            limits:
+              cpu: "48"
+              memory: "320Gi"
+              nvidia.com/gpu: "2"
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+            - name: hf-cache
+              mountPath: /root/.cache/huggingface
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llmd-gateway-script
+  namespace: default
+data:
+  gateway.py: |
+    import asyncio
+    import hashlib
+    import json
+    import logging
+    import os
+    import socket
+    import time
+    from aiohttp import web, ClientSession, ClientTimeout
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [llm-d-gateway] %(message)s")
+    logger = logging.getLogger("llmd-gateway")
+
+    HEADLESS_SVC = os.environ.get("BACKEND_HEADLESS_SVC", "qwen38-flash-next-180b-headless")
+    BACKEND_PORT = int(os.environ.get("BACKEND_PORT", "8000"))
+    BOUNDED_LOAD_FACTOR = float(os.environ.get("BOUNDED_LOAD_FACTOR", "1.35"))
+    VIRTUAL_NODES = 64
+
+    stats = {
+        "total_requests": 0,
+        "prefix_affinity_hits": 0,
+        "load_spillovers": 0,
+        "per_backend_inflight": {},
+        "per_backend_total": {},
+        "backends": [],
+    }
+
+    async def discover_backends():
+        while True:
+            try:
+                loop = asyncio.get_running_loop()
+                infos = await loop.getaddrinfo(HEADLESS_SVC, BACKEND_PORT, proto=socket.IPPROTO_TCP)
+                ips = sorted(list({info[4][0] for info in infos}))
+                backends = [f"http://{ip}:{BACKEND_PORT}" for ip in ips]
+                if backends != stats["backends"]:
+                    logger.info(f"Discovered {len(backends)} active vLLM KV-cache replicas: {backends}")
+                    stats["backends"] = backends
+                    for b in backends:
+                        stats["per_backend_inflight"].setdefault(b, 0)
+                        stats["per_backend_total"].setdefault(b, 0)
+            except Exception as e:
+                logger.warning(f"Backend DNS discovery warning: {e}")
+            await asyncio.sleep(5)
+
+    def extract_prefix_key(payload_bytes: bytes, headers) -> str:
+        if "X-Company-ID" in headers:
+            return headers["X-Company-ID"]
+        try:
+            data = json.loads(payload_bytes.decode("utf-8", errors="ignore"))
+            msgs = data.get("messages", [])
+            prefix_parts = []
+            for m in msgs[:2]:
+                content = m.get("content", "")
+                if isinstance(content, str):
+                    prefix_parts.append(content[:384])
+            if prefix_parts:
+                return "||".join(prefix_parts)
+        except Exception:
+            pass
+        return hashlib.sha256(payload_bytes[:512]).hexdigest()
+
+    def select_backend(prefix_key: str) -> str:
+        backends = stats["backends"]
+        if not backends:
+            return f"http://{HEADLESS_SVC}:{BACKEND_PORT}"
+        if len(backends) == 1:
+            stats["prefix_affinity_hits"] += 1
+            return backends[0]
+
+        scored = []
+        for b in backends:
+            h = hashlib.sha256(f"{prefix_key}@{b}".encode("utf-8")).hexdigest()
+            scored.append((int(h[:16], 16), b))
+        scored.sort(reverse=True)
+
+        total_inflight = sum(stats["per_backend_inflight"].get(b, 0) for b in backends)
+        avg_load = total_inflight / float(len(backends))
+        max_allowed = max(4.0, (avg_load * BOUNDED_LOAD_FACTOR) + 3.0)
+
+        primary = scored[0][1]
+        if stats["per_backend_inflight"].get(primary, 0) <= max_allowed:
+            stats["prefix_affinity_hits"] += 1
+            return primary
+
+        for _, candidate in scored[1:]:
+            if stats["per_backend_inflight"].get(candidate, 0) <= max_allowed:
+                stats["load_spillovers"] += 1
+                return candidate
+
+        return min(backends, key=lambda b: stats["per_backend_inflight"].get(b, 0))
+
+    async def handle_stats(request: web.Request):
+        return web.json_response(stats)
+
+    async def handle_proxy(request: web.Request):
+        body = await request.read()
+        prefix_key = extract_prefix_key(body, request.headers)
+        backend = select_backend(prefix_key)
+
+        stats["total_requests"] += 1
+        stats["per_backend_inflight"][backend] = stats["per_backend_inflight"].get(backend, 0) + 1
+        stats["per_backend_total"][backend] = stats["per_backend_total"].get(backend, 0) + 1
+
+        target_url = f"{backend}{request.path_qs}"
+        session: ClientSession = request.app["client_session"]
+        try:
+            headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")}
+            async with session.request(
+                method=request.method,
+                url=target_url,
+                headers=headers,
+                data=body,
+            ) as resp:
+                resp_body = await resp.read()
+                out_headers = {
+                    k: v for k, v in resp.headers.items()
+                    if k.lower() not in ("transfer-encoding", "content-encoding", "content-length")
+                }
+                out_headers["X-LLMD-Backend"] = backend
+                return web.Response(status=resp.status, body=resp_body, headers=out_headers)
+        finally:
+            stats["per_backend_inflight"][backend] = max(0, stats["per_backend_inflight"].get(backend, 1) - 1)
+
+    async def on_startup(app: web.Application):
+        timeout = ClientTimeout(total=900)
+        app["client_session"] = ClientSession(timeout=timeout)
+        app["discovery_task"] = asyncio.create_task(discover_backends())
+
+    async def on_cleanup(app: web.Application):
+        app["discovery_task"].cancel()
+        await app["client_session"].close()
+
+    app = web.Application(client_max_size=64 * 1024 * 1024)
+    app.on_startup.append(on_startup)
+    app.on_cleanup.append(on_cleanup)
+    app.router.add_get("/llmd/stats", handle_stats)
+    app.router.add_route("*", "/{tail:.*}", handle_proxy)
+
+    if __name__ == "__main__":
+        web.run_app(app, host="0.0.0.0", port=8000)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llmd-inference-gateway
+  namespace: default
+  labels:
+    app: llmd-inference-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: llmd-inference-gateway
+  template:
+    metadata:
+      labels:
+        app: llmd-inference-gateway
+    spec:
+      volumes:
+        - name: gateway-script
+          configMap:
+            name: llmd-gateway-script
+      containers:
+        - name: router
+          image: python:3.11-slim
+          command:
+            - /bin/sh
+            - -c
+            - pip install --no-cache-dir aiohttp && python3 /app/gateway.py
+          env:
+            - name: BACKEND_HEADLESS_SVC
+              value: qwen38-flash-next-180b-headless
+            - name: BACKEND_PORT
+              value: "8000"
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: "2"
+              memory: "2Gi"
+            limits:
+              cpu: "4"
+              memory: "4Gi"
+          volumeMounts:
+            - name: gateway-script
+              mountPath: /app
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-qwen38-gateway
+  namespace: default
+spec:
+  selector:
+    app: llmd-inference-gateway
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
