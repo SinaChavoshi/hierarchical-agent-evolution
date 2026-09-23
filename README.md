@@ -37,19 +37,20 @@ Across **22 evolutionary runs** (**130+ multi-agent companies** and **3,500+ spa
 
 ---
 
-## 🚀 Future Roadmap (`V4` & `V5`)
+## 🚀 Future Roadmap (`V4` $\to$ `V4.5` $\to$ `V5`)
 
-Our findings from `V1–V3` directly shape the next two phases of the HAE research program, transitioning from synthetic single-file tasks and ceremonial corporate roleplay to **high-density peer communication (*The Dosadi Experiment*)** and **real-world systems engineering on [`google/gvisor`](https://github.com/google/gvisor)**.
+Our findings from `V1–V3` directly shape the next three phases of the HAE research program, transitioning from synthetic single-file tasks and ceremonial corporate roleplay to **high-density peer communication (*The Dosadi Experiment*)**, **real-world systems engineering on [`google/gvisor`](https://github.com/google/gvisor)**, **"TypeSafe AI" low-noise inter-tier models**, and **parametric RL distillation**.
 
 ```mermaid
 flowchart LR
-    V1["V1: Subjective Judge<br/>(Completed — Audited)"] --> V2["V2: Deterministic Verification<br/>& Self-Repair (Completed)"]
+    V1["V1: Subjective Judge<br/>(Completed)"] --> V2["V2: Deterministic Verification<br/>& Self-Repair (Completed)"]
     V2 --> V3["V3: Level-3 Code-Overlay<br/>RSI (Completed)"]
-    V3 --> V4["V4: The Dosadi Experiment<br/>& google/gvisor Bugs (Next)"]
-    V4 --> V5["V5: Parametric RL (GRPO/DPO)<br/>on Open-Weights GKE Models"]
+    V3 --> V4["V4: The Dosadi Experiment,<br/>google/gvisor & llm-d 180B NVFP4"]
+    V4 --> V45["V4.5: 'TypeSafe AI' Style<br/>Low-Noise Tiered Models"]
+    V45 --> V5["V5: Parametric RL (GRPO/DPO)<br/>Trajectory Distillation"]
 ```
 
-### Phase 4 (`V4`): *The Dosadi Experiment* & Real-World `google/gvisor` Engineering *(Next)*
+### Phase 4 (`V4`): *The Dosadi Experiment*, Real-World `google/gvisor` Engineering & Multi-Instance `llm-d` Serving *(Active)*
 
 1. **The *Dosadi* Communication Architecture (Signal-to-Noise Selection):**
    - Inspired by Frank Herbert's *The Dosadi Experiment*, where extreme environmental pressure strips away all social pleasantries until inhabitants communicate in a hyper-dense, zero-fluff vernacular.
@@ -64,18 +65,30 @@ flowchart LR
      - **[Issue `#13509`](https://github.com/google/gvisor/issues/13509) (Containerd shim leak when `StartShim` exits early):** Root cause in `pkg/shim/v1/service.go` (`cleanupSockets()` omitted on early return path in `StartShim()`).
    - **Deterministic `go test` Suite:** Companies must diagnose the bug across `pkg/shim/v1/...`, debate the fix via multi-turn peer dialogue, and pass all **6 official `gVisor` unit tests** (`init_kill_test.go`, `runsc_test.go`, `service_test.go`).
 
-3. **In-Cluster Open-Weights Model Hosting on GKE (`Qwen3` via `vLLM`):**
-   - Hosting an open-weights coding model (`Qwen3-32B-Instruct` / `Qwen3-Coder` via `vLLM` on GKE GPU nodes) inside the cluster eliminates external API rate limits and GCP IAM reconciler disruptions, drops marginal token costs for deep multi-turn internal company dialogues to `$0.00`, and unlocks direct weight access for Phase 5.
+3. **Multi-Instance `nvidia/Qwen3.8-Flash-Next-NVFP4` (`180B` MoE) with `llm-d` / Inference Gateway & KV-Cache Offloading on GKE `G4`:**
+   - Deployed across multiple **`g4-standard-96` (`NVIDIA RTX PRO 6000 Blackwell 96GB`)** instances on GKE (`chavoshi-g4-cluster`), utilizing Blackwell's native hardware 4-bit (`NVFP4`) Tensor Cores to serve the **`180B` parameter `nvidia/Qwen3.8-Flash-Next-NVFP4`** MoE model with a **`131,072` (`128k`) context window**.
+   - **`llm-d` / Inference Gateway Prefix-Aware Routing & Tiered KV-Cache Offloading:** Because 30+ agents inside a single company share 80–90% of their prompt prefix (repo files + specification + deliberation history), requests are routed through a **prefix/KV-cache-aware Inference Gateway (`llm-d`)** backed by **`fp8` VRAM KV caching (`~97 GiB`/node) + Host-DRAM KV cache offloading (`64 GiB`/node)**. All agents within a company hit hot KV blocks on the same instance while multiple companies execute concurrently across instances.
+
+---
+
+### Phase 4.5 (`V4.5`): *"TypeSafe AI" Style* Low-Noise / Zero-Ceremony Specialized Models *(Next)*
+
+Before moving to full trajectory reinforcement learning (`V5`), `V4.5` introduces **"TypeSafe AI" style models**—models specially trained and constrained to exhibit **near-zero communication overhead across organizational levels**:
+
+1. **Typed Inter-Tier Communication Contracts ("TypeSafe AI"):**
+   - Just as a type-safe compiler rejects untyped ambiguity at compile time, a *"TypeSafe AI"* model replaces open-ended English prose between hierarchy levels (Executive $\to$ Manager $\to$ Worker $\to$ Verifier) with **strictly typed, schema-enforced, low-noise communication packets** (`[SPEC_CONTRACT]`, `[CAUSE_HYPOTHESIS]`, `[AST_DIFF]`, `[VERIFY_TRACE]`).
+2. **Level-Specific Low-Noise Specialization:**
+   - Rather than using a chat-tuned model that defaults to verbose conversational pleasantries and hedging, each organizational tier uses a **low-noise specialized model/adapter** trained to emit only high-entropy state transitions, compact symbolic reasoning, and executable diffs—dramatically compressing latency and context consumption before RL weight updates begin.
 
 ---
 
 ### Phase 5 (`V5`): Parametric RL Specialization (`GRPO` / `DPO` Trajectory Distillation)
 
-Once `V4` evolves companies whose multi-turn internal dialogues exhibit high *Dosadi* signal density and solve real-world `gVisor` / production engineering tasks, `V5` closes the loop from **non-parametric evolution** (mutating prompts/genomes) to **parametric weight updates**:
+Once `V4` and `V4.5` establish high-density *Dosadi* + *TypeSafe AI* communication protocols that solve real-world `gVisor` and production engineering tasks, `V5` closes the loop from **organizational/protocol evolution** to **end-to-end multi-turn RL weight updates**:
 
-1. **Trajectory Harvesting:** Every multi-turn internal company conversation and tool-execution trace from `V4` is logged with its deterministic `go test` / `pytest` outcome and `Dosadi` communication efficiency score.
-2. **Contrastive & Group-Relative RL (`GRPO` / `DPO`):** Winning high-density, bug-fixing trajectories (`100%` test pass + high signal-to-noise ratio) and losing trajectories (fluffy corporate memos or failed patches) train **role-specialized LoRA adapters** (`Exec-LoRA`, `SystemsEng-LoRA`, `Verifier-LoRA`) on the in-cluster `Qwen3` base model.
-3. **Production Delegation:** The resulting workforce—combining evolved `CompanyGenome` topologies, *Dosadi* zero-fluff communication protocols, and RL-specialized weights—graduates from benchmark trials to handling real-world day-to-day software engineering tasks and repository issue queues.
+1. **Trajectory Harvesting:** Every multi-turn internal company conversation and tool-execution trace from `V4`/`V4.5` is logged with its deterministic `go test` / `pytest` outcome and `Dosadi` communication efficiency score.
+2. **Contrastive & Group-Relative RL (`GRPO` / `DPO`):** Winning high-density, bug-fixing trajectories (`100%` test pass + minimal token overhead) and losing trajectories (noisy communication or failed patches) train **role-specialized LoRA adapters** (`Exec-LoRA`, `SystemsEng-LoRA`, `Verifier-LoRA`) on the in-cluster `Qwen3.8` weights.
+3. **Production Delegation:** The resulting workforce—combining evolved `CompanyGenome` topologies, *Dosadi* / *TypeSafe AI* zero-noise communication protocols, and RL-specialized weights—graduates from benchmark trials to handling real-world day-to-day software engineering tasks and repository issue queues.
 
 ---
 
