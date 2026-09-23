@@ -1,6 +1,13 @@
-# Empirical Experimentation Ledger & Architecture Search Archive
+# V1 Experiment Set — Open-Ended Prose & Heuristic Sandbox Evolution (`Pilot` $\to$ `Gen 10`)
 
-This directory serves as the centralized empirical repository for the **Hierarchical Agent Evolution (HAE)** platform. It catalogs tournament runs, evolutionary lineages, multi-generational performance trajectories, and complete genomic snapshots required for exact reproducibility.
+**Status: CLOSED & AUDITED (`13` Experiments, `Pilot` $\to$ `Gen 10`, `Gen 11` Aborted; Archived for Reproducibility).**
+
+| Summary Dimension | Details |
+| :--- | :--- |
+| **What Was Tested** | **Multi-Generational Organizational Topology & Persona Evolution on Open-Ended Objectives (`Pilot` $\to$ `Gen 10`):** Can Darwinian selection over 10 competing 31–34 agent hierarchies per generation improve strategic depth, cross-functional architecture, and software deliverables when scored by an LLM Executive Judge (`95%+` weight) and a 4-gate heuristic sandbox verifier? |
+| **What Was the Outcome** | **1. Published Prose Fitness Climbed (`25.25` $\to$ `96.75`), But Execution Did Not (`corr = +0.045`):** While LLM-judged net fitness rose from `25.25` (`Gen 0`) to `91.26–96.75` (`Gen 3–10`), retroactive ground-truth re-execution ([`execution_grounded_correction.md`](execution_grounded_correction.md)) proved that selection optimized for persuasive **corporate memos and markdown blueprints** rather than working software (`0 / 60` firms in `Gen 5–10` passed all 5 physical execution gates).<br/>**2. Decisive Catalyst for V2:** The V1 audit directly drove the V2 architectural overhaul: replacing open-ended prose prompts with **ground-truth self-hosting benchmarks** (`unshare -rn` held-out test suites weighted at `30%` of fitness) and enforcing `carry_artifacts=False`. |
+
+This directory serves as the historical empirical archive for the **V1** phase of the **Hierarchical Agent Evolution (HAE)** platform. It catalogs tournament runs, evolutionary lineages, multi-generational performance trajectories, and complete genomic snapshots required for exact reproducibility.
 
 ---
 

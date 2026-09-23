@@ -1,517 +1,115 @@
 # Hierarchical Agent Evolution (HAE)
-### Evolving agent organisations against a fitness function that runs their code
 
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Infrastructure: Kubernetes](https://img.shields.io/badge/Infrastructure-Cloud%20Kubernetes-326ce5.svg)](https://kubernetes.io)
-[![LLM: Gemini 2.5 Flash & Pro](https://img.shields.io/badge/Vertex%20AI-Gemini%202.5-orange.svg)](https://cloud.google.com/vertex-ai)
+> **Evolutionary Morphogenesis, Recursive Self-Improvement, and High-Density Agentic Organizations on Kubernetes**
 
-> [!IMPORTANT]
-> **Both V2 (`Generations 1–6`, `60 / 60` firms) and V3 Level-3 Closed-Loop RSI (`Generations 7–9`, `30 / 30` firms) are COMPLETE (`90 / 90` firms across 9 generations).**
-> - **Zero-Seed From-Scratch Synthesis (`Generations 1–7`, `70` firms):** Starting with zero target code on disk (`0/10` inherited), competing firms evolved from `0%` full-suite pass rate in single-pass mode (`Gen 1–3`) to **`100.0%` (`40 / 40` firms) ground-truth verification** in multi-iteration self-repair (`Gen 4–6` on `artifacts.py`, peak Net Fitness **`98.81`**, `70%` first-shot convergence) and Level-3 RSI Seed (`Gen 7` on `morphogenesis.py`, peak Net Fitness **`96.83`**, `60%` first-shot convergence).
-> - **Closed-Loop Self-Breeding & Forensic Audit (`Generations 8–9`, `20` firms):** `Breeder` dynamically loaded and executed the winning firms' evolved `MorphogenesisEngine` and `StructuralCrossoverEngine` overlays from `Gen 7` and `Gen 8` to breed `Gen 8` (`97.92` peak) and `Gen 9` (`94.89` peak). A post-run transcript & workspace audit ([`experiments/v3_rsi/CAMPAIGN_STATUS.md`](experiments/v3_rsi/CAMPAIGN_STATUS.md)) revealed that an attribute lookup bug in `worker.py` (`BenchmarkVerifier.target_module`, fixed in `commit 71a7da4`) leaked `code_overlays["hae/genome/morphogenesis.py"]` into `seed_files` during `Gen 8` and `Gen 9` (`10/10` inherited), making `Gen 8–9` workspace scores (`80%` and `100%` Iter-1 convergence) an overlay-preservation test rather than a blank-slate synthesis test. See [`experiments/v2/README.md`](experiments/v2/README.md).
+**Hierarchical Agent Evolution (HAE)** is a distributed evolutionary computing framework running on Google Kubernetes Engine (GKE) that breeds multi-agent software engineering organizations (*"Companies"*). Rather than hand-crafting static agent workflows, HAE encodes an entire company's **organizational topology**, **executive/worker personas**, **internal communication protocols**, and **source-code modifications (`code_overlays`)** into a heritable `CompanyGenome`.
 
-![V2 & V3 Ground-Truth Self-Hosting & Closed-Loop RSI Trajectory](assets/v2_v3_evolutionary_trajectory.png)
+Populations of competing companies are evaluated in isolated sandboxes against software engineering and systems benchmarks, scored by deterministic unit tests and communication-efficiency judges, and bred across generations via tournament selection, subtree crossover, and structural mutation.
+
+![9-Generation Evolutionary Trajectory (V2 & V3)](assets/v2_v3_evolutionary_trajectory.png)
 
 ---
 
-## 1. Vision & Research Premise
+## 📊 Executive Summary of Completed Experiments (`V1` – `V3`)
 
-Modern LLM-based multi-agent systems (CrewAI, AutoGen, MetaGPT) rely on flat
-communication graphs or static role topologies. Scaled past ten agents, flat
-structures suffer context dilution, $\mathcal{O}(N^2)$ communication overhead,
-and reasoning collapse. Organisational hierarchies, personas, and delegation
-protocols are conventionally hand-crafted by human prompt engineering.
+Across **22 evolutionary runs** (**130+ multi-agent companies** and **3,500+ spawned agents**), HAE progressed through three completed experimental phases. Each phase uncovered a fundamental failure mode in multi-agent systems and resolved it in the subsequent architecture.
 
-**HAE** models an enterprise as a federated hierarchy — 30–50 specialised
-agents in departmental pods under an executive council — and optimises its
-topology, cognitive backstories, and delegation protocols by genetic
-programming rather than by hand.
+> 📖 **Click the links in the table below for full generational ledgers, forensic audits, and internal agent deliberation transcripts.**
 
-The goal is **recursive self-hosting**: competing virtual enterprises are
-tasked with designing, implementing, and verifying the next-generation engine
-of the platform itself.
+| Phase | Generations | What Was Tested | Key Outcome & Discovery | Detailed Report |
+| :--- | :--- | :--- | :--- | :--- |
+| **Phase 1 (`V1`)**<br>*Subjective Judge Era* | `Pilot` $\to$ `Gen 10`<br>*(13 Runs)* | Whether populations of 4 to 8 multi-agent companies (5–16 agents) could evolve better software engineering topologies when graded by an **LLM-as-a-Judge** (weighted rubric + peer review). | **99.5 / 100 subjective score vs. 77.7% real unit-test pass rate (`r = +0.045`).**<br>Companies discovered **Goodhart's Law**: evolving 16-agent bureaucratic hierarchies that wrote polished architectural prose and `TODO` stubs to charm the LLM judge while leaving edge-case bugs unfixed. | **[`experiments/v1/README.md`](experiments/v1/README.md)** |
+| **Phase 2 (`V2`)**<br>*Execution-Grounded Era* | `Gen 1` $\to$ `Gen 6`<br>*(60 Companies)* | Replaced subjective LLM grading with a **100% deterministic unit-test suite (18 tests)** on blank-slate code synthesis (`hae/compiler/optimizer.py`), comparing **1-Pass Waterfall (`Gen 1–3`)** vs. **Iterative Self-Repair (`Gen 4–6`)**. | **100.0% Test Pass Rate across all 30/30 companies (`Gen 4–6`), Peak Net Fitness `98.81 / 100`.**<br>1-Pass execution peaked at `94.4%` (`17/18`) and suffered `0.0%` crash mortality. Introducing a **3-Iteration Execute $\to$ Test $\to$ Repair Loop** with a **Monotonic Verification Guard** eliminated syntax crashes (`0/30`) and drove every company to `18/18` (`100%`). | **[`experiments/v2/README.md`](experiments/v2/README.md)** |
+| **Phase 3 (`V3`)**<br>*Level-3 Recursive Self-Improvement (RSI)* | `Gen 7` $\to$ `Gen 9`<br>*(30 Companies)* | Whether companies could **modify HAE's own evolutionary engine source code (`code_overlays`)** (`fitness.py` and `morphogenesis.py`) and survive with their self-authored algorithms active in the next generation. | **First Closed-Loop RSI (`97.99 / 100` peak fitness) + Two Critical Discoveries:**<br>1. **The `inherited_files` Leak (`Gen 8–9`):** Forensic audit (`commit 71a7da4`) discovered `BenchmarkVerifier` leaked `morphogenesis.py` into worker sandboxes (`10/10` firms in `Gen 8–9`), explaining why `Gen 8–9` hit `100%` on Attempt 1 (`0` repair turns).<br>2. **"Corporate Memo Theatre":** Inspecting internal transcripts revealed executives spent **56,000+ chars (`~14,000 tokens`)** writing ceremonial memos (`"MEMORANDUM"`, `"Fantastic work!"`), while a single tool-enabled engineer (`@Tech_Lead_Systems`) did 100% of the coding. | **[`experiments/v3_rsi/README.md`](experiments/v3_rsi/README.md)** |
+
+👉 **Master Index of All Experiments:** **[`experiments/README.md`](experiments/README.md)**
+
+---
+
+## 🔍 Three Core Laws Discovered (`V1` – `V3`)
+
+1. **Execution-Grounded Selection Eliminates Hallucinated Bureaucracy (`V1` $\to$ `V2`):**
+   When graded by LLM judges (`V1`), evolution selects for persuasive prose (`r = +0.045` correlation with actual code correctness). When graded strictly by deterministic test suites with a per-agent headcount tax (`V2`), evolution ruthlessly prunes non-coding middle management or forces large firms (`32–33` agents) to concentrate all file-system tools into **1–2 elite tool-enabled engineers** backed by a `Monotonic Verification Guard`.
+2. **Closed-Loop Self-Repair Beats Single-Pass Topologies (`V2 Gen 1–3` vs. `Gen 4–6`):**
+   No matter how sophisticated an organizational chart is, single-pass code synthesis (`Gen 1–3`) suffers `20%` catastrophic `0.0` crash mortality from minor indentation or import errors. Giving workers a 3-turn **Execute $\to$ Pytest Traceback $\to$ Self-Repair** loop with automatic rollback (`Gen 4–6`) shifted population reliability from `63.3%` mean pass rate to **`100.0%` (`30/30` companies passing `18/18` tests)**.
+3. **Unpenalized Token Budgets Breed "Corporate Memo Theatre" (`V3` Transcript Audit):**
+   Because `V2`/`V3` penalized agent *headcount* (`0.05`/agent) but did not score **internal communication signal-to-noise density**, agents defaulted to standard RLHF corporate roleplay—exchanging 56 KB of congratulatory headers (`"Fantastic work!"`, `"MEMORANDUM — TO: All Hands"`) in a rigid 1-pass top-down waterfall without genuine peer-to-peer technical debate.
+
+---
+
+## 🚀 Future Roadmap (`V4` & `V5`)
+
+Our findings from `V1–V3` directly shape the next two phases of the HAE research program, transitioning from synthetic single-file tasks and ceremonial corporate roleplay to **high-density peer communication (*The Dosadi Experiment*)** and **real-world systems engineering on [`google/gvisor`](https://github.com/google/gvisor)**.
 
 ```mermaid
-graph TD
-    subgraph SelfImprovementLoop ["The Recursive Evolutionary Cycle"]
-        Genome["1. Enterprise Genome<br/>(Topology, Roles, Prompts, Code Overlays)"]
-        Execution["2. Distributed Execution Runtime<br/>(31-63 Agent Deliberation on Kubernetes)"]
-        Sandbox["3. Execution in a Real Workspace<br/>(unshare -rn, Held-Out Test Suite)"]
-        Fitness["4. Fitness: 70% Judged Rubric + 30% Ground-Truth Execution"]
-        Breeding["5. Closed-Loop Self-Breeding<br/>(Parent's Evolved MorphogenesisEngine Overlay)"]
+flowchart LR
+    V1["V1: Subjective Judge<br/>(Completed — Audited)"] --> V2["V2: Deterministic Verification<br/>& Self-Repair (Completed)"]
+    V2 --> V3["V3: Level-3 Code-Overlay<br/>RSI (Completed)"]
+    V3 --> V4["V4: The Dosadi Experiment<br/>& google/gvisor Bugs (Next)"]
+    V4 --> V5["V5: Parametric RL (GRPO/DPO)<br/>on Open-Weights GKE Models"]
+```
 
-        Genome --> Execution
-        Execution --> Sandbox
-        Sandbox --> Fitness
-        Fitness --> Breeding
-        Breeding -->|Offspring Genomes + Overlays| Genome
-    end
+### Phase 4 (`V4`): *The Dosadi Experiment* & Real-World `google/gvisor` Engineering *(Next)*
+
+1. **The *Dosadi* Communication Architecture (Signal-to-Noise Selection):**
+   - Inspired by Frank Herbert's *The Dosadi Experiment*, where extreme environmental pressure strips away all social pleasantries until inhabitants communicate in a hyper-dense, zero-fluff vernacular.
+   - **No Hard Token Caps:** Companies are **never artificially capped on tokens**—if a company needs deep, multi-turn technical exploration to solve a complex kernel bug, it is encouraged to converse extensively.
+   - **Active Anti-Fluff Judge & Signal Density Scoring (`Dosadi Score`):** Instead of a token cap, the evaluator scores the **Signal-to-Noise Density** of internal company conversations. Ceremonial fluff (`"Fantastic work!"`, `"I completely agree"`, `"MEMORANDUM"` headers, restating the prompt) is actively penalized, while **Productive Course-Correction** (peer back-and-forth between `@Lead`, `@Systems_Eng`, and `@Verifier_QA` that identifies a concrete root cause or fixes a failing test) is positively rewarded.
+   - **Heritable `communication_constitution` Gene:** Each `CompanyGenome` carries an evolvable company-wide communication protocol that mutates toward ultra-crisp, high-bandwidth technical shorthand (`SYM:`, `CAUSE:`, `DIFF:`, `TEST_FAIL:`).
+
+2. **Real-World Systems Benchmark (`google/gvisor` `pkg/shim/v1` Production Bugs):**
+   - Moving beyond self-contained Python modules, all companies in `V4` are evaluated in a multi-file Go repository sandbox extracted from **[`google/gvisor`](https://github.com/google/gvisor)** (`containerd-shim-runsc-v1`).
+   - **Target Production Issues:**
+     - **[Issue `#14405`](https://github.com/google/gvisor/issues/14405) (`runsc kill --all` hangs indefinitely after `restore`):** Root cause in `pkg/shim/v1/runsccmd/runsc.go` (`Kill` missing `--all` flag) and `pkg/shim/v1/proc/init.go` (`KillAll` unconditionally guarded by `if !p.stdin.connected`).
+     - **[Issue `#13509`](https://github.com/google/gvisor/issues/13509) (Containerd shim leak when `StartShim` exits early):** Root cause in `pkg/shim/v1/service.go` (`cleanupSockets()` omitted on early return path in `StartShim()`).
+   - **Deterministic `go test` Suite:** Companies must diagnose the bug across `pkg/shim/v1/...`, debate the fix via multi-turn peer dialogue, and pass all **6 official `gVisor` unit tests** (`init_kill_test.go`, `runsc_test.go`, `service_test.go`).
+
+3. **In-Cluster Open-Weights Model Hosting on GKE (`Qwen3` via `vLLM`):**
+   - Hosting an open-weights coding model (`Qwen3-32B-Instruct` / `Qwen3-Coder` via `vLLM` on GKE GPU nodes) inside the cluster eliminates external API rate limits and GCP IAM reconciler disruptions, drops marginal token costs for deep multi-turn internal company dialogues to `$0.00`, and unlocks direct weight access for Phase 5.
+
+---
+
+### Phase 5 (`V5`): Parametric RL Specialization (`GRPO` / `DPO` Trajectory Distillation)
+
+Once `V4` evolves companies whose multi-turn internal dialogues exhibit high *Dosadi* signal density and solve real-world `gVisor` / production engineering tasks, `V5` closes the loop from **non-parametric evolution** (mutating prompts/genomes) to **parametric weight updates**:
+
+1. **Trajectory Harvesting:** Every multi-turn internal company conversation and tool-execution trace from `V4` is logged with its deterministic `go test` / `pytest` outcome and `Dosadi` communication efficiency score.
+2. **Contrastive & Group-Relative RL (`GRPO` / `DPO`):** Winning high-density, bug-fixing trajectories (`100%` test pass + high signal-to-noise ratio) and losing trajectories (fluffy corporate memos or failed patches) train **role-specialized LoRA adapters** (`Exec-LoRA`, `SystemsEng-LoRA`, `Verifier-LoRA`) on the in-cluster `Qwen3` base model.
+3. **Production Delegation:** The resulting workforce—combining evolved `CompanyGenome` topologies, *Dosadi* zero-fluff communication protocols, and RL-specialized weights—graduates from benchmark trials to handling real-world day-to-day software engineering tasks and repository issue queues.
+
+---
+
+## 🏗️ Repository Structure
+
+```text
+hierarchical-agent-evolution/
+├── README.md                        # High-level project overview, V1-V3 outcomes & V4-V5 roadmap
+├── experiments/
+│   ├── README.md                    # Master Experiment Ledger Index (V1 -> V5)
+│   ├── v1/README.md                 # Phase 1: Gen 0-10 Subjective Judge Runs & Goodhart's Law Audit
+│   ├── v2/README.md                 # Phase 2: Gen 1-6 Deterministic Execution & Iterative Self-Repair
+│   └── v3_rsi/README.md             # Phase 3: Gen 7-9 Level-3 RSI, Forensic Audit & Transcripts
+├── hae/
+│   ├── controller/                  # Evolutionary tournament controller, crossover & mutation engine
+│   ├── worker/                      # Distributed Ray/GKE worker & sandboxed verification loop
+│   ├── genome/                      # CompanyGenome, AgentNode, & Morphogenesis engine
+│   ├── evaluator/                   # Deterministic BenchmarkVerifier & Fitness Evaluator
+│   └── compiler/                    # Target compiler optimization module (V2/V3 benchmark)
+├── k8s/                             # GKE deployment manifests & job specs
+└── scripts/                         # Evaluation, plotting, and forensic audit utilities
 ```
 
 ---
 
-## 2. The Four Architectural Pillars, and where each actually stands
-
-The pillars are the programme's design. The status column is what the code
-does today, measured rather than asserted. V1's central failure was that this
-table was never written down, so four capability modules could name two
-generations without ever being imported.
-
-| Pillar | Status | Evidence |
-|---|---|---|
-| **1. The Organism** — the enterprise genome | **Working (`code_overlays` enabled)** | [`hae/genome/schema.py`](hae/genome/schema.py). Topology, headcount, personas, temperatures, and concurrent per-firm `code_overlays` are declarative and mutable. |
-| **2. The Selection Pressure** — hard execution gates | **Working (`100%` verified in Gen 4–8)** | [`hae/evaluation/harness.py`](hae/evaluation/harness.py) & [`hae/evaluation/benchmark.py`](hae/evaluation/benchmark.py). Network-isolated (`unshare -rn`) held-out test suites + Monotonic Verification Guard. |
-| **3. The Evolutionary Search** — breeding | **Working, closed-loop dynamic overlay execution** | [`hae/orchestration/breeder.py`](hae/orchestration/breeder.py) & [`hae/runtime/overlay.py`](hae/runtime/overlay.py). Dynamically compiles and runs each parent firm's evolved `MorphogenesisEngine` and `StructuralCrossoverEngine` overlays. |
-| **4. Recursive Self-Hosting** — the closed loop | **Proven in Production (`Generations 1–9`)** | [`experiments/v2/README.md`](experiments/v2/README.md) & [`experiments/v3_rsi/CAMPAIGN_STATUS.md`](experiments/v3_rsi/CAMPAIGN_STATUS.md). `50 / 50` firms across Gen 4–8 achieved `100.0%` held-out test verification (`7/7`), with Gen 8 bred entirely by Gen 7's evolved `morphogenesis.py` overlays. |
-
-### Pillar 1: The Organism
-An organisation is a genome. `CompanyGenome` holds a CEO, departmental pods,
-each pod's manager and team, their personas, temperatures and delegation
-rules. Structural plasticity is the point: headcount and role specialisation
-change between generations.
-
-### Pillar 2: The Selection Pressure
-Autonomous self-improvement cannot run on subjective evaluation alone; models
-drift into verbose, non-executable prose. Five gates run the code:
-
-| Gate | What it does | Weight within execution_integrity |
-|---|---|---|
-| `syntax` | `ast.parse` every authored `.py` | 20 |
-| `build` | `pip install -e .` | 15 |
-| `smoke` | import the modules | 20 |
-| `tests` | collect and run the suite | 30 |
-| `telemetry` | OpenTelemetry imported by code, not named in prose | 15 |
-
-`execution_integrity` is 30% of total fitness — the heaviest single term — and
-the LLM judge cannot see it.
-
-> [!WARNING]
-> V1's verifier executed nothing in three of its four gates. `build` was a
-> filename substring match, `smoke` was `len(files) >= 3`, and `telemetry`
-> searched text that *included the CEO's prose*, so an essay mentioning
-> OpenTelemetry passed. Six generations were selected on those signals. The
-> design rule now is that no gate may be satisfiable by writing about it.
-
-### Pillar 3: The Evolutionary Search
-Four operators, in a declared mixture per generation:
-
-1. **Elites** — top parents carried forward unchanged. The control group.
-2. **Structural crossover** — departments aligned by functional role, not by
-   position, then recombined.
-3. **Pareto extremes** — per-dimension champions, execution first. The best
-   executor is routinely not the best overall, and the aggregate ranking hides
-   it. In V1 the only firm ever to clear 4 of 5 gates finished sixth in its
-   cohort and was never bred forward.
-4. **Directed morphogenesis** — topology change, the only operator that can add
-   or remove a department.
-
-### Pillar 4: Recursive Self-Hosting
-The task with ground truth:
-
-> Given the modules `hae/<module>.py` depends on, and its docstring as the
-> specification, implement `hae/<module>.py` so that `tests/test_<module>.py`
-> — which the firm never sees — collects and passes.
-
-Fitness is the fraction of held-out tests that pass. That number is ungameable
-by writing well, monotonic, comparable across generations, and self-referential
-in the way the programme requires: **a firm that beats our implementation has
-produced a mergeable patch.**
-
-Three ways a firm could cheat, and what stops each, are documented and tested
-in [`tests/test_benchmark.py`](tests/test_benchmark.py).
-
----
-
-## 3. Technical Deep Dive
-
-### 3.1 Directory layout
-
-```
-hae/
-├── task/                What a firm is asked to do, and on what terms
-│   ├── spec.py            Task: objective + verifier + budget + capabilities
-│   ├── verifier.py        Verifier ABC; execution-gate, benchmark, null, composite
-│   └── budget.py          Enforced spend ceiling, with a synthesis reserve
-├── genome/              Heritable structure
-│   ├── schema.py          CompanyGenome / DepartmentGenome / AgentGenome, validated
-│   ├── breeding.py        ThreeWayBreedingEngine
-│   ├── morphogenesis.py   Topology mutation and structural crossover
-│   └── mutator.py         LLM-driven genome mutation
-├── runtime/             Executing one firm
-│   ├── company.py         Hierarchical runner: CEO -> pods -> agents, ReAct tool loop
-│   └── workspace.py       The filesystem an agent writes into (credential-scrubbed)
-├── evaluation/          Scoring one firm
-│   ├── harness.py         Five execution gates
-│   ├── artifacts.py       What counts as an authored file
-│   ├── judge.py           LLM rubric + composite fitness
-│   ├── benchmark.py       Self-hosting benchmark (Pillar 4)
-│   └── verification_loop.py  Agents can query the harness mid-run
-├── infra/               Cross-cutting
-│   ├── llm.py             Provider dispatch, token cache, usage accounting
-│   ├── config.py          Environment resolution, no placeholder defaults
-│   ├── preflight.py       Pre-launch environment checks + IAM repair
-│   └── telemetry.py
-├── orchestration/       Running many firms
-│   ├── engine.py          Local tournament engine
-│   ├── worker.py          One firm per pod (k8s entry point)
-│   ├── breeder.py         Declarative generation breeding
-│   ├── controller.py      Unattended breed -> launch -> harvest -> repeat
-│   └── runtimes.py        Kubernetes launch + GCS harvest adapters
-└── cli.py               tournament | single-firm | breed | benchmark | preflight | campaign
-```
-
-### 3.2 The fitness function
-
-```
-fitness = 0.20 * strategic_depth              (judged)
-        + 0.20 * technical_feasibility        (judged)
-        + 0.10 * cross_functional_coherence   (judged)
-        + 0.10 * risk_mitigation              (judged)
-        + 0.10 * actionability_and_synthesis  (judged)
-        + 0.30 * execution_integrity          (MEASURED)
-```
-
-The two lowest-signal judged dimensions were cut from a combined 35% to 20%.
-In Generation 10 both had a mean of 99.0 with $\sigma = 1.67$: the judge had
-stopped discriminating. The freed 30% went to the measured dimension.
-
-When the judge's JSON cannot be parsed, the result is `evaluation_failed=True`
-at 0.0 and the firm is excluded from breeding. V1 silently substituted a
-hardcoded `70/70/70/65/70` and bred the firm forward as though it had been
-evaluated.
-
-### 3.3 The architectural guard
-
-[`tests/test_architecture.py`](tests/test_architecture.py) walks the import
-graph from the entry points and fails on any module nothing can reach. This is
-not a style check. Five modules in V1 — 587 lines, each with passing unit tests
-— were imported by nothing but their own tests, and three V1 generations were
-named after them:
-
-| Generation | Announced capability | Reality |
-|---|---|---|
-| 6 | Inter-Firm Consortiums & Pluggable Harnesses | `consortium.py`, `harnesses.py` never imported |
-| 9 | Autonomous Morphogenesis & Dynamic Topologies | `morphogenesis.py` reachable only from one-off scripts |
-| 10 | Federated Mesh & Self-Evolving Rubrics | `federated_mesh.py`, `rubric_evolution.py` never imported |
-
-A unit test cannot catch this, because each module's own tests passed. Only a
-whole-graph check can. The guard found the morphogenesis case on its first run.
-
-### 3.4 The execution sandbox
-
-Firms write code and run it. That is the entire point of the fitness function,
-and it means LLM-authored shell commands execute inside a pod that holds a
-Workload Identity binding for `roles/aiplatform.user` and
-`roles/storage.objectAdmin`.
-
-**What we found.** The sandbox used to scrub credentials from the environment
-and point `GCE_METADATA_HOST` at a discard port. Measured in-cluster, on the
-real service account, from inside the sandbox:
-
-| Probe | Result |
-|---|---|
-| `google.auth.default()` | ✅ `DefaultCredentialsError` |
-| `curl http://169.254.169.254/computeMetadata/v1/.../token` | 🔴 **HTTP 200, live `access_token`** |
-| `curl http://metadata.google.internal/...` | 🔴 **HTTP 200, `expires_in: 3587`** |
-| `urllib.urlopen` straight to the IP | 🔴 **leaked** |
-
-An environment variable binds only the callers that read it. Google's client
-libraries read it; `curl` does not. The variable was doing real work and was
-never a boundary — the mistake was treating it as one.
-
-**What closes it.** Every `execute_bash` runs inside its own empty network
-namespace:
-
-```python
-subprocess.run(["unshare", "-rn", "/bin/sh", "-c", command], shell=False, ...)
-```
-
-Removing the network entirely is stronger and simpler than blocking the one
-address we happened to think of, and unlike a NetworkPolicy it does not depend
-on the cluster's dataplane enforcing anything. Verified in-cluster:
-
-| Probe | Result |
-|---|---|
-| metadata server inside the namespace | ✅ unreachable (IP, DNS name, and raw `urllib`) |
-| `pytest` inside the namespace | ✅ `1 passed` |
-| loopback bind inside the namespace | ✅ `bound True` |
-
-So the isolation costs the agents nothing they use. The cost of *not* having it
-was a live cloud credential handed to generated code.
-
-This is reproducible, not anecdotal:
-[`scripts/verify_sandbox_isolation.py`](scripts/verify_sandbox_isolation.py)
-runs in-cluster on the tournament service account and prints `VERDICT PASS` or
-the reasons it failed. It begins with a **control** — reaching the metadata
-server *outside* the sandbox and confirming the token is still there — because
-a probe that cannot reproduce the hole cannot testify that it is shut. Last run
-against image `:v2-netns`: control positive, all three leak paths closed,
-`VERDICT PASS`.
-
-
-**It fails closed.** Tournament pods set `HAE_REQUIRE_NETWORK_ISOLATION=1`
-([`k8s/generation-job.yaml.template`](k8s/generation-job.yaml.template)). Where
-namespaces are unavailable the sandbox refuses to execute rather than quietly
-running unisolated — a sandbox that stops sandboxing without saying so is worse
-than one that was never claimed, because the surrounding code goes on trusting
-it. Locally the flag is unset, commands still run, and every result dict
-carries `network_isolated: bool` so the record never overstates what happened.
-[`tests/test_sandbox_isolation.py`](tests/test_sandbox_isolation.py) pins all of
-this, including the metadata leak inverted into a regression test.
-
-**Not gVisor.** gVisor isolates the host *kernel* from the workload and does
-nothing about a network path; a gVisor-sandboxed pod reaches
-`169.254.169.254` just as successfully. It becomes the right tool when
-untrusted third parties supply objectives. This deployment is single-tenant, so
-the network path was the live hole and the kernel was not.
-
----
-
-## 4. Results
-
-
-No V2 results exist yet. V1's results, and the corrections applied to them, are
-in [`experiments/v1/README.md`](experiments/v1/README.md). The short version:
-
-* `corr(generation, execution_score) = +0.045` across Generations 5–10. Six
-  generations of selection produced **no measurable improvement in whether the
-  code runs**, while published net fitness climbed at +0.50/generation.
-* **No firm in 60 ever passed all five gates.**
-* Under the rebuilt rubric, five of six champions change.
-
----
-
-## 5. Getting Started
-
-### Local
+## ⚡ Quickstart
 
 ```bash
-git clone https://github.com/SinaChavoshi/hierarchical-agent-evolution.git
-cd hierarchical-agent-evolution
-pip install -e ".[harness]"
+# 1. Install dependencies
+pip install -r requirements.txt
 
-export GOOGLE_CLOUD_PROJECT=your-project     # required; not defaulted
-export GOOGLE_CLOUD_LOCATION=us-east4
+# 2. Run the deterministic verification suite locally
+pytest -q
 
-# Inspect a self-hosting benchmark task, including its reference run.
-python -m hae.cli --mode benchmark --task artifacts
-
-# Run one firm against one objective.
-python -m hae.cli --mode single-firm --objective "Build a telemetry engine"
-
-# Run the full suite, including the architectural guard.
-python -m unittest discover -s tests
+# 3. Inspect or plot generational evolutionary trajectories
+python3 scripts/plot_v2_v3_trajectory.py
 ```
-
-The platform talks to Vertex over raw REST, so no inference SDK is required.
-Other providers are selected with `--provider {gemini_api,openai,anthropic,ollama,vllm}`.
-
-### Distributed on Kubernetes
-
-```bash
-# 1. Breed the population from a declarative generation spec.
-python -m hae.cli --mode breed --generation-spec configs/generations/gen1.json
-
-# 2. Publish it as a ConfigMap (data only; code is baked into the image).
-kubectl create configmap hae-gen1-population -n agent-evolution \
-    --from-file=configs/generation_1_population.json
-
-# 3. Render and apply the Job.
-PYTHONPATH=. python3 scripts/render_job.py \
-    --generation 1 --image-tag v2-gen1 \
-    --project "$GOOGLE_CLOUD_PROJECT" --bucket "$GCS_BUCKET" | kubectl apply -f -
-```
-
-> [!CAUTION]
-> **Authentication is Workload Identity only, deliberately with no fallback.**
-> The pod's Kubernetes service account must be bound to a Google service
-> account holding `roles/aiplatform.user` and `roles/storage.objectAdmin`.
->
-> Every V1 generation from 5 onward ran on a **human engineer's OAuth token**,
-> injected as a `vertex-token` Secret. Vertex tokens expire after about an
-> hour, which is why firms died mid-tournament in Generations 9 and 10 and had
-> to be re-dispatched by hand. The service account had zero project IAM roles
-> the whole time; nobody noticed, because the token fallback kept working.
->
-> That secret is gone and no fallback replaces it. If Workload Identity is not
-> configured the run fails immediately and loudly, which is the point.
-
-#### Preflight
-
-Do not launch a generation without running preflight first:
-
-```bash
-export GOOGLE_CLOUD_PROJECT=<project>
-export GOOGLE_CLOUD_LOCATION=us-east4
-export GCS_BUCKET=<bucket>
-export AGENT_GSA=agent-evolution-sa@$GOOGLE_CLOUD_PROJECT.iam.gserviceaccount.com
-
-python -m hae.cli --mode preflight --repair
-```
-
-It takes about eight seconds and exits non-zero on failure, so a launch script
-can gate on it:
-
-```bash
-python -m hae.cli --mode preflight --repair || exit 1
-kubectl apply -f rendered-job.yaml
-```
-
-Every check makes a **real request** rather than inspecting configuration: a
-one-token `generateContent` against each model tier in the target region, and a
-write-then-delete probe against the results bucket. This distinction matters —
-`roles/aiplatform.user` appearing in an IAM policy and "this identity can call
-this model in this region" are different claims, and they have disagreed here.
-
-```
-====================================================================
-PREFLIGHT
-====================================================================
-  [PASS] config              project=... bucket=... location=us-east4
-  [PASS] credentials         token acquired (256 chars)
-  [PASS] iam-repair          all 2 required roles already bound
-  [PASS] vertex:gemini-2.5-flash   us-east4 reachable, 200
-  [PASS] vertex:gemini-2.5-pro     us-east4 reachable, 200
-  [PASS] gcs                 gs://... writable
-====================================================================
-  All checks passed. Safe to launch.
-====================================================================
-```
-
-On failure it prints the exact command to fix each problem and skips dependent
-checks, so one unset variable reports as one error rather than four.
-
-> [!WARNING]
-> **Latchkey reaps this project's IAM bindings on its own schedule.** Any grant
-> made to the tournament service account will be removed again. This is not a
-> problem that gets fixed once.
->
-> `--repair` re-grants `roles/aiplatform.user` and `roles/storage.objectAdmin`
-> if they are missing, then blocks until a live Vertex call succeeds (IAM
-> changes are not synchronous; granting and launching immediately reproduces
-> the original failure with extra confidence).
->
-> This is a **stopgap**. It narrows the exposure from "the whole time" to
-> "between launch and the next reap", and does nothing about a reap that lands
-> mid-run. The durable fix is a Latchkey exemption for the tournament service
-> account. Until then, worker pods also run a detection-only preflight at
-> startup and exit in ~2s rather than burning a retry budget against a 403 —
-> in Generation 11 that difference was seven pods and roughly an hour.
->
-> Repair requires `roles/resourcemanager.projectIamAdmin` on the *operator's*
-> credentials. It is deliberately unavailable to worker pods: a pod that can
-> grant itself IAM is a privilege escalation with extra steps.
-
----
-
-## 5.5 Tasks, budgets and unattended campaigns
-
-### The task model
-
-A **Task** binds four things that V1 kept in four unrelated places: the
-objective, how it is checked, what it may spend, and what it may do.
-
-```json
-{
-  "task_id": "self-hosting-artifacts",
-  "objective": "Implement the artifact-filtering module ...",
-  "benchmark_task": "artifacts",
-  "budget_usd": 1.50,
-  "max_calls": 120,
-  "capabilities": ["workspace.read", "workspace.write",
-                   "workspace.shell", "workspace.verify"],
-  "max_iterations": 1,
-  "carry_artifacts": false
-}
-```
-
-Unknown keys are rejected, for the same reason `GenerationSpec` rejects them: a
-silently ignored setting is a run that did not do what its config says it did.
-
-`verifier` is an interface, not a constant. `execution-gates` (the V1 default),
-`benchmark` (a held-out test suite), `none`, or a weighted `CompositeVerifier`.
-A task declaring `"verifier": "none"` is scored by the LLM judge alone — the
-system will run it, and will say so loudly every time, because a judge-only
-score saturates and is not a measurement.
-
-### Budgets are enforced
-
-`genome.budget_usd` in V1 was consulted only to compute a score penalty *after*
-the money was spent. `Task.budget` is a ceiling: calls are refused at the limit.
-
-A reserve fraction (default 10%) is held back for the CEO's final synthesis, so
-a firm that overruns returns a **truncated** deliverable rather than none at
-all. The scorecard records `budget_exhausted` and the refusal count, so a
-truncated run is never mistaken for a considered one.
-
-### Carryover: evolving the product, not just the factory
-
-By default each generation starts from an empty workspace, so evolution
-improves the *organisation* at making one-shot attempts and the deliverable is
-discarded. With `"carry_artifacts": true`, generation N+1 starts from N's best
-workspace and the firms are told to improve it rather than restart.
-
-> [!IMPORTANT]
-> This changes what a fitness trajectory means, so it is off by default and the
-> worker **refuses** `--seed-files` when the task does not ask for it. Scorecards
-> record `inherited_files` and `authored_files` separately — without that, a
-> firm handed eleven files and writing one reports the same "12 files" as a firm
-> that wrote twelve, and every artifact-count trend becomes meaningless.
-
-### Unattended campaigns
-
-```bash
-python -m hae.cli --mode campaign \
-  --task-file configs/tasks/self-hosting-artifacts.json \
-  --specs configs/generations/gen1.json configs/generations/gen2.json \
-  --max-total-usd 200
-```
-
-The controller runs breed → launch → wait → harvest → gate → repeat, and
-preflights before **every** generation rather than once at the start, because
-Latchkey reaps IAM bindings on its own schedule.
-
-It stops on any of: generation count, total spend, wall clock, or a fitness
-plateau.
-
-#### The completeness gate
-
-Before breeding from a generation's results, the controller checks that the
-survivors are a *fair sample* of what was launched.
-
-> [!CAUTION]
-> Generation 11 is the specification for this check. Ten firms launched, three
-> crashed at genome load — and those three were `gen_11_pareto_bonus_1`,
-> `gen_11_mutant_1` and `gen_11_mutant_2`: every structurally novel topology in
-> the population. The seven survivors were elites and crossovers.
->
-> A naive controller would have harvested the seven, written a mean to the
-> ledger as "Generation 11", and bred generation 12 from a gene pool that had
-> silently had all its exploration removed. Over a few generations that is not
-> an error — it is a collapse of diversity reported as a rising fitness curve.
-
-So a completion-rate threshold is not sufficient, and the gate also fails when
-**any breeding operator class is wiped out**, even at an acceptable overall
-rate. Losing the single mutant from a population of ten is 90% completion and a
-total loss of the exploration arm.
-
----
-
-## 6. Roadmap
-
-V2 begins after expert review of this refactor. The entry criteria are tracked
-in [`experiments/v2/README.md`](experiments/v2/README.md).
-
-| Next | Why |
-|---|---|
-| Run Generation 1 against the self-hosting benchmark | Pillar 4 is implemented but has never driven a selection event |
-| Measure judged-vs-measured correlation on real V2 data | The 70/30 split is a considered guess, not a fitted parameter |
-| Merge the first firm that beats our implementation | The loop is not closed until a generated patch lands |
-| Retire the prose objective entirely if the benchmark discriminates | Two fitness functions is one too many |
-
----
-
-## 7. License
-
-Apache 2.0. See [LICENSE](LICENSE).

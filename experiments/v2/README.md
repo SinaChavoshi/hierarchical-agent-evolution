@@ -1,6 +1,12 @@
-# V2 Experiment Set — Self-Hosting Evolutionary Campaigns (Generations 1–6)
+# V2 Experiment Set — Ground-Truth Self-Hosting Campaigns (`Generations 1–6`)
 
-**Status: Campaign 1 (`Generations 1–3`, Single-Pass) & Campaign 2 (`Generations 4–6`, Multi-Iteration `max_iterations: 10`) Complete (`6 / 6` Generations, `60 / 60` Firms Succeeded, `$28.18` Total Spend).**
+**Status: COMPLETE (`6 / 6` Generations, `60 / 60` Autonomous Firms Succeeded, `$28.18` Total Spend).**  
+*(For `Generations 7–9` Level-3 Closed-Loop RSI results, see [`../v3_rsi/README.md`](../v3_rsi/README.md).)*
+
+| Summary Dimension | Details |
+| :--- | :--- |
+| **What Was Tested** | **Ground-Truth Self-Hosting under Single-Pass (`Campaign 1: Gen 1–3`) vs. Multi-Iteration Self-Repair (`Campaign 2: Gen 4–6`):** When competing 31–45 agent organizations must re-implement a real platform module ([`hae/evaluation/artifacts.py`](../../hae/evaluation/artifacts.py)) from scratch (`carry_artifacts: false`, `0/10` target files inherited) and are graded against a held-out unit test suite ([`tests/test_artifacts.py`](../../tests/test_artifacts.py)) inside a network-isolated (`unshare -rn`) sandbox (`30%` of total fitness), does Darwinian selection produce heritable software engineering capability? |
+| **What Was the Outcome** | **1. Campaign 1 (`Gen 1–3`, Single-Pass `iter=1`):** Purged fragile topologies and raised elite control fitness by **`+14.56` points** (`76.53` $\to$ `91.09`), peaking at `94.16` Net Fitness (`85.7%` execution, `6/7` test classes), but `0 / 30` firms cleared all `7/7` test classes on a single pass due to subtle path-validation edge cases.<br/>**2. Campaign 2 (`Gen 4–6`, Iterative Self-Repair `iter=10` + Monotonic Verification Guard):** Enabled up to 10 ground-truth self-repair iterations and prevented downstream audit agents from overwriting passing code with lower-scoring drafts. **`30 / 30` (`100.0%`) firms achieved `100.0%` (`7/7`) ground-truth execution integrity**, Peak Net Fitness reached **`98.81`** (`gen_5_pareto_2`), **Mean Iterations to Converge dropped monotonically (`2.20` $\to$ `1.60` $\to$ `1.30`)**, First-Shot (`Iteration 1`) `100%` pass rate climbed from `0%` (`Gen 3`) to **`70%` (`Gen 6`)**, and generational spend dropped by **`33%`** (`$7.26` $\to$ `$4.87`). |
 
 V2 transitions Hierarchical Agent Evolution from V1's open-ended prose objectives to **ground-truth self-hosting benchmarks**, where competing multi-agent organizations re-implement modules of this repository (`hae/evaluation/artifacts.py`) from their public specification and are graded against held-out test suites (`tests/test_artifacts.py`) inside a network-isolated (`unshare -rn`) sandbox.
 
