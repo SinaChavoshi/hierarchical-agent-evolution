@@ -6,7 +6,7 @@ metadata:
   labels:
     app: qwen3-coder-32b
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: qwen3-coder-32b
@@ -36,7 +36,7 @@ spec:
         - "--tensor-parallel-size"
         - "1"
         - "--max-model-len"
-        - "32768"
+        - "65536"
         - "--gpu-memory-utilization"
         - "0.92"
         - "--enforce-eager"
