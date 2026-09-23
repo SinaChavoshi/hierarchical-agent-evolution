@@ -37,17 +37,17 @@ Across **22 evolutionary runs** (**130+ multi-agent companies** and **3,500+ spa
 
 ---
 
-## 🚀 Future Roadmap (`V4` $\to$ `V4.5` $\to$ `V5`)
+## 🚀 Future Roadmap (`V4` $\to$ `V5` $\to$ `V6`)
 
-Our findings from `V1–V3` directly shape the next three phases of the HAE research program, transitioning from synthetic single-file tasks and ceremonial corporate roleplay to **high-density peer communication (*The Dosadi Experiment*)**, **real-world systems engineering on [`google/gvisor`](https://github.com/google/gvisor)**, **"TypeSafe AI" low-noise inter-tier models**, and **parametric RL distillation**.
+Our findings from `V1–V3` directly shape the next three phases of the HAE research program, transitioning from synthetic single-file tasks and ceremonial corporate roleplay to **high-density peer communication (*The Dosadi Experiment*)**, **real-world systems engineering on [`google/gvisor`](https://github.com/google/gvisor)**, **"TypeSafe AI" low-noise inter-tier models (`V5`)**, and **parametric RL distillation (`V6`)**.
 
 ```mermaid
 flowchart LR
     V1["V1: Subjective Judge<br/>(Completed)"] --> V2["V2: Deterministic Verification<br/>& Self-Repair (Completed)"]
     V2 --> V3["V3: Level-3 Code-Overlay<br/>RSI (Completed)"]
     V3 --> V4["V4: The Dosadi Experiment,<br/>google/gvisor & llm-d 180B NVFP4"]
-    V4 --> V45["V4.5: 'TypeSafe AI' Style<br/>Low-Noise Tiered Models"]
-    V45 --> V5["V5: Parametric RL (GRPO/DPO)<br/>Trajectory Distillation"]
+    V4 --> V5["V5: 'TypeSafe AI' Style<br/>Low-Noise Tiered Models"]
+    V5 --> V6["V6: Parametric RL (GRPO/DPO)<br/>Trajectory Distillation"]
 ```
 
 ### Phase 4 (`V4`): *The Dosadi Experiment*, Real-World `google/gvisor` Engineering & Multi-Instance `llm-d` Serving *(Active)*
@@ -73,9 +73,9 @@ flowchart LR
 
 ---
 
-### Phase 4.5 (`V4.5`): *"TypeSafe AI" Style* Low-Noise / Zero-Ceremony Specialized Models *(Next)*
+### Phase 5 (`V5`): *"TypeSafe AI" Style* Low-Noise / Zero-Ceremony Specialized Models *(Next)*
 
-Before moving to full trajectory reinforcement learning (`V5`), `V4.5` introduces **"TypeSafe AI" style models**—models specially trained and constrained to exhibit **near-zero communication overhead across organizational levels**:
+Before moving to full trajectory reinforcement learning (`V6`), `V5` introduces **"TypeSafe AI" style models**—models specially trained and constrained to exhibit **near-zero communication overhead across organizational levels**:
 
 1. **Typed Inter-Tier Communication Contracts ("TypeSafe AI"):**
    - Just as a type-safe compiler rejects untyped ambiguity at compile time, a *"TypeSafe AI"* model replaces open-ended English prose between hierarchy levels (Executive $\to$ Manager $\to$ Worker $\to$ Verifier) with **strictly typed, schema-enforced, low-noise communication packets** (`[SPEC_CONTRACT]`, `[CAUSE_HYPOTHESIS]`, `[AST_DIFF]`, `[VERIFY_TRACE]`).
@@ -84,11 +84,11 @@ Before moving to full trajectory reinforcement learning (`V5`), `V4.5` introduce
 
 ---
 
-### Phase 5 (`V5`): Parametric RL Specialization (`GRPO` / `DPO` Trajectory Distillation)
+### Phase 6 (`V6`): Parametric RL Specialization (`GRPO` / `DPO` Trajectory Distillation)
 
-Once `V4` and `V4.5` establish high-density *Dosadi* + *TypeSafe AI* communication protocols that solve real-world `gVisor` and production engineering tasks, `V5` closes the loop from **organizational/protocol evolution** to **end-to-end multi-turn RL weight updates**:
+Once `V4` and `V5` establish high-density *Dosadi* + *TypeSafe AI* communication protocols that solve real-world `gVisor` and production engineering tasks, `V6` closes the loop from **organizational/protocol evolution** to **end-to-end multi-turn RL weight updates**:
 
-1. **Trajectory Harvesting:** Every multi-turn internal company conversation and tool-execution trace from `V4`/`V4.5` is logged with its deterministic `go test` / `pytest` outcome and `Dosadi` communication efficiency score.
+1. **Trajectory Harvesting:** Every multi-turn internal company conversation and tool-execution trace from `V4`/`V5` is logged with its deterministic `go test` / `pytest` outcome and `Dosadi` communication efficiency score.
 2. **Contrastive & Group-Relative RL (`GRPO` / `DPO`):** Winning high-density, bug-fixing trajectories (`100%` test pass + minimal token overhead) and losing trajectories (noisy communication or failed patches) train **role-specialized LoRA adapters** (`Exec-LoRA`, `SystemsEng-LoRA`, `Verifier-LoRA`) on the in-cluster `Qwen3.8` weights.
 3. **Production Delegation:** The resulting workforce—combining evolved `CompanyGenome` topologies, *Dosadi* / *TypeSafe AI* zero-noise communication protocols, and RL-specialized weights—graduates from benchmark trials to handling real-world day-to-day software engineering tasks and repository issue queues.
 
@@ -98,9 +98,9 @@ Once `V4` and `V4.5` establish high-density *Dosadi* + *TypeSafe AI* communicati
 
 ```text
 hierarchical-agent-evolution/
-├── README.md                        # High-level project overview, V1-V3 outcomes & V4-V5 roadmap
+├── README.md                        # High-level project overview, V1-V3 outcomes & V4-V6 roadmap
 ├── experiments/
-│   ├── README.md                    # Master Experiment Ledger Index (V1 -> V5)
+│   ├── README.md                    # Master Experiment Ledger Index (V1 -> V6)
 │   ├── v1/README.md                 # Phase 1: Gen 0-10 Subjective Judge Runs & Goodhart's Law Audit
 │   ├── v2/README.md                 # Phase 2: Gen 1-6 Deterministic Execution & Iterative Self-Repair
 │   └── v3_rsi/README.md             # Phase 3: Gen 7-9 Level-3 RSI, Forensic Audit & Transcripts
