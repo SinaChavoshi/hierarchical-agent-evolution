@@ -243,11 +243,45 @@ data:
         stats["cached_unique_answers"] = len(response_cache)
         return web.json_response(stats)
 
+    def prepare_backend_payload(payload_bytes: bytes) -> bytes:
+        try:
+            data = json.loads(payload_bytes.decode("utf-8", errors="ignore"))
+            if isinstance(data, dict) and "messages" in data:
+                # Default to fast, low-noise non-thinking mode on Qwen3.8-Flash-Next-NVFP4 unless explicitly overridden
+                ct_kwargs = data.get("chat_template_kwargs") or {}
+                if "enable_thinking" not in ct_kwargs:
+                    ct_kwargs["enable_thinking"] = False
+                    data["chat_template_kwargs"] = ct_kwargs
+                # Allow generous output tokens on 131,072 context window
+                if data.get("max_tokens", 0) == 4096:
+                    data["max_tokens"] = 8192
+                return json.dumps(data).encode("utf-8")
+        except Exception:
+            pass
+        return payload_bytes
+
+    def strip_residual_thinking(resp_body: bytes) -> bytes:
+        try:
+            data = json.loads(resp_body.decode("utf-8", errors="ignore"))
+            changed = False
+            for choice in data.get("choices", []):
+                msg = choice.get("message", {})
+                content = msg.get("content")
+                if isinstance(content, str) and "</think>" in content:
+                    msg["content"] = content.split("</think>", 1)[-1].strip()
+                    changed = True
+            if changed:
+                return json.dumps(data).encode("utf-8")
+        except Exception:
+            pass
+        return resp_body
+
     async def handle_proxy(request: web.Request):
-        body = await request.read()
+        raw_body = await request.read()
         stats["total_requests"] += 1
 
         is_completion_endpoint = request.path.endswith("/completions")
+        body = prepare_backend_payload(raw_body) if is_completion_endpoint else raw_body
         full_key, prefix_key, is_cacheable = extract_canonical_keys(body)
 
         # 1. Global Cross-Company Answer Short-Circuit Check
@@ -293,6 +327,8 @@ data:
                 data=body,
             ) as resp:
                 resp_body = await resp.read()
+                if is_completion_endpoint and resp.status == 200:
+                    resp_body = strip_residual_thinking(resp_body)
                 out_headers = {
                     k: v for k, v in resp.headers.items()
                     if k.lower() not in ("transfer-encoding", "content-encoding", "content-length")
