@@ -42,10 +42,10 @@ DEFAULT_PROVIDER_MODELS: Dict[str, Dict[str, str]] = {
         "mutator": "llama3.3:70b",
     },
     "vllm": {
-        "worker": "default-model",
-        "executive": "default-model",
-        "judge": "default-model",
-        "mutator": "default-model",
+        "worker": os.environ.get("VLLM_MODEL", "Qwen3-Coder-32B"),
+        "executive": os.environ.get("VLLM_MODEL", "Qwen3-Coder-32B"),
+        "judge": os.environ.get("VLLM_MODEL", "Qwen3-Coder-32B"),
+        "mutator": os.environ.get("VLLM_MODEL", "Qwen3-Coder-32B"),
     },
 }
 
@@ -80,6 +80,14 @@ def detect_llm_provider() -> str:
 
 def resolve_model_for_provider(model_name: Optional[str], provider: str, tier: str = "worker") -> str:
     """Map generic or cross-provider model names into the active provider's native model."""
+    if provider == "vllm":
+        vllm_model = os.environ.get("VLLM_MODEL", "").strip()
+        if vllm_model:
+            return vllm_model
+        if model_name and "gemini" not in model_name.lower() and "gpt" not in model_name.lower() and "claude" not in model_name.lower():
+            return model_name
+        return DEFAULT_PROVIDER_MODELS["vllm"].get(tier, "Qwen3-Coder-32B")
+
     if not model_name:
         return DEFAULT_PROVIDER_MODELS.get(provider, {}).get(tier, "gemini-2.5-flash")
 
@@ -297,6 +305,17 @@ def call_gemini_api_rest(
 
     raise RuntimeError(f"Gemini Developer API failed after {max_retries} attempts: {last_err}")
 
+def _strip_think_tags(text: str) -> Tuple[str, int]:
+    """Strip <think>...</think> reasoning blocks if present, returning (clean_text, approx_thought_tokens)."""
+    if "<think>" in text and "</think>" in text:
+        import re
+        thoughts = re.findall(r"<think>(.*?)</think>", text, flags=re.DOTALL)
+        thought_chars = sum(len(t) for t in thoughts)
+        cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+        return cleaned, max(1, thought_chars // 4) if thought_chars > 0 else 0
+    return text, 0
+
+
 def call_openai_compatible_rest(
     prompt: str,
     model_name: str = "gpt-4o-mini",
@@ -304,7 +323,8 @@ def call_openai_compatible_rest(
     system_instruction: Optional[str] = None,
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
-    max_retries: int = 5
+    max_retries: int = 5,
+    usage_sink: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Direct REST caller for OpenAI and OpenAI-compatible endpoints (Ollama, vLLM, Groq, DeepSeek)."""
     key = api_key or os.environ.get("OPENAI_API_KEY") or DEFAULT_CONFIG.openai_api_key or "EMPTY"
@@ -316,10 +336,11 @@ def call_openai_compatible_rest(
         messages.append({"role": "system", "content": system_instruction})
     messages.append({"role": "user", "content": prompt})
 
-    payload = {
+    payload: Dict[str, Any] = {
         "model": model_name,
         "messages": messages,
-        "temperature": temperature
+        "temperature": temperature,
+        "max_tokens": int(os.environ.get("VLLM_MAX_TOKENS", "4096")),
     }
     body = json.dumps(payload).encode("utf-8")
     headers = {
@@ -331,12 +352,23 @@ def call_openai_compatible_rest(
     for attempt in range(max_retries):
         req = urllib.request.Request(url, data=body, headers=headers, method="POST")
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, timeout=240) as resp:
                 resp_data = json.loads(resp.read().decode("utf-8"))
                 choices = resp_data.get("choices", [])
-                if choices:
-                    return choices[0].get("message", {}).get("content", "")
-                return ""
+                raw_text = choices[0].get("message", {}).get("content", "") if choices else ""
+                clean_text, approx_thoughts = _strip_think_tags(raw_text or "")
+                if usage_sink is not None:
+                    u = resp_data.get("usage") or {}
+                    p_tok = int(u.get("prompt_tokens", 0) or 0)
+                    c_tok = int(u.get("completion_tokens", 0) or 0)
+                    t_tok = int(u.get("total_tokens", 0) or (p_tok + c_tok))
+                    usage_sink["prompt_tokens"] = usage_sink.get("prompt_tokens", 0) + p_tok
+                    usage_sink["output_tokens"] = usage_sink.get("output_tokens", 0) + c_tok
+                    usage_sink["thought_tokens"] = usage_sink.get("thought_tokens", 0) + approx_thoughts
+                    usage_sink["total_tokens"] = usage_sink.get("total_tokens", 0) + t_tok
+                    usage_sink["calls"] = usage_sink.get("calls", 0) + 1
+                    usage_sink["measured"] = True
+                return clean_text
         except urllib.error.HTTPError as e:
             err_body = e.read().decode("utf-8", errors="replace")
             last_err = f"HTTP {e.code}: {err_body}"
@@ -549,7 +581,8 @@ def call_llm(
             temperature=temperature,
             system_instruction=system_instruction,
             base_url=DEFAULT_CONFIG.openai_base_url,
-            max_retries=max_retries
+            max_retries=max_retries,
+            usage_sink=usage_sink,
         )
     elif active_provider == "anthropic":
         return call_anthropic_rest(
@@ -567,7 +600,8 @@ def call_llm(
             temperature=temperature,
             system_instruction=system_instruction,
             base_url=ollama_url,
-            max_retries=max_retries
+            max_retries=max_retries,
+            usage_sink=usage_sink,
         )
     elif active_provider == "vllm":
         vllm_url = os.environ.get("VLLM_BASE_URL") or DEFAULT_CONFIG.vllm_base_url
@@ -577,7 +611,8 @@ def call_llm(
             temperature=temperature,
             system_instruction=system_instruction,
             base_url=vllm_url,
-            max_retries=max_retries
+            max_retries=max_retries,
+            usage_sink=usage_sink,
         )
     else:
         # Default: Vertex AI

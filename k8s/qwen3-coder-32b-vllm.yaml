@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen3-coder-32b
+  namespace: default
+  labels:
+    app: qwen3-coder-32b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qwen3-coder-32b
+  template:
+    metadata:
+      labels:
+        app: qwen3-coder-32b
+    spec:
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "cloud.google.com/gke-spot"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:latest
+        command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
+        args:
+        - "--model"
+        - "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+        - "--served-model-name"
+        - "Qwen3-Coder-32B"
+        - "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+        - "Qwen/Qwen3-32B"
+        - "--tensor-parallel-size"
+        - "1"
+        - "--max-model-len"
+        - "32768"
+        - "--gpu-memory-utilization"
+        - "0.92"
+        - "--enforce-eager"
+        - "--trust-remote-code"
+        - "--host"
+        - "0.0.0.0"
+        - "--port"
+        - "8000"
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: HF_XET_HIGH_PERFORMANCE
+          value: "1"
+        resources:
+          requests:
+            cpu: "12"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "20"
+            memory: "96Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+        - name: dshm
+          mountPath: /dev/shm
+        - name: hf-cache
+          mountPath: /root/.cache/huggingface
+        readinessProbe:
+          httpGet:
+            path: /v1/models
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 5
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 16Gi
+      - name: hf-cache
+        hostPath:
+          path: /var/lib/hf-cache
+          type: DirectoryOrCreate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen3-coder-32b
+  namespace: default
+  labels:
+    app: qwen3-coder-32b
+spec:
+  selector:
+    app: qwen3-coder-32b
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  type: ClusterIP
