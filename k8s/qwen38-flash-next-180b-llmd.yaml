@@ -60,34 +60,42 @@ spec:
             - /bin/bash
             - -c
             - |
-              export HF_HUB_DISABLE_XET=1
               python3 -c '
-              import os, shutil
+              import os, shutil, urllib.request
               from concurrent.futures import ThreadPoolExecutor
-              from huggingface_hub import HfApi, hf_hub_download
+              from huggingface_hub import HfApi
               repo_id = "nvidia/Qwen3.8-Flash-Next-NVFP4"
               os.makedirs("/model", exist_ok=True)
               os.makedirs("/model-ram", exist_ok=True)
               files = sorted(HfApi().list_repo_files(repo_id))
+              def stream_file(url, target_path):
+                  tmp_path = target_path + ".part"
+                  req = urllib.request.Request(url, headers={"User-Agent": "vllm-direct-loader/1.0"})
+                  with urllib.request.urlopen(req, timeout=600) as resp, open(tmp_path, "wb") as out:
+                      shutil.copyfileobj(resp, out, length=16 * 1024 * 1024)
+                  os.replace(tmp_path, target_path)
               def dl(fname):
                   dst = os.path.join("/model", fname)
                   if os.path.exists(dst):
                       return
+                  url = f"https://huggingface.co/{repo_id}/resolve/main/{fname}"
                   if fname.endswith(".safetensors") and fname != "model-fp8-mtp-ple.safetensors":
-                      p = hf_hub_download(repo_id=repo_id, filename=fname, local_dir="/model-ram")
-                      if not os.path.exists(dst):
-                          try:
-                              os.symlink(p, dst)
-                          except FileExistsError:
-                              pass
+                      ram_path = os.path.join("/model-ram", fname)
+                      os.makedirs(os.path.dirname(ram_path), exist_ok=True)
+                      if not os.path.exists(ram_path):
+                          stream_file(url, ram_path)
+                      os.makedirs(os.path.dirname(dst), exist_ok=True)
+                      try:
+                          os.symlink(ram_path, dst)
+                      except FileExistsError:
+                          pass
                       print(f"[RAM-TIER] {fname} ready in DDR5 tmpfs", flush=True)
                   else:
-                      hf_hub_download(repo_id=repo_id, filename=fname, local_dir="/model")
+                      os.makedirs(os.path.dirname(dst), exist_ok=True)
+                      stream_file(url, dst)
                       print(f"[NVME-TIER] {fname} ready in NVMe SSD", flush=True)
               with ThreadPoolExecutor(max_workers=6) as ex:
                   list(ex.map(dl, files))
-              for cdir in ["/root/.cache", "/model/.cache", "/model-ram/.cache"]:
-                  shutil.rmtree(cdir, ignore_errors=True)
               ' && \
               exec python3 -m vllm.entrypoints.openai.api_server \
                 --model /model \
