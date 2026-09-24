@@ -46,8 +46,12 @@ spec:
         - name: shm
           emptyDir:
             medium: Memory
-            sizeLimit: 64Gi
-        - name: hf-cache
+            sizeLimit: 32Gi
+        - name: model-ram
+          emptyDir:
+            medium: Memory
+            sizeLimit: 72Gi
+        - name: model-disk
           emptyDir: {}
       containers:
         - name: vllm
@@ -56,9 +60,31 @@ spec:
             - /bin/bash
             - -c
             - |
-              python3 -c "from huggingface_hub import snapshot_download; snapshot_download('nvidia/Qwen3.8-Flash-Next-NVFP4', max_workers=2)" && \
+              python3 -c '
+              import os
+              from huggingface_hub import HfApi, hf_hub_download
+              repo_id = "nvidia/Qwen3.8-Flash-Next-NVFP4"
+              os.makedirs("/model", exist_ok=True)
+              os.makedirs("/model-ram", exist_ok=True)
+              files = sorted(HfApi().list_repo_files(repo_id))
+              ram_bytes = 0
+              RAM_LIMIT = 64 * (1024 ** 3)
+              for fname in files:
+                  dst = os.path.join("/model", fname)
+                  if os.path.exists(dst):
+                      continue
+                  if fname.endswith(".safetensors") and ram_bytes < RAM_LIMIT:
+                      p = hf_hub_download(repo_id=repo_id, filename=fname, local_dir="/model-ram")
+                      ram_bytes += os.path.getsize(p)
+                      os.makedirs(os.path.dirname(dst), exist_ok=True)
+                      os.symlink(p, dst)
+                      print(f"[RAM-TIER] {fname} ({ram_bytes/(1024**3):.1f} GiB in DDR5 tmpfs)", flush=True)
+                  else:
+                      hf_hub_download(repo_id=repo_id, filename=fname, local_dir="/model")
+                      print(f"[NVME-TIER] {fname}", flush=True)
+              ' && \
               exec python3 -m vllm.entrypoints.openai.api_server \
-                --model nvidia/Qwen3.8-Flash-Next-NVFP4 \
+                --model /model \
                 --served-model-name nvidia/Qwen3.8-Flash-Next-NVFP4 Qwen/Qwen3-Coder-32B-Instruct Qwen3-Coder-32B \
                 --tensor-parallel-size 2 \
                 --max-model-len 131072 \
@@ -74,8 +100,6 @@ spec:
           ports:
             - containerPort: 8000
           env:
-            - name: HF_HOME
-              value: /root/.cache/huggingface
             - name: VLLM_USE_V1
               value: "1"
           resources:
@@ -85,13 +109,15 @@ spec:
               nvidia.com/gpu: "2"
             limits:
               cpu: "48"
-              memory: "330Gi"
+              memory: "335Gi"
               nvidia.com/gpu: "2"
           volumeMounts:
             - name: shm
               mountPath: /dev/shm
-            - name: hf-cache
-              mountPath: /root/.cache/huggingface
+            - name: model-ram
+              mountPath: /model-ram
+            - name: model-disk
+              mountPath: /model
           readinessProbe:
             httpGet:
               path: /health
