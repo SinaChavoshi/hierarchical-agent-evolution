@@ -228,37 +228,35 @@ data:
         fallback = hashlib.sha256(payload_bytes).hexdigest()
         return fallback, fallback[:32], False, caller_company
 
-    def select_backend(prefix_key: str, requested_model: str = "") -> str:
-        pools = stats.get("pools", {})
-        if "32B" in requested_model and pools.get("qwen3-coder-32b-headless"):
-            backends = pools["qwen3-coder-32b-headless"]
-        elif pools.get("qwen38-flash-next-180b-headless"):
-            backends = pools["qwen38-flash-next-180b-headless"]
-        else:
-            backends = stats["backends"]
-
+    def select_backend(prefix_key: str) -> str:
+        backends = stats["backends"]
         if not backends:
-            return f"http://{HEADLESS_SERVICES[0]}:{BACKEND_PORT}"
+            return f"http://{HEADLESS_SERVICES[-1]}:{BACKEND_PORT}"
         if len(backends) == 1:
             stats["prefix_kv_affinity_hits"] += 1
             return backends[0]
 
+        pools = stats.get("pools", {})
+        qwen38_set = set(pools.get("qwen38-flash-next-180b-headless", []))
+
         scored = []
         for b in backends:
             h = hashlib.sha256(f"{prefix_key}@{b}".encode("utf-8")).hexdigest()
-            scored.append((int(h[:16], 16), b))
+            # Boost 180B Qwen3.8-Flash-Next-NVFP4 replicas in consistent hash ring
+            priority_tier = 1 if b in qwen38_set else 0
+            scored.append((priority_tier, int(h[:16], 16), b))
         scored.sort(reverse=True)
 
         total_inflight = sum(stats["per_backend_inflight"].get(b, 0) for b in backends)
         avg_load = total_inflight / float(len(backends))
         max_allowed = max(4.0, (avg_load * BOUNDED_LOAD_FACTOR) + 3.0)
 
-        primary = scored[0][1]
+        primary = scored[0][2]
         if stats["per_backend_inflight"].get(primary, 0) <= max_allowed:
             stats["prefix_kv_affinity_hits"] += 1
             return primary
 
-        for _, candidate in scored[1:]:
+        for _, _, candidate in scored[1:]:
             if stats["per_backend_inflight"].get(candidate, 0) <= max_allowed:
                 stats["load_spillovers"] += 1
                 return candidate
@@ -269,17 +267,15 @@ data:
         stats["cached_unique_answers"] = len(response_cache)
         return web.json_response(stats)
 
-    def prepare_backend_payload(payload_bytes: bytes) -> tuple[bytes, str]:
-        requested_model = ""
+    def prepare_backend_payload_for_target(payload_bytes: bytes, backend: str) -> bytes:
         try:
             data = json.loads(payload_bytes.decode("utf-8", errors="ignore"))
             if isinstance(data, dict):
-                requested_model = str(data.get("model", ""))
-                # If qwen3-coder-32b pool is drained, seamlessly map model alias to nvidia/Qwen3.8-Flash-Next-NVFP4
                 pools = stats.get("pools", {})
-                if "32B" in requested_model and not pools.get("qwen3-coder-32b-headless") and pools.get("qwen38-flash-next-180b-headless"):
+                if backend in pools.get("qwen38-flash-next-180b-headless", []):
                     data["model"] = "nvidia/Qwen3.8-Flash-Next-NVFP4"
-                    requested_model = data["model"]
+                elif backend in pools.get("qwen3-coder-32b-headless", []):
+                    data["model"] = "Qwen3-Coder-32B"
                 if "messages" in data:
                     ct_kwargs = data.get("chat_template_kwargs") or {}
                     if "enable_thinking" not in ct_kwargs:
@@ -287,10 +283,10 @@ data:
                         data["chat_template_kwargs"] = ct_kwargs
                     if data.get("max_tokens", 0) <= 4096:
                         data["max_tokens"] = 16384
-                return json.dumps(data).encode("utf-8"), requested_model
+                return json.dumps(data).encode("utf-8")
         except Exception:
             pass
-        return payload_bytes, requested_model
+        return payload_bytes
 
     def strip_residual_thinking(resp_body: bytes) -> bytes:
         try:
@@ -313,11 +309,7 @@ data:
         stats["total_requests"] += 1
 
         is_completion_endpoint = request.path.endswith("/completions")
-        if is_completion_endpoint:
-            body, requested_model = prepare_backend_payload(raw_body)
-        else:
-            body, requested_model = raw_body, ""
-        full_key, prefix_key, is_cacheable, caller_company = extract_canonical_keys(body)
+        full_key, prefix_key, is_cacheable, caller_company = extract_canonical_keys(raw_body)
 
         # 1. Global Cross-Company Answer Short-Circuit Check
         # Short-circuits immediately for any other company asking Question A, while allowing a company
@@ -351,7 +343,8 @@ data:
             fut = None
 
         # 3. Shared Content-Prefix KV-Cache Routing across vLLM Replicas
-        backend = select_backend(prefix_key, requested_model)
+        backend = select_backend(prefix_key)
+        body = prepare_backend_payload_for_target(raw_body, backend) if is_completion_endpoint else raw_body
         stats["per_backend_inflight"][backend] = stats["per_backend_inflight"].get(backend, 0) + 1
         stats["per_backend_total"][backend] = stats["per_backend_total"].get(backend, 0) + 1
 
