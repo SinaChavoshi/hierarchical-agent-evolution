@@ -22,7 +22,12 @@ metadata:
   labels:
     app: qwen38-flash-next-180b
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: qwen38-flash-next-180b
@@ -39,39 +44,31 @@ spec:
             medium: Memory
             sizeLimit: 64Gi
         - name: hf-cache
-          emptyDir: {}
+          emptyDir:
+            medium: Memory
+            sizeLimit: 140Gi
       containers:
         - name: vllm
           image: vllm/vllm-openai:nightly
           command:
-            - python3
-            - -m
-            - vllm.entrypoints.openai.api_server
-          args:
-            - --model
-            - nvidia/Qwen3.8-Flash-Next-NVFP4
-            - --served-model-name
-            - nvidia/Qwen3.8-Flash-Next-NVFP4
-            - Qwen/Qwen3-Coder-32B-Instruct
-            - --tensor-parallel-size
-            - "2"
-            - --max-model-len
-            - "131072"
-            - --gpu-memory-utilization
-            - "0.92"
-            - --kv-cache-dtype
-            - fp8
-            - --enable-prefix-caching
-            - --kv-offloading-size
-            - "64"
-            - --kv-offloading-backend
-            - native
-            - --max-num-seqs
-            - "64"
-            - --enforce-eager
-            - --trust-remote-code
-            - --port
-            - "8000"
+            - /bin/bash
+            - -c
+            - |
+              python3 -c "from huggingface_hub import snapshot_download; snapshot_download('nvidia/Qwen3.8-Flash-Next-NVFP4', max_workers=8)" && \
+              exec python3 -m vllm.entrypoints.openai.api_server \
+                --model nvidia/Qwen3.8-Flash-Next-NVFP4 \
+                --served-model-name nvidia/Qwen3.8-Flash-Next-NVFP4 Qwen/Qwen3-Coder-32B-Instruct Qwen3-Coder-32B \
+                --tensor-parallel-size 2 \
+                --max-model-len 131072 \
+                --gpu-memory-utilization 0.92 \
+                --kv-cache-dtype fp8 \
+                --enable-prefix-caching \
+                --kv-offloading-size 48 \
+                --kv-offloading-backend native \
+                --max-num-seqs 64 \
+                --enforce-eager \
+                --trust-remote-code \
+                --port 8000
           ports:
             - containerPort: 8000
           env:
@@ -86,7 +83,7 @@ spec:
               nvidia.com/gpu: "2"
             limits:
               cpu: "48"
-              memory: "320Gi"
+              memory: "340Gi"
               nvidia.com/gpu: "2"
           volumeMounts:
             - name: shm
