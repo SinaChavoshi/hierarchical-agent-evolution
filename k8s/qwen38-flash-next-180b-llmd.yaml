@@ -50,7 +50,7 @@ spec:
         - name: model-ram
           emptyDir:
             medium: Memory
-            sizeLimit: 72Gi
+            sizeLimit: 80Gi
         - name: model-disk
           emptyDir: {}
       containers:
@@ -60,20 +60,21 @@ spec:
             - /bin/bash
             - -c
             - |
+              export HF_HUB_DISABLE_XET=1
               python3 -c '
-              import os
+              import os, shutil
               from huggingface_hub import HfApi, hf_hub_download
               repo_id = "nvidia/Qwen3.8-Flash-Next-NVFP4"
               os.makedirs("/model", exist_ok=True)
               os.makedirs("/model-ram", exist_ok=True)
               files = sorted(HfApi().list_repo_files(repo_id))
               ram_bytes = 0
-              RAM_LIMIT = 64 * (1024 ** 3)
+              RAM_LIMIT = 76 * (1024 ** 3)
               for fname in files:
                   dst = os.path.join("/model", fname)
                   if os.path.exists(dst):
                       continue
-                  if fname.endswith(".safetensors") and ram_bytes < RAM_LIMIT:
+                  if fname.endswith(".safetensors") and fname != "model-fp8-mtp-ple.safetensors" and ram_bytes < RAM_LIMIT:
                       p = hf_hub_download(repo_id=repo_id, filename=fname, local_dir="/model-ram")
                       ram_bytes += os.path.getsize(p)
                       os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -82,6 +83,8 @@ spec:
                   else:
                       hf_hub_download(repo_id=repo_id, filename=fname, local_dir="/model")
                       print(f"[NVME-TIER] {fname}", flush=True)
+                  for cdir in ["/root/.cache", "/model/.cache", "/model-ram/.cache"]:
+                      shutil.rmtree(cdir, ignore_errors=True)
               ' && \
               exec python3 -m vllm.entrypoints.openai.api_server \
                 --model /model \
@@ -100,6 +103,8 @@ spec:
           ports:
             - containerPort: 8000
           env:
+            - name: HF_HUB_DISABLE_XET
+              value: "1"
             - name: VLLM_USE_V1
               value: "1"
           resources:
