@@ -38,11 +38,18 @@ spec:
     spec:
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+        - key: node.kubernetes.io/disk-pressure
+          operator: Exists
+          effect: NoSchedule
       volumes:
         - name: shm
           emptyDir:
             medium: Memory
-            sizeLimit: 64Gi
+            sizeLimit: 32Gi
         - name: hf-cache
           emptyDir:
             medium: Memory
@@ -78,12 +85,12 @@ spec:
               value: "1"
           resources:
             requests:
-              cpu: "24"
-              memory: "220Gi"
+              cpu: "16"
+              memory: "120Gi"
               nvidia.com/gpu: "2"
             limits:
               cpu: "48"
-              memory: "340Gi"
+              memory: "330Gi"
               nvidia.com/gpu: "2"
           volumeMounts:
             - name: shm
