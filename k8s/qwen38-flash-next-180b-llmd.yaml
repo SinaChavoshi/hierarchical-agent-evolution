@@ -285,8 +285,8 @@ data:
                     if "enable_thinking" not in ct_kwargs:
                         ct_kwargs["enable_thinking"] = False
                         data["chat_template_kwargs"] = ct_kwargs
-                    if data.get("max_tokens", 0) == 4096 and "Qwen3.8" in requested_model:
-                        data["max_tokens"] = 8192
+                    if data.get("max_tokens", 0) <= 4096:
+                        data["max_tokens"] = 16384
                 return json.dumps(data).encode("utf-8"), requested_model
         except Exception:
             pass
