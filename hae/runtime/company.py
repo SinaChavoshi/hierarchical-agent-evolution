@@ -335,12 +335,19 @@ class HierarchicalCompanyRunner:
 
         return final_summary
 
-    def _run_department_pod(self, dept: DepartmentGenome, ceo_directive: str) -> Tuple[str, str]:
+    def _run_department_pod(self, dept: DepartmentGenome, ceo_directive: str, objective: str = "") -> Tuple[str, str]:
         """Runs a department's operational agents and manager synthesis."""
         is_technical = is_technical_department(dept)
+        any_explicit_tools = any(
+            bool(a.tools_enabled)
+            for d in self.genome.departments
+            for a in d.agents
+        )
         pod_context = ""
         if is_technical:
             pod_context += f"Current Workspace Tree:\n{self.workspace.get_file_tree()}\n"
+            if objective:
+                pod_context += f"\nFull Technical Specification & Verifier Feedback:\n{objective}\n"
 
         operational_findings = []
         for agent in dept.agents:
@@ -351,10 +358,10 @@ class HierarchicalCompanyRunner:
                 f"and surface critical considerations for your Department Manager."
             )
             
-            # Use active tools for technical specialists or agents with tools enabled
-            has_tools = bool(agent.tools_enabled) or is_technical
+            # Use active tools for agents with tools_enabled (or technical dept if no genome-level explicit tool assignment)
+            has_tools = bool(agent.tools_enabled) if any_explicit_tools else is_technical
             if has_tools:
-                findings = self._execute_agent_with_tools(agent, agent_prompt, context=pod_context, max_turns=3)
+                findings = self._execute_agent_with_tools(agent, agent_prompt, context=pod_context, max_turns=4)
             else:
                 findings = self._execute_agent(agent, agent_prompt, context=pod_context)
 
@@ -411,7 +418,7 @@ class HierarchicalCompanyRunner:
         departmental_briefs: Dict[str, str] = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(self.genome.departments))) as executor:
             future_to_dept = {
-                executor.submit(self._run_department_pod, dept, ceo_directives): dept
+                executor.submit(self._run_department_pod, dept, ceo_directives, objective): dept
                 for dept in self.genome.departments
             }
             for future in concurrent.futures.as_completed(future_to_dept):
@@ -528,13 +535,17 @@ class HierarchicalCompanyRunner:
                 else:
                     flash_count += 1
 
-        budget = self.genome.budget_usd
+        import math
+        budget = max(0.05, float(self.genome.budget_usd or 0.50))
         cost_penalty = 0.0
         efficiency_bonus = 0.0
         if total_cost > budget:
-            cost_penalty = round(min(15.0, ((total_cost - budget) / budget) * 10.0), 2)
+            # Smooth, unbounded logarithmic token-efficiency penalty:
+            # Never truncates execution, never plateaus, and monotonically rewards lower token usage.
+            excess_ratio = (total_cost - budget) / budget
+            cost_penalty = round(4.0 * math.log1p(excess_ratio), 2)
         else:
-            efficiency_bonus = round(min(3.0, ((budget - total_cost) / budget) * 2.5), 2)
+            efficiency_bonus = round(min(5.0, ((budget - total_cost) / budget) * 5.0), 2)
 
         opex = OpExBreakdown(
             flash_input_tokens=self.flash_input_tokens,

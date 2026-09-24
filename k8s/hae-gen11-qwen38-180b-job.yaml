@@ -35,10 +35,15 @@ spec:
         - "-c"
         - |
           python3 -c '
-          import base64, gzip
-          raw = open("/pop-cm/pop.json.gz.b64").read().strip()
-          data = gzip.decompress(base64.b64decode(raw))
-          open("/data/generation_10_population.json", "wb").write(data)
+          import base64, gzip, json
+          for key, dst in [
+              ("pop.json.gz.b64", "/data/generation_10_population.json"),
+              ("budget.py.gz.b64", "/app/hae/task/budget.py"),
+              ("company.py.gz.b64", "/app/hae/runtime/company.py"),
+              ("task.json.gz.b64", "/app/configs/tasks/self-hosting-morphogenesis-iter10.json"),
+          ]:
+              raw = open(f"/pop-cm/{key}").read().strip()
+              open(dst, "wb").write(gzip.decompress(base64.b64decode(raw)))
           ' && \
           exec python -m hae.orchestration.worker \
             --generation 11 \

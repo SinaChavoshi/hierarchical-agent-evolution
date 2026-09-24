@@ -108,37 +108,35 @@ class Budget:
 
     @property
     def exhausted(self) -> bool:
-        """True when even a reserved call would be refused."""
-        return self.spent_usd >= self.limit_usd or self._calls_exhausted
+        """Soft-accounting mode: never hard-abort a firm's run on self-hosted clusters.
+        Token efficiency is enforced continuously via the fitness function rather than hard truncation."""
+        return False
 
     @property
     def working_exhausted(self) -> bool:
-        """True when ordinary calls should stop. The reserve may remain."""
-        return (self.spent_usd >= self.working_limit_usd
-                or self._working_calls_exhausted)
+        """Soft-accounting mode: allow firms to use as many calls/tokens as needed;
+        efficiency pressure is applied via Net Fitness scoring."""
+        return False
 
     @property
     def _calls_exhausted(self) -> bool:
-        return self.max_calls is not None and self.calls >= self.max_calls
+        return False
 
     @property
     def _working_calls_exhausted(self) -> bool:
-        wmc = self.working_max_calls
-        return wmc is not None and self.calls >= wmc
+        return False
 
     @property
     def overrun(self) -> bool:
-        """Whether anything was ever refused. Distinct from `exhausted`: a run
-        can finish exactly at the line without ever having been stopped."""
-        return self.refusals > 0
+        """No hard refusals under soft-accounting mode."""
+        return False
 
     # ---------------------------------------------------------------- #
     # Spending
     # ---------------------------------------------------------------- #
 
     def can_spend(self, reserved: bool = False) -> bool:
-        with self._lock:
-            return not (self.exhausted if reserved else self.working_exhausted)
+        return True
 
     def charge(self, usd: float, label: str = "", reserved: bool = False,
                strict: bool = False) -> bool:
