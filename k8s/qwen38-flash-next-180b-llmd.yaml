@@ -183,16 +183,19 @@ data:
     def normalize_cross_company_text(text: str) -> str:
         return COMPANY_ID_RE.sub("<SHARED_COMPANY>", text).strip()
 
-    def extract_canonical_keys(payload_bytes: bytes) -> tuple[str, str, bool]:
+    def extract_canonical_keys(payload_bytes: bytes) -> tuple[str, str, bool, str]:
         """
-        Returns (full_question_key, shared_prefix_key, is_cacheable_completion).
+        Returns (full_question_key, shared_prefix_key, is_cacheable_completion, caller_company_id).
         All companies share the SAME global session — no X-Company-ID partitioning.
         """
+        raw_text = payload_bytes.decode("utf-8", errors="ignore")
+        m_comp = COMPANY_ID_RE.search(raw_text)
+        caller_company = m_comp.group(0).lower() if m_comp else "anon"
         try:
-            data = json.loads(payload_bytes.decode("utf-8", errors="ignore"))
+            data = json.loads(raw_text)
             if data.get("stream", False):
                 raw_hash = hashlib.sha256(payload_bytes).hexdigest()
-                return raw_hash, raw_hash[:32], False
+                return raw_hash, raw_hash[:32], False, caller_company
 
             msgs = data.get("messages", [])
             if msgs:
@@ -212,18 +215,18 @@ data:
                 full_key = hashlib.sha256(full_str.encode("utf-8")).hexdigest()
                 prefix_str = "||".join(prefix_parts) if prefix_parts else full_str[:512]
                 prefix_key = hashlib.sha256(prefix_str.encode("utf-8")).hexdigest()
-                return full_key, prefix_key, True
+                return full_key, prefix_key, True, caller_company
 
             prompt = data.get("prompt", "")
             if isinstance(prompt, str) and prompt:
                 norm_p = normalize_cross_company_text(prompt)
                 full_key = hashlib.sha256(norm_p.encode("utf-8")).hexdigest()
                 prefix_key = hashlib.sha256(norm_p[:512].encode("utf-8")).hexdigest()
-                return full_key, prefix_key, True
+                return full_key, prefix_key, True, caller_company
         except Exception:
             pass
         fallback = hashlib.sha256(payload_bytes).hexdigest()
-        return fallback, fallback[:32], False
+        return fallback, fallback[:32], False, caller_company
 
     def select_backend(prefix_key: str, requested_model: str = "") -> str:
         pools = stats.get("pools", {})
@@ -314,17 +317,21 @@ data:
             body, requested_model = prepare_backend_payload(raw_body)
         else:
             body, requested_model = raw_body, ""
-        full_key, prefix_key, is_cacheable = extract_canonical_keys(body)
+        full_key, prefix_key, is_cacheable, caller_company = extract_canonical_keys(body)
 
         # 1. Global Cross-Company Answer Short-Circuit Check
+        # Short-circuits immediately for any other company asking Question A, while allowing a company
+        # that is re-running in Iteration 2+ (self-repair retry) to sample a fresh completion.
         if is_completion_endpoint and is_cacheable:
             if full_key in response_cache:
-                response_cache.move_to_end(full_key)
-                cached_status, cached_body, cached_headers = response_cache[full_key]
-                stats["short_circuit_cache_hits"] += 1
-                out_headers = dict(cached_headers)
-                out_headers["X-LLMD-Cache"] = "HIT-SHORT-CIRCUIT"
-                return web.Response(status=cached_status, body=cached_body, headers=out_headers)
+                cached_status, cached_body, cached_headers, seen_companies = response_cache[full_key]
+                if caller_company == "anon" or caller_company not in seen_companies:
+                    seen_companies.add(caller_company)
+                    response_cache.move_to_end(full_key)
+                    stats["short_circuit_cache_hits"] += 1
+                    out_headers = dict(cached_headers)
+                    out_headers["X-LLMD-Cache"] = "HIT-SHORT-CIRCUIT"
+                    return web.Response(status=cached_status, body=cached_body, headers=out_headers)
 
             # 2. Global Cross-Company Singleflight In-Flight Coalescing
             if full_key in inflight_futures:
@@ -369,7 +376,7 @@ data:
                 out_headers["X-LLMD-Cache"] = "MISS-COMPUTED"
 
                 if is_completion_endpoint and is_cacheable and resp.status == 200 and len(resp_body) > 32:
-                    response_cache[full_key] = (resp.status, resp_body, dict(out_headers))
+                    response_cache[full_key] = (resp.status, resp_body, dict(out_headers), {caller_company})
                     if len(response_cache) > MAX_RESPONSE_CACHE_ENTRIES:
                         response_cache.popitem(last=False)
                     stats["cached_unique_answers"] = len(response_cache)
