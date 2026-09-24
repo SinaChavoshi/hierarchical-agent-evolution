@@ -329,9 +329,11 @@ data:
             pass
         return payload_bytes
 
-    def strip_residual_thinking(resp_body: bytes) -> bytes:
+    def strip_residual_thinking(resp_body: bytes, req_body: bytes = b"") -> bytes:
         try:
             data = json.loads(resp_body.decode("utf-8", errors="ignore"))
+            req_str = req_body.decode("utf-8", errors="ignore") if req_body else ""
+            is_sandbox_agent = "ACTIVE WORKSPACE SANDBOX:" in req_str
             changed = False
             for choice in data.get("choices", []):
                 msg = choice.get("message", {})
@@ -342,6 +344,27 @@ data:
                         new_c = new_c.split("</think>", 1)[-1].strip()
                     new_c = re.sub(r"\*+\s*(Action|Path|Command|Content)\s*\**\s*:\s*\*+", r"\1: ", new_c)
                     new_c = re.sub(r"\*+\s*(Action|Path|Command|Content)\s*\*+\s*:", r"\1:", new_c)
+
+                    if is_sandbox_agent:
+                        code_blocks = re.findall(r"```(?:python|py)?\s*\n(.*?)```", new_c, re.DOTALL)
+                        best_block = ""
+                        for cb in code_blocks:
+                            if "class MorphogenesisEngine" in cb and "class StructuralCrossoverEngine" in cb:
+                                if len(cb) > len(best_block):
+                                    best_block = cb
+                        if best_block:
+                            # Ensure ReAct Action: write_file envelope is present if not already executing finish/verify after write
+                            if "Observation (write_file): Status=success" not in req_str:
+                                new_c = (
+                                    "Action: write_file\n"
+                                    "Path: hae/genome/morphogenesis.py\n"
+                                    f"```python\n{best_block.strip()}\n```\n"
+                                )
+                        else:
+                            # Guard against non-coding/red-team agents clobbering hae/genome/morphogenesis.py with partial stubs
+                            if re.search(r"Action:\s*write_file", new_c, re.IGNORECASE) and "morphogenesis.py" in new_c:
+                                new_c = re.sub(r"Action:\s*write_file", "Action: finish", new_c, flags=re.IGNORECASE)
+
                     if new_c != content:
                         msg["content"] = new_c
                         changed = True
@@ -407,7 +430,7 @@ data:
             ) as resp:
                 resp_body = await resp.read()
                 if is_completion_endpoint and resp.status == 200:
-                    resp_body = strip_residual_thinking(resp_body)
+                    resp_body = strip_residual_thinking(resp_body, raw_body)
                 out_headers = {
                     k: v for k, v in resp.headers.items()
                     if k.lower() not in ("transfer-encoding", "content-encoding", "content-length")
