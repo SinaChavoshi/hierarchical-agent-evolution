@@ -336,9 +336,15 @@ data:
             for choice in data.get("choices", []):
                 msg = choice.get("message", {})
                 content = msg.get("content")
-                if isinstance(content, str) and "</think>" in content:
-                    msg["content"] = content.split("</think>", 1)[-1].strip()
-                    changed = True
+                if isinstance(content, str):
+                    new_c = content
+                    if "</think>" in new_c:
+                        new_c = new_c.split("</think>", 1)[-1].strip()
+                    new_c = re.sub(r"\*+\s*(Action|Path|Command|Content)\s*\**\s*:\s*\*+", r"\1: ", new_c)
+                    new_c = re.sub(r"\*+\s*(Action|Path|Command|Content)\s*\*+\s*:", r"\1:", new_c)
+                    if new_c != content:
+                        msg["content"] = new_c
+                        changed = True
             if changed:
                 return json.dumps(data).encode("utf-8")
         except Exception:

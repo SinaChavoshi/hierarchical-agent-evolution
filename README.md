@@ -10,17 +10,18 @@ Populations of competing companies are evaluated in isolated sandboxes against s
 
 ---
 
-## 📊 Executive Summary of Completed Experiments (`V1` – `V3`)
+## 📊 Executive Summary of Experiments (`V1` – `V4`)
 
-Across **22 evolutionary runs** (**130+ multi-agent companies** and **3,500+ spawned agents**), HAE progressed through three completed experimental phases. Each phase uncovered a fundamental failure mode in multi-agent systems and resolved it in the subsequent architecture.
+Across **24 evolutionary runs** (**150+ multi-agent companies** and **4,500+ spawned agents**), HAE progressed through three completed experimental phases (`V1–V3`) and is currently running **Phase 4 (`V4`)** on a 3-node GKE `G4` cluster (`6x NVIDIA RTX PRO 6000 Blackwell 96GB GPUs`, `576 GiB` total GDDR7 VRAM) serving **`3x nvidia/Qwen3.8-Flash-Next-NVFP4` (`180B` MoE)** behind a **Unified Global `llm-d` Inference Gateway**.
 
-> 📖 **Click the links in the table below for full generational ledgers, forensic audits, and internal agent deliberation transcripts.**
+> 📖 **Click the links in the table below for full generational ledgers, forensic audits, and `llm-d` hardware telemetry.**
 
 | Phase | Generations | What Was Tested | Key Outcome & Discovery | Detailed Report |
 | :--- | :--- | :--- | :--- | :--- |
 | **Phase 1 (`V1`)**<br>*Subjective Judge Era* | `Pilot` $\to$ `Gen 10`<br>*(13 Runs)* | Whether populations of 4 to 8 multi-agent companies (5–16 agents) could evolve better software engineering topologies when graded by an **LLM-as-a-Judge** (weighted rubric + peer review). | **99.5 / 100 subjective score vs. 77.7% real unit-test pass rate (`r = +0.045`).**<br>Companies discovered **Goodhart's Law**: evolving 16-agent bureaucratic hierarchies that wrote polished architectural prose and `TODO` stubs to charm the LLM judge while leaving edge-case bugs unfixed. | **[`experiments/v1/README.md`](experiments/v1/README.md)** |
 | **Phase 2 (`V2`)**<br>*Execution-Grounded Era* | `Gen 1` $\to$ `Gen 6`<br>*(60 Companies)* | Replaced subjective LLM grading with a **100% deterministic unit-test suite (18 tests)** on blank-slate code synthesis (`hae/compiler/optimizer.py`), comparing **1-Pass Waterfall (`Gen 1–3`)** vs. **Iterative Self-Repair (`Gen 4–6`)**. | **100.0% Test Pass Rate across all 30/30 companies (`Gen 4–6`), Peak Net Fitness `98.81 / 100`.**<br>1-Pass execution peaked at `94.4%` (`17/18`) and suffered `0.0%` crash mortality. Introducing a **3-Iteration Execute $\to$ Test $\to$ Repair Loop** with a **Monotonic Verification Guard** eliminated syntax crashes (`0/30`) and drove every company to `18/18` (`100%`). | **[`experiments/v2/README.md`](experiments/v2/README.md)** |
 | **Phase 3 (`V3`)**<br>*Level-3 Recursive Self-Improvement (RSI)* | `Gen 7` $\to$ `Gen 9`<br>*(30 Companies)* | Whether companies could **modify HAE's own evolutionary engine source code (`code_overlays`)** (`fitness.py` and `morphogenesis.py`) and survive with their self-authored algorithms active in the next generation. | **First Closed-Loop RSI (`97.99 / 100` peak fitness) + Two Critical Discoveries:**<br>1. **The `inherited_files` Leak (`Gen 8–9`):** Forensic audit (`commit 71a7da4`) discovered `BenchmarkVerifier` leaked `morphogenesis.py` into worker sandboxes (`10/10` firms in `Gen 8–9`), explaining why `Gen 8–9` hit `100%` on Attempt 1 (`0` repair turns).<br>2. **"Corporate Memo Theatre":** Inspecting internal transcripts revealed executives spent **56,000+ chars (`~14,000 tokens`)** writing ceremonial memos (`"MEMORANDUM"`, `"Fantastic work!"`), while a single tool-enabled engineer (`@Tech_Lead_Systems`) did 100% of the coding. | **[`experiments/v3_rsi/README.md`](experiments/v3_rsi/README.md)** |
+| **Phase 4 (`V4`)**<br>*Unified `llm-d` + `3x 180B NVFP4` & Zero-Seed Post-Fix Era* | `Gen 10` *(Complete)*<br>`Gen 11` *(Running)* | **True Zero-Seed Post-`71a7da4` Evolution** (`0/10` inherited files) on a **3-Node GKE `G4` Cluster (`3x Qwen3.8-Flash-Next-NVFP4` `180B` MoE, `128k` context)** behind a **Unified Global `llm-d` Session** with cross-company answer short-circuiting, singleflight coalescing, `282.3 GiB` `fp8` VRAM KV cache, and `144 GiB` CPU DRAM KV offloading. | **Gen 10 Complete (`60%` `7/7` Zero-Seed Pass Rate, `78.92` Peak Fitness) + Massive `llm-d` Gains:**<br>1. **1,190x Faster Cross-Company Short-Circuiting (`880.5 ms` $\to$ `0.74 ms`, `0` GPU FLOPs):** `14.3%` (`327/2,289` in Gen 10) to **`48.2%` (`123/255` in Gen 11)** of all cluster requests bypassed GPU generation entirely.<br>2. **96.9%–100.0% Prefix KV-Cache Affinity** across `426.3 GiB` total cluster KV cache.<br>3. **90-Agent Hierarchy Breakthrough:** Expanding context from `32k/4k` $\to$ `128k/16k` unlocked the 90-agent firm `gen_9_crossover_2` (`0/7` $\to$ **`7/7` (`100%`) on Iteration 1/10**, `75.32` Net Fitness). | **[`experiments/v4_llmd/README.md`](experiments/v4_llmd/README.md)** |
 
 👉 **Master Index of All Experiments:** **[`experiments/README.md`](experiments/README.md)**
 
@@ -37,39 +38,40 @@ Across **22 evolutionary runs** (**130+ multi-agent companies** and **3,500+ spa
 
 ---
 
-## 🚀 Future Roadmap (`V4` $\to$ `V5` $\to$ `V6`)
+## 🚀 Active & Future Roadmap (`V4` $\to$ `V5` $\to$ `V6`)
 
-Our findings from `V1–V3` directly shape the next three phases of the HAE research program, transitioning from synthetic single-file tasks and ceremonial corporate roleplay to **high-density peer communication (*The Dosadi Experiment*)**, **real-world systems engineering on [`google/gvisor`](https://github.com/google/gvisor)**, **"TypeSafe AI" low-noise inter-tier models (`V5`)**, and **parametric RL distillation (`V6`)**.
+Our findings from `V1–V3` directly shape the active `V4` deployment and the next two phases (`V5–V6`) of the HAE research program:
 
 ```mermaid
 flowchart LR
     V1["V1: Subjective Judge<br/>(Completed)"] --> V2["V2: Deterministic Verification<br/>& Self-Repair (Completed)"]
     V2 --> V3["V3: Level-3 Code-Overlay<br/>RSI (Completed)"]
-    V3 --> V4["V4: The Dosadi Experiment,<br/>google/gvisor & llm-d 180B NVFP4"]
+    V3 --> V4["V4: Unified llm-d 3x 180B NVFP4,<br/>The Dosadi Experiment & gVisor (Active)"]
     V4 --> V5["V5: 'TypeSafe AI' Style<br/>Low-Noise Tiered Models"]
     V5 --> V6["V6: Parametric RL (GRPO/DPO)<br/>Trajectory Distillation"]
 ```
 
-### Phase 4 (`V4`): *The Dosadi Experiment*, Real-World `google/gvisor` Engineering & Multi-Instance `llm-d` Serving *(Active)*
+### Phase 4 (`V4`): Multi-Instance `3x Qwen3.8-Flash-Next-NVFP4` (`180B` MoE) + Unified Global `llm-d` Session, *The Dosadi Experiment* & `google/gvisor` *(Active — Gen 10 Complete, Gen 11 Running)*
 
-1. **The *Dosadi* Communication Architecture (Signal-to-Noise Selection):**
+> 📄 **Full Phase 4 (`V4`) Architecture, Generation 10 Ledger & `llm-d` Telemetry Report:** **[`experiments/v4_llmd/README.md`](experiments/v4_llmd/README.md)**
+
+1. **Quantified Gains from Switching to `3x Qwen3.8-Flash-Next-NVFP4` (`180B` MoE) + Unified Global `llm-d` Gateway:**
+   | Architectural Dimension | Legacy Single-Instance Setup (`Qwen3-Coder-32B-AWQ`) | Unified `llm-d` + `3x Qwen3.8-Flash-Next-180B-NVFP4` | Measured Empirical Improvement |
+   | :--- | :--- | :--- | :--- |
+   | **Model Backbone & Precision** | `1x Qwen3-Coder-32B-AWQ` (`32B` Dense, `TP=2`) | **`3x nvidia/Qwen3.8-Flash-Next-NVFP4`** (`180B` MoE, `TP=2` $\times$ `3` nodes) | **`5.6x` parameter scale (`180B`)** on native Blackwell `FLASHINFER_CUTLASS` `NVFP4` |
+   | **Context Window & Max Output** | `32,768` (`32k`) context / `4,096` output | **`131,072` (`128k`) context** / **`16,384` output** | **`4.0x` larger context & `4.0x` larger output** — unlocked **`90-agent` company (`gen_9_crossover_2`)** from `0/7` (`0.0`) $\to$ **`7/7` (`100%`) on Iteration 1 (`75.32` fitness)** |
+   | **Total Cluster KV Cache (`VRAM` + `DRAM`)** | `~68 GiB` VRAM (`0 GiB` CPU offload) | **`282.3 GiB` GDDR7 `fp8` VRAM** + **`144.0 GiB` CPU `/dev/shm` DRAM** (`426.3 GiB` total) | **`6.27x` total KV cache capacity (`>5.4M` tokens)**; `0` KV-cache preemption stalls |
+   | **Cross-Company Answer Short-Circuiting (`<1ms`)** | None (`0%` reuse across companies) | **Unified Global `llm-d` Session** (`canonicalize_prompt_for_global_session`) | **`880.5 ms` $\to$ `0.74 ms` (`1,190x` faster, `0` GPU FLOPs)**; offloaded **`14.3%` (`327/2,289`)** in Gen 10 and **`48.2%` (`123/255`)** in Gen 11 (`1.93x` effective cluster capacity) |
+   | **Content-Prefix KV-Cache Affinity** | None | `prefix_affinity_hits` + Least-Active Load Shedding | **`96.9%` (`1,903/1,962`) in Gen 10 $\to$ `100.0%` (`132/132`) in Gen 11** across `3` instances |
+
+2. **The *Dosadi* Communication Architecture (Signal-to-Noise Selection):**
    - Inspired by Frank Herbert's *The Dosadi Experiment*, where extreme environmental pressure strips away all social pleasantries until inhabitants communicate in a hyper-dense, zero-fluff vernacular.
    - **No Hard Token Caps:** Companies are **never artificially capped on tokens**—if a company needs deep, multi-turn technical exploration to solve a complex kernel bug, it is encouraged to converse extensively.
    - **Active Anti-Fluff Judge & Signal Density Scoring (`Dosadi Score`):** Instead of a token cap, the evaluator scores the **Signal-to-Noise Density** of internal company conversations. Ceremonial fluff (`"Fantastic work!"`, `"I completely agree"`, `"MEMORANDUM"` headers, restating the prompt) is actively penalized, while **Productive Course-Correction** (peer back-and-forth between `@Lead`, `@Systems_Eng`, and `@Verifier_QA` that identifies a concrete root cause or fixes a failing test) is positively rewarded.
    - **Heritable `communication_constitution` Gene:** Each `CompanyGenome` carries an evolvable company-wide communication protocol that mutates toward ultra-crisp, high-bandwidth technical shorthand (`SYM:`, `CAUSE:`, `DIFF:`, `TEST_FAIL:`).
 
-2. **Real-World Systems Benchmark (`google/gvisor` `pkg/shim/v1` Production Bugs):**
-   - Moving beyond self-contained Python modules, all companies in `V4` are evaluated in a multi-file Go repository sandbox extracted from **[`google/gvisor`](https://github.com/google/gvisor)** (`containerd-shim-runsc-v1`).
-   - **Target Production Issues:**
-     - **[Issue `#14405`](https://github.com/google/gvisor/issues/14405) (`runsc kill --all` hangs indefinitely after `restore`):** Root cause in `pkg/shim/v1/runsccmd/runsc.go` (`Kill` missing `--all` flag) and `pkg/shim/v1/proc/init.go` (`KillAll` unconditionally guarded by `if !p.stdin.connected`).
-     - **[Issue `#13509`](https://github.com/google/gvisor/issues/13509) (Containerd shim leak when `StartShim` exits early):** Root cause in `pkg/shim/v1/service.go` (`cleanupSockets()` omitted on early return path in `StartShim()`).
-   - **Deterministic `go test` Suite:** Companies must diagnose the bug across `pkg/shim/v1/...`, debate the fix via multi-turn peer dialogue, and pass all **6 official `gVisor` unit tests** (`init_kill_test.go`, `runsc_test.go`, `service_test.go`).
-
-3. **Multi-Instance `nvidia/Qwen3.8-Flash-Next-NVFP4` (`180B` MoE) with Unified Global `llm-d` Session & Cross-Company Answer Short-Circuiting on GKE `G4`:**
-   - Deployed across multiple **`g4-standard-96` (`NVIDIA RTX PRO 6000 Blackwell 96GB`)** instances on GKE (`chavoshi-g4-cluster`), utilizing Blackwell's native hardware 4-bit (`NVFP4`) Tensor Cores (`FLASHINFER_CUTLASS` `NvFp4` MoE) to serve the **`180B` parameter `nvidia/Qwen3.8-Flash-Next-NVFP4`** MoE model with a **`131,072` (`128k`) context window**.
-   - **Unified Global `llm-d` Session (No Company-Header Isolation) & Cross-Company Answer Short-Circuiting:** All companies in a generation share the **exact same global `llm-d` session** rather than partitioning by company ID:
-     - **Cross-Company Answer Short-Circuiting (`<1ms`) & Singleflight Coalescing:** Prompts are canonicalized across companies (normalizing out company identifiers such as `gen_9_elite_1` vs. `gen_9_crossover_1`). If Question A has already been answered inside Company A (or is simultaneously in flight), `llm-d` **short-circuits GPU generation in `<1ms`** (or coalesces the concurrent in-flight request) and returns the answer directly to Company B (`X-LLMD-Cache: HIT-SHORT-CIRCUIT` / `HIT-SINGLEFLIGHT-COALESCED`).
-     - **Shared Content-Prefix KV-Cache Affinity + Tiered VRAM/DRAM Offloading (`--kv-cache-dtype fp8`, `--kv-offloading-size 64`):** When prompts differ in downstream details, `llm-d` hashes the shared task/codebase prefix so all companies route to the same `180B` instance holding **`~113 GiB` of GDDR7 VRAM `fp8` KV cache per node** (`>1.8M` tokens/node) plus **`64 GiB` of native CPU/Host-DRAM KV-cache offloading**.
+3. **Real-World Systems Benchmark (`google/gvisor` `pkg/shim/v1` Production Bugs):**
+   - Moving beyond self-contained Python modules, companies in `V4` are evaluated both on true zero-seed HAE self-hosting (`morphogenesis.py` post-`71a7da4`) and in a multi-file Go repository sandbox extracted from **[`google/gvisor`](https://github.com/google/gvisor)** (`containerd-shim-runsc-v1`, Issues `#14405` & `#13509`).
 
 ---
 

@@ -1,0 +1,94 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hae-gen11-qwen38-180b
+  namespace: default
+  labels:
+    app: hae-gen11-qwen38-180b
+    hae.generation: "11"
+    hae.experiment-set: v4-qwen38-180b-llmd
+spec:
+  completionMode: Indexed
+  completions: 10
+  parallelism: 5
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: hae-gen11-qwen38-180b
+        hae.generation: "11"
+    spec:
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "cloud.google.com/gke-spot"
+        operator: "Exists"
+        effect: "NoSchedule"
+      restartPolicy: Never
+      containers:
+      - name: firm-evaluator
+        image: us-central1-docker.pkg.dev/gemle-gke-dev/chavoshi-repo/agent-evolution:v4-qwen3-coder
+        imagePullPolicy: Always
+        command:
+        - "/bin/bash"
+        - "-c"
+        - |
+          python3 -c '
+          import base64, gzip
+          raw = open("/pop-cm/pop.json.gz.b64").read().strip()
+          data = gzip.decompress(base64.b64decode(raw))
+          open("/data/generation_10_population.json", "wb").write(data)
+          ' && \
+          exec python -m hae.orchestration.worker \
+            --generation 11 \
+            --region us-east5 \
+            --population-file /data/generation_10_population.json \
+            --task-file /app/configs/tasks/self-hosting-morphogenesis-iter10.json \
+            --output-dir /data/outputs \
+            --objective "Implement the module hae/genome/morphogenesis.py"
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "gemle-gke-dev"
+        - name: GOOGLE_CLOUD_LOCATION
+          value: "us-east5"
+        - name: GCS_BUCKET
+          value: "gemle-gke-dev-agent-evolution"
+        - name: LLM_PROVIDER
+          value: "vllm"
+        - name: VLLM_BASE_URL
+          value: "http://vllm-qwen38-gateway.default.svc.cluster.local:8000/v1"
+        - name: VLLM_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: VLLM_MAX_TOKENS
+          value: "16384"
+        - name: WORKER_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: EXECUTIVE_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: JUDGE_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: HAE_REQUIRE_NETWORK_ISOLATION
+          value: "0"
+        - name: FIRM_INDEX
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+        resources:
+          requests:
+            cpu: "4"
+            memory: "8Gi"
+          limits:
+            cpu: "8"
+            memory: "16Gi"
+        volumeMounts:
+        - name: workdir
+          mountPath: /data
+        - name: pop-cm
+          mountPath: /pop-cm
+      volumes:
+      - name: workdir
+        emptyDir: {}
+      - name: pop-cm
+        configMap:
+          name: hae-gen10-pop-b64
