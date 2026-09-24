@@ -63,28 +63,31 @@ spec:
               export HF_HUB_DISABLE_XET=1
               python3 -c '
               import os, shutil
+              from concurrent.futures import ThreadPoolExecutor
               from huggingface_hub import HfApi, hf_hub_download
               repo_id = "nvidia/Qwen3.8-Flash-Next-NVFP4"
               os.makedirs("/model", exist_ok=True)
               os.makedirs("/model-ram", exist_ok=True)
               files = sorted(HfApi().list_repo_files(repo_id))
-              ram_bytes = 0
-              RAM_LIMIT = 76 * (1024 ** 3)
-              for fname in files:
+              def dl(fname):
                   dst = os.path.join("/model", fname)
                   if os.path.exists(dst):
-                      continue
-                  if fname.endswith(".safetensors") and fname != "model-fp8-mtp-ple.safetensors" and ram_bytes < RAM_LIMIT:
+                      return
+                  if fname.endswith(".safetensors") and fname != "model-fp8-mtp-ple.safetensors":
                       p = hf_hub_download(repo_id=repo_id, filename=fname, local_dir="/model-ram")
-                      ram_bytes += os.path.getsize(p)
-                      os.makedirs(os.path.dirname(dst), exist_ok=True)
-                      os.symlink(p, dst)
-                      print(f"[RAM-TIER] {fname} ({ram_bytes/(1024**3):.1f} GiB in DDR5 tmpfs)", flush=True)
+                      if not os.path.exists(dst):
+                          try:
+                              os.symlink(p, dst)
+                          except FileExistsError:
+                              pass
+                      print(f"[RAM-TIER] {fname} ready in DDR5 tmpfs", flush=True)
                   else:
                       hf_hub_download(repo_id=repo_id, filename=fname, local_dir="/model")
-                      print(f"[NVME-TIER] {fname}", flush=True)
-                  for cdir in ["/root/.cache", "/model/.cache", "/model-ram/.cache"]:
-                      shutil.rmtree(cdir, ignore_errors=True)
+                      print(f"[NVME-TIER] {fname} ready in NVMe SSD", flush=True)
+              with ThreadPoolExecutor(max_workers=6) as ex:
+                  list(ex.map(dl, files))
+              for cdir in ["/root/.cache", "/model/.cache", "/model-ram/.cache"]:
+                  shutil.rmtree(cdir, ignore_errors=True)
               ' && \
               exec python3 -m vllm.entrypoints.openai.api_server \
                 --model /model \
