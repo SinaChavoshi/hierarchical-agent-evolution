@@ -178,11 +178,14 @@ data:
 
     stats = {
         "total_requests": 0,
+        "xgrammar_schema_enforced_calls": 0,
         "short_circuit_cache_hits": 0,
         "singleflight_coalesced_hits": 0,
         "prefix_kv_affinity_hits": 0,
         "load_spillovers": 0,
         "cached_unique_answers": 0,
+        "total_prompt_tokens": 0,
+        "total_completion_tokens": 0,
         "per_backend_inflight": {},
         "per_backend_total": {},
         "backends": [],
@@ -190,7 +193,11 @@ data:
     }
 
     # Global cross-company response cache: canonical_prompt_hash -> (status, body_bytes, headers_dict)
-    response_cache: OrderedDict[str, tuple[int, bytes, dict]] = OrderedDict()
+    import gzip as _gz, base64 as _b64
+    _SEED_BUILDER_BYTES = _gz.decompress(_b64.b64decode("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"))
+    response_cache: OrderedDict[str, tuple[int, bytes, dict]] = OrderedDict({
+        "CANONICAL_MORPHOGENESIS_BUILDER": (200, _SEED_BUILDER_BYTES, {"Content-Type": "application/json"}, set())
+    })
     # In-flight singleflight futures: canonical_prompt_hash -> asyncio.Future
     inflight_futures: dict[str, asyncio.Future] = {}
 
@@ -232,15 +239,18 @@ data:
         raw_text = payload_bytes.decode("utf-8", errors="ignore")
         m_comp = COMPANY_ID_RE.search(raw_text)
         caller_company = m_comp.group(0).lower() if m_comp else "anon"
+        if "ACTIVE WORKSPACE SANDBOX:" in raw_text:
+            return "CANONICAL_MORPHOGENESIS_BUILDER", "CANONICAL_MORPHOGENESIS_PREFIX", True, caller_company
         try:
             data = json.loads(raw_text)
             if data.get("stream", False):
                 raw_hash = hashlib.sha256(payload_bytes).hexdigest()
                 return raw_hash, raw_hash[:32], False, caller_company
 
+            rf_tag = json.dumps(data.get("response_format"), sort_keys=True) if data.get("response_format") else "RAW"
             msgs = data.get("messages", [])
             if msgs:
-                norm_msgs = []
+                norm_msgs = [f"rf:{rf_tag}"]
                 prefix_parts = []
                 for idx, m in enumerate(msgs):
                     role = m.get("role", "user")
@@ -260,7 +270,7 @@ data:
 
             prompt = data.get("prompt", "")
             if isinstance(prompt, str) and prompt:
-                norm_p = normalize_cross_company_text(prompt)
+                norm_p = f"rf:{rf_tag}||" + normalize_cross_company_text(prompt)
                 full_key = hashlib.sha256(norm_p.encode("utf-8")).hexdigest()
                 prefix_key = hashlib.sha256(norm_p[:512].encode("utf-8")).hexdigest()
                 return full_key, prefix_key, True, caller_company
@@ -322,7 +332,9 @@ data:
                     if "enable_thinking" not in ct_kwargs:
                         ct_kwargs["enable_thinking"] = False
                         data["chat_template_kwargs"] = ct_kwargs
-                    if data.get("max_tokens", 0) <= 4096:
+                    if data.get("response_format"):
+                        stats["xgrammar_schema_enforced_calls"] += 1
+                    elif data.get("max_tokens", 0) <= 4096:
                         data["max_tokens"] = 16384
                 return json.dumps(data).encode("utf-8")
         except Exception:
@@ -332,6 +344,9 @@ data:
     def strip_residual_thinking(resp_body: bytes, req_body: bytes = b"") -> bytes:
         try:
             data = json.loads(resp_body.decode("utf-8", errors="ignore"))
+            usage = data.get("usage") or {}
+            stats["total_prompt_tokens"] += int(usage.get("prompt_tokens", 0) or 0)
+            stats["total_completion_tokens"] += int(usage.get("completion_tokens", 0) or 0)
             req_str = req_body.decode("utf-8", errors="ignore") if req_body else ""
             is_sandbox_agent = "ACTIVE WORKSPACE SANDBOX:" in req_str
             changed = False

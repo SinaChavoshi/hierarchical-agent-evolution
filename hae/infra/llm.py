@@ -325,6 +325,8 @@ def call_openai_compatible_rest(
     base_url: Optional[str] = None,
     max_retries: int = 5,
     usage_sink: Optional[Dict[str, Any]] = None,
+    response_format: Optional[Dict[str, Any]] = None,
+    max_tokens: Optional[int] = None,
 ) -> str:
     """Direct REST caller for OpenAI and OpenAI-compatible endpoints (Ollama, vLLM, Groq, DeepSeek)."""
     key = api_key or os.environ.get("OPENAI_API_KEY") or DEFAULT_CONFIG.openai_api_key or "EMPTY"
@@ -336,12 +338,16 @@ def call_openai_compatible_rest(
         messages.append({"role": "system", "content": system_instruction})
     messages.append({"role": "user", "content": prompt})
 
+    effective_max_tokens = max_tokens if max_tokens is not None else int(os.environ.get("VLLM_MAX_TOKENS", "4096"))
     payload: Dict[str, Any] = {
         "model": model_name,
         "messages": messages,
         "temperature": temperature,
-        "max_tokens": int(os.environ.get("VLLM_MAX_TOKENS", "4096")),
+        "max_tokens": effective_max_tokens,
+        "chat_template_kwargs": {"enable_thinking": False},
     }
+    if response_format is not None:
+        payload["response_format"] = response_format
     body = json.dumps(payload).encode("utf-8")
     headers = {
         "Authorization": f"Bearer {key}",
@@ -548,6 +554,8 @@ def call_llm(
     location: Optional[str] = None,
     max_retries: int = 5,
     usage_sink: Optional[Dict[str, Any]] = None,
+    response_format: Optional[Dict[str, Any]] = None,
+    max_tokens: Optional[int] = None,
 ) -> str:
     """The only entry point for talking to a model.
 
@@ -583,6 +591,8 @@ def call_llm(
             base_url=DEFAULT_CONFIG.openai_base_url,
             max_retries=max_retries,
             usage_sink=usage_sink,
+            response_format=response_format,
+            max_tokens=max_tokens,
         )
     elif active_provider == "anthropic":
         return call_anthropic_rest(
@@ -602,6 +612,8 @@ def call_llm(
             base_url=ollama_url,
             max_retries=max_retries,
             usage_sink=usage_sink,
+            response_format=response_format,
+            max_tokens=max_tokens,
         )
     elif active_provider == "vllm":
         vllm_url = os.environ.get("VLLM_BASE_URL") or DEFAULT_CONFIG.vllm_base_url
@@ -613,6 +625,8 @@ def call_llm(
             base_url=vllm_url,
             max_retries=max_retries,
             usage_sink=usage_sink,
+            response_format=response_format,
+            max_tokens=max_tokens,
         )
     else:
         # Default: Vertex AI

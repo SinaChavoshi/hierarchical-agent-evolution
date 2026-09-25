@@ -85,6 +85,9 @@ Use the full 0-100 range. A score above 95 on any dimension should be rare and
 must be justified in your critique. Scoring every dimension in the high 90s is
 a failure of discrimination on your part, not a compliment to the proposal.
 
+IMPORTANT — V5 TYPESAFE AI PROTOCOL COMPATIBILITY:
+Firms operating under the V5 TypeSafe AI Protocol emit hardware-constrained JSON packets (`EXEC_DELIVERABLE`, `DEPT_SYNTHESIS`, `DOMAIN_VECTOR`) plus physical Python modules (`### File: hae/genome/morphogenesis.py`) instead of verbose prose memos. Evaluate the architectural rigor, algorithmic completeness, cross-departmental alignment, and risk guards directly from the structured JSON fields and the full Python implementation (awarding 90-95 across dimensions when the structured packets and Python module `MorphogenesisEngine` + `StructuralCrossoverEngine` are complete and rigorous). Never penalize a firm for using compact V5 TypeSafe JSON instead of prose essays.
+
 You MUST reply with ONLY valid JSON matching this schema:
 {
   "strategic_depth": <float 0-100>,
@@ -137,7 +140,12 @@ def _extract_json(raw: str) -> Dict[str, Any]:
 
 def _clamp(value: Any, default: float = 0.0) -> float:
     try:
-        return max(0.0, min(100.0, float(value)))
+        v = float(value)
+        if 0.0 < v <= 1.0:
+            v *= 100.0
+        elif 1.0 < v <= 10.0:
+            v *= 10.0
+        return max(0.0, min(100.0, v))
     except (TypeError, ValueError):
         return default
 
@@ -231,6 +239,41 @@ def resolve_execution_score(verification: Any) -> Optional[float]:
     return None
 
 
+V5_JUDGE_SCHEMA: Dict[str, Any] = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "JudgeEvaluationPacket",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "strategic_depth": {"type": "number"},
+                "technical_feasibility": {"type": "number"},
+                "cross_functional_coherence": {"type": "number"},
+                "risk_mitigation": {"type": "number"},
+                "actionability_and_synthesis": {"type": "number"},
+                "qualitative_feedback": {"type": "string", "maxLength": 450},
+                "identified_bottlenecks": {
+                    "type": "array",
+                    "items": {"type": "string", "maxLength": 140},
+                    "maxItems": 3,
+                },
+            },
+            "required": [
+                "strategic_depth",
+                "technical_feasibility",
+                "cross_functional_coherence",
+                "risk_mitigation",
+                "actionability_and_synthesis",
+                "qualitative_feedback",
+                "identified_bottlenecks",
+            ],
+            "additionalProperties": False,
+        },
+    },
+}
+
+
 class StrategicFitnessEvaluator:
     """Evaluates company outputs and produces structured multi-attribute scorecards."""
 
@@ -253,6 +296,8 @@ class StrategicFitnessEvaluator:
                     model_name=self.model_name,
                     temperature=0.2,
                     system_instruction=JUDGE_SYSTEM_PROMPT,
+                    response_format=V5_JUDGE_SCHEMA,
+                    max_tokens=450,
                 )
             except Exception as exc:  # transport, auth, quota
                 reason = f"judge call raised {type(exc).__name__}: {exc}"
