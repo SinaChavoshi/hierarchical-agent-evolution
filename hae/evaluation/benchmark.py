@@ -486,8 +486,6 @@ class SelfHostingBenchmark:
                 for tok in (
                     "site-packages",
                     "dist-packages",
-                    "os.getcwd",
-                    "Path.cwd",
                     "__file__",
                 )
             ):

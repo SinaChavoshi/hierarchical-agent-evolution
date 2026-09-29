@@ -133,3 +133,29 @@ During Generation 13, 3 of the 10 companies (`gen_10_elite_2`, `gen_10_crossover
 2. **Targeted `sys.path` Anti-Cheat (`_suspicious_syspath_mutation`):** Replaced the blanket `sys.path.insert|append` regex in [`hae/evaluation/benchmark.py`](../../hae/evaluation/benchmark.py) with `_suspicious_syspath_mutation()`, which allows dynamic sandbox `workdir` imports while still rejecting any `sys.path` mutation referencing `/app`, `self.repo_root`, `..`, or `site-packages`.
 3. **Execution-Gated Composite Fitness (`RUBRIC_WEIGHTS["execution_integrity"] = 0.50` + `EXECUTION_PROSE_FLOOR = 0.20`):** Updated [`hae/evaluation/judge.py`](../../hae/evaluation/judge.py) so a `0/50` submission can never exceed `10.0` gross fitness (eliminating the `40–63` prose score floor seen on rejected firms in Gen 13).
 
+---
+
+## 6. Clean Uncached Generation 14 (`full_stack_hae` with Fixed `sys.path`, Execution-Gated Scoring & 5-Iteration Cap)
+
+With the three fixes above folded into **Generation 14 (`job.batch/hae-gen14-fullstack-v5`, [`results/hae_gen14_fullstack_v5/generation_14_summary.json`](../../results/hae_gen14_fullstack_v5/generation_14_summary.json))**, the population jumped from `3/10` non-rejected companies in Gen 13 to **`9 / 10` (`90%`) officially graded companies passing `39/50` to `44/50` (`78.0%–88.0%`) held-out tests**, setting a **new all-time `full_stack_hae` record of `44 / 50` (`88.0%`)** (`gen_10_mutant_3`, `90` agents) while cutting total cluster LLM calls by **`-50.8%`** (`5,985` $\to$ `2,942`) and prompt tokens by **`-62.8%`** (`17.24M` $\to$ `6.42M`):
+
+| Index | Genome ID | Agents | Gen 13 Official (`/50`) | **Gen 14 Trajectory (`Iter 1..5`, `/50` Tests)** | **Gen 14 Official Best (`/50`)** | **Gross / Net Fitness** | Shadow Cost (`USD`) | Notes |
+| :---: | :--- | :---: | :---: | :--- | :---: | :---: | :---: | :--- |
+| **0** | `gen_10_elite_1` | `33` | `0 / 50` *(rejected)* | **`[31, 35, 38, 41, 41]`** | **`41 / 50` (`82.0%`)** | `78.62` / **`82.03`** | `$0.1590` | Climbed `+10` tests (`+41` vs. Gen 13 official) |
+| **1** | `gen_10_elite_2` | `90` | `42 / 50` (`84.0%`) | **`[32, 38, 40, 40, 40]`** | **`40 / 50` (`80.0%`)** | `77.76` / **`80.79`** | `$0.1966` | Climbed `+8` tests across Iterations 1 $\to$ 3 |
+| **2** | `gen_10_crossover_1` | `33` | `41 / 50` (`82.0%`) | **`[32, 38, 40, 40, 41]`** | **`41 / 50` (`82.0%`)** | `78.02` / **`81.50`** | `$0.1523` | Matched its `41/50` Gen 13 peak in 5 iterations |
+| **3** | `gen_10_crossover_2` | `90` | `40 / 50` (`80.0%`) | `[0, 0, 0, 0, 0]` | `0 / 50` (`31/50` relaxed) | **`7.86` / `10.58`** | `$0.2282` | Used `sys.path.insert(0, os.getcwd())`; execution gate capped `0/50` at `7.86` gross |
+| **4** | `gen_10_crossover_3` | `33` | `0 / 50` *(rejected)* | **`[30, 38, 29, 29, 39]`** | **`39 / 50` (`78.0%`)** | `75.54` / **`79.12`** | `$0.1421` | Climbed `+9` tests (`+39` vs. Gen 13 official) |
+| **5** | `gen_10_pareto_1` | `33` | `0 / 50` *(rejected)* | **`[32, 32, 37, 42, 42]`** | **`42 / 50` (`84.0%`)** | `62.88` / **`66.62`** | `$0.1260` | Climbed `+10` tests (`+42` vs. Gen 13 official) |
+| **6** | `gen_10_pareto_2` | `60` | `0 / 50` *(rejected)* | **`[31, 34, 39, 39, 39]`** | **`39 / 50` (`78.0%`)** | `75.21` / **`78.67`** | `$0.1543` | Climbed `+8` tests (`+39` vs. Gen 13 official) |
+| **7** | `gen_10_mutant_1` | `33` | `0 / 50` *(rejected)* | **`[31, 35, 42, 42, 42]`** | **`42 / 50` (`84.0%`)** | `64.63` / **`68.05`** | `$0.1579` | Climbed `+11` tests (`+42` vs. Gen 13 official) |
+| **8** | `gen_10_mutant_2` | `60` | `0 / 50` *(rejected)* | **`[33, 38, 41, 41, 41]`** | **`41 / 50` (`82.0%`)** | **`79.48` / `82.91` 🏆** | `$0.1569` | **Best Net Fitness (`82.91 / 100`) under grounded rubric** |
+| **9** | `gen_10_mutant_3` | `90` | `0 / 50` *(rejected)* | **`[34, 37, 41, 43, 44]`** | **`44 / 50` (`88.0%`) 🏆** | `79.26` / **`82.32`** | `$0.1941` | **New All-Time `full_stack_hae` Record (`44/50`, `88.0%`)** |
+
+### Generation 14 `llm-d` Gateway Telemetry (`results/hae_gen14_fullstack_v5/llmd_stats.json`)
+- **Total Multi-Agent LLM Calls:** `2,942` (`-50.8%` vs. `5,985` in 10-iteration Gen 13)
+- **Zero-GPU Offloaded (`Short-Circuit + Singleflight` on Coordination Packets Only):** `1,505 / 2,942` (`51.16%`: `1,470` short-circuit + `35` singleflight; `0` builder calls cached)
+- **Prefix KV-Cache Affinity on Live GPU Calls:** `1,435 / 1,437` (**`99.86%`** across `3x nvidia/Qwen3.8-Flash-Next-NVFP4` replicas: `405`, `520`, `512` calls)
+- **Total Tokens Across 10 Companies (5 Iterations x 4 Modules):** `6,419,595` prompt tokens (`-62.8%` vs. Gen 13) and `594,258` completion tokens (`-53.8%` vs. Gen 13), with a mean shadow cost of **`$0.1667 USD` per company**.
+
+
