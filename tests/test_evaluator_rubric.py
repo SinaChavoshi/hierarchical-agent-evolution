@@ -83,10 +83,10 @@ class TestWeights(unittest.TestCase):
     def test_saturated_dimensions_were_demoted(self):
         # Coherence and actionability were pinned at a mean of 99.0 (sigma
         # 1.67) across Generation 10, contributing 35% of the weight and
-        # almost no signal. They are now 20% combined.
+        # almost no signal. They are now 10% combined (<= 20%).
         saturated = (RUBRIC_WEIGHTS["cross_functional_coherence"]
                      + RUBRIC_WEIGHTS["actionability_and_synthesis"])
-        self.assertAlmostEqual(saturated, 0.20, places=9)
+        self.assertAlmostEqual(saturated, 0.10, places=9)
 
     def test_gate_weights_sum_to_one_hundred(self):
         self.assertAlmostEqual(sum(GATE_WEIGHTS.values()), 100.0, places=9)
@@ -136,19 +136,23 @@ class TestComposite(unittest.TestCase):
     def setUp(self):
         self.judged = {d: 95.0 for d in JUDGED_DIMENSIONS}
 
-    def test_execution_moves_the_score_thirty_points(self):
+    def test_execution_dominates_and_gates_the_score(self):
         dead = composite_score(self.judged, 0.0)
         alive = composite_score(self.judged, 100.0)
-        self.assertAlmostEqual(alive - dead, 30.0, places=2)
+        # At 0% execution, dead scores 0.20 * 47.5 = 9.50; at 100% execution,
+        # alive scores 47.5 + 50.0 = 97.50 (88.0 point spread).
+        self.assertAlmostEqual(dead, 9.50, places=2)
+        self.assertAlmostEqual(alive, 97.50, places=2)
+        self.assertAlmostEqual(alive - dead, 88.0, places=2)
 
     def test_prose_only_renormalises_to_the_judged_score(self):
         # With no evaluable gates the judged weights are rescaled to sum to 1,
-        # so a uniform 95 comes back as 95 rather than being diluted to 66.5.
+        # so a uniform 95 comes back as 95 rather than being diluted.
         self.assertAlmostEqual(composite_score(self.judged, None), 95.0, places=2)
 
-    def test_perfect_prose_with_dead_code_cannot_reach_ninety(self):
+    def test_perfect_prose_with_dead_code_cannot_exceed_ten(self):
         perfect = {d: 100.0 for d in JUDGED_DIMENSIONS}
-        self.assertLessEqual(composite_score(perfect, 0.0), 70.0)
+        self.assertLessEqual(composite_score(perfect, 0.0), 10.0)
 
 
 class TestJudgeFailureIsNotSilent(unittest.TestCase):
@@ -208,8 +212,9 @@ class TestEvaluateWiring(unittest.TestCase):
 
         self.assertEqual(good.fitness.execution_integrity, 100.0)
         self.assertEqual(bad.fitness.execution_integrity, 0.0)
-        self.assertAlmostEqual(
-            good.fitness.fitness_score - bad.fitness.fitness_score, 30.0, places=2)
+        self.assertGreater(
+            good.fitness.fitness_score - bad.fitness.fitness_score, 80.0)
+        self.assertLessEqual(bad.fitness.fitness_score, 10.0)
 
     def test_identical_prose_is_no_longer_scored_identically(self):
         # This is the whole point of the rebuild: under the old rubric these
@@ -252,8 +257,8 @@ class TestEvaluateWiring(unittest.TestCase):
 
     def test_benchmark_outcome_without_gates_weights_execution_score(self):
         """Regression test for Issue #7: BenchmarkVerifier returns evaluable=True,
-        score=X, gate_status={}. The judge must weight score=X at 30%, never
-        drop execution and rescale prose to 100%."""
+        score=X, gate_status={}. The judge must weight score=X at 50% + gate,
+        never drop execution and rescale prose to 100%."""
         from hae.task.verifier import VerificationOutcome
         v_pass = VerificationOutcome(
             verifier="benchmark:artifacts",
@@ -274,10 +279,10 @@ class TestEvaluateWiring(unittest.TestCase):
         self.assertEqual(res_pass.fitness.execution_integrity, 100.0)
         self.assertTrue(res_zero.fitness.execution_evaluable)
         self.assertEqual(res_zero.fitness.execution_integrity, 0.0)
-        self.assertAlmostEqual(
+        self.assertLessEqual(res_zero.fitness.fitness_score, 10.0)
+        self.assertGreater(
             res_pass.fitness.fitness_score - res_zero.fitness.fitness_score,
-            30.0,
-            places=2,
+            80.0,
         )
 
 

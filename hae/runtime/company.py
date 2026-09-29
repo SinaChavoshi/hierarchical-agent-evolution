@@ -169,7 +169,24 @@ def is_technical_department(dept: DepartmentGenome) -> bool:
     # A department is also technical if its genome explicitly enables tools.
     return any(bool(agent.tools_enabled) for agent in dept.agents)
 
-def parse_tool_action(text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
+_REFERENCE_ACCESS_RE = re.compile(
+    r"(?:^|[\s'\"=(:])/(?:app|usr|opt|root|home|proc|tmp/hae_benchmark|tmp/hae_grader)\b"
+    r"|(?:^|\s)/(?:\s|$|\*)|\.\./|site-packages|dist-packages|importlib\.util\.find_spec|inspect\.getsource|__file__",
+)
+
+def _touches_reference_tree(text: str) -> bool:
+    """True if an agent tool argument reaches outside its workspace.
+
+    The worker image ships this repository -- including the reference
+    implementation of every module being graded -- under /app. The shell sandbox
+    removes network access but not filesystem access, so without this guard an
+    agent could `cat /app/hae/evaluation/harness.py` or `inspect.getsource` the
+    installed package and submit the answer. Best-effort: every command is also
+    logged with an [AUDIT] prefix so a bypass is visible in pod logs.
+    """
+    return bool(text) and bool(_REFERENCE_ACCESS_RE.search(text))
+
+def parse_tool_action(text: str, default_path: str = "hae/genome/morphogenesis.py") -> Optional[Tuple[str, Dict[str, Any]]]:
     """Parses ReAct tool actions, native Qwen3.8 <function=...> XML tool calls, and fenced code modules."""
     # 1. Native Qwen3.8 XML <function=NAME><parameter=K>V</parameter></function>
     fn_m = re.search(r"<function=([a-zA-Z0-9_]+)>\s*(.*?)\s*</function>", text, re.DOTALL | re.IGNORECASE)
@@ -180,10 +197,10 @@ def parse_tool_action(text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
         for pm in re.finditer(r"<parameter=([a-zA-Z0-9_]+)>\s*(.*?)\s*</parameter>", body, re.DOTALL | re.IGNORECASE):
             params[pm.group(1).lower().strip()] = pm.group(2).strip()
         if action == "write_file":
-            path = params.get("path") or params.get("file_path") or params.get("filepath") or "hae/genome/morphogenesis.py"
+            path = params.get("path") or params.get("file_path") or params.get("filepath") or default_path
             content = params.get("content") or params.get("code") or ""
             if not content:
-                cm = re.search(r"```(?:[a-zA-Z0-9_\-]+)?\s*\n(.*?)```", text, re.DOTALL)
+                cm = re.search(r"```(?:[a-zA-Z0-9_\-]+)?\s*\n(.*?)\n```(?:\s*$|\s*\n)", text, re.DOTALL)
                 if cm:
                     content = cm.group(1)
             return "write_file", {"path": path.strip(" `\""), "content": content}
@@ -200,10 +217,16 @@ def parse_tool_action(text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
         elif action == "finish":
             return "finish", {"text": params.get("summary") or text}
 
-    # 2. Fenced Python module defining target classes
-    for cb in re.findall(r"```(?:python|py)?\s*\n(.*?)```", text, re.DOTALL):
+    # 2. Fenced Python module defining target classes/functions
+    for cb in re.findall(r"```(?:python|py)?\s*\n(.*?)\n```(?:\s*$|\s*\n)", text, re.DOTALL):
         if "class MorphogenesisEngine" in cb and "class StructuralCrossoverEngine" in cb:
             return "write_file", {"path": "hae/genome/morphogenesis.py", "content": cb.strip()}
+        if "class ExecutionHarness" in cb and "class VerificationReport" in cb:
+            return "write_file", {"path": "hae/evaluation/harness.py", "content": cb.strip()}
+        if "class VerificationLoop" in cb and "VERIFY_TOOL_GUIDE" in cb:
+            return "write_file", {"path": "hae/evaluation/verification_loop.py", "content": cb.strip()}
+        if "def filter_bundle" in cb and "def is_malformed_path" in cb:
+            return "write_file", {"path": "hae/evaluation/artifacts.py", "content": cb.strip()}
 
     # 3. Standard ReAct Action: <name>
     action_match = re.search(r"Action:\s*(write_file|read_file|execute_bash|list_files|verify|finish)", text, re.IGNORECASE)
@@ -213,8 +236,8 @@ def parse_tool_action(text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
 
     if action == "write_file":
         path_match = re.search(r"Path:\s*([^\n\r]+)", text)
-        path = path_match.group(1).strip(" `\"") if path_match else "hae/genome/morphogenesis.py"
-        code_match = re.search(r"```(?:[a-zA-Z0-9_\-]+)?\s*\n(.*?)```", text, re.DOTALL)
+        path = path_match.group(1).strip(" `\"") if path_match else default_path
+        code_match = re.search(r"```(?:[a-zA-Z0-9_\-]+)?\s*\n(.*?)\n```(?:\s*$|\s*\n)", text, re.DOTALL)
         if code_match:
             content = code_match.group(1)
         else:
@@ -243,73 +266,130 @@ def parse_tool_action(text: str) -> Optional[Tuple[str, Dict[str, Any]]]:
 
     return None
 
+
+MODULE_TASK_MAP: Dict[str, str] = {
+    "hae/evaluation/artifacts.py": "artifacts",
+    "hae/evaluation/harness.py": "harness",
+    "hae/evaluation/verification_loop.py": "verification_loop",
+    "hae/genome/morphogenesis.py": "morphogenesis",
+}
+
+SUITE_TAG_TO_MODULE: Dict[str, str] = {
+    "artifacts": "hae/evaluation/artifacts.py",
+    "execution_harness": "hae/evaluation/harness.py",
+    "harness": "hae/evaluation/harness.py",
+    "verification_loop": "hae/evaluation/verification_loop.py",
+    "morphogenesis": "hae/genome/morphogenesis.py",
+}
+
+
 class HierarchicalCompanyRunner:
     """Executes one virtual firm: CEO, department pods, workspace, and OpEx."""
 
     def __init__(self, genome: CompanyGenome,
                  budget: Optional[Budget] = None,
                  seed_files: Optional[Dict[str, str]] = None):
-        """
-        `budget`, when given, is enforced: calls are refused once the ceiling
-        is reached. V1's `genome.budget_usd` was only ever used to compute a
-        score penalty after the fact, which is a scoring opinion rather than a
-        spend limit.
-
-        `seed_files` pre-populates the workspace, so a firm can continue from
-        a previous generation's artifact instead of starting from an empty
-        directory. Off unless a Task asks for it: it changes what a fitness
-        trajectory means, and that has to be a deliberate per-experiment
-        choice rather than something that quietly starts happening.
-        """
         self.genome = genome
         self.budget = budget
         self.flash_input_tokens = 0
         self.flash_output_tokens = 0
         self.pro_input_tokens = 0
         self.pro_output_tokens = 0
-        # Provenance of the token counts above. Vertex returns usageMetadata on
-        # every response; when it is present those numbers are used verbatim.
-        # The len(text)/4 estimate is only a fallback, and it is a bad one: it
-        # cannot see reasoning tokens at all, so on a thinking model it
-        # understates real usage and inflates the efficiency bonus.
         self.measured_calls = 0
         self.estimated_calls = 0
         self.thought_tokens = 0
 
-        # Active execution workspace. Everything a firm is scored on must be
-        # written here; prose in the deliverable does not count.
         self.workspace = AgentWorkspace(company_id=self.genome.company_id)
 
-        # Inherited artifacts, recorded so the scorecard can distinguish "this
-        # firm wrote 12 files" from "this firm was handed 11 and wrote 1".
         self.seeded_files: Dict[str, str] = dict(seed_files or {})
         for path, content in self.seeded_files.items():
             self.workspace.write_file(path, content)
 
-        # Agents can query the same harness that scores them. One budget for
-        # the whole firm, not per pod, so departments have to coordinate
-        # rather than each burning attempts independently.
         self.verification_loop = VerificationLoop(self.workspace)
         self._code_build_lock = threading.Lock()
         self._code_written_this_run = False
+        self._required_modules: List[str] = ["hae/genome/morphogenesis.py"]
+        self._pending_modules: List[str] = []
+        self._written_modules_this_run: set = set()
         self.xgrammar_calls = 0
 
-    def _has_valid_morphogenesis_artifact(self) -> bool:
-        """Returns True once hae/genome/morphogenesis.py is authored during THIS CompanyRunner run."""
-        if not self._code_written_this_run:
-            return False
+    def _has_valid_module_artifact(self, mod_path: str) -> bool:
+        """Returns True once `mod_path` has been written with valid Python content."""
         try:
-            r = self.workspace.read_file("hae/genome/morphogenesis.py")
+            r = self.workspace.read_file(mod_path)
             if r.get("status") not in ("ok", "success"):
                 return False
             content = r.get("content", "")
-            return (
-                len(content) > 2500
-                and "class MorphogenesisEngine" in content
-                and "class StructuralCrossoverEngine" in content
-            )
+            return len(content) > 300 and ("def " in content or "class " in content)
         except Exception:
             return False
+
+    def _has_valid_morphogenesis_artifact(self) -> bool:
+        """Backward-compatible helper checking whether all required modules for this run are written."""
+        return len(self._pending_modules) == 0 and all(
+            self._has_valid_module_artifact(m) for m in self._required_modules
+        )
+
+    def _claim_next_module(self) -> Optional[str]:
+        """Thread-safely claims the next unassigned target module for a Departmental Lead Engineer."""
+        with self._code_build_lock:
+            while self._pending_modules:
+                candidate = self._pending_modules.pop(0)
+                if candidate not in self._written_modules_this_run:
+                    return candidate
+            return None
+
+    def _get_focused_module_context(self, target_mod: str, objective: str) -> str:
+        """Builds a focused specification and visible context for `target_mod`."""
+        from hae.evaluation.benchmark import TASKS, module_specification, REPO_ROOT
+        task_key = MODULE_TASK_MAP.get(target_mod)
+        parts = [f"Current Workspace Tree:\n{self.workspace.get_file_tree()}\n"]
+        if task_key and task_key in TASKS:
+            btask = TASKS[task_key]
+            abs_mod = os.path.join(REPO_ROOT, target_mod)
+            if os.path.exists(abs_mod):
+                spec = module_specification(abs_mod)
+                ctx_blocks = []
+                graded_targets = set(self._required_modules)
+                for vis in btask.visible_context:
+                    # Prefer the company's own authored version when present.
+                    ws_read = self.workspace.read_file(vis)
+                    if ws_read.get("status") in ("ok", "success") and len(ws_read.get("content", "")) > 200:
+                        ctx_blocks.append(f"### File: {vis} (authored by your firm)\n```python\n{ws_read['content']}\n```")
+                        continue
+                    abs_vis = os.path.join(REPO_ROOT, vis)
+                    if not os.path.exists(abs_vis):
+                        continue
+                    if vis in graded_targets:
+                        # This dependency is itself being graded in this run. Showing
+                        # the repo copy would hand the firm the reference answer, so
+                        # expose only its public contract.
+                        ctx_blocks.append(
+                            f"### Dependency contract: {vis} (being implemented in parallel by another department)\n"
+                            f"{module_specification(abs_vis)}")
+                    else:
+                        body = open(abs_vis, "r", encoding="utf-8").read()
+                        ctx_blocks.append(f"### File: {vis}\n```python\n{body}\n```")
+                parts.append(
+                    f"Implement the module `{target_mod}`.\n\n"
+                    f"SPECIFICATION\n{spec}\n\n"
+                    f"{btask.summary}\n\n"
+                    + ("\n\n".join(ctx_blocks) + "\n\n" if ctx_blocks else "")
+                )
+        else:
+            parts.append(f"Full Technical Specification:\n{objective}\n")
+
+        if "GROUND-TRUTH VERIFIER FEEDBACK" in objective:
+            fb_idx = objective.find("======================================================================")
+            if fb_idx != -1:
+                parts.append(objective[fb_idx:])
+            existing = self.workspace.read_file(target_mod)
+            if existing.get("status") in ("ok", "success") and existing.get("content"):
+                parts.append(
+                    f"\nCURRENT WORKSPACE IMPLEMENTATION OF `{target_mod}` TO REPAIR:\n"
+                    f"```python\n{existing['content']}\n```\n"
+                )
+        return "\n".join(parts)
 
     def _account_tokens(self, is_pro: bool, prompt_text: str, system_text: str,
                         response_text: str, usage: Dict[str, Any],
@@ -417,8 +497,15 @@ class HierarchicalCompanyRunner:
 
         return resp
 
-    def _execute_agent_with_tools(self, agent: AgentGenome, prompt: str, context: str = "", max_turns: int = 3) -> str:
-        """Invokes a technical specialist with an active sandboxed workspace tool-calling loop."""
+    def _execute_agent_with_tools(
+        self,
+        agent: AgentGenome,
+        prompt: str,
+        context: str = "",
+        max_turns: int = 3,
+        target_path: str = "hae/genome/morphogenesis.py",
+    ) -> str:
+        """Invokes a Departmental Lead Implementation Engineer with a sandboxed workspace tool loop."""
         traits_section = ""
         if hasattr(agent, "backstory_traits") and agent.backstory_traits:
             traits_section = "\nCore Operational Axioms & Behavioral Traits:\n" + "\n".join([f"- {t}" for t in agent.backstory_traits]) + "\n"
@@ -428,14 +515,14 @@ class HierarchicalCompanyRunner:
             "You have direct access to an isolated active workspace environment on disk.\n"
             "Current files in your workspace:\n"
             f"{self.workspace.get_file_tree()}\n\n"
-            "CRITICAL EXECUTION RULE: All allowed import modules (`hae/genome/schema.py`, `hae/infra/llm.py`) "
-            "and the complete specification are already provided inline below. "
-            "Do NOT call `execute_bash` or `list_files` first. Your VERY FIRST response MUST write the complete "
-            "Python implementation of `hae/genome/morphogenesis.py` with ZERO conversational preamble using:\n"
+            f"CRITICAL EXECUTION RULE: All allowed import modules and the complete specification for `{target_path}` "
+            "are already provided inline below. Do NOT call `execute_bash` or `list_files` first. "
+            f"Your VERY FIRST response MUST write the complete Python implementation of `{target_path}` "
+            "with ZERO conversational preamble using:\n"
             "Action: write_file\n"
-            "Path: hae/genome/morphogenesis.py\n"
+            f"Path: {target_path}\n"
             "```python\n"
-            "<complete implementation of FUNCTIONAL_CATEGORIES, classify_department_role, MorphogenesisEngine, and StructuralCrossoverEngine>\n"
+            f"<complete implementation of {target_path} satisfying 100% of the Public API Contract>\n"
             "```\n"
             + VERIFY_TOOL_GUIDE +
             "- To complete your assignment:\n"
@@ -476,7 +563,7 @@ class HierarchicalCompanyRunner:
             self._account_tokens(is_pro, conversation_history, system_prompt,
                                  step_resp, usage, label=agent.role)
 
-            parsed = parse_tool_action(step_resp)
+            parsed = parse_tool_action(step_resp, default_path=target_path)
             if not parsed or parsed[0] == "finish":
                 final_summary = step_resp
                 break
@@ -484,23 +571,37 @@ class HierarchicalCompanyRunner:
             action, args = parsed
             observation = ""
             if action == "write_file":
-                w_res = self.workspace.write_file(args.get("path", ""), args.get("content", ""))
+                out_path = args.get("path") or target_path
+                w_res = self.workspace.write_file(out_path, args.get("content", ""))
                 observation = f"Observation (write_file): Status={w_res.get('status')}, Bytes={w_res.get('bytes_written', 0)}"
-                if w_res.get("status") in ("ok", "success") and args.get("bytes_written", w_res.get("bytes_written", 0)) > 500:
-                    self._code_written_this_run = True
-                    final_summary = f'{{"packet":"CODE_ARTIFACT_WRITTEN","path":"{args.get("path", "hae/genome/morphogenesis.py")}","bytes":{w_res.get("bytes_written", 0)},"status":"SUCCESS"}}'
+                if w_res.get("status") in ("ok", "success") and args.get("bytes_written", w_res.get("bytes_written", 0)) > 300:
+                    with self._code_build_lock:
+                        self._code_written_this_run = True
+                        self._written_modules_this_run.add(out_path.lstrip("./"))
+                    final_summary = f'{{"packet":"CODE_ARTIFACT_WRITTEN","path":"{out_path}","bytes":{w_res.get("bytes_written", 0)},"status":"SUCCESS"}}'
                     break
             elif action == "read_file":
-                r_res = self.workspace.read_file(args.get("path", ""))
-                content = r_res.get("content", "")
-                observation = f"Observation (read_file): Status={r_res.get('status')}\n{content[:2000]}"
+                rpath = args.get("path", "")
+                if _touches_reference_tree(rpath):
+                    print(f"[AUDIT] {self.genome.company_id} {agent.role}: BLOCKED read_file {rpath!r}", flush=True)
+                    observation = "Observation (read_file): Status=denied (outside workspace)"
+                else:
+                    r_res = self.workspace.read_file(rpath)
+                    content = r_res.get("content", "")
+                    observation = f"Observation (read_file): Status={r_res.get('status')}\n{content[:2000]}"
             elif action == "execute_bash":
-                b_res = self.workspace.execute_bash(args.get("command", ""))
-                observation = (
-                    f"Observation (execute_bash exit {b_res.get('exit_code')}):\n"
-                    f"STDOUT: {b_res.get('stdout', '')[:1500]}\n"
-                    f"STDERR: {b_res.get('stderr', '')[:1500]}"
-                )
+                cmd = args.get("command", "")
+                if _touches_reference_tree(cmd):
+                    print(f"[AUDIT] {self.genome.company_id} {agent.role}: BLOCKED bash {cmd[:200]!r}", flush=True)
+                    observation = "Observation (execute_bash): refused -- commands may only operate inside the workspace."
+                else:
+                    print(f"[AUDIT] {self.genome.company_id} {agent.role}: bash {cmd[:200]!r}", flush=True)
+                    b_res = self.workspace.execute_bash(cmd)
+                    observation = (
+                        f"Observation (execute_bash exit {b_res.get('exit_code')}):\n"
+                        f"STDOUT: {b_res.get('stdout', '')[:1500]}\n"
+                        f"STDERR: {b_res.get('stderr', '')[:1500]}"
+                    )
             elif action == "list_files":
                 tree = self.workspace.get_file_tree()
                 observation = f"Observation (list_files):\n{tree}"
@@ -514,12 +615,18 @@ class HierarchicalCompanyRunner:
         return final_summary
 
     def _run_department_pod(self, dept: DepartmentGenome, ceo_directive: str, objective: str = "") -> Tuple[str, str]:
-        """Runs a department's operational agents and manager synthesis under V5 TypeSafe Protocol."""
+        """Runs a department's operational agents and manager synthesis under V5 TypeSafe Protocol.
+
+        In multi-module benchmarks (`full_stack_hae`), each department pod claims a distinct
+        target module from `self._pending_modules` and assigns its Lead Implementation Engineer
+        to synthesize that module concurrently with other departments.
+        """
         is_technical = is_technical_department(dept)
-        builder_context = f"Current Workspace Tree:\n{self.workspace.get_file_tree()}\n"
-        if objective:
-            builder_context += f"\nFull Technical Specification & Verifier Feedback:\n{objective}\n"
         compact_pod_context = f"Current Workspace Tree:\n{self.workspace.get_file_tree()}\n"
+
+        # Each department claims up to 1 target module initially so modules distribute across parallel departments
+        dept_claimed_module = self._claim_next_module()
+        dept_built_initial = False
 
         operational_findings = []
         for agent in dept.agents:
@@ -528,25 +635,27 @@ class HierarchicalCompanyRunner:
                 f"{ceo_directive}\n\n"
                 f"Role: {agent.role}. Emit your domain verification/implementation state packet."
             )
-            
-            if is_technical and not self._has_valid_morphogenesis_artifact():
-                with self._code_build_lock:
-                    if not self._has_valid_morphogenesis_artifact():
-                        builder_prompt = (
-                            "Implement the complete Python module `hae/genome/morphogenesis.py` (`MorphogenesisEngine` and `StructuralCrossoverEngine`) "
-                            "satisfying 100% of the Public API Contract and unit tests."
-                        )
-                        findings = self._execute_agent_with_tools(
-                            agent, builder_prompt, context=builder_context, max_turns=4
-                        )
-                    else:
-                        findings = self._execute_agent(
-                            agent,
-                            agent_prompt,
-                            context=compact_pod_context,
-                            response_format=V5_SPECIALIST_PACKET_SCHEMA,
-                            max_tokens=180,
-                        )
+
+            target_to_build: Optional[str] = None
+            if dept_claimed_module and not dept_built_initial:
+                target_to_build = dept_claimed_module
+                dept_built_initial = True
+            elif is_technical and len(self._pending_modules) > 0:
+                target_to_build = self._claim_next_module()
+
+            if target_to_build:
+                mod_context = self._get_focused_module_context(target_to_build, objective)
+                builder_prompt = (
+                    f"Implement the complete Python module `{target_to_build}` "
+                    "satisfying 100% of its Public API Contract and unit tests."
+                )
+                findings = self._execute_agent_with_tools(
+                    agent,
+                    builder_prompt,
+                    context=mod_context,
+                    max_turns=3,
+                    target_path=target_to_build,
+                )
             else:
                 findings = self._execute_agent(
                     agent,
@@ -562,7 +671,7 @@ class HierarchicalCompanyRunner:
 
         # Department Manager synthesizes findings into a compact DeptSynthesisPacket via vLLM xgrammar
         manager_context = combined_findings
-        if is_technical:
+        if is_technical or dept_built_initial:
             manager_context += f"\nVerified Workspace Files Authored:\n{self.workspace.get_file_tree()}"
 
         manager_prompt = (
@@ -580,12 +689,46 @@ class HierarchicalCompanyRunner:
         )
         return dept.dept_id, dept_brief
 
+    def _init_required_modules_for_objective(self, objective: str) -> None:
+        """Determines which target modules must be synthesized or repaired in this iteration."""
+        all_four = [
+            "hae/evaluation/artifacts.py",
+            "hae/evaluation/harness.py",
+            "hae/evaluation/verification_loop.py",
+            "hae/genome/morphogenesis.py",
+        ]
+        if all(m in objective for m in all_four) or "TARGET MODULE 1/4" in objective:
+            self._required_modules = list(all_four)
+        else:
+            m = re.search(r"Implement the module `([^`]+)`", objective)
+            if m:
+                mods = [x.strip() for x in m.group(1).split(",") if x.strip()]
+                self._required_modules = mods if mods else ["hae/genome/morphogenesis.py"]
+            else:
+                self._required_modules = ["hae/genome/morphogenesis.py"]
+
+        self._written_modules_this_run = set()
+        if "GROUND-TRUTH VERIFIER FEEDBACK" in objective:
+            # On repair iterations, only re-queue modules that failed a check or are missing
+            failing_mods: List[str] = []
+            for tag, mod_path in SUITE_TAG_TO_MODULE.items():
+                if f"[{tag}]" in objective and mod_path in self._required_modules and mod_path not in failing_mods:
+                    failing_mods.append(mod_path)
+            for mod_path in self._required_modules:
+                if not self._has_valid_module_artifact(mod_path) and mod_path not in failing_mods:
+                    failing_mods.append(mod_path)
+            self._pending_modules = failing_mods if failing_mods else list(self._required_modules)
+        else:
+            self._pending_modules = list(self._required_modules)
+
     def run(self, objective: str) -> Dict[str, Any]:
         """Executes the complete multi-tier organizational workflow on the business objective."""
         start_time = time.time()
 
         if not hasattr(self.genome.ceo, "model_tier") or not self.genome.ceo.model_tier:
             self.genome.ceo.model_tier = "executive"
+
+        self._init_required_modules_for_objective(objective)
 
         # Step 1: CEO Directive Generation (V5 TypeSafe AI SpecContractPacket via vLLM xgrammar)
         inherited_section = ""
@@ -598,6 +741,7 @@ class HierarchicalCompanyRunner:
         ceo_init_prompt = (
             f"As CEO, compile the V5 SpecContractPacket for this technical objective:\n\n{objective[:3500]}\n\n"
             f"{inherited_section}"
+            f"Target Modules ({len(self._required_modules)}): {', '.join(self._required_modules)}\n"
             f"Departments ({len(self.genome.departments)}): "
             + ", ".join([f"{d.dept_id} ({d.name})" for d in self.genome.departments])
         )
@@ -618,6 +762,24 @@ class HierarchicalCompanyRunner:
             for future in concurrent.futures.as_completed(future_to_dept):
                 dept_id, brief = future.result()
                 departmental_briefs[dept_id] = brief
+
+        # Ensure any remaining unwritten module in self._required_modules is completed
+        missing_mods = [m for m in self._required_modules if not self._has_valid_module_artifact(m)]
+        if missing_mods and self.genome.departments:
+            lead_agent = (
+                self.genome.departments[0].agents[0]
+                if self.genome.departments[0].agents
+                else self.genome.departments[0].manager
+            )
+            for m_path in missing_mods:
+                mod_ctx = self._get_focused_module_context(m_path, objective)
+                self._execute_agent_with_tools(
+                    lead_agent,
+                    f"Implement the complete Python module `{m_path}` satisfying 100% of its Public API Contract and unit tests.",
+                    context=mod_ctx,
+                    max_turns=3,
+                    target_path=m_path,
+                )
 
         # Step 2.5: Closed-Loop Sandbox Test Verification & Automated Code Self-Repair
         repair_brief = ""

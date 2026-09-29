@@ -55,7 +55,7 @@ from typing import Any, Dict, List, Optional
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-DEFAULT_TIMEOUT_S = 30
+DEFAULT_TIMEOUT_S = 120
 
 
 class BenchmarkError(RuntimeError):
@@ -181,8 +181,40 @@ TASKS: Dict[str, BenchmarkTask] = {
                 "parse, and six generations were selected on that signal."
             ),
         ),
+        BenchmarkTask(
+            task_id="full_stack_hae",
+            target_module=(
+                "hae/evaluation/artifacts.py,"
+                "hae/evaluation/harness.py,"
+                "hae/evaluation/verification_loop.py,"
+                "hae/genome/morphogenesis.py"
+            ),
+            held_out_tests=(
+                "tests/test_artifacts.py,"
+                "tests/test_execution_harness.py,"
+                "tests/test_verification_loop.py,"
+                "tests/test_morphogenesis.py"
+            ),
+            visible_context=("hae/genome/schema.py", "hae/infra/llm.py"),
+            summary=(
+                "Full-Stack Multi-Module Self-Hosting Benchmark: simultaneously "
+                "reimplement all four core HAE evaluation and morphogenesis "
+                "modules from scratch (`artifacts.py`, `harness.py`, "
+                "`verification_loop.py`, and `morphogenesis.py`) so that all "
+                "50 held-out unit tests across all four suites collect and pass "
+                "together in a single materialised repository."
+            ),
+        ),
     )
 }
+
+FULL_STACK_SUBTASKS: tuple = (
+    "artifacts",
+    "harness",
+    "verification_loop",
+    "morphogenesis",
+)
+
 
 
 def _first_exception(report: str) -> str:
@@ -326,23 +358,68 @@ def module_specification(path: str) -> str:
 class SelfHostingBenchmark:
     """Grades submissions by running this repository's own held-out tests."""
 
+    # One stdlib-only interpreter per process, shared by every grading call.
+    _isolated_python: Optional[str] = None
+
     def __init__(self, repo_root: str = REPO_ROOT,
                  timeout_s: int = DEFAULT_TIMEOUT_S,
-                 python_executable: Optional[str] = None):
+                 python_executable: Optional[str] = None,
+                 isolate: bool = True):
         self.repo_root = repo_root
         self.timeout_s = timeout_s
-        self.python = python_executable or sys.executable
+        if python_executable:
+            self.python = python_executable
+        elif isolate:
+            self.python = self._stdlib_only_python()
+        else:
+            self.python = sys.executable
+
+    @classmethod
+    def _stdlib_only_python(cls) -> str:
+        """Returns an interpreter that sees only the standard library.
+
+        The held-out suites assert environment-dependent behaviour: that an
+        uninstalled `opentelemetry` makes the smoke gate SKIP, and that an empty
+        pyproject.toml fails the build gate when pip is unavailable. On a host
+        that has those packages, the reference implementation fails its own
+        suite (seen in the Gen 13 worker image: 33/34, plus a 36s pip-driven
+        timeout). Grading in a venv created with `--without-pip` and no system
+        site-packages makes every submission -- and the reference -- run in the
+        same controlled environment, whatever image the worker uses.
+        """
+        if cls._isolated_python and os.path.exists(cls._isolated_python):
+            return cls._isolated_python
+        venv_dir = os.path.join(tempfile.gettempdir(), "hae_grader_venv")
+        py = os.path.join(venv_dir, "bin", "python")
+        if not os.path.exists(py):
+            try:
+                subprocess.run([sys.executable, "-m", "venv", "--without-pip", venv_dir],
+                               check=True, capture_output=True, timeout=120)
+            except Exception as exc:  # fall back loudly rather than silently
+                print(f"[benchmark] WARNING: could not create isolated grader venv "
+                      f"({exc}); grading with host interpreter {sys.executable}.")
+                return sys.executable
+        cls._isolated_python = py
+        return py
 
     # ------------------------------------------------------------------ #
     # Task construction
     # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _target_modules(task: BenchmarkTask) -> List[str]:
+        return [m.strip() for m in task.target_module.split(",") if m.strip()]
+
+    @staticmethod
+    def _held_out_suites(task: BenchmarkTask) -> List[str]:
+        return [s.strip() for s in task.held_out_tests.split(",") if s.strip()]
 
     def task(self, task_id: str) -> BenchmarkTask:
         if task_id not in TASKS:
             raise BenchmarkError(
                 f"Unknown task {task_id!r}. Known: {sorted(TASKS)}")
         task = TASKS[task_id]
-        for rel in (task.target_module, task.held_out_tests):
+        for rel in self._target_modules(task) + self._held_out_suites(task):
             if not os.path.exists(os.path.join(self.repo_root, rel)):
                 raise BenchmarkError(
                     f"Task {task_id!r} references {rel}, which does not exist. "
@@ -353,20 +430,69 @@ class SelfHostingBenchmark:
     def objective_for(self, task_id: str) -> str:
         """The full prompt for a task, with its specification and context."""
         task = self.task(task_id)
-        spec = module_specification(os.path.join(self.repo_root, task.target_module))
+        targets = self._target_modules(task)
+        if len(targets) == 1:
+            spec = module_specification(os.path.join(self.repo_root, targets[0]))
+        else:
+            sections = []
+            for idx, mod_rel in enumerate(targets, 1):
+                mod_spec = module_specification(os.path.join(self.repo_root, mod_rel))
+                sections.append(
+                    f"======================================================================\n"
+                    f"### TARGET MODULE {idx}/{len(targets)}: `{mod_rel}`\n"
+                    f"======================================================================\n"
+                    f"{mod_spec}"
+                )
+            spec = "\n\n".join(sections)
         context = {rel: _read(os.path.join(self.repo_root, rel))
                    for rel in task.visible_context}
         objective = task.objective(spec, context)
         # A leaked oracle is the one failure mode that invalidates the score
         # silently, so assert rather than trust the task declaration.
-        if task.held_out_tests in objective:
-            raise BenchmarkError(
-                f"Task {task_id!r} leaks its held-out test path into the prompt")
+        for suite in self._held_out_suites(task):
+            if suite in objective:
+                raise BenchmarkError(
+                    f"Task {task_id!r} leaks its held-out test path into the prompt")
         return objective
 
     # ------------------------------------------------------------------ #
     # Grading
     # ------------------------------------------------------------------ #
+
+    def _suspicious_syspath_mutation(self, body: str) -> bool:
+        """Returns True if `body` mutates `sys.path` toward an external or repo tree.
+
+        Target modules such as `hae/evaluation/harness.py` legitimately add their
+        dynamic `workdir` sandbox to `sys.path` (or inside a subprocess probe
+        string `sys.path.insert(0, r'{workdir}')`) when smoke-testing candidate
+        packages. Only reject `sys.path.insert`/`append` calls whose argument
+        references an absolute path outside `/tmp`, parent traversal (`..`),
+        `site-packages`/`dist-packages`, or the repository root.
+        """
+        for match in re.finditer(
+            r"""sys\.path\s*\.\s*(?:insert|append)\s*\(([^)]{0,300})\)""",
+            body,
+            re.DOTALL,
+        ):
+            arg_text = match.group(1)
+            if self.repo_root and self.repo_root in arg_text:
+                return True
+            if re.search(r"""['"]/(?!tmp\b)""", arg_text):
+                return True
+            if re.search(r"""['"]\.\.""", arg_text) or "pardir" in arg_text:
+                return True
+            if any(
+                tok in arg_text
+                for tok in (
+                    "site-packages",
+                    "dist-packages",
+                    "os.getcwd",
+                    "Path.cwd",
+                    "__file__",
+                )
+            ):
+                return True
+        return False
 
     def _reject(self, task: BenchmarkTask, submission: Dict[str, str]) -> str:
         """Returns a rejection reason, or "" if the submission may be graded."""
@@ -377,20 +503,26 @@ class SelfHostingBenchmark:
                         "the firm's to author.")
             if os.path.isabs(path):
                 return f"submission writes an absolute path {path!r}."
-        body = submission.get(task.target_module, "")
-        if self.repo_root in body:
-            return ("submission references the repository root path, which "
-                    "would let it import the reference implementation.")
-        if re.search(r"""sys\.path\s*\.\s*(insert|append)""", body):
-            return ("submission mutates sys.path, which would let it import "
-                    "the reference implementation.")
-        if task.target_module not in submission:
-            return f"submission does not contain {task.target_module}."
+        targets = self._target_modules(task)
+        for target_mod in targets:
+            body = submission.get(target_mod, "")
+            if self.repo_root in body:
+                return ("submission references the repository root path, which "
+                        "would let it import the reference implementation.")
+            if self._suspicious_syspath_mutation(body):
+                return ("submission mutates sys.path, which would let it import "
+                        "the reference implementation.")
+        if len(targets) == 1:
+            if targets[0] not in submission:
+                return f"submission does not contain {targets[0]}."
+        else:
+            if not any(t in submission for t in targets):
+                return f"submission does not contain any of {targets}."
         return ""
 
     def _materialise(self, task: BenchmarkTask,
                      submission: Optional[Dict[str, str]]) -> str:
-        """Builds a temp repo: this one, with the target module swapped out."""
+        """Builds a temp repo: this one, with the target module(s) swapped out."""
         workdir = tempfile.mkdtemp(prefix="hae_benchmark_")
         for name in ("hae", "tests", "pyproject.toml"):
             src = os.path.join(self.repo_root, name)
@@ -403,40 +535,32 @@ class SelfHostingBenchmark:
                 shutil.copy2(src, dst)
 
         if submission is not None:
-            # Remove the reference implementation before writing the candidate,
-            # so no path through the tree reaches it.
-            target = os.path.join(workdir, task.target_module)
-            if os.path.exists(target):
-                os.remove(target)
+            # Remove the reference implementation(s) before writing the candidate,
+            # so no path through the tree reaches them.
+            for target_mod in self._target_modules(task):
+                target = os.path.join(workdir, target_mod)
+                if os.path.exists(target):
+                    os.remove(target)
             for rel, body in submission.items():
                 full = os.path.join(workdir, rel)
                 os.makedirs(os.path.dirname(full), exist_ok=True)
                 with open(full, "w", encoding="utf-8") as fh:
                     fh.write(body)
 
-            # Restore the pristine held-out suite last, so a submission that
-            # tried to weaken it has no effect even if rejection is bypassed.
-            shutil.copy2(os.path.join(self.repo_root, task.held_out_tests),
-                         os.path.join(workdir, task.held_out_tests))
+            # Restore the pristine held-out suite(s) last, so a submission that
+            # tried to weaken them has no effect even if rejection is bypassed.
+            for suite_rel in self._held_out_suites(task):
+                shutil.copy2(os.path.join(self.repo_root, suite_rel),
+                             os.path.join(workdir, suite_rel))
         return workdir
 
     @staticmethod
     def _test_module(test_rel: str) -> str:
         return test_rel[: -len(".py")].replace("/", ".").replace("\\", ".")
 
-    def _run_tests(self, workdir: str, test_rel: str) -> Dict[str, Any]:
-        """Runs the held-out suite and returns counts.
-
-        Uses `unittest` rather than `pytest` on purpose. The suite is written in
-        `unittest`, so this adds no dependency, and the benchmark stays runnable
-        on a workstation -- a grader that only works inside the production
-        container is a grader nobody checks.
-
-        Exit codes are not trusted; the counts are parsed from the report.
-        """
+    def _run_single_suite(self, workdir: str, test_rel: str) -> Dict[str, Any]:
+        """Runs a single held-out unittest module and returns counts."""
         env = dict(os.environ)
-        # Only the materialised tree is importable. This is what stops a
-        # submission from reaching the reference implementation.
         env["PYTHONPATH"] = workdir
         env.pop("PYTEST_ADDOPTS", None)
         cmd = [self.python, "-m", "unittest", self._test_module(test_rel), "-v"]
@@ -446,9 +570,8 @@ class SelfHostingBenchmark:
                                   capture_output=True, text=True)
         except subprocess.TimeoutExpired:
             return {"passed": 0, "collected": 0, "failures": ["timed out"],
-                    "stderr": f"exceeded {self.timeout_s}s"}
+                    "stderr": f"exceeded {self.timeout_s}s", "returncode": 1}
 
-        # unittest writes its report to stderr.
         report = (proc.stderr or "") + (proc.stdout or "")
 
         ran_match = re.search(r"^Ran (\d+) tests? in", report, re.M)
@@ -463,14 +586,11 @@ class SelfHostingBenchmark:
                 else:
                     errors = int(count)
 
-        # When the suite cannot be imported, unittest substitutes a synthetic
-        # `_FailedTest` and reports "Ran 1 test". Counting that as a collected
-        # test would overstate how far a broken submission got.
         if "unittest.loader._FailedTest" in report:
             return {"passed": 0, "collected": 0,
                     "failures": ["suite failed to import: "
                                  + _first_exception(report)],
-                    "stderr": report[-2000:]}
+                    "stderr": report[-2000:], "returncode": 1}
 
         passed = max(0, collected - failures - errors)
         named = _extract_failures(report)
@@ -482,6 +602,36 @@ class SelfHostingBenchmark:
             "failures": named,
             "stderr": report[-2000:],
             "returncode": proc.returncode,
+        }
+
+    def _run_tests(self, workdir: str, test_rel: str) -> Dict[str, Any]:
+        """Runs one or more comma-separated held-out suites and returns counts."""
+        suites = [s.strip() for s in test_rel.split(",") if s.strip()]
+        if len(suites) == 1:
+            return self._run_single_suite(workdir, suites[0])
+
+        total_passed = 0
+        total_collected = 0
+        all_failures: List[str] = []
+        stderr_chunks: List[str] = []
+        any_failed_rc = 0
+        for suite in suites:
+            res = self._run_single_suite(workdir, suite)
+            total_passed += res["passed"]
+            total_collected += res["collected"]
+            suite_tag = os.path.basename(suite).replace("test_", "").replace(".py", "")
+            for f in res.get("failures", []):
+                all_failures.append(f"[{suite_tag}] {f}")
+            if res.get("stderr"):
+                stderr_chunks.append(f"--- {suite} ---\n{res['stderr'][-600:]}")
+            if res.get("returncode", 0) != 0:
+                any_failed_rc = 1
+        return {
+            "passed": total_passed,
+            "collected": total_collected,
+            "failures": all_failures,
+            "stderr": "\n".join(stderr_chunks)[-2000:],
+            "returncode": any_failed_rc,
         }
 
     def reference_run(self, task_id: str) -> Dict[str, Any]:

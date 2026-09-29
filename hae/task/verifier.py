@@ -171,9 +171,9 @@ class BenchmarkVerifier(Verifier):
             # the entire workspace bundle were forwarded, the benchmark's
             # anti-tampering check would reject every firm that tested its own
             # code -- penalising the exact behaviour V2 exists to select for.
-            target = task.target_module
-            candidate = ({target: submission.files[target]}
-                         if target in submission.files else {})
+            targets = [t.strip() for t in task.target_module.split(",") if t.strip()]
+            candidate = {t: submission.files[t]
+                         for t in targets if t in submission.files}
             result = self.benchmark.evaluate(self.task_id, candidate)
         except BenchmarkError as exc:
             # The reference suite is not green, so the benchmark cannot grade

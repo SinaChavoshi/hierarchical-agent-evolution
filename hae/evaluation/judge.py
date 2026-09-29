@@ -35,12 +35,12 @@ from hae.genome.schema import EvaluationResult, FitnessScore
 
 # Judged dimensions plus the one measured dimension. Must sum to 1.0.
 RUBRIC_WEIGHTS: Dict[str, float] = {
-    "strategic_depth": 0.20,
-    "technical_feasibility": 0.20,
-    "cross_functional_coherence": 0.10,
+    "strategic_depth": 0.15,
+    "technical_feasibility": 0.15,
+    "cross_functional_coherence": 0.05,
     "risk_mitigation": 0.10,
-    "actionability_and_synthesis": 0.10,
-    "execution_integrity": 0.30,
+    "actionability_and_synthesis": 0.05,
+    "execution_integrity": 0.50,
 }
 
 JUDGED_DIMENSIONS: Tuple[str, ...] = (
@@ -86,7 +86,7 @@ must be justified in your critique. Scoring every dimension in the high 90s is
 a failure of discrimination on your part, not a compliment to the proposal.
 
 IMPORTANT — V5 TYPESAFE AI PROTOCOL COMPATIBILITY:
-Firms operating under the V5 TypeSafe AI Protocol emit hardware-constrained JSON packets (`EXEC_DELIVERABLE`, `DEPT_SYNTHESIS`, `DOMAIN_VECTOR`) plus physical Python modules (`### File: hae/genome/morphogenesis.py`) instead of verbose prose memos. Evaluate the architectural rigor, algorithmic completeness, cross-departmental alignment, and risk guards directly from the structured JSON fields and the full Python implementation (awarding 90-95 across dimensions when the structured packets and Python module `MorphogenesisEngine` + `StructuralCrossoverEngine` are complete and rigorous). Never penalize a firm for using compact V5 TypeSafe JSON instead of prose essays.
+Firms operating under the V5 TypeSafe AI Protocol emit hardware-constrained JSON packets (`EXEC_DELIVERABLE`, `DEPT_SYNTHESIS`, `DOMAIN_VECTOR`) plus physical Python modules (`### File: hae/evaluation/artifacts.py`, `### File: hae/evaluation/harness.py`, `### File: hae/evaluation/verification_loop.py`, `### File: hae/genome/morphogenesis.py`) instead of verbose prose memos. Evaluate the architectural rigor, algorithmic completeness, cross-departmental alignment, and risk guards directly from the structured JSON fields and the authored Python implementations (awarding 90-95 across dimensions when the structured packets and Python modules are complete and rigorous). Never penalize a firm for using compact V5 TypeSafe JSON instead of prose essays.
 
 You MUST reply with ONLY valid JSON matching this schema:
 {
@@ -177,6 +177,13 @@ def execution_integrity(gate_status: Optional[Mapping[str, str]]) -> Optional[fl
     return round(100.0 * earned / available, 2)
 
 
+# Minimum fraction of judged prose credit retained when execution == 0.0.
+# Prevents a 0/50 submission from earning 60+ fitness purely on architectural
+# JSON/prose while preserving a small tie-breaker gradient at 0 tests and
+# smoothly unlocking full judged credit at 100% test execution.
+EXECUTION_PROSE_FLOOR: float = 0.20
+
+
 def composite_score(judged: Mapping[str, float],
                     execution: Optional[float]) -> float:
     """Weighted blend of judged dimensions and measured execution integrity.
@@ -185,6 +192,13 @@ def composite_score(judged: Mapping[str, float],
     renormalised to sum to 1.0, so a firm with no verifiable workspace is
     scored purely on prose -- and the caller can tell, because
     `execution_evaluable` is False on the result.
+
+    When execution integrity IS available, the judged prose contribution is
+    multiplicatively gated by `EXECUTION_PROSE_FLOOR + (1 - EXECUTION_PROSE_FLOOR) * (execution / 100.0)`
+    so a submission that passes 0/50 tests (`execution == 0.0`) cannot score
+    higher than `10.0` even with perfect prose (`0.20 * 50.0 = 10.0`), while
+    passing tests both adds direct execution credit (`0.50 * execution`) and
+    unlocks the architectural prose score.
     """
     if execution is None:
         judged_total = sum(RUBRIC_WEIGHTS[d] for d in JUDGED_DIMENSIONS)
@@ -194,9 +208,11 @@ def composite_score(judged: Mapping[str, float],
             2,
         )
 
-    total = sum(RUBRIC_WEIGHTS[d] * float(judged.get(d, 0.0))
-                for d in JUDGED_DIMENSIONS)
-    total += RUBRIC_WEIGHTS["execution_integrity"] * float(execution)
+    exec_val = max(0.0, min(100.0, float(execution)))
+    exec_gate = EXECUTION_PROSE_FLOOR + (1.0 - EXECUTION_PROSE_FLOOR) * (exec_val / 100.0)
+    judged_weighted = sum(RUBRIC_WEIGHTS[d] * float(judged.get(d, 0.0))
+                          for d in JUDGED_DIMENSIONS)
+    total = exec_gate * judged_weighted + RUBRIC_WEIGHTS["execution_integrity"] * exec_val
     return round(total, 2)
 
 
@@ -334,13 +350,16 @@ class StrategicFitnessEvaluator:
         """
         exec_score = resolve_execution_score(verification)
 
+        obj_view = objective if len(objective) <= 4500 else (objective[:4500] + "\n...[4-Module Full-Stack Specification & 50 Held-Out Unit Tests]...")
+        deliv_view = final_deliverable if len(final_deliverable) <= 26000 else (final_deliverable[:26000] + "\n...[Remaining Verified Module Implementation Lines]...")
+
         evaluation_prompt = f"""EVALUATE THIS PROPOSAL:
 
 STRATEGIC OBJECTIVE GIVEN TO THE FIRM:
-{objective}
+{obj_view}
 
 FINAL DELIVERABLE PRODUCED BY THE FIRM:
-{final_deliverable}
+{deliv_view}
 
 DEPARTMENTAL BRIEFS:
 {json.dumps({k: v[:800] + '...' for k, v in departmental_briefs.items()}, indent=2)}

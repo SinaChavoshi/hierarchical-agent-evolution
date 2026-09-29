@@ -316,6 +316,20 @@ def _strip_think_tags(text: str) -> Tuple[str, int]:
     return text, 0
 
 
+def _request_timeout_s(max_tokens: Optional[int]) -> float:
+    """Client timeout sized to the generation being requested.
+
+    A fixed 240s was fine while cached responses returned instantly, but an
+    uncached 8K-token module at ~20-40 tok/s per stream takes 4-7 minutes, and
+    every such call timed out five times in a row (Gen 13, firms 0-2). Allow
+    ~12 tok/s worst case plus headroom, capped just under the gateway's 900s.
+    """
+    override = os.environ.get("VLLM_REQUEST_TIMEOUT_S", "").strip()
+    if override:
+        return float(override)
+    return float(min(870, max(240, 60 + (max_tokens or 4096) / 12)))
+
+
 def call_openai_compatible_rest(
     prompt: str,
     model_name: str = "gpt-4o-mini",
@@ -358,7 +372,7 @@ def call_openai_compatible_rest(
     for attempt in range(max_retries):
         req = urllib.request.Request(url, data=body, headers=headers, method="POST")
         try:
-            with urllib.request.urlopen(req, timeout=240) as resp:
+            with urllib.request.urlopen(req, timeout=_request_timeout_s(max_tokens)) as resp:
                 resp_data = json.loads(resp.read().decode("utf-8"))
                 choices = resp_data.get("choices", [])
                 raw_text = choices[0].get("message", {}).get("content", "") if choices else ""

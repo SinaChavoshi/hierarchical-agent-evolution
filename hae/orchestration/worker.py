@@ -119,11 +119,16 @@ def evaluate_single_firm(
             target_mod = verifier.benchmark.task(verifier.task_id).target_module
         except Exception:
             target_mod = None
+    target_mods = {
+        t.strip().lstrip("./")
+        for t in (target_mod or "").split(",")
+        if t.strip()
+    }
     seed_files = dict(seed_files or {})
     if getattr(firm_genome, "code_overlays", None):
         for ov_path, ov_code in firm_genome.code_overlays.items():
             clean_ov = ov_path.lstrip("./")
-            if not getattr(task, "carry_artifacts", False) and target_mod and clean_ov == target_mod.lstrip("./"):
+            if not getattr(task, "carry_artifacts", False) and clean_ov in target_mods:
                 print(f"     [carry_artifacts=False] Excluded active target module {clean_ov} from workspace seed_files.")
                 continue
             seed_files.setdefault(clean_ov, ov_code)

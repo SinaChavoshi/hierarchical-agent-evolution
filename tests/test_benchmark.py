@@ -27,10 +27,11 @@ class TestTaskDeclarations(unittest.TestCase):
     def test_every_declared_task_resolves(self):
         for task_id in TASKS:
             task = self.bench.task(task_id)
-            self.assertTrue(os.path.exists(
-                os.path.join(REPO_ROOT, task.target_module)))
-            self.assertTrue(os.path.exists(
-                os.path.join(REPO_ROOT, task.held_out_tests)))
+            # Multi-module tasks (full_stack_hae) declare comma-separated paths.
+            for rel in list(task.target_module.split(",")) + list(task.held_out_tests.split(",")):
+                rel = rel.strip()
+                self.assertTrue(os.path.exists(os.path.join(REPO_ROOT, rel)),
+                                f"{task_id}: {rel} does not exist")
 
     def test_unknown_task_is_an_error(self):
         with self.assertRaises(BenchmarkError):
@@ -115,6 +116,14 @@ class TestGrading(unittest.TestCase):
                     "from hae.evaluation.artifacts import *\n"})
         self.assertTrue(result.rejected)
         self.assertIn("sys.path", result.rejection_reason)
+
+    def test_sandbox_workdir_sys_path_is_allowed(self):
+        """Target modules (e.g. harness.py) may insert dynamic sandbox workdir
+        into sys.path without triggering anti-cheat rejection."""
+        code = self.real + "\n# subprocess probe: sys.path.insert(0, r'{workdir}')\n"
+        result = self.grade({TARGET: code})
+        self.assertFalse(result.rejected)
+        self.assertEqual(result.score, 100.0)
 
     def test_referencing_the_repository_root_is_rejected(self):
         result = self.grade({TARGET: f"PATH = {REPO_ROOT!r}\n"})
