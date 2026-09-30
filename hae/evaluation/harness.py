@@ -2,17 +2,44 @@
 
 Five gates, each of which either runs the code or performs AST analysis on it:
 
-    syntax     Every authored .py file must parse (`ast.parse`).
-    build      The package must actually install (`pip install -e .`).
-    smoke      Its modules must actually import.
-    tests      Its test suite must actually collect and pass under pytest.
-    telemetry  OpenTelemetry must be imported by authored code, not merely
-               mentioned in prose.
+    syntax     Every authored .py file must parse (`ast.parse`). Empty
+               workspaces (0 Python files) return `FAILED`.
+    build      Packaging metadata (`pyproject.toml`, `setup.py`, or `setup.cfg`)
+               must exist and be valid/installable. When `pyproject.toml` is
+               present, validate it with `tomllib` (must parse as valid TOML and
+               contain at least one of `[project]`, `[build-system]`, or
+               `[tool]` tables; an empty or malformed `pyproject.toml` returns
+               `FAILED`), and run `pip install -e . --no-deps --no-build-isolation`
+               when `pip` is available.
+    smoke      Non-test authored modules must import in a subprocess with both
+               `workdir` and `os.path.join(workdir, "src")` on `PYTHONPATH`. If
+               no importable modules exist or any module fails with a syntax or
+               runtime error, return `FAILED`. If module imports fail solely
+               with `ModuleNotFoundError` for uninstalled third-party packages
+               (e.g. `opentelemetry`), return `SKIPPED` (not `FAILED`).
+    tests      Discover test files (`"test" in os.path.basename(p).lower()`;
+               if none exist, return `FAILED`) and run them with both `workdir`
+               and `os.path.join(workdir, "src")` on `PYTHONPATH`. Use `pytest`
+               if installed in `self.python`; otherwise run a stdlib fallback
+               subprocess that imports each test file and collects/executes BOTH
+               bare `def test_*()` functions (taking 0 required args) AND
+               `unittest.TestCase` subclasses (because `unittest discover`
+               ignores bare `def test_*()` functions). If 0 tests are collected
+               because of `ModuleNotFoundError` for an uninstalled third-party
+               package, return `SKIPPED`.
+    telemetry  AST analysis of authored `.py` files must find BOTH (1) an actual
+               `import opentelemetry` or `from opentelemetry ... import ...`
+               node AND (2) at least one AST `Call` to a tracer/span method or
+               function (`start_as_current_span`, `start_span`, `get_tracer`,
+               `get_tracer_provider`, `set_tracer_provider`, `get_meter`). A
+               comment/docstring mention or a bare `import opentelemetry`
+               without any tracer/span call must return `FAILED`.
 
 Each result carries the `method` used to reach it. A gate that could not be
 evaluated returns `SKIPPED` rather than `PASSED`, so a missing tool can never be
 mistaken for a success, and `SKIPPED` gates are excluded from the fitness
-denominator rather than scored as failures.
+denominator (`evaluated_gates` and `score_penalty`) rather than scored as
+failures (`score_penalty = failed_gate_count * penalty_per_gate`).
 
 The V1 verifier this replaces executed nothing in three of its four gates:
 `build` was a filename substring match, `smoke` was `len(files) >= 3`, and

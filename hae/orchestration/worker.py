@@ -173,9 +173,9 @@ def evaluate_single_firm(
                 f"Failing ground-truth checks:\n"
                 f"{failures_text}\n\n"
                 f"INSTRUCTIONS FOR ITERATION {it}:\n"
-                f"1. Read and inspect the existing implementation in your workspace using `Action: read_file`.\n"
-                f"2. Fix the specific failing edge cases or assertion errors identified above without breaking passing tests.\n"
-                f"3. Write the updated implementation back to the workspace file using `Action: write_file` and run `Action: verify` to confirm."
+                f"1. Inspect the failing ground-truth checks above and the CURRENT WORKSPACE IMPLEMENTATION provided inline below.\n"
+                f"2. Fix the specific failing edge cases or assertion errors identified above without breaking any passing tests.\n"
+                f"3. Immediately emit the complete repaired implementation using `Action: write_file`."
             )
             print(f"---> [ITERATION {it}/{max_iters}] Re-running {firm_genome.company_id} with ground-truth repair feedback...")
 

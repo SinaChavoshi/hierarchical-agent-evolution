@@ -67,18 +67,20 @@ coaching every firm toward the same answer.
     `agent_role`, `gate_status`, `passed`, `evaluable`, and `authored_files`.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from hae.evaluation.artifacts import filter_bundle
-from hae.evaluation.harness import FAILED, PASSED, SKIPPED, ExecutionHarness
+from hae.evaluation.harness import ExecutionHarness, SKIPPED, PASSED, FAILED
 
-# Verification is the most expensive action an agent can take. Enough attempts
-# to fix a syntax error and re-check; not enough to brute-force.
 DEFAULT_VERIFY_BUDGET = 3
-
-# Keep observations small: they are re-sent with every subsequent turn.
 _MAX_DETAIL_CHARS = 400
+
+VERIFY_TOOL_GUIDE = '- To check your work against the REAL grading gates:\n  Action: verify\n  This parses, installs, imports, tests and inspects your workspace with\n  the same harness that will score your firm, and returns the verdict.\n  It is expensive and strictly limited -- you get a small number of\n  attempts for the whole assignment, so write your code first and verify\n  when you believe it is complete.\n  Note: a gate reported as SKIP was not evaluated and earns no credit.\n  Only PASS counts.\n'
+
+GATE_ORDER = ("syntax", "build", "smoke", "tests", "telemetry")
 
 
 @dataclass
@@ -101,133 +103,116 @@ class VerificationLoop:
     needed three rounds.
     """
 
-    def __init__(self, workspace: Any, budget: int = DEFAULT_VERIFY_BUDGET,
-                 timeout_s: int = 45):
+    def __init__(self, workspace: Any, budget: int = DEFAULT_VERIFY_BUDGET, timeout_s: int = 45):
         self.workspace = workspace
         self.budget = budget
+        self.timeout_s = timeout_s
+        self.harness = ExecutionHarness(timeout_s=timeout_s)
         self.used = 0
         self.attempts: List[VerifyAttempt] = []
-        self.harness = ExecutionHarness(timeout_s=timeout_s)
 
     @property
     def remaining(self) -> int:
         return max(0, self.budget - self.used)
 
-    def _bundle(self) -> Dict[str, str]:
-        """Current authored files, with build byproducts excluded.
-
-        Uses the same filter as the evaluator, so an agent cannot inflate its
-        apparent output by invoking pytest and having `.pytest_cache/` counted.
-        """
-        try:
-            raw = self.workspace.export_bundle()
-        except Exception:
-            return {}
-        return filter_bundle(raw or {})
-
-    def verify(self, turn: int = 0, agent_role: str = "") -> str:
+    def verify(self, turn: int = 0, agent_role: str = '') -> str:
         """Runs every gate and returns an agent-readable report.
 
         The string is what lands in the agent's context, so it is terse by
         design.
         """
         if self.remaining <= 0:
-            return ("Observation (verify): BUDGET EXHAUSTED. "
-                    f"All {self.budget} verification attempts have been used. "
-                    "Submit your work as it stands.")
+            return "BUDGET EXHAUSTED"
 
-        bundle = self._bundle()
-        if not bundle:
+        # Read workspace files
+        try:
+            raw_bundle = self.workspace.export_bundle()
+        except Exception:
+            raw_bundle = {}
+        
+        bundle = filter_bundle(raw_bundle)
+        authored_files = len(bundle)
+
+        if authored_files == 0:
             self.used += 1
-            return ("Observation (verify): No files have been authored yet. "
-                    "Nothing to verify. "
-                    f"({self.remaining} verification attempt(s) remaining.)")
+            return f"No files have been authored yet. Nothing to verify. ({self.remaining} verification attempt(s) remaining.)"
 
         self.used += 1
+        
+        # Run harness
         report = self.harness.verify_bundle(bundle)
-        # `report.gates` is a list of GateResult; index it by name.
-        by_name = {gate.name: gate for gate in report.gates}
-        status = {name: gate.status for name, gate in by_name.items()}
-
-        passed = sum(1 for s in status.values() if s == PASSED)
-        evaluable = sum(1 for s in status.values() if s != SKIPPED)
-        self.attempts.append(VerifyAttempt(
+        
+        gate_status = report.gate_status
+        gate_detail = report.gate_detail
+        
+        passed_count = sum(1 for s in gate_status.values() if s == PASSED)
+        evaluable_count = sum(1 for s in gate_status.values() if s != SKIPPED)
+        
+        attempt = VerifyAttempt(
             turn=turn,
             agent_role=agent_role,
-            gate_status=dict(status),
-            passed_count=passed,
-            evaluable_count=evaluable,
-            authored_files=len(bundle),
-        ))
-
-        return self._format(by_name, status, passed, evaluable, len(bundle))
-
-    def _format(self, by_name, status, passed, evaluable, file_count) -> str:
-        lines = [
-            "Observation (verify): GROUND-TRUTH EXECUTION REPORT",
-            f"These are the exact gates your firm will be scored on. "
-            f"{passed}/{evaluable} evaluable gate(s) passing across "
-            f"{file_count} authored file(s).",
-            "",
-        ]
-        for name in ("syntax", "build", "smoke", "tests", "telemetry"):
-            gate = by_name.get(name)
-            if gate is None:
-                continue
-            marker = {PASSED: "PASS", FAILED: "FAIL", SKIPPED: "SKIP"}.get(
-                gate.status, gate.status.upper())
-            detail = (gate.detail or "").strip().replace("\n", " ")
-            if len(detail) > _MAX_DETAIL_CHARS:
-                detail = detail[:_MAX_DETAIL_CHARS] + " ..."
-            lines.append(f"  [{marker}] {name}: {detail}")
-
-        lines.append("")
-        if status.get("syntax") == FAILED:
-            lines.append("A file does not parse. Nothing downstream of syntax "
-                         "can be trusted until that is fixed.")
-        lines.append(
-            "SKIP means the gate could not be evaluated in this environment "
-            "(usually an uninstalled third-party package). A skip is not a "
-            "pass and earns no credit."
+            gate_status=gate_status,
+            passed_count=passed_count,
+            evaluable_count=evaluable_count,
+            authored_files=authored_files
         )
+        self.attempts.append(attempt)
+        
+        # Format report
+        lines = []
+        lines.append(f"{passed_count}/{evaluable_count} evaluable gate(s) passing across {authored_files} authored file(s).")
+        
+        for name in GATE_ORDER:
+            status = gate_status.get(name, SKIPPED)
+            detail = gate_detail.get(name, "")
+            
+            # Truncate detail to single line and max chars
+            detail = detail.replace('\n', ' ').replace('\r', ' ')
+            if len(detail) > _MAX_DETAIL_CHARS:
+                detail = detail[:_MAX_DETAIL_CHARS]
+                
+            status_icon = "PASS" if status == PASSED else ("SKIP" if status == SKIPPED else "FAIL")
+            lines.append(f"  [{status_icon}] {name}: {detail}")
+            
+            if name == "syntax" and status == FAILED:
+                lines.append("A file does not parse.")
+                
+        lines.append("SKIP means the gate could not be evaluated in this environment (usually an uninstalled third-party package). A skip is not a pass and earns no credit.")
         lines.append(f"({self.remaining} verification attempt(s) remaining.)")
+        
         return "\n".join(lines)
 
     def summary(self) -> Dict[str, Any]:
         """Verification history for the scorecard."""
-        best = max((a.passed_count for a in self.attempts), default=0)
-        final = self.attempts[-1] if self.attempts else None
+        best_passed_count = 0
+        if self.attempts:
+            best_passed_count = max(a.passed_count for a in self.attempts)
+            
+        final_gate_status = {}
+        converged = False
+        
+        if self.attempts:
+            final = self.attempts[-1]
+            final_gate_status = final.gate_status
+            converged = bool(final.passed_count >= best_passed_count)
+            
+        attempts_list = []
+        for a in self.attempts:
+            attempts_list.append({
+                "turn": a.turn,
+                "agent_role": a.agent_role,
+                "gate_status": a.gate_status,
+                "passed": a.passed_count,
+                "evaluable": a.evaluable_count,
+                "authored_files": a.authored_files
+            })
+            
         return {
             "budget": self.budget,
             "used": self.used,
             "attempt_count": len(self.attempts),
-            "best_passed_count": best,
-            "final_gate_status": dict(final.gate_status) if final else {},
-            # True when the firm's last self-check was also its best: it
-            # improved or held, rather than regressing after verifying.
-            "converged": bool(final and final.passed_count >= best),
-            "attempts": [
-                {
-                    "turn": a.turn,
-                    "agent_role": a.agent_role,
-                    "gate_status": a.gate_status,
-                    "passed": a.passed_count,
-                    "evaluable": a.evaluable_count,
-                    "authored_files": a.authored_files,
-                }
-                for a in self.attempts
-            ],
+            "best_passed_count": best_passed_count,
+            "final_gate_status": final_gate_status,
+            "converged": converged,
+            "attempts": attempts_list
         }
-
-
-VERIFY_TOOL_GUIDE = (
-    "- To check your work against the REAL grading gates:\n"
-    "  Action: verify\n"
-    "  This parses, installs, imports, tests and inspects your workspace with\n"
-    "  the same harness that will score your firm, and returns the verdict.\n"
-    "  It is expensive and strictly limited -- you get a small number of\n"
-    "  attempts for the whole assignment, so write your code first and verify\n"
-    "  when you believe it is complete.\n"
-    "  Note: a gate reported as SKIP was not evaluated and earns no credit.\n"
-    "  Only PASS counts.\n"
-)

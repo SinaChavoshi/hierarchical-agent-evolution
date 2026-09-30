@@ -227,11 +227,11 @@ def _first_exception(report: str) -> str:
 
 
 def _extract_failures(report: str) -> List[str]:
-    """Extracts each FAIL/ERROR test header with its final exception line.
+    """Extracts each FAIL/ERROR test header with its final exception summary.
 
-    Appends the final AssertionError/Exception line (e.g. `AssertionError:
-    False is not true : notes.`) without leaking any test source lines, giving
-    firms actionable ground-truth feedback for iterative self-repair.
+    Appends the final AssertionError/Exception message (including multi-line
+    unittest diffs up to 320 chars) without leaking any test source lines,
+    giving firms actionable ground-truth feedback for iterative self-repair.
     """
     results: List[str] = []
     for block in report.split("=" * 70):
@@ -241,13 +241,25 @@ def _extract_failures(report: str) -> List[str]:
         header = lines[0]
         if not header.startswith(("FAIL:", "ERROR:")):
             continue
-        exc_line = ""
-        for line in reversed(lines[1:]):
+        tail_lines: List[str] = []
+        for line in lines[1:]:
             if (line.startswith("-" * 20) or line.startswith("Ran ")
                     or line in ("OK", "FAILED") or line.startswith("FAILED (")):
                 continue
-            exc_line = line[:250]
-            break
+            tail_lines.append(line)
+        exc_line = ""
+        for idx in range(len(tail_lines) - 1, -1, -1):
+            cand = tail_lines[idx]
+            prefix = cand.split(":", 1)[0].strip()
+            if (cand.startswith(("AssertionError", "Exception", "RuntimeError",
+                                 "ValueError", "TypeError", "KeyError",
+                                 "AttributeError", "ImportError",
+                                 "ModuleNotFoundError", "SyntaxError"))
+                    or prefix.endswith(("Error", "Exception"))):
+                exc_line = " ".join(tail_lines[idx:])[:320]
+                break
+        if not exc_line and tail_lines:
+            exc_line = tail_lines[-1][:250]
         if exc_line and not exc_line.startswith(("File ", "Traceback")):
             results.append(f"{header} -> {exc_line}")
         else:

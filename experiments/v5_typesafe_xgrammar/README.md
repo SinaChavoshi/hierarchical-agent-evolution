@@ -158,4 +158,31 @@ With the three fixes above folded into **Generation 14 (`job.batch/hae-gen14-ful
 - **Prefix KV-Cache Affinity on Live GPU Calls:** `1,435 / 1,437` (**`99.86%`** across `3x nvidia/Qwen3.8-Flash-Next-NVFP4` replicas: `405`, `520`, `512` calls)
 - **Total Tokens Across 10 Companies (5 Iterations x 4 Modules):** `6,419,595` prompt tokens (`-62.8%` vs. Gen 13) and `594,258` completion tokens (`-53.8%` vs. Gen 13), with a mean shadow cost of **`$0.1667 USD` per company**.
 
+---
 
+## 7. Clean Uncached Generation 15 (`full_stack_hae` — First-Ever `50 / 50` `100.0%` Full-Stack Self-Hosting Convergence & `99.43 / 100` Peak Net Fitness)
+
+In **Generation 15 (`job.batch/hae-gen15-fullstack-v5`, [`results/hae_gen15_fullstack_v5/generation_15_summary.json`](../../results/hae_gen15_fullstack_v5/generation_15_summary.json))**, we bred 10 offspring companies from Generation 14 using Generation 14's 100%-verified champion `morphogenesis.py` overlay (`gen_10_mutant_3`) and resolved the four remaining multi-module self-repair bottlenecks identified in Generation 14:
+
+1. **Multi-Line `AssertionError` Diff Extraction (`_extract_failures` in [`hae/evaluation/benchmark.py`](../../hae/evaluation/benchmark.py)):** Preserved the full `AssertionError: ... != ...` diff block (up to `320` chars) instead of truncating to `lines[-1]`.
+2. **Per-Module Verifier Feedback Filtering & Passing-Module Locking ([`hae/runtime/company.py`](../../hae/runtime/company.py)):** Filtered `GROUND-TRUTH VERIFIER FEEDBACK` per target module (`SUITE_TAG_TO_MODULE`) so each module's builder only sees failures for its own module, and locked modules that already achieved `0` failures (`self._locked_passing_modules`) across repair iterations `2..5`.
+3. **Inline Repair Context Alignment ([`hae/orchestration/worker.py`](../../hae/orchestration/worker.py)):** Aligned Iteration `2..5` repair instructions with the inline `CURRENT MODULE IMPLEMENTATION IN WORKSPACE` block and restricted `Step 2.5` single-file repair to single-module tasks.
+4. **Explicit Gate Behavioral Contracts ([`hae/evaluation/harness.py`](../../hae/evaluation/harness.py) & [`hae/evaluation/verification_loop.py`](../../hae/evaluation/verification_loop.py)):** Documented `src/` layout `PYTHONPATH` resolution, `tomllib` manifest validation, stdlib fallback collection of both `def test_*()` and `unittest.TestCase`, `ModuleNotFoundError -> SKIPPED`, AST import + tracer/span call verification, and `VerificationLoop` report-formatting invariants.
+
+### Per-Company Generation 15 Leaderboard (`10 / 10` Passing `46–50 / 50`, `2` Firms at `50 / 50` = `100.0%` Convergence)
+
+Every single company in Generation 15 (**`10 / 10`, `100%`**) beat Generation 14's all-time peak (`44/50` / `88.0%`), achieving **`46/50` to `50/50` (`92.0%–100.0%`, `48.4 / 50` = `96.8%` population mean)** and **`93.75 / 100` mean Net Fitness**:
+
+| Rank | Index | Genome ID | Agents | **Gen 15 Trajectory (`Iter 1..5`, `/50` Tests)** | **Gen 15 Official Best (`/50`)** | **Gross / Net Fitness** | Shadow Cost (`USD`) | Promoted `code_overlays` | Notes |
+| :---: | :---: | :--- | :---: | :--- | :---: | :---: | :---: | :---: | :--- |
+| **1** | **9** | `gen_14_mutant_3` | `33` | **`[48, 50]` *(Converged Iter 2/5)* 🏆** | **`50 / 50` (`100.0%`) 🏆** | **`94.95` / `99.43` 🏆** | **`$0.0521`** | **`4 / 4` Modules** | **All-Time Peak Net Fitness (`99.43/100`); repaired last 2 tests on Iter 2 (`48/50 -> 50/50`)** |
+| **2** | **5** | `gen_14_pareto_1` | `33` | **`[50]` *(Converged Iter 1/5)* 🏆** | **`50 / 50` (`100.0%`) 🏆** | `77.95` / **`82.69`** | **`$0.0259`** | **`4 / 4` Modules** | **1-Pass `50/50` (`100.0%`) Full-Stack Convergence at `$0.0259` cost** |
+| **3** | **0** | `gen_14_elite_1` | `60` | **`[49, 49, 49, 49, 49]`** | **`49 / 50` (`98.0%`)** | `92.94` / **`96.65`** | `$0.1287` | `0` *(requires 50/50)* | **`98.0%` (`49/50`)** on Iteration 1 (`+8` tests vs. Gen 14) |
+| **4** | **3** | `gen_14_crossover_2` | `32` | **`[47, 49, 49, 49, 49]`** | **`49 / 50` (`98.0%`)** | `92.94` / **`96.65`** | `$0.1294` | `0` | Climbed `47/50 -> 49/50` (`98.0%`) on Iteration 2 |
+| **5** | **2** | `gen_14_crossover_1` | `36` | **`[49, 49, 49, 49, 49]`** | **`49 / 50` (`98.0%`)** | `92.64` / **`96.29`** | `$0.1352` | `0` | **`98.0%` (`49/50`)** (`+8` tests vs. Gen 14) |
+| **6** | **8** | `gen_14_mutant_2` | `60` | **`[7, 44, 46, 48, 48]`** | **`48 / 50` (`96.0%`)** | `91.22` / **`94.38`** | `$0.1836` | `0` | **4-Step Monotonic Self-Repair: `7/50 -> 44/50 -> 46/50 -> 48/50` (`+41` tests!)** |
+| **7** | **7** | `gen_14_mutant_1` | `90` | **`[48, 48, 48, 48, 48]`** | **`48 / 50` (`96.0%`)** | `91.22` / **`94.23`** | `$0.1985` | `0` | **`96.0%` (`48/50`)** (`+6` tests vs. Gen 14) |
+| **8** | **4** | `gen_14_crossover_3` | `32` | **`[7, 48, 48, 48, 48]`** | **`48 / 50` (`96.0%`)** | `90.54` / **`94.04`** | `$0.1500` | `0` | **Self-Repaired `+41` tests on Iteration 2 (`7/50 -> 48/50`)** |
+| **9** | **6** | `gen_14_pareto_2` | `33` | **`[11, 47, 47, 47, 47]`** | **`47 / 50` (`94.0%`)** | `89.79` / **`93.06`** | `$0.1726` | `0` | **Self-Repaired `+36` tests on Iteration 2 (`11/50 -> 47/50`)** |
+| **10** | **1** | `gen_14_elite_2` | `90` | **`[46, 46, 46, 46, 46]`** | **`46 / 50` (`92.0%`)** | `87.14` / **`90.06`** | `$0.2081` | `0` | **`92.0%` (`46/50`)** (`+6` tests vs. Gen 14) |
+| — | — | **Population Mean / Peak** | `49.9` | **`10 / 10` Passing (`2` Converged at `50/50`)** | **`48.4 / 50` (`96.8%` Mean) / `50 / 50` (`100.0%` Peak)** | **`90.13` / `93.75` Mean (`99.43` Peak)** | **`$0.1384` Mean (`$1.3841` Total)** | **`2` Full-Stack (`8` files)** | **All 10 companies beat Gen 14's `44/50` peak; `-17.0%` lower mean OpEx cost** |

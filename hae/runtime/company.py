@@ -276,6 +276,7 @@ MODULE_TASK_MAP: Dict[str, str] = {
 
 SUITE_TAG_TO_MODULE: Dict[str, str] = {
     "artifacts": "hae/evaluation/artifacts.py",
+    "artifact_hygiene": "hae/evaluation/artifacts.py",
     "execution_harness": "hae/evaluation/harness.py",
     "harness": "hae/evaluation/harness.py",
     "verification_loop": "hae/evaluation/verification_loop.py",
@@ -311,6 +312,7 @@ class HierarchicalCompanyRunner:
         self._required_modules: List[str] = ["hae/genome/morphogenesis.py"]
         self._pending_modules: List[str] = []
         self._written_modules_this_run: set = set()
+        self._locked_passing_modules: set = set()
         self.xgrammar_calls = 0
 
     def _has_valid_module_artifact(self, mod_path: str) -> bool:
@@ -382,7 +384,20 @@ class HierarchicalCompanyRunner:
         if "GROUND-TRUTH VERIFIER FEEDBACK" in objective:
             fb_idx = objective.find("======================================================================")
             if fb_idx != -1:
-                parts.append(objective[fb_idx:])
+                raw_fb = objective[fb_idx:]
+                mod_tags = {
+                    tag for tag, mod_path in SUITE_TAG_TO_MODULE.items()
+                    if mod_path == target_mod
+                }
+                filtered_fb_lines = []
+                for fb_line in raw_fb.splitlines():
+                    stripped = fb_line.strip()
+                    if stripped.startswith("- [") and "]" in stripped:
+                        line_tag = stripped[3:stripped.find("]")]
+                        if mod_tags and line_tag not in mod_tags:
+                            continue
+                    filtered_fb_lines.append(fb_line)
+                parts.append("\n".join(filtered_fb_lines))
             existing = self.workspace.read_file(target_mod)
             if existing.get("status") in ("ok", "success") and existing.get("content"):
                 parts.append(
@@ -571,7 +586,9 @@ class HierarchicalCompanyRunner:
             action, args = parsed
             observation = ""
             if action == "write_file":
-                out_path = args.get("path") or target_path
+                out_path = (args.get("path") or target_path).lstrip("./")
+                if out_path in getattr(self, "_locked_passing_modules", set()) and target_path not in getattr(self, "_locked_passing_modules", set()):
+                    out_path = target_path
                 w_res = self.workspace.write_file(out_path, args.get("content", ""))
                 observation = f"Observation (write_file): Status={w_res.get('status')}, Bytes={w_res.get('bytes_written', 0)}"
                 if w_res.get("status") in ("ok", "success") and args.get("bytes_written", w_res.get("bytes_written", 0)) > 300:
@@ -708,6 +725,7 @@ class HierarchicalCompanyRunner:
                 self._required_modules = ["hae/genome/morphogenesis.py"]
 
         self._written_modules_this_run = set()
+        self._locked_passing_modules = set()
         if "GROUND-TRUTH VERIFIER FEEDBACK" in objective:
             # On repair iterations, only re-queue modules that failed a check or are missing
             failing_mods: List[str] = []
@@ -718,6 +736,8 @@ class HierarchicalCompanyRunner:
                 if not self._has_valid_module_artifact(mod_path) and mod_path not in failing_mods:
                     failing_mods.append(mod_path)
             self._pending_modules = failing_mods if failing_mods else list(self._required_modules)
+            self._locked_passing_modules = set(self._required_modules) - set(self._pending_modules)
+            self._written_modules_this_run.update(self._locked_passing_modules)
         else:
             self._pending_modules = list(self._required_modules)
 
@@ -781,10 +801,10 @@ class HierarchicalCompanyRunner:
                     target_path=m_path,
                 )
 
-        # Step 2.5: Closed-Loop Sandbox Test Verification & Automated Code Self-Repair
+        # Step 2.5: Closed-Loop Sandbox Test Verification & Automated Code Self-Repair (single-module tasks only)
         repair_brief = ""
         test_files = [f for f in self.workspace.list_files() if "test" in f.get("path", "").lower() and f.get("path", "").endswith(".py")]
-        if test_files:
+        if test_files and len(self._required_modules) == 1:
             test_run = self.workspace.execute_bash("python3 -m pytest tests/ -q", timeout=20)
             if test_run.get("exit_code") != 0 and "No module named pytest" in test_run.get("stderr", ""):
                 test_run = self.workspace.execute_bash("python3 -m unittest discover -s tests/ -p 'test_*.py'", timeout=20)
