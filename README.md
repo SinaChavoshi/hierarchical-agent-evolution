@@ -52,7 +52,7 @@ By deploying a **Unified Global `llm-d` Session (`Service/vllm-qwen38-gateway`)*
 
 ---
 
-## 🔍 Four Core Laws Discovered (`V1` – `V5`)
+## 🔍 Five Core Laws Discovered (`V1` – `V5`)
 
 1. **Execution-Grounded Selection Eliminates Hallucinated Bureaucracy (`V1` $\to$ `V2` & `V4` Ablation):**
    When graded by LLM judges (`V1`), evolution selects for persuasive prose (`r = +0.045` correlation with actual code correctness). When graded strictly by deterministic test suites (`V2` & `V4`), evolution ruthlessly concentrates file-system write tools into **1–2 elite tool-enabled engineers (`Autonomous Self-Repair Core Architect`)**: in our `V4` Gen 11 ablation, granting `write_file` to all `27–84` business/strategy agents caused a `6.7x` call explosion (`4,881` calls) and workspace clobbering, whereas restricting `tools_enabled=True` to the `2` Core Architects drove **`10 / 10` companies (`100%`) to pass `7/7` tests on Iteration 1 in just `724` calls**.
@@ -62,10 +62,12 @@ By deploying a **Unified Global `llm-d` Session (`Service/vllm-qwen38-gateway`)*
    Hard call limits (`586` calls) prematurely truncate `60–90` agent mega-hierarchies mid-run, while unpenalized budgets breed `56 KB` of `"Corporate Memo Theatre"`. Removing hard call truncation (`$0.00` marginal API cost) and enforcing **hardware-level `vLLM xgrammar` JSON Schemas (`V5 TypeSafe AI`)** reduced average coordination output from `1,420` tokens to **`115.3` tokens (`-91.9%`)**, cutting mean company shadow cost by **`-88.9%` (`$0.2436` $\to$ `$0.0270 USD`)** and lifting net fitness to an all-time record **`97.42 / 100`**.
 4. **Shared Global `llm-d` Sessions Turn Multi-Company Evolution into Sub-Millisecond Collective Memory (`V4` & `V5`):**
    Allowing all companies in a generation to share a single global `llm-d` session (cross-company answer short-circuiting + singleflight coalescing + `426.3 GiB` tiered `fp8` VRAM / CPU DRAM KV cache) eliminates **`25.3%`–`73.2%` of redundant GPU forward passes in `<1 ms` (`0.74 ms`)** and achieves **`100.0%` (`428/428`) prefix KV-cache affinity**.
+5. **LLM Intuition Is Not Reasoning: Linear Self-Repair Has a Hard Ceiling Without an Explicit Epistemic State (`V5 Gen 15` Plateau Audit):**
+   Even at `96.8%` mean pass rate, Gen 15 exposed the limit of a repair loop driven purely by LLM next-token intuition (*System 1*). Four firms flat-lined (`[49,49,49,49,49]`, `[48,48,48,48,48]`, `[46,46,46,46,46]`) across **16 combined repair iterations with zero progress**; after Iteration 2, **`8 / 8` non-converged firms were stuck**; and **`7 / 8` independently failed the *same* test** (`test_pytest_style_functions_are_collected`) because the model's high-prior implementation of stdlib test collection is plausible-but-wrong — the exact failure mode Thore Graepel (AlphaGo) describes in *["Don't be fooled—LLMs don't reason"](https://www.technologyreview.com/2026/10/02/1145639/dont-be-fooled-llms-dont-reason/)*: AlphaGo's policy net gave Move 37 a 1-in-10,000 prior; only **explicit search over an inspectable state** found it. Companies need a persistent, auditable **epistemic ledger** (settled / hypothesised / ruled-out / open) and an **independent, non-LLM evidence gatekeeper** — the organization itself must be *System 2*. → **This is the `V6` program** ([`experiments/v6_epistemic_search/README.md`](experiments/v6_epistemic_search/README.md)).
 
 ---
 
-## 🚀 Active & Future Roadmap (`V4` $\to$ `V5` $\to$ `V6`)
+## 🚀 Active & Future Roadmap (`V5` $\to$ `V6` $\to$ `V7`)
 
 Our findings from `V1–V5` directly shape the next phases of the HAE research program:
 
@@ -74,8 +76,9 @@ flowchart LR
     V1["V1: Subjective Judge<br/>(Completed)"] --> V2["V2: Deterministic Verification<br/>& Self-Repair (Completed)"]
     V2 --> V3["V3: Level-3 Code-Overlay<br/>RSI (Completed)"]
     V3 --> V4["V4: Unified llm-d 3x 180B NVFP4<br/>Gen 10-11 (Completed)"]
-    V4 --> V5["V5: 'TypeSafe AI' vLLM xgrammar<br/>Gen 12 (-88.9% Cost, Completed)"]
-    V5 --> V6["V6: Parametric RL (GRPO/DPO)<br/>Trajectory Distillation (Next)"]
+    V4 --> V5["V5: 'TypeSafe AI' vLLM xgrammar<br/>+ full_stack_hae Gen 12-15<br/>(50/50 Convergence, Completed)"]
+    V5 --> V6["V6: Epistemic Tree-Search Organizations<br/>Ledger + Evidence Gatekeeper + Value Net<br/>(In Progress: Stage 1-2)"]
+    V6 --> V7["V7: Parametric RL (GRPO/DPO)<br/>on Certified Epistemic Trajectories (Next)"]
 ```
 
 ### Phase 4 (`V4`): Multi-Instance `3x Qwen3.8-Flash-Next-NVFP4` (`180B` MoE) + Unified Global `llm-d` Session, *The Dosadi Experiment* & `google/gvisor` *(Gen 10 & Gen 11 Complete — `10/10` at `100%` `7/7` Tests)*
@@ -119,13 +122,27 @@ In **Phase 5 (`V5 TypeSafe AI`)**, we wired **hardware-level Finite-State Machin
 
 ---
 
-### Phase 6 (`V6`): Parametric RL Specialization (`GRPO` / `DPO` Trajectory Distillation)
+### Phase 6 (`V6`): Epistemic Tree-Search Organizations — *"The Scientific Method on Steroids"* *(In Progress — Stage 1 & 2)*
 
-Once `V4` and `V5` establish high-density *Dosadi* + *TypeSafe AI* communication protocols that solve real-world `gVisor` and production engineering tasks, `V6` closes the loop from **organizational/protocol evolution** to **end-to-end multi-turn RL weight updates**:
+> 📄 **Full `V6` Design, Graepel-Diff & Gen 15 Plateau Audit:** **[`experiments/v6_epistemic_search/README.md`](experiments/v6_epistemic_search/README.md)**
 
-1. **Trajectory Harvesting:** Every multi-turn internal company conversation and tool-execution trace from `V4`/`V5` is logged with its deterministic `go test` / `pytest` outcome and `Dosadi` communication efficiency score.
-2. **Contrastive & Group-Relative RL (`GRPO` / `DPO`):** Winning high-density, bug-fixing trajectories (`100%` test pass + minimal token overhead) and losing trajectories (noisy communication or failed patches) train **role-specialized LoRA adapters** (`Exec-LoRA`, `SystemsEng-LoRA`, `Verifier-LoRA`) on the in-cluster `Qwen3.8` weights.
-3. **Production Delegation:** The resulting workforce—combining evolved `CompanyGenome` topologies, *Dosadi* / *TypeSafe AI* zero-noise communication protocols, and RL-specialized weights—graduates from benchmark trials to handling real-world day-to-day software engineering tasks and repository issue queues.
+`V5` proved that LLM intuition + a greedy repair loop can reach `50/50` — but only sometimes, and only when an external oracle hands over the exact failing traceback. Following Thore Graepel's AlphaGo analysis (*LLMs are System 1; chain-of-thought is "the same next-token prediction process, iterated for longer"*), `V6` rebuilds the company runtime so that **the LLM supplies only hunches and the organization itself is the explicit, auditable System 2**:
+
+1. **Explicit, Persistent, Inspectable Epistemic Ledger (`hae/epistemic/ledger.py`):** The central state of a company is no longer a code blob plus a test score but an immutable, content-addressed `EpistemicState` — `settled_knowledge` (certified facts), `hypotheses` (with calibrated confidence), `ruled_out` (falsified beliefs + the evidence that killed them), and `open_questions` (unresolved uncertainty).
+2. **Independent, Non-LLM Evidence Gatekeeper (`hae/epistemic/gatekeeper.py`):** LLM agents may *propose* questions, competing hypotheses, sandbox experiments, and code diffs; **only** a deterministic gatekeeper that executes those probes may *certify* or *falsify* a belief. Moves that produce no new evidence have zero information gain; proposals that match a `ruled_out` mechanism are rejected as `TABU` before spending a turn.
+3. **Epistemic PUCT Tree Search + Value Network (`hae/epistemic/mcts.py`, `value.py`):** `50–100+` cheap epistemic moves per company (`<150` tokens, `<0.2 s` probes) replace `5` expensive full-company passes. Policy priors are an exploration tie-breaker, **never** a pruning filter — low-prior, mutually exclusive hypotheses are deliberately expanded so that "Move 37" fixes (1-in-10,000 prior) can be found by evidence rather than killed by plausibility. The value function scores *uncertainty actually resolved by evidence* plus a learned head trained on harvested search trees.
+4. **Heritable `epistemic_policy` Gene + Auditable Fitness:** `CompanyGenome` evolves search budget, branching, `c_puct`, low-prior quota, and department→role bindings (Question / Hypothesis / Experiment / Synthesis pods). `judge.py` retires the post-hoc prose rubric in favour of an **Epistemic Integrity Audit** (`60%` execution · `25%` ledger auditability & calibration · `15%` uncertainty resolved per cost).
+5. **Generation 16 Targets:** break the `46–49/50` plateau on the 8 non-converged `full_stack_hae` lineages, and attempt a new **oracle-free** multi-file debugging benchmark where no traceback is handed to the firm — a task the `V5` architecture structurally cannot attempt.
+
+---
+
+### Phase 7 (`V7`): Parametric RL Specialization on Certified Epistemic Trajectories (`GRPO` / `DPO`)
+
+Deferred from Phase 6 deliberately: training on `V5` transcripts would distil post-hoc narratives, whereas training on `V6` ledgers distils **evidence-backed reasoning moves** — which hypotheses were worth proposing and which experiments were decisive (*"the model can accumulate certified knowledge and improve its reasoning policy by learning from past reasoning experiences"*):
+
+1. **Trajectory Harvesting:** Every `V6` epistemic search tree (`(E_t features, move, ΔU, terminal outcome)`) and its deterministic `pytest` / `go test` result is logged with its Epistemic Integrity Audit score.
+2. **Contrastive & Group-Relative RL (`GRPO` / `DPO`):** Decisive, well-calibrated trajectories vs. wasted or miscalibrated ones train **role-specialized LoRA adapters** (`Questioner-LoRA`, `Hypothesizer-LoRA`, `Experimenter-LoRA`, `Synthesis-LoRA`) on the in-cluster `Qwen3.8` weights.
+3. **Production Delegation:** The resulting workforce — evolved `CompanyGenome` topologies, `V5` TypeSafe protocols, `V6` epistemic search, and `V7` RL-specialized weights — graduates from benchmark trials to real-world engineering issue queues.
 
 ---
 
@@ -133,19 +150,22 @@ Once `V4` and `V5` establish high-density *Dosadi* + *TypeSafe AI* communication
 
 ```text
 hierarchical-agent-evolution/
-├── README.md                                 # High-level project overview, V1-V5 outcomes & V6 roadmap
+├── README.md                                 # High-level project overview, V1-V5 outcomes & V6/V7 roadmap
 ├── experiments/
-│   ├── README.md                             # Master Experiment Ledger Index (V1 -> V6)
+│   ├── README.md                             # Master Experiment Ledger Index (V1 -> V7)
 │   ├── v1/README.md                          # Phase 1: Gen 0-10 Subjective Judge Runs & Goodhart's Law Audit
 │   ├── v2/README.md                          # Phase 2: Gen 1-6 Deterministic Execution & Iterative Self-Repair
 │   ├── v3_rsi/README.md                      # Phase 3: Gen 7-9 Level-3 RSI, Forensic Audit & Transcripts
 │   ├── v4_llmd/README.md                     # Phase 4: Gen 10-11 Unified llm-d + 3x 180B NVFP4 Benchmark
-│   └── v5_typesafe_xgrammar/README.md        # Phase 5: Gen 12 Hardware-Enforced xgrammar TypeSafe AI (-88.9% Cost)
+│   ├── v5_typesafe_xgrammar/README.md        # Phase 5: Gen 12-15 xgrammar TypeSafe AI + full_stack_hae (50/50)
+│   └── v6_epistemic_search/README.md         # Phase 6: Epistemic Tree-Search design, Graepel diff & Gen 15 audit
 ├── hae/
 │   ├── controller/                  # Evolutionary tournament controller, crossover & mutation engine
-│   ├── worker/                      # Distributed Ray/GKE worker & sandboxed verification loop
-│   ├── genome/                      # CompanyGenome, AgentNode, & Morphogenesis engine
-│   ├── evaluator/                   # Deterministic BenchmarkVerifier & Fitness Evaluator
+│   ├── orchestration/               # Distributed GKE worker & sandboxed verification loop
+│   ├── runtime/                     # HierarchicalCompanyRunner (V5 xgrammar protocol + V6 epistemic loop)
+│   ├── genome/                      # CompanyGenome, AgentNode, epistemic_policy gene & Morphogenesis engine
+│   ├── epistemic/                   # V6: EpistemicState ledger, moves, Evidence Gatekeeper, value fn, PUCT search
+│   ├── evaluation/                  # Deterministic SelfHostingBenchmark, harness, verification loop & judge
 │   └── compiler/                    # Target compiler optimization module (V2/V3 benchmark)
 ├── k8s/                             # GKE deployment manifests & job specs
 └── scripts/                         # Evaluation, plotting, and forensic audit utilities
