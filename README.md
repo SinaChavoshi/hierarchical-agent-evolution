@@ -8,6 +8,35 @@ Populations of companies execute in isolated sandboxes against real software tas
 
 ## Core Architecture
 
+```mermaid
+flowchart LR
+    subgraph Evo["Outer Loop: Evolutionary Controller"]
+        Genome["CompanyGenome\n• Org topology & roles\n• xgrammar schemas (V5)\n• epistemic_policy gene (V6)"]
+        Judge["Deterministic Fitness Judge\n60% Execution · 25% Audit · 15% Efficiency"]
+        Judge -->|Tournament + Crossover + Mutation| Genome
+    end
+
+    subgraph Company["Inner Loop: Single Company Runtime"]
+        subgraph S2["System 2: Epistemic Engine (Deterministic Python)"]
+            Ledger["EpistemicState Ledger\nsettled · hypotheses · ruled_out"]
+            PUCT["PUCT Search + Frontier Triage\n+ Low-Prior Quota (Move 37)"]
+            Gate["Evidence Gatekeeper\nSandboxed Probes & Module Checks"]
+            Ledger <--> PUCT
+            Gate -->|Verified ΔU Only| Ledger
+        end
+
+        subgraph S1["System 1: LLM Agents (vLLM xgrammar + llm-d Gateway)"]
+            Pods["Question · Hypothesis · Experiment · Synthesis Pods"]
+        end
+
+        PUCT -->|Select Open Question / Expand| Pods
+        Pods -->|Typed Proposals + Code Probes| Gate
+    end
+
+    Genome --> Company
+    Company -->|Held-Out Test Suite + Ledger Trail| Judge
+```
+
 - **Heritable Organization Genome (`hae/genome/`):** Defines department structure, worker/manager roles, token budgets, `V5` typed communication contracts, `V6` search hyper-parameters, and inherited source overlays.
 - **Typed Inter-Agent Protocol (`V5` / `xgrammar`):** Replaces open-ended prose memos between agents with FSM-enforced JSON schemas at the vLLM decoder, cutting coordination token overhead by ~92% (`1,420` $\rightarrow$ `115` tokens/call).
 - **Shared Multi-Company Serving (`llm-d` Gateway):** Deduplicates identical cross-company coordination queries in `<1 ms` (`singleflight` + response short-circuiting) and routes prompts by prefix hash across shared GPU/DRAM KV caches while keeping code synthesis uncached per company.
