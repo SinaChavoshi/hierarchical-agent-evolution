@@ -6,7 +6,7 @@
 | `gen_14_crossover_2` | non_converged | `[47, 49, 49, 49, 49]` | `[47, 48, 47]` | 47.3 (47–48) | 0/3 [None, None, None] | `[47, 7, 46]` | 84.48 | 602604 | $0.090 |
 | `gen_14_elite_1` | non_converged | `[49, 49, 49, 49, 49]` | `[49, 50, 50]` | 49.7 (49–50) | 2/3 [None, 2, 3] | `[49, 45, 49]` | 91.35 | 228289 | $0.050 |
 | `gen_14_crossover_1` | non_converged | `[49, 49, 49, 49, 49]` | `[26, 48, 48]` | 40.7 (26–48) | 0/3 [None, None, None] | `[26, 48, 48]` | 71.89 | 448512 | $0.070 |
-| `gen_14_mutant_2` | non_converged | `[7, 44, 46, 48, 48]` | `[50, 49, 46]` | 48.3 (46–50) | 1/3 [2, None, None] | `[7, 49, 44]` | 90.85 | 238722 | $0.060 |
+| `gen_14_mutant_2` | non_converged | `[7, 44, 46, 48, 48]` | `[50, 49, 46]` | 48.3 (46–50) | 1/3 [2, None, None] | `[7, 49, 44]` | 87.40 | 725984 | $0.110 |
 | `gen_14_mutant_1` | non_converged | `[48, 48, 48, 48, 48]` | `[47, 50, 50]` | 49.0 (47–50) | 2/3 [None, 2, 2] | `[47, 48, 8]` | 93.40 | 414753 | $0.080 |
 | `gen_14_crossover_3` | non_converged | `[7, 48, 48, 48, 48]` | `[45, 49, 48]` | 47.3 (45–49) | 0/3 [None, None, None] | `[21, 11, 46]` | 89.10 | 676897 | $0.090 |
 | `gen_14_pareto_2` | non_converged | `[11, 47, 47, 47, 47]` | `[50, 48, 47]` | 48.3 (47–50) | 1/3 [1, None, None] | `[50, 48, 47]` | 86.85 | 538387 | $0.070 |
@@ -28,7 +28,7 @@
 | `gen_14_crossover_1__s3` | `[48, 48, 48, 48, 48]` | 82.20 | 77.63 | 77.63 | 96.0 | 47.1 / 47.1 | 55.0 | 5 | 226811 | $0.043 | 27 |
 | `gen_14_mutant_2__s1` | `[7, 50]` | 97.72 | 93.38 | 93.38 | 100.0 | 73.5 / 73.5 | 100.0 | 2 | 314992 | $0.066 | 31 |
 | `gen_14_mutant_2__s2` | `[49, 49, 49, 49, 49]` | 83.98 | 79.43 | 79.43 | 98.0 | 41.6 / 41.6 | 68.2 | 5 | 162453 | $0.044 | 21 |
-| `gen_14_mutant_2__s3` | `[44, 46, 46, 46]` | — | — | — | — | — / — | — | — | — | $— | 0 |
+| `gen_14_mutant_2__s3` | `[44, 46, 46, 46, 46]` | 80.49 | 77.66 | 77.66 | 92.0 | 47.9 / 47.9 | 70.0 | 5 | 1700508 | $0.217 | 209 |
 | `gen_14_mutant_1__s1` | `[47, 47, 47, 47, 47]` | 81.74 | 77.82 | 77.82 | 94.0 | 52.7 / 52.7 | 55.0 | 5 | 649645 | $0.108 | 79 |
 | `gen_14_mutant_1__s2` | `[48, 50]` | 99.79 | 95.29 | 95.29 | 100.0 | 81.2 / 81.2 | 100.0 | 2 | 209089 | $0.050 | 18 |
 | `gen_14_mutant_1__s3` | `[8, 50]` | 98.66 | 94.47 | 94.47 | 100.0 | 77.9 / 77.9 | 100.0 | 2 | 385525 | $0.081 | 44 |
@@ -58,6 +58,7 @@
 | `gen_14_crossover_1__s3` | 22 | 4 / 3 | 6 (0, 0) | 14 (3/1) | 10 / 9 | 2 / 0 / 3 (3) | 0 (0) | 2 (0) | 0.079 (4) |
 | `gen_14_mutant_2__s1` | 21 | 4 / 14 | 14 (0, 1) | 12 (4/7) | 1 / 0 | 1 / 1 / 4 (4) | 0 (0) | 3 (1) | 0.512 (11) |
 | `gen_14_mutant_2__s2` | 23 | 4 / 0 | 10 (8, 0) | 15 (0/9) | 6 / 5 | 0 / 0 / 0 (0) | 0 (0) | 2 (0) | 0.147 (9) |
+| `gen_14_mutant_2__s3` | 71 | 16 / 2 | 32 (14, 0) | 34 (15/10) | 9 / 5 | 10 / 0 / 20 (13) | 8 (1) | 9 (4) | 0.238 (25) |
 | `gen_14_mutant_1__s1` | 38 | 8 / 4 | 22 (3, 0) | 22 (7/12) | 3 / 2 | 1 / 0 / 7 (7) | 0 (0) | 6 (2) | 0.131 (19) |
 | `gen_14_mutant_1__s2` | 16 | 2 / 0 | 12 (0, 0) | 11 (1/9) | 1 / 0 | 0 / 0 / 1 (1) | 0 (0) | 3 (0) | 0.176 (10) |
 | `gen_14_mutant_1__s3` | 38 | 7 / 10 | 27 (6, 0) | 24 (3/21) | 0 / 0 | 0 / 1 / 3 (3) | 1 (1) | 8 (1) | 0.194 (24) |
@@ -76,19 +77,19 @@
 | first pass | runs | reached 50 later | final mean | mean gain (final − first) | trajectories |
 |---|---|---|---|---|---|
 | 50 (converged at 1) | 1 | 0 | 50.0 | +0.0 | `[50]` |
-| 44–49 (plateau) | 16 | 4 | 48.3 | +1.2 | `[47, 47, 47, 47, 47]`, `[46, 47, 47, 47, 47]`, `[49, 49, 49, 49, 49]`, `[45, 50]`, `[49, 49, 50]`, `[48, 48, 48, 48, 48]`, `[48, 48, 48, 48, 48]`, `[49, 49, 49, 49, 49]`, `[44, 46, 46, 46]`, `[47, 47, 47, 47, 47]`, `[48, 50]`, `[46, 48, 48, 48, 48]`, `[48, 48, 48, 48, 48]`, `[47, 47, 47, 47, 47]`, `[46, 48, 50]`, `[47, 47, 47, 49, 49]` |
+| 44–49 (plateau) | 16 | 4 | 48.3 | +1.2 | `[47, 47, 47, 47, 47]`, `[46, 47, 47, 47, 47]`, `[49, 49, 49, 49, 49]`, `[45, 50]`, `[49, 49, 50]`, `[48, 48, 48, 48, 48]`, `[48, 48, 48, 48, 48]`, `[49, 49, 49, 49, 49]`, `[44, 46, 46, 46, 46]`, `[47, 47, 47, 47, 47]`, `[48, 50]`, `[46, 48, 48, 48, 48]`, `[48, 48, 48, 48, 48]`, `[47, 47, 47, 47, 47]`, `[46, 48, 50]`, `[47, 47, 47, 49, 49]` |
 | ≤ 35 (catastrophic) | 9 | 2 | 40.2 | +25.6 | `[7, 48, 48, 48, 48]`, `[26, 26, 26, 26, 26]`, `[7, 50]`, `[8, 50]`, `[21, 21, 21, 21, 45]`, `[11, 49, 49, 49, 49]`, `[22, 23, 23, 23, 23]`, `[23, 23, 23, 23, 23]`, `[7, 48, 48, 48, 48]` |
 
 ### Totals
 {
  "runs_total": 26,
  "runs_with_results": 26,
- "runs_with_scorecard": 25,
- "tokens_total": 12226889,
- "cost_usd_total": 1.9178,
- "elapsed_s_max": 7391.26,
- "elapsed_s_mean": 3424.45,
+ "runs_with_scorecard": 26,
+ "tokens_total": 13927397,
+ "cost_usd_total": 2.1347,
+ "elapsed_s_max": 12556.05,
+ "elapsed_s_mean": 3775.67,
  "gpu_node_hours": null,
  "converged_runs": 7
 }
-pooled search stats: {"proposal_rounds": 207, "hypotheses_accepted": 470, "tabu_rejections": 71, "duplicate_rejections": 4, "probe_repairs": 74, "experiments": 498, "supported": 126, "falsified": 255, "inconclusive": 0, "rejected_probes": 117, "forced_low_prior_picks": 124, "forced_low_prior_wins": 33, "syntheses": 131, "syntheses_verified": 110, "syntheses_unwritten": 21, "questions_asked": 0, "proposer_errors": 0, "frontier_admissions": 172, "questions_deferred": 293, "synthesis_noop_retries": 25, "syntheses_by_plan": 34, "moves_used": 836, "syntheses_authored": 5, "synthesis_noop_recoveries": 4}
+pooled search stats: {"proposal_rounds": 224, "hypotheses_accepted": 502, "tabu_rejections": 85, "duplicate_rejections": 4, "probe_repairs": 79, "experiments": 532, "supported": 141, "falsified": 265, "inconclusive": 0, "rejected_probes": 126, "forced_low_prior_picks": 133, "forced_low_prior_wins": 37, "syntheses": 151, "syntheses_verified": 123, "syntheses_unwritten": 28, "questions_asked": 0, "proposer_errors": 0, "frontier_admissions": 188, "questions_deferred": 295, "synthesis_noop_retries": 33, "syntheses_by_plan": 44, "moves_used": 907, "syntheses_authored": 5, "synthesis_noop_recoveries": 5}

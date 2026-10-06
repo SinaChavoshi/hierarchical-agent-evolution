@@ -19,14 +19,14 @@ The catastrophic row is the one the fix was built for, and it moved: six of nine
 
 | | run 1 | run 2 |
 |---|---|---|
-| runs that searched / moves / experiments | 23 / 874 / 529 | 24 / 836 / 498 |
-| probes refused (`UNTESTABLE`) | 195 of 529 = **37 %** | 117 of 498 = **23 %** |
-| syntheses: verified / unwritten (no-op) | 95 / 27 of 122 (22 % no-op) | 110 / 21 of 131 (16 % no-op) |
-| forced low-prior picks → supported | 115 → 19 (17 %) | 124 → 33 (27 %) |
+| runs that searched / moves / experiments | 23 / 874 / 529 | 25 / 907 / 532 |
+| probes refused (`UNTESTABLE`) | 195 of 529 = **37 %** | 126 of 532 = **24 %** |
+| syntheses: verified / unwritten (no-op) | 95 / 27 of 122 (22 % no-op) | 123 / 28 of 151 (19 % no-op) |
+| forced low-prior picks → supported | 115 → 19 (17 %) | 133 → 37 (28 %) |
 | `syntheses_authored` (missing module written) | n/a (stat did not exist; 0 by construction) | 5 |
-| questions deferred to the oracle | 159 | 293 |
-| hypotheses still standing at end of tree / tested | 24 / 334 (7 %) | 43 / 381 (11 %) |
-| tokens / model cost | 11.5 M / $1.82 | 12.2 M / $1.92 |
+| questions deferred to the oracle | 159 | 295 |
+| hypotheses still standing at end of tree / tested | 24 / 334 (7 %) | 46 / 406 (11 %) |
+| tokens / model cost | 11.5 M / $1.82 | 13.9 M / $2.13 |
 
 Fewer refused probes is the prompt change; fewer no-op syntheses and more deferrals are the attribution fix (a question that names the right module gets a repair plan whose anchors exist, and its cluster siblings can be deferred once it resolves). The authored-module path fired five times; in `crossover_2__s2` and `pareto_1__s1` (both `7/50` with three suites failing to import, the exact run-1 shape) it was the first move of iteration 2 and took the firm to `48/50` at the next oracle call.
 
@@ -40,11 +40,11 @@ Fewer refused probes is the prompt change; fewer no-op syntheses and more deferr
 
 ## 4. Calibration
 
-Same picture as run 1 — [`value_telemetry_summary.json`](value_telemetry_summary.json), 381 tested hypotheses: hit rate `0.14 / 0.10 / 0.06 / 0.11 / 0.15` across the five prior bins (0–0.2 … 0.8–1.0), i.e. the lowest-prior bin does as well as the highest; Brier `0.219` against `0.100` for the base-rate predictor. Both runs' CSVs together are the first `V7` value-head dataset (one row per move, features prefixed `f_`, `terminal_outcome` = end-of-tree status).
+Same picture as run 1 — [`value_telemetry_summary.json`](value_telemetry_summary.json), 406 tested hypotheses: hit rate `0.14 / 0.10 / 0.08 / 0.10 / 0.15` across the five prior bins (0–0.2 … 0.8–1.0), i.e. the lowest-prior bin does as well as the highest; Brier `0.220` against `0.100` for the base-rate predictor. Both runs' CSVs together are the first `V7` value-head dataset (one row per move, features prefixed `f_`, `terminal_outcome` = end-of-tree status).
 
 ## 5. Cost
 
-Run 2 ran on the same cluster as run 1 (GPU node-hours for the whole day are in the run-1 report); firm wall-clock was longer (mean `57` min, max `123` min) because catastrophic-start searches spend their full 60-move budget and each whole-module synthesis is a 6–7-minute generation at the model's single-stream decode speed. Tokens and model cost per run are in `summary_tables.md`.
+Run 2 ran on the same cluster as run 1 (`17.2` spot GPU node-hours for the whole day, teardown verified 23:24 UTC — both in the run-1 report); firm wall-clock was longer (mean `63` min; the slowest run, `mutant_2__s3` `[44, 46, 46, 46, 46]`, took `209` min) because catastrophic-start and plateau searches spend their full 60-move budget and each whole-module synthesis is a 6–7-minute generation at the model's single-stream decode speed — a no-op synthesis chain (re-emit twice, re-prompt, give up) costs 14–26 minutes for nothing. That latency, not tokens, is the cost to attack next (targeted-edit synthesis first, whole-module rewrite only as fallback). Tokens and model cost per run are in `summary_tables.md`.
 
 ## 6. Limits
 

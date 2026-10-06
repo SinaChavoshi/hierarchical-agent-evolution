@@ -93,7 +93,7 @@ The controls are a `V6` cost signal, not a win: `mutant_3` went `48 → 50` in o
 | GPU | `g4-pool`: 4 × spot `g4-standard-96`, inserted 16:55 UTC. Two preemptions in the first 15 min (`jl1z` 17:00 → back 17:03; `gbbt` 17:07 → back 17:17) and one `ZONE_RESOURCE_POOL_EXHAUSTED` window; a `g4-ondemand` pool (2 nodes) requested at 17:11 as a hedge **never provisioned** (repair loop → `ERROR`, 0 instances ever ran, deleted 17:51) |
 | CPU | `default-pool` 1 × `e2-standard-8` (gateway); `firm-pool` 4 × `e2-standard-32` on-demand from 17:04, resized to 8 at 17:54 so run 2 could overlap run 1 |
 | run 1 | launched 17:07:36 UTC, last worker exit 18:52; firm wall-clock mean `48` min, max `99` min; **`11.5 M` tokens, `$1.82` LLM cost** at the vLLM list price used by `opex` (`$0.02–0.12` and `57 k–918 k` tokens per firm) |
-| GPU node-hours | filled in at teardown from `gcloud compute operations` timestamps (4 spot nodes × wall-clock, minus the two preemption gaps) — see the teardown note at the end of this file |
+| GPU node-hours (both runs) | **`17.2` spot `g4-standard-96` node-hours** from `gcloud compute operations` timestamps ([`scripts/gpu_node_hours.py`](../../scripts/gpu_node_hours.py)): 3 nodes × `3.5–3.65` h (16:55 → 20:34 UTC, deleted via the MIG once one firm was left) + 1 node × `6.38` h (16:55 → 23:20 UTC). Of the last node's time, ≈ `1.3` h served the final run-2 firm alone and ≈ `1.5` h (≈ 21:50 → 23:20) was **idle before the teardown was issued** — an operator delay, counted here, not hidden. On-demand GPU: `0` h (every insert failed). CPU: `firm-pool` 4 × `e2-standard-32` 17:04 → 20:34 plus 4 more 17:54 → 20:34 and 1 until 23:20; `default-pool` 1 × `e2-standard-8` 16:54 → 23:21 |
 
 A vLLM pod that restarts after a partial model download crash-loops (`SafetensorError: incomplete metadata`); the fix is `kubectl delete pod` (fresh `emptyDir`). The LLM client retries 5× with backoff and the gateway re-discovers replicas every 5 s, so firm pods survived both preemptions without a failed iteration.
 
@@ -111,7 +111,7 @@ Full report: [`../hae_gen16_v6_cohort_r2/README.md`](../hae_gen16_v6_cohort_r2/R
 
 The two run-1-shaped starts in run 2 (`crossover_2__s2`, control `pareto_1__s1`: `7/50`, three suites failing to import) seed **3 questions instead of 18**, and the first move is `h1 prior=0.85 → SUPPORTED 'IMPORT_FAIL_MODULE_NOT_FOUND' → synthesized hae/evaluation/harness.py` — the missing module **authored**, then `7 → 48` at the next oracle call. The trace to read is [`../hae_gen16_v6_cohort_r2/traces/gen_14_mutant_2__s1_epistemic_trace.txt`](../hae_gen16_v6_cohort_r2/traces/gen_14_mutant_2__s1_epistemic_trace.txt): **`7/50 → 50/50` in one iteration, 21 moves**, two of the four verified syntheses from `0.05`-prior hypotheses (one a forced low-prior pick). The three catastrophic starts that did not recover in run 2 are the other shape — `harness.py` exists and is wrong in 15–20 places — which the fix does not address.
 
-Mechanically: refused probes `23 %` vs `37 %` of verdicts, no-op syntheses `16 %` vs `22 %`, forced low-prior picks supported `27 %` vs `17 %`, `syntheses_authored = 5`, questions deferred `293` vs `159`.
+Mechanically: refused probes `24 %` vs `37 %` of verdicts, no-op syntheses `19 %` vs `22 %`, forced low-prior picks supported `28 %` vs `17 %`, `syntheses_authored = 5`, questions deferred `295` vs `159`.
 
 > [!WARNING]
 > `6/9` vs `1/7` is a clear direction, not a measured rate; the fix changed three things at once (attribution, authoring, proposer prompt); and the plateau row did not move in mean (`n = 16`, different first-pass draws). Read the run-2 report's limits before quoting.
@@ -124,3 +124,18 @@ Mechanically: refused probes `23 %` vs `37 %` of verdicts, no-op syntheses `16 %
 4. The synthesis "verification" is `py_compile` + import, not the failing test; a verified synthesis can and often does leave the oracle unchanged (controls, §4).
 5. The one known oracle leak (`V4` monotonic write guard) applies identically to both modes and is documented in the `V6` README.
 6. Costs are vLLM list-price estimates from `opex`; GPU time is the dominant real cost and is reported as node-hours, including the idle minutes before the first pod and after the last.
+
+---
+
+## Teardown (verified)
+
+`JOB=hae-gen16-v6-cohort-r2 k8s/teardown.sh` at 23:20:31 UTC: Job → serving overlay → `gcloud container clusters delete chavoshi-v6-cohort` (done 23:24:52), then the script's own check and an independent re-run of `k8s/teardown.sh --verify`:
+
+```
++ gcloud container clusters list --project=gemle-gke-dev --filter=name=chavoshi-v6-cohort
++ gcloud compute instances list --project=gemle-gke-dev --filter=name~chavoshi-v6-cohort
+== OK: no GCE instances belong to chavoshi-v6-cohort; nothing is billing.
+```
+
+Partial scale-down earlier, once a single firm was left (20:34 UTC): vLLM `4 → 1` with a `pod-deletion-cost` annotation protecting the busy replica, then the three idle GPU nodes and seven idle firm nodes removed by name through their managed instance groups (`gcloud compute instance-groups managed delete-instances`), so the running firm was never evicted.
+
