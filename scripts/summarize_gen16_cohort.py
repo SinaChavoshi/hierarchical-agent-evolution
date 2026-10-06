@@ -34,6 +34,7 @@ import argparse
 import glob
 import json
 import os
+import sys
 import re
 import statistics
 from typing import Any, Dict, List, Optional
@@ -202,7 +203,15 @@ def main():
     ap.add_argument("--population", default="configs/generation_16_population.json")
     ap.add_argument("--gpu-node-hours", type=float, default=None,
                     help="GPU node-hours actually billed (from the cluster timeline), for the cost table")
+    ap.add_argument("--markdown", default=None,
+                    help="also write the printed tables to this markdown file (default: <root>/summary_tables.md)")
     args = ap.parse_args()
+    lines: List[str] = []
+
+    def print(*parts: Any) -> None:  # noqa: A001 - tee stdout into the markdown file
+        text = " ".join(str(p) for p in parts)
+        lines.append(text)
+        sys.stdout.write(text + "\n")
 
     pop = json.load(open(args.population))
     lineages = pop["cohort_design"]["lineages"]
@@ -282,9 +291,31 @@ def main():
               f"{s.get('forced_low_prior_picks', 0)} ({s.get('forced_low_prior_wins', 0)}) | "
               f"{fmt(a.get('calibration_brier'), 3)} ({fmt(a.get('calibration_tested'))}) |")
 
+    print("\n### Outcome by first-pass class (iteration 1 is the unchanged V5 pass; the class is luck, what follows is V6)")
+    print("| first pass | runs | reached 50 later | final mean | mean gain (final − first) | trajectories |")
+    print("|---|---|---|---|---|---|")
+    for label, lo, hi in (("50 (converged at 1)", 50, 50), ("44–49 (plateau)", 44, 49), ("≤ 35 (catastrophic)", 0, 35)):
+        cls = [r for r in done if lo <= r["trajectory"][0] <= hi]
+        if not cls:
+            print(f"| {label} | 0 | — | — | — | |")
+            continue
+        finals = [r["trajectory"][-1] for r in cls]
+        gains = [r["trajectory"][-1] - r["trajectory"][0] for r in cls]
+        to50 = sum(1 for r in cls if r["trajectory"][-1] >= 50 and len(r["trajectory"]) > 1)
+        traj = ", ".join(f"`{r['trajectory']}`" for r in cls)
+        print(f"| {label} | {len(cls)} | {to50} | {_mean(finals):.1f} | {_mean(gains):+.1f} | {traj} |")
+    totals["outcome_classes"] = {
+        label: [r["company_id"] for r in done if lo <= r["trajectory"][0] <= hi]
+        for label, lo, hi in (("converged_at_1", 50, 50), ("plateau", 44, 49), ("catastrophic", 0, 35))}
+
     print("\n### Totals")
-    print(json.dumps({k: v for k, v in totals.items() if k != "pooled_search_stats"}, indent=1))
+    print(json.dumps({k: v for k, v in totals.items() if k not in ("pooled_search_stats", "outcome_classes")}, indent=1))
     print("pooled search stats:", json.dumps(pooled_all))
+    md = args.markdown or os.path.join(args.root, "summary_tables.md")
+    with open(md, "w") as f:
+        f.write(f"# Gen 16 V6 cohort — generated tables (`{args.root}`)\n\n" + "\n".join(lines) + "\n")
+    with open(os.path.join(args.root, "generation_16_cohort_summary.json"), "w") as f:
+        json.dump(summary, f, indent=2)
 
 
 if __name__ == "__main__":

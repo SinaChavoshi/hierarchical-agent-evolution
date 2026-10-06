@@ -1,0 +1,55 @@
+     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: budget=60 moves, k=3, c_puct=1.4, low_prior_quota=0.34, bindings={'question': 'qa', 'hypothesis': 'engineering', 'experiment': 'verification', 'synthesis': 'engineering'}
+ [Iteration 1/5] [self-hosting-benchmark] 48/50 held-out tests (score=96.0)
+[epistemic] gen_14_mutant_2__s3 iteration 2: oracle reconciliation -> certified=0 reopened=0 seeded=2 open=2 uncertainty=2.00
+[epistemic] gen_14_mutant_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_2__s3 frontier size 3: 2 open question(s) in 2 cluster(s)
+[epistemic] gen_14_mutant_2__s3 frontier += q1 (1/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - skipped + faile")
+[epistemic] gen_14_mutant_2__s3 frontier += q2 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_mutant_2__s3 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_2__s3 q1/h1 prior=0.85 -> FALSIFIED (dU=0.425) prediction failed: stdout contains 'HYPOTHESIS_CONFIRMED: Tests gate returned SKIPPED'
+[epistemic] gen_14_mutant_2__s3 q1/h2 prior=0.10 -> FALSIFIED (dU=0.050) prediction failed: stdout contains 'HYPOTHESIS_CONFIRMED: Smoke gate returned SKIPPED'
+[epistemic] gen_14_mutant_2__s3 q1/h3 prior=0.05 -> FALSIFIED (dU=0.025) prediction failed: stdout contains 'HYPOTHESIS_CONFIRMED: Syntax gate returned SKIPPED'
+[epistemic] gen_14_mutant_2__s3 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_2__s3 q2/h6 prior=0.20 FORCED -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 15)
+[epistemic] gen_14_mutant_2__s3 q2/h4 prior=0.45 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 24)
+[epistemic] gen_14_mutant_2__s3 q2/h5 prior=0.35 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 15)
+[epistemic] gen_14_mutant_2__s3 q2: proposed 3 -> 0 accepted, 3 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_2__s3 q2/h6 prior=0.20 FORCED -> SUPPORTED (dU=0.760) prediction held: exit_code==0; stdout contains 'MARKER: HYPOTHESIS_TRUE'
+[epistemic] gen_14_mutant_2__s3 q2/h4 prior=0.45 -> UNTESTABLE (dU=0.000) rejected: probe has 48 non-blank lines; the policy allows 40
+[epistemic] gen_14_mutant_2__s3 q2/h5 prior=0.35 -> SUPPORTED (dU=0.045) prediction held: exit_code==0; stdout contains 'MARKER: HYPOTHESIS_TRUE'
+[epistemic] gen_14_mutant_2__s3 q2/h5 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.175)
+[epistemic] gen_14_mutant_2__s3 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_2__s3 q1/h9 prior=0.20 FORCED -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: ALL_SKIPPED_AT_HARNESS_LEVEL'
+[epistemic] gen_14_mutant_2__s3 q1/h7 prior=0.45 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: BUILD_SKIPPED_ON_EMPTY'
+[epistemic] gen_14_mutant_2__s3 q1/h8 prior=0.35 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: TELEMETRY_SKIPPED_ON_EMPTY'
+[epistemic] gen_14_mutant_2__s3 iteration 2: 17 moves, dU=1.480, stop=exhausted, synthesized=['hae/evaluation/harness.py'], counts={'questions': 2, 'questions_open': 1, 'questions_resolved': 1, 'questions_certified': 0, 'questions_exhausted': 1, 'hypotheses': 9, 'hypotheses_untested': 0, 'hypotheses_supported': 2, 'hypotheses_falsified': 6, 'hypotheses_certified': 0, 'hypotheses_untestable': 1, 'e
+ [Iteration 2/5] [self-hosting-benchmark] 49/50 held-out tests (score=98.0)
+[epistemic] gen_14_mutant_2__s3 iteration 3: oracle reconciliation -> certified=1 reopened=1 seeded=0 open=1 uncertainty=0.75
+[epistemic] gen_14_mutant_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_2__s3 frontier size 3: 1 open question(s) in 1 cluster(s)
+[epistemic] gen_14_mutant_2__s3 frontier += q2 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_mutant_2__s3 q2/h6 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.730)
+[epistemic] gen_14_mutant_2__s3 iteration 3: 1 moves, dU=0.730, stop=all_resolved, synthesized=['hae/evaluation/harness.py'], counts={'questions': 2, 'questions_open': 0, 'questions_resolved': 1, 'questions_certified': 1, 'questions_exhausted': 0, 'hypotheses': 9, 'hypotheses_untested': 0, 'hypotheses_supported': 1, 'hypotheses_falsified': 7, 'hypotheses_certified': 0, 'hypotheses_untestable': 1, 
+ [Iteration 3/5] [self-hosting-benchmark] 49/50 held-out tests (score=98.0)
+[epistemic] gen_14_mutant_2__s3 iteration 4: oracle reconciliation -> certified=0 reopened=1 seeded=0 open=1 uncertainty=0.75
+[epistemic] gen_14_mutant_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_2__s3 frontier size 3: 1 open question(s) in 1 cluster(s)
+[epistemic] gen_14_mutant_2__s3 frontier += q2 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_mutant_2__s3 q2: proposed 3 -> 2 accepted, 1 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_2__s3 q2/h10 prior=0.35 -> SUPPORTED (dU=0.555) prediction held: exit_code==0; stdout contains 'MARKER: RETURN_VALUE_MISHANDLED'
+[epistemic] gen_14_mutant_2__s3 q2/h10 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.175)
+[epistemic] gen_14_mutant_2__s3 iteration 4: 3 moves, dU=0.730, stop=all_resolved, synthesized=['hae/evaluation/harness.py'], counts={'questions': 2, 'questions_open': 0, 'questions_resolved': 1, 'questions_certified': 1, 'questions_exhausted': 0, 'hypotheses': 11, 'hypotheses_untested': 2, 'hypotheses_supported': 1, 'hypotheses_falsified': 8, 'hypotheses_certified': 0, 'hypotheses_untestable': 0,
+ [Iteration 4/5] [self-hosting-benchmark] 49/50 held-out tests (score=98.0)
+[epistemic] gen_14_mutant_2__s3 iteration 5: oracle reconciliation -> certified=0 reopened=1 seeded=0 open=1 uncertainty=0.75
+[epistemic] gen_14_mutant_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_2__s3 frontier size 3: 1 open question(s) in 1 cluster(s)
+[epistemic] gen_14_mutant_2__s3 frontier += q2 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_mutant_2__s3 q2/h11 prior=0.20 -> FALSIFIED (dU=0.105) prediction failed: stdout contains 'MARKER: PARSING_OK'
+[epistemic] gen_14_mutant_2__s3 q2/h4 prior=0.45 -> SUPPORTED (dU=0.480) prediction held: exit_code==0; stdout contains 'MARKER: FUNCTIONS_ONLY'
+[epistemic] gen_14_mutant_2__s3 q2/h4 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.145)
+[epistemic] gen_14_mutant_2__s3 iteration 5: 3 moves, dU=0.730, stop=all_resolved, synthesized=['hae/evaluation/harness.py'], counts={'questions': 2, 'questions_open': 0, 'questions_resolved': 1, 'questions_certified': 1, 'questions_exhausted': 0, 'hypotheses': 11, 'hypotheses_untested': 0, 'hypotheses_supported': 1, 'hypotheses_falsified': 10, 'hypotheses_certified': 0, 'hypotheses_untestable': 0
+ [Iteration 5/5] [self-hosting-benchmark] 49/50 held-out tests (score=98.0)
+[epistemic] gen_14_mutant_2__s3 iteration 6: oracle reconciliation -> certified=0 reopened=1 seeded=0 open=1 uncertainty=0.75
+ [EPISTEMIC AUDIT] questions=2 certified=1 hypotheses_tested=11 evidence_backed=1.00 inconsistencies=0 brier=0.147955 resolved=0.62 moves=24/240 ledger=0025d99d22cf
+ FINAL NET FITNESS: 92.32/100 (Gross: 87.97) | Iterations: 5/5
+WORKER_EXIT=0

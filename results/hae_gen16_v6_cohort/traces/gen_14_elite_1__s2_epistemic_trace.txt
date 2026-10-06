@@ -1,0 +1,81 @@
+     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: budget=60 moves, k=3, c_puct=1.4, low_prior_quota=0.34, bindings={'question': 'qa', 'hypothesis': 'engineering', 'experiment': 'verification', 'synthesis': 'engineering'}
+ [Iteration 1/5] [self-hosting-benchmark] 7/50 held-out tests (score=14.0)
+[epistemic] gen_14_elite_1__s2 iteration 2: oracle reconciliation -> certified=0 reopened=0 seeded=3 open=3 uncertainty=3.00
+[epistemic] gen_14_elite_1__s2: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_1__s2 frontier size 3: 3 open question(s) in 3 cluster(s)
+[epistemic] gen_14_elite_1__s2 frontier += q1 (1/3; u=1.00; cluster '|[execution_harness] suite failed to import: modulenotfounderror: no m')
+[epistemic] gen_14_elite_1__s2 frontier += q2 (2/3; u=1.00; cluster '|[verification_loop] suite failed to import: modulenotfounderror: no m')
+[epistemic] gen_14_elite_1__s2 frontier += q3 (3/3; u=1.00; cluster '|[morphogenesis] suite failed to import: modulenotfounderror: no modul')
+[epistemic] gen_14_elite_1__s2 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q1/h1 prior=0.75 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('importlib.util.find_spec')
+[epistemic] gen_14_elite_1__s2 q1/h2 prior=0.15 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('importlib.util.find_spec')
+[epistemic] gen_14_elite_1__s2 q1/h3 prior=0.10 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('importlib.util.find_spec')
+[epistemic] gen_14_elite_1__s2 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q2/h6 prior=0.20 FORCED -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('__file__')
+[epistemic] gen_14_elite_1__s2 q2/h4 prior=0.45 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('__file__')
+[epistemic] gen_14_elite_1__s2 q2/h5 prior=0.35 -> FALSIFIED (dU=0.175) prediction failed: stdout contains 'SYNTAX_ERROR_IN_HARNESS'
+[epistemic] gen_14_elite_1__s2 q3: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q3/h9 prior=0.10 FORCED -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('__file__')
+[epistemic] gen_14_elite_1__s2 q3/h7 prior=0.65 -> FALSIFIED (dU=0.325) prediction failed: stdout contains 'Init exists: False'
+[epistemic] gen_14_elite_1__s2 q3/h8 prior=0.25 -> SUPPORTED (dU=0.450) prediction held: exit_code==0; stdout contains 'Exists: False'
+[epistemic] gen_14_elite_1__s2 q3/h8 synthesized hae/evaluation/artifacts.py: module check passed: py_compile, import (dU=0.205)
+[epistemic] gen_14_elite_1__s2 q1: proposed 3 -> 0 accepted, 3 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q1/h3 prior=0.10 FORCED -> FALSIFIED (dU=0.050) prediction failed: stdout contains 'IMPORT_FAIL_ROOT'
+[epistemic] gen_14_elite_1__s2 q1/h1 prior=0.75 -> SUPPORTED (dU=0.875) prediction held: exit_code==0; stdout contains 'IMPORT_FAIL_MODULE'
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: anchored edit in `hae/evaluation/artifacts.py`: replaced 3 line(s) at line 217 (exact match) with 7; The import failure is caused by the absence of hae/evaluation/harness.py, which is imported by verification_loop.py and
+[epistemic] gen_14_elite_1__s2 q1/h1 synthesized hae/evaluation/artifacts.py: module check passed: py_compile, import (dU=0.055)
+[epistemic] gen_14_elite_1__s2 q2: proposed 3 -> 0 accepted, 2 repaired, 1 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q2/h6 prior=0.20 FORCED -> FALSIFIED (dU=0.100) prediction failed: stdout contains 'IMPORT_FAIL: hae not found'
+[epistemic] gen_14_elite_1__s2 q2/h4 prior=0.45 -> FALSIFIED (dU=0.225) prediction failed: stdout contains 'IMPORT_FAIL: hae.evaluation not found'
+[epistemic] gen_14_elite_1__s2 iteration 2: 20 moves, dU=2.460, stop=exhausted, synthesized=['hae/evaluation/artifacts.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 1, 'hypotheses': 9, 'hypotheses_untested': 1, 'hypotheses_supported': 2, 'hypotheses_falsified': 5, 'hypotheses_certified': 0, 'hypotheses_untestable': 1, '
+ [Iteration 2/5] [self-hosting-benchmark] 7/50 held-out tests (score=14.0)
+[epistemic] gen_14_elite_1__s2 iteration 3: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.00
+[epistemic] gen_14_elite_1__s2: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_1__s2 frontier size 3: 3 open question(s) in 3 cluster(s)
+[epistemic] gen_14_elite_1__s2 frontier += q1 (1/3; u=0.75; cluster '|[execution_harness] suite failed to import: modulenotfounderror: no m')
+[epistemic] gen_14_elite_1__s2 frontier += q3 (2/3; u=0.75; cluster '|[morphogenesis] suite failed to import: modulenotfounderror: no modul')
+[epistemic] gen_14_elite_1__s2 frontier += q2 (3/3; u=0.50; cluster '|[verification_loop] suite failed to import: modulenotfounderror: no m')
+[epistemic] gen_14_elite_1__s2 q1/h2 prior=0.15 -> FALSIFIED (dU=0.250) prediction failed: stdout contains 'IMPORT_FAIL_PACKAGE'
+[epistemic] gen_14_elite_1__s2 q3: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q3/h10 prior=0.45 -> FALSIFIED (dU=0.087) prediction failed: exit_code==1; stdout contains 'IMPORT_FAIL: SyntaxError'
+[epistemic] gen_14_elite_1__s2 q3/h12 prior=0.15 FORCED -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('__file__')
+[epistemic] gen_14_elite_1__s2 q3/h11 prior=0.40 -> FALSIFIED (dU=0.100) prediction failed: stdout contains 'IMPORT_FAIL: SyntaxError'
+[epistemic] gen_14_elite_1__s2 q3: proposed 3 -> 2 accepted, 0 repaired, 1 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q3/h13 prior=0.45 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('__file__')
+[epistemic] gen_14_elite_1__s2 q3/h14 prior=0.20 -> SUPPORTED (dU=0.323) prediction held: exit_code==0; stdout contains "ModuleNotFoundError: No module named 'hae.evaluation.harness'"
+[epistemic] gen_14_elite_1__s2 q3/h14 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; plan not applicable: plan is a no-op (new_lines == old_lines) (failure 1/2)
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: anchored edit in `hae/evaluation/artifacts.py`: replaced 6 line(s) at line 217 (exact match) with 16; The current implementation of `hae/evaluation/artifacts.py` is syntactically valid and logically correct, but the fail
+[epistemic] gen_14_elite_1__s2 q3/h14 synthesized hae/evaluation/artifacts.py: module check passed: py_compile, import (dU=0.220)
+[epistemic] gen_14_elite_1__s2 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q1/h17 prior=0.20 FORCED -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('importlib.util.find_spec')
+[epistemic] gen_14_elite_1__s2 q1/h15 prior=0.45 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'IMPORT_FAIL'
+[epistemic] gen_14_elite_1__s2 q1/h16 prior=0.35 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'IMPORT_FAIL'
+[epistemic] gen_14_elite_1__s2 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q2/h20 prior=0.20 FORCED -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (f-string: unmatched '(' at line 8)
+[epistemic] gen_14_elite_1__s2 q2/h18 prior=0.45 -> FALSIFIED (dU=0.000) prediction failed: stdout contains "FAIL: cannot import name 'ExecutionHarness' from partially initialized module 'hae.e
+[epistemic] gen_14_elite_1__s2 q2/h19 prior=0.35 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: MODULE_MISSING'
+[epistemic] gen_14_elite_1__s2 iteration 3: 18 moves, dU=0.980, stop=stagnation, synthesized=['hae/evaluation/artifacts.py'], counts={'questions': 3, 'questions_open': 2, 'questions_resolved': 1, 'questions_certified': 0, 'questions_exhausted': 2, 'hypotheses': 20, 'hypotheses_untested': 0, 'hypotheses_supported': 1, 'hypotheses_falsified': 14, 'hypotheses_certified': 0, 'hypotheses_untestable': 5
+ [Iteration 3/5] [self-hosting-benchmark] 48/50 held-out tests (score=96.0)
+[epistemic] gen_14_elite_1__s2 iteration 4: oracle reconciliation -> certified=3 reopened=0 seeded=2 open=2 uncertainty=2.00
+[epistemic] gen_14_elite_1__s2: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_1__s2 frontier size 3: 2 open question(s) in 1 cluster(s)
+[epistemic] gen_14_elite_1__s2 frontier += q4 (1/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_elite_1__s2 q4: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q4/h21 prior=0.65 -> SUPPORTED (dU=0.895) prediction held: exit_code==0; stdout contains 'HAS_INSPECT: True'
+[epistemic] gen_14_elite_1__s2 q4/h22 prior=0.25 -> SUPPORTED (dU=0.000) prediction held: exit_code==0; stdout contains 'STATUS: failed'
+[epistemic] gen_14_elite_1__s2 q4/h21 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.085)
+[epistemic] gen_14_elite_1__s2 q5 deferred to the oracle: same cluster as resolved q4
+[epistemic] gen_14_elite_1__s2 iteration 4: 4 moves, dU=0.980, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 5, 'questions_open': 1, 'questions_resolved': 1, 'questions_certified': 3, 'questions_exhausted': 0, 'hypotheses': 23, 'hypotheses_untested': 1, 'hypotheses_supported': 2, 'hypotheses_falsified': 14, 'hypotheses_certified': 1, 'hypotheses_untestabl
+ [Iteration 4/5] [self-hosting-benchmark] 48/50 held-out tests (score=96.0)
+[epistemic] gen_14_elite_1__s2 iteration 5: oracle reconciliation -> certified=0 reopened=1 seeded=0 open=2 uncertainty=1.75
+[epistemic] gen_14_elite_1__s2: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_1__s2 frontier size 3: 2 open question(s) in 1 cluster(s)
+[epistemic] gen_14_elite_1__s2 frontier += q4 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_elite_1__s2 q4/h22 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.730)
+[epistemic] gen_14_elite_1__s2 q5 deferred to the oracle: same cluster as resolved q4
+[epistemic] gen_14_elite_1__s2 iteration 5: 1 moves, dU=0.730, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 5, 'questions_open': 1, 'questions_resolved': 1, 'questions_certified': 3, 'questions_exhausted': 0, 'hypotheses': 23, 'hypotheses_untested': 1, 'hypotheses_supported': 1, 'hypotheses_falsified': 15, 'hypotheses_certified': 1, 'hypotheses_untestabl
+ [Iteration 5/5] [self-hosting-benchmark] 48/50 held-out tests (score=96.0)
+[epistemic] gen_14_elite_1__s2 iteration 6: oracle reconciliation -> certified=0 reopened=1 seeded=0 open=2 uncertainty=1.75
+ [EPISTEMIC AUDIT] questions=5 certified=3 hypotheses_tested=17 evidence_backed=1.00 inconsistencies=0 brier=0.210735 resolved=0.65 moves=43/240 ledger=851c4f546c2d
+ FINAL NET FITNESS: 90.08/100 (Gross: 85.88) | Iterations: 5/5
+WORKER_EXIT=0

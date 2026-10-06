@@ -1,0 +1,68 @@
+     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: budget=60 moves, k=3, c_puct=1.4, low_prior_quota=0.34, bindings={'question': 'qa', 'hypothesis': 'engineering', 'experiment': 'verification', 'synthesis': 'engineering'}
+ [Iteration 1/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_elite_2__s1 iteration 2: oracle reconciliation -> certified=0 reopened=0 seeded=3 open=3 uncertainty=3.00
+[epistemic] gen_14_elite_2__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_2__s1 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_elite_2__s1 frontier += q1 (1/3; u=1.00; cluster 'hae/evaluation/harness.py|AssertionError: # != #')
+[epistemic] gen_14_elite_2__s1 frontier += q2 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_elite_2__s1 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_2__s1 q1/h1 prior=0.65 -> FALSIFIED (dU=0.325) prediction failed: stdout contains 'AUTHORED_COUNT:6'
+[epistemic] gen_14_elite_2__s1 q1/h2 prior=0.25 -> SUPPORTED (dU=0.450) prediction held: exit_code==0; stdout contains 'FILTERED_COUNT:4'
+[epistemic] gen_14_elite_2__s1 q1/h2 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.205)
+[epistemic] gen_14_elite_2__s1 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_2__s1 q2/h6 prior=0.10 FORCED -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 12)
+[epistemic] gen_14_elite_2__s1 q2/h4 prior=0.65 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('inspect.getsource')
+[epistemic] gen_14_elite_2__s1 q2/h5 prior=0.25 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 17)
+[epistemic] gen_14_elite_2__s1 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_2__s1 q2/h9 prior=0.10 FORCED -> FALSIFIED (dU=0.025) prediction failed: stdout contains 'MARKER: SKIPPED_DUE_TO_IMPORT'
+[epistemic] gen_14_elite_2__s1 q2/h7 prior=0.65 -> FALSIFIED (dU=0.163) prediction failed: stdout contains 'MARKER: FALLBACK_COLLECTS_ZERO'
+[epistemic] gen_14_elite_2__s1 q2/h8 prior=0.25 -> FALSIFIED (dU=0.062) prediction failed: stdout contains 'MARKER: FALLBACK_USED'
+[epistemic] gen_14_elite_2__s1 frontier += q3 (1/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_elite_2__s1 q3: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_2__s1 q3/h12 prior=0.20 FORCED -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 12)
+[epistemic] gen_14_elite_2__s1 q3/h10 prior=0.45 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 13)
+[epistemic] gen_14_elite_2__s1 q3/h11 prior=0.35 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 12)
+[epistemic] gen_14_elite_2__s1 q3: proposed 3 -> 0 accepted, 3 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_2__s1 q3/h12 prior=0.20 FORCED -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('PYTHONPATH')
+[epistemic] gen_14_elite_2__s1 q3/h10 prior=0.45 -> FALSIFIED (dU=0.225) prediction failed: stdout contains 'MARKER: HYPOTHESIS_TRUE'
+[epistemic] gen_14_elite_2__s1 q3/h11 prior=0.35 -> FALSIFIED (dU=0.175) prediction failed: stdout contains 'MARKER: HYPOTHESIS_TRUE'
+[epistemic] gen_14_elite_2__s1 iteration 2: 20 moves, dU=1.630, stop=exhausted, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 2, 'questions_resolved': 1, 'questions_certified': 0, 'questions_exhausted': 2, 'hypotheses': 12, 'hypotheses_untested': 1, 'hypotheses_supported': 1, 'hypotheses_falsified': 6, 'hypotheses_certified': 0, 'hypotheses_untestable': 4, 'e
+ [Iteration 2/5] [self-hosting-benchmark] 48/50 held-out tests (score=96.0)
+[epistemic] gen_14_elite_2__s1 iteration 3: oracle reconciliation -> certified=1 reopened=0 seeded=0 open=2 uncertainty=1.35
+[epistemic] gen_14_elite_2__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_2__s1 frontier size 3: 2 open question(s) in 1 cluster(s)
+[epistemic] gen_14_elite_2__s1 frontier += q2 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_elite_2__s1 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_2__s1 q2/h13 prior=0.45 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'RESULT_STATUS: passed'
+[epistemic] gen_14_elite_2__s1 q2/h14 prior=0.35 -> FALSIFIED (dU=0.050) prediction failed: stdout contains 'RESULT_STATUS: failed'
+[epistemic] gen_14_elite_2__s1 q2/h15 prior=0.20 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 19)
+[epistemic] gen_14_elite_2__s1 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_2__s1 q2/h16 prior=0.15 FORCED -> SUPPORTED (dU=0.445) prediction held: exit_code==0; stdout contains 'MARKER: PYTEST_USED'
+[epistemic] gen_14_elite_2__s1 q2/h16 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; plan not applicable: anchor not found in the module (failure 1/2)
+[epistemic] gen_14_elite_2__s1 q2/h16 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; plan not applicable: anchor not found in the module (failure 2/2)
+[epistemic] gen_14_elite_2__s1 q2/h17 prior=0.60 -> SUPPORTED (dU=0.135) prediction held: exit_code==0; stdout contains 'MARKER: FAILED_STATUS'
+[epistemic] gen_14_elite_2__s1 q2/h17 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.100)
+[epistemic] gen_14_elite_2__s1 q3 deferred to the oracle: same cluster as resolved q2
+[epistemic] gen_14_elite_2__s1 iteration 3: 10 moves, dU=0.730, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 1, 'questions_certified': 1, 'questions_exhausted': 1, 'hypotheses': 18, 'hypotheses_untested': 2, 'hypotheses_supported': 2, 'hypotheses_falsified': 8, 'hypotheses_certified': 1, 'hypotheses_untestabl
+ [Iteration 3/5] [self-hosting-benchmark] 48/50 held-out tests (score=96.0)
+[epistemic] gen_14_elite_2__s1 iteration 4: oracle reconciliation -> certified=0 reopened=1 seeded=0 open=2 uncertainty=1.35
+[epistemic] gen_14_elite_2__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_2__s1 frontier size 3: 2 open question(s) in 1 cluster(s)
+[epistemic] gen_14_elite_2__s1 frontier += q2 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_elite_2__s1 q2/h18 prior=0.25 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('PYTHONPATH')
+[epistemic] gen_14_elite_2__s1 q2: proposed 3 -> 0 accepted, 2 repaired, 0 tabu, 1 duplicate
+[epistemic] gen_14_elite_2__s1 q2/h18 prior=0.25 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('PYTHONPATH')
+[epistemic] gen_14_elite_2__s1 q2/h15 prior=0.20 -> SUPPORTED (dU=0.510) prediction held: exit_code==0; stdout contains 'MARKER: failed'
+[epistemic] gen_14_elite_2__s1 q2/h15 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.220)
+[epistemic] gen_14_elite_2__s1 q3 deferred to the oracle: same cluster as resolved q2
+[epistemic] gen_14_elite_2__s1 iteration 4: 5 moves, dU=0.730, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 1, 'questions_certified': 1, 'questions_exhausted': 1, 'hypotheses': 18, 'hypotheses_untested': 1, 'hypotheses_supported': 2, 'hypotheses_falsified': 9, 'hypotheses_certified': 1, 'hypotheses_untestable
+ [Iteration 4/5] [self-hosting-benchmark] 48/50 held-out tests (score=96.0)
+[epistemic] gen_14_elite_2__s1 iteration 5: oracle reconciliation -> certified=0 reopened=1 seeded=0 open=2 uncertainty=1.35
+[epistemic] gen_14_elite_2__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_2__s1 frontier size 3: 2 open question(s) in 1 cluster(s)
+[epistemic] gen_14_elite_2__s1 frontier += q2 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_elite_2__s1 q2: proposed 3 -> 1 accepted, 1 repaired, 0 tabu, 1 duplicate
+[epistemic] gen_14_elite_2__s1 q2/h19 prior=0.10 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 11)
+[epistemic] gen_14_elite_2__s1 q2/h18 prior=0.25 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 12)
+[epistemic] gen_14_elite_2__s1 q2: proposed 3 -> 0 accepted, 2 repaired, 0 tabu, 1 duplicate
+[epistemic] gen_14_elite_2__s1 q2/h19 prior=0.10 FORCED -> SUPPORTED (dU=0.480) prediction held: exit_code==0; stdout contains 'Status: failed'

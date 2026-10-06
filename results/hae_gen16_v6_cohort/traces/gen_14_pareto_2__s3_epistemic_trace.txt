@@ -1,0 +1,76 @@
+     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: budget=60 moves, k=3, c_puct=1.4, low_prior_quota=0.34, bindings={'question': 'qa', 'hypothesis': 'engineering', 'experiment': 'verification', 'synthesis': 'engineering'}
+ [Iteration 1/5] [self-hosting-benchmark] 23/50 held-out tests (score=46.0)
+[epistemic] gen_14_pareto_2__s3 iteration 2: oracle reconciliation -> certified=0 reopened=0 seeded=2 open=2 uncertainty=2.00
+[epistemic] gen_14_pareto_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_pareto_2__s3 frontier size 3: 2 open question(s) in 2 cluster(s)
+[epistemic] gen_14_pareto_2__s3 frontier += q1 (1/3; u=1.00; cluster '|[verification_loop] suite failed to import: modulenotfounderror: no m')
+[epistemic] gen_14_pareto_2__s3 frontier += q2 (2/3; u=1.00; cluster '|[morphogenesis] suite failed to import: modulenotfounderror: no modul')
+[epistemic] gen_14_pareto_2__s3 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q1/h1 prior=0.85 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('importlib.util.find_spec')
+[epistemic] gen_14_pareto_2__s3 q1/h2 prior=0.10 -> FALSIFIED (dU=0.050) prediction failed: stdout contains 'MARKER: SYNTAX_ERROR'
+[epistemic] gen_14_pareto_2__s3 q1/h3 prior=0.05 -> FALSIFIED (dU=0.025) prediction failed: stdout contains 'MARKER: PACKAGE_MODULE_NOT_FOUND'
+[epistemic] gen_14_pareto_2__s3 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q2/h6 prior=0.05 FORCED -> FALSIFIED (dU=0.025) prediction failed: stdout contains 'OTHER_ERROR'
+[epistemic] gen_14_pareto_2__s3 q2/h4 prior=0.85 -> SUPPORTED (dU=0.925) prediction held: exit_code==0; stdout contains 'FILE_MISSING'
+[epistemic] gen_14_pareto_2__s3 q2/h4 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; plan not applicable: anchor not found in the module (failure 1/2)
+[epistemic] gen_14_pareto_2__s3 q2/h4 synthesized hae/evaluation/artifacts.py: module check passed: py_compile, import (dU=0.030)
+[epistemic] gen_14_pareto_2__s3 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q1/h9 prior=0.05 FORCED -> FALSIFIED (dU=0.000) prediction failed: exit_code==0; stdout contains 'FOUND_LOOP_FILES'
+[epistemic] gen_14_pareto_2__s3 q1/h8 prior=0.80 -> SUPPORTED (dU=0.865) prediction held: exit_code==1; stdout contains 'FILE_MISSING'
+[epistemic] gen_14_pareto_2__s3 q1/h8 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; no usable plan (failure 1/2)
+[epistemic] gen_14_pareto_2__s3 q1/h8 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; plan not applicable: plan is a no-op (new_lines == old_lines) (failure 2/2)
+[epistemic] gen_14_pareto_2__s3 q1/h7 prior=0.15 -> FALSIFIED (dU=0.000) prediction failed: exit_code==0; stdout contains 'ALL_OK'
+[epistemic] gen_14_pareto_2__s3 iteration 2: 15 moves, dU=1.920, stop=exhausted, synthesized=['hae/evaluation/artifacts.py'], counts={'questions': 2, 'questions_open': 1, 'questions_resolved': 1, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 9, 'hypotheses_untested': 1, 'hypotheses_supported': 2, 'hypotheses_falsified': 5, 'hypotheses_certified': 0, 'hypotheses_untestable': 1, 
+ [Iteration 2/5] [self-hosting-benchmark] 23/50 held-out tests (score=46.0)
+[epistemic] gen_14_pareto_2__s3 iteration 3: oracle reconciliation -> certified=0 reopened=1 seeded=0 open=2 uncertainty=0.81
+[epistemic] gen_14_pareto_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_pareto_2__s3 frontier size 3: 2 open question(s) in 2 cluster(s)
+[epistemic] gen_14_pareto_2__s3 frontier += q2 (1/3; u=0.75; cluster '|[morphogenesis] suite failed to import: modulenotfounderror: no modul')
+[epistemic] gen_14_pareto_2__s3 frontier += q1 (2/3; u=0.06; cluster '|[verification_loop] suite failed to import: modulenotfounderror: no m')
+[epistemic] gen_14_pareto_2__s3 q2/h5 prior=0.10 -> FALSIFIED (dU=0.250) prediction failed: stdout contains 'INIT_MISSING'
+[epistemic] gen_14_pareto_2__s3 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q2/h12 prior=0.50 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: hae.genome.schema FAIL'
+[epistemic] gen_14_pareto_2__s3 q2/h10 prior=0.15 FORCED -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: hae/genome/__init__.py MISSING'
+[epistemic] gen_14_pareto_2__s3 q2/h11 prior=0.35 -> FALSIFIED (dU=0.000) prediction failed: exit_code==0; stdout contains 'MARKER: IMPORT EXCEPTION: ModuleNotFoundError'
+[epistemic] gen_14_pareto_2__s3 q2: proposed 3 -> 2 accepted, 0 repaired, 1 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q2/h14 prior=0.75 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'FAIL'
+[epistemic] gen_14_pareto_2__s3 q2/h13 prior=0.15 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('__file__')
+[epistemic] gen_14_pareto_2__s3 q1: proposed 3 -> 2 accepted, 1 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 iteration 3: 9 moves, dU=0.250, stop=stagnation, synthesized=[], counts={'questions': 2, 'questions_open': 2, 'questions_resolved': 0, 'questions_certified': 0, 'questions_exhausted': 1, 'hypotheses': 16, 'hypotheses_untested': 3, 'hypotheses_supported': 1, 'hypotheses_falsified': 11, 'hypotheses_certified': 0, 'hypotheses_untestable': 1, 'evidence': 17, 'settled_fa
+ [Iteration 3/5] [self-hosting-benchmark] 23/50 held-out tests (score=46.0)
+[epistemic] gen_14_pareto_2__s3 iteration 4: oracle reconciliation -> certified=0 reopened=0 seeded=0 open=2 uncertainty=0.56
+[epistemic] gen_14_pareto_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_pareto_2__s3 frontier size 3: 2 open question(s) in 2 cluster(s)
+[epistemic] gen_14_pareto_2__s3 frontier += q1 (1/3; u=0.06; cluster '|[verification_loop] suite failed to import: modulenotfounderror: no m')
+[epistemic] gen_14_pareto_2__s3 frontier += q2 (2/3; u=0.50; cluster '|[morphogenesis] suite failed to import: modulenotfounderror: no modul')
+[epistemic] gen_14_pareto_2__s3 q1/h1 prior=0.85 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('importlib.util.find_spec')
+[epistemic] gen_14_pareto_2__s3 q1/h15 prior=0.03 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('importlib.util.find_spec')
+[epistemic] gen_14_pareto_2__s3 q1/h16 prior=0.02 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'HAS_ALL: False'
+[epistemic] gen_14_pareto_2__s3 q2: proposed 3 -> 2 accepted, 0 repaired, 1 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q2/h17 prior=0.15 FORCED -> FALSIFIED (dU=0.000) prediction failed: exit_code==0
+[epistemic] gen_14_pareto_2__s3 q2/h18 prior=0.20 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'PACKAGE_IMPORT_FAIL'
+[epistemic] gen_14_pareto_2__s3 q2: proposed 3 -> 1 accepted, 0 repaired, 1 tabu, 1 duplicate
+[epistemic] gen_14_pareto_2__s3 q2/h19 prior=0.45 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: DIR_MISSING'
+[epistemic] gen_14_pareto_2__s3 iteration 4: 8 moves, dU=0.000, stop=stagnation, synthesized=[], counts={'questions': 2, 'questions_open': 2, 'questions_resolved': 0, 'questions_certified': 0, 'questions_exhausted': 1, 'hypotheses': 19, 'hypotheses_untested': 0, 'hypotheses_supported': 1, 'hypotheses_falsified': 15, 'hypotheses_certified': 0, 'hypotheses_untestable': 3, 'evidence': 24, 'settled_fa
+ [Iteration 4/5] [self-hosting-benchmark] 23/50 held-out tests (score=46.0)
+[epistemic] gen_14_pareto_2__s3 iteration 5: oracle reconciliation -> certified=0 reopened=0 seeded=0 open=2 uncertainty=0.56
+[epistemic] gen_14_pareto_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_pareto_2__s3 frontier size 3: 2 open question(s) in 2 cluster(s)
+[epistemic] gen_14_pareto_2__s3 frontier += q2 (1/3; u=0.50; cluster '|[morphogenesis] suite failed to import: modulenotfounderror: no modul')
+[epistemic] gen_14_pareto_2__s3 frontier += q1 (2/3; u=0.06; cluster '|[verification_loop] suite failed to import: modulenotfounderror: no m')
+[epistemic] gen_14_pareto_2__s3 q2: proposed 3 -> 2 accepted, 0 repaired, 1 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q2/h20 prior=0.25 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('importlib.util.find_spec')
+[epistemic] gen_14_pareto_2__s3 q2/h21 prior=0.15 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('__file__')
+[epistemic] gen_14_pareto_2__s3 q2: proposed 3 -> 0 accepted, 1 repaired, 2 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q2/h20 prior=0.25 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'ROOT_INIT_MISSING'
+[epistemic] gen_14_pareto_2__s3 q1: proposed 3 -> 2 accepted, 1 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q1/h23 prior=0.02 FORCED -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('importlib.util.find_spec')
+[epistemic] gen_14_pareto_2__s3 q1/h1 prior=0.85 -> SUPPORTED (dU=0.010) prediction held: exit_code==0; stdout contains 'MODULE_NOT_FOUND'
+[epistemic] gen_14_pareto_2__s3 q1/h1 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; no usable plan (failure 1/2)
+[epistemic] gen_14_pareto_2__s3 q1/h1 synthesized hae/evaluation/artifacts.py: module check passed: py_compile, import (dU=0.030)
+[epistemic] gen_14_pareto_2__s3 iteration 5: 10 moves, dU=0.040, stop=exhausted, synthesized=['hae/evaluation/artifacts.py'], counts={'questions': 2, 'questions_open': 1, 'questions_resolved': 1, 'questions_certified': 0, 'questions_exhausted': 1, 'hypotheses': 23, 'hypotheses_untested': 1, 'hypotheses_supported': 2, 'hypotheses_falsified': 16, 'hypotheses_certified': 0, 'hypotheses_untestable': 4
+ [Iteration 5/5] [self-hosting-benchmark] 23/50 held-out tests (score=46.0)
+[epistemic] gen_14_pareto_2__s3 iteration 6: oracle reconciliation -> certified=0 reopened=1 seeded=0 open=2 uncertainty=1.25
+ [EPISTEMIC AUDIT] questions=2 certified=0 hypotheses_tested=18 evidence_backed=1.00 inconsistencies=0 brier=0.156689 resolved=0.38 moves=42/240 ledger=b8bdcd6fac6a
+ FINAL NET FITNESS: 54.08/100 (Gross: 49.81) | Iterations: 5/5
+WORKER_EXIT=0
