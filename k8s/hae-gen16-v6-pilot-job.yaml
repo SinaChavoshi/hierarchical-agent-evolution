@@ -1,0 +1,112 @@
+# Generation 16 -- V6 epistemic-search PILOT (4 firms).
+#
+# Within-genome comparison: the four Gen 14 genomes below plateaued under the
+# V5 linear repair loop in Gen 15 (held-out 49/49/48/46 of 50). They are re-run
+# here unchanged except for `epistemic_policy.enabled = true`, on the same
+# task (`self-hosting-fullstack-iter5`), the same model and the same budgets.
+#
+# Unlike Gen 12-15, nothing is overlaid onto the image at runtime: the
+# `v6-gen16-pilot` tag bakes hae/, configs/ (incl. the pilot population),
+# templates/, scripts/ and tests/ from commit 23077c9.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hae-gen16-v6-pilot
+  namespace: default
+  labels:
+    app: hae-gen16-v6-pilot
+    hae.generation: "16"
+    hae.experiment-set: v6-epistemic-pilot-qwen38-180b
+spec:
+  completionMode: Indexed
+  completions: 4
+  parallelism: 4
+  backoffLimitPerIndex: 1
+  maxFailedIndexes: 4
+  # Keep finished pods around long enough to `kubectl cp` results and logs.
+  # The pilot tear-down deletes the Job explicitly well before this expires.
+  ttlSecondsAfterFinished: 21600
+  template:
+    metadata:
+      labels:
+        app: hae-gen16-v6-pilot
+        hae.generation: "16"
+    spec:
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "cloud.google.com/gke-spot"
+        operator: "Exists"
+        effect: "NoSchedule"
+      restartPolicy: Never
+      containers:
+      - name: firm-evaluator
+        image: us-central1-docker.pkg.dev/gemle-gke-dev/chavoshi-repo/agent-evolution:v6-gen16-pilot
+        imagePullPolicy: IfNotPresent
+        command:
+        - "/bin/bash"
+        - "-c"
+        - |
+          python -m hae.orchestration.worker \
+            --generation 16 \
+            --region us-central1 \
+            --population-file /app/configs/generation_16_pilot_population.json \
+            --task-file /app/configs/tasks/self-hosting-fullstack-iter5.json \
+            --output-dir /data/outputs \
+            --objective "Implement the 4 core self-hosting modules of the Hierarchical Agent Evolution (HAE) engine: hae/evaluation/artifacts.py, hae/evaluation/harness.py, hae/evaluation/verification_loop.py, hae/genome/morphogenesis.py"
+          RC=$?
+          echo "WORKER_EXIT=$RC"
+          # Harvest path 1: outputs as a base64 tarball in the pod log (GCS sync
+          # from pods returned HTTP 403 in Gen 15, so the log is the durable copy).
+          if [ -d /data/outputs/generation_16 ]; then
+            echo "=== OUTPUT_TGZ_B64 BEGIN ==="
+            tar czf - -C /data/outputs generation_16 | base64 -w0
+            echo
+            echo "=== OUTPUT_TGZ_B64 END ==="
+          fi
+          # Harvest path 2: keep the container alive so `kubectl cp` works.
+          sleep 2400
+          exit $RC
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "gemle-gke-dev"
+        - name: GOOGLE_CLOUD_LOCATION
+          value: "us-central1"
+        - name: GCS_BUCKET
+          value: "gemle-gke-dev-agent-evolution"
+        - name: LLM_PROVIDER
+          value: "vllm"
+        - name: V5_TYPESAFE_PROTOCOL
+          value: "1"
+        - name: VLLM_BASE_URL
+          value: "http://vllm-qwen38-gateway.default.svc.cluster.local:8000/v1"
+        - name: VLLM_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: VLLM_MAX_TOKENS
+          value: "8192"
+        - name: WORKER_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: EXECUTIVE_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: JUDGE_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: HAE_REQUIRE_NETWORK_ISOLATION
+          value: "0"
+        - name: FIRM_INDEX
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+        resources:
+          requests:
+            cpu: "4"
+            memory: "8Gi"
+          limits:
+            cpu: "8"
+            memory: "16Gi"
+        volumeMounts:
+        - name: workdir
+          mountPath: /data
+      volumes:
+      - name: workdir
+        emptyDir: {}
