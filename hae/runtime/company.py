@@ -1150,7 +1150,13 @@ class HierarchicalCompanyRunner:
             before = self._module_fingerprint(target)
             summary = self._execute_agent_with_tools(agent, prompt, context=context, max_turns=3, target_path=target)
             after = self._module_fingerprint(target)
-            return {"written": bool(after) and after != before, "path": target, "summary": str(summary)[:400]}
+            written = bool(after) and after != before
+            if not written and after and after == before and "CODE_ARTIFACT_WRITTEN" in str(summary):
+                # Gen 16 pilot: the tool loop reported a successful write but the
+                # module hash did not move -- the synthesiser re-emitted the
+                # current file byte for byte. Say so, instead of echoing SUCCESS.
+                summary = f"module unchanged: synthesiser re-emitted identical content ({str(summary)[:200]})"
+            return {"written": written, "path": target, "summary": str(summary)[:400]}
 
         return synthesize
 

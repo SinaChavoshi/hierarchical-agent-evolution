@@ -1,6 +1,6 @@
 # Phase 6 (`V6`): Epistemic Tree-Search Organizations — *"The Scientific Method on Steroids"*
 
-> **Status:** Design finalized `October 5, 2026` · **Stage 1 & 2 implemented and tested** (`October 6, 2026`: `hae/epistemic/` engine, `epistemic_policy` gene, runner/worker/breeder integration, audit-based fitness; `≈240` new unit + integration tests, `$0` GPU) · **Stage 3 — Generation 16 (`V6`) launch pending** (needs the GPU pool scaled up; see §3.4 for how to enable)
+> **Status:** Design finalized `October 5, 2026` · **Stage 1 & 2 implemented and tested** (`October 6, 2026`: `hae/epistemic/` engine, `epistemic_policy` gene, runner/worker/breeder integration, audit-based fitness; `443` tests, `$0` GPU) · **Gen 16 pilot run `October 6, 2026`** (4 plateau genomes, 3 passes, ≈ 1.7 spot-GPU-hours, cluster deleted afterwards): one plateaued genome converged to `50/50` under `V6` via a `0.10`-prior hypothesis; five engine defects found live and fixed in-tree — see **§3.3** and [`results/hae_gen16_v6_pilot/README.md`](../../results/hae_gen16_v6_pilot/README.md) · **Stage 3 (full cohort) pending** finding #6 and a multi-seed design
 > **Trigger:** Thore Graepel (AlphaGo core team, now Chair of Machine Learning at UCL), *["Don't be fooled—LLMs don't reason"](https://www.technologyreview.com/2026/10/02/1145639/dont-be-fooled-llms-dont-reason/)*, MIT Technology Review, October 2, 2026
 > **Empirical Motivation:** Generation 15 plateau analysis ([`results/hae_gen15_fullstack_v5/generation_15_summary.json`](../../results/hae_gen15_fullstack_v5/generation_15_summary.json))
 
@@ -99,7 +99,33 @@ flowchart TD
 4. **Breeder** ([`breeder.py`](../../hae/orchestration/breeder.py)) — crossovers blend the parents' policies, mutants perturb them, elites/pareto clones carry them verbatim; `GenerationSpec.epistemic_policy` applies cohort-level overrides (`{"enabled": true, ...}`) after inheritance and refuses unknown or out-of-range fields. `rank_scorecards` ranks `V6` scorecards by the same audit-weighted composite the worker scored with; `V5` scorecards rank exactly as before.
 5. **Fitness** ([`judge.py`](../../hae/evaluation/judge.py)) — when a ledger exists, `composite_score` becomes `EPISTEMIC_WEIGHTS`: **`60%` held-out execution · `25%` ledger integrity** (`30%` evidence backing & status consistency, `25%` Brier calibration of System 1 priors against gatekeeper verdicts, `30%` oracle-certified ratio, `15%` tabu discipline) **· `15%` search efficiency** (`60%` uncertainty resolved, `40%` resolved per unit of move budget). The prose rubric is still *reported* on the scorecard for continuity but has **zero weight** in a `V6` composite. Without a ledger the `V5` composite is used unchanged.
 
-### 3.3 Stage 3 — Generation 16 (`V6` Launch) — *pending*
+### 3.3 Stage 3 — Generation 16
+
+#### 3.3.1 The pilot (`October 6, 2026`) — *run; report in [`results/hae_gen16_v6_pilot/`](../../results/hae_gen16_v6_pilot/README.md)*
+
+Before any cohort, four Gen-14 genomes that plateaued under `V5` in Gen 15 were re-run with **one field changed** — `epistemic_policy.enabled = true` — on the same task, model, verifier and objective ([`configs/generation_16_pilot_population.json`](../../configs/generation_16_pilot_population.json)). Infra: a throw-away GKE cluster with one spot `g4-standard-96` serving one vLLM replica ([`k8s/gen16-pilot-serving.yaml`](../../k8s/gen16-pilot-serving.yaml)), Jobs [`k8s/hae-gen16-v6-pilot{,-r2,-r3}-job.yaml`](../../k8s/), results harvested from the pod logs. The cluster was deleted when the last firm finished.
+
+| firm | Gen 15 (`V5`) held-out trajectory | `V6` pilot, working code (pass 2) |
+|---|---|---|
+| `gen_14_crossover_2` | `[47, 49, 49, 49, 49]` | **`[48, 48, 50]` — converged at iteration 3** on a patch synthesised from a `0.10`-prior hypothesis the gatekeeper SUPPORTED after the `0.75`-prior one was falsified; both questions oracle-`CERTIFIED` |
+| `gen_14_mutant_1` | `[48, 48, 48, 48, 48]` | `[49, 49, 49, 49, 49]` — 18 hypotheses, 18 falsified (two of them *after* a module-check-passing synthesis, by the oracle's final verdict) |
+| `gen_14_elite_1` | `[49, 49, 49, 49, 49]` | `[48, 48, 48, 48, 48]` — one SUPPORTED hypothesis never synthesised: the search starved on refused probes (finding #3) |
+| `gen_14_elite_2` | `[46, 46, 46, 46, 46]` | `[50]` at iteration 1 (pass 1) — the unchanged `V5` first pass; the search never ran |
+
+The pilot took three passes because the first two surfaced defects that only a live grammar-constrained decoder and a live proposer could expose. Each was fixed in-tree with tests before the next pass:
+
+| # | finding | fix |
+|---|---|---|
+| 1 | `xgrammar` cannot emit a multi-line `probe_code` string — every hypothesis packet degenerated into a repetition loop until `max_tokens`; pass 1 tested **zero** hypotheses | probe as a `probe_lines` array, truncated-packet salvage (`a1bb3b8`) |
+| 2 | `max_hypothesis_rounds` was a lifetime cap per question → iterations 3–5 ran `0 moves` | rounds are per search run; the tabu list is the cross-iteration memory (`e14fd03`) |
+| 3 | a probe the gatekeeper refused left its hypothesis `UNVERIFIED`; PUCT re-selected it 17 times | `UNTESTABLE` status + in-place probe repair on re-proposal (`998538d`) |
+| 4 | tabu was lexical: 7 paraphrased re-proposals of falsified mechanisms slipped under Jaccard `0.8` (scored `0.46–0.71`) | `same_mechanism`: Jaccard **or** containment ≥ `0.75` **or** claim-Jaccard ≥ `0.8`, thresholds measured on the pilot ledgers (`c869dcc`) |
+| 5 | 7 of 9 synthesis moves in `crossover_2` re-emitted the module byte-for-byte, silently | logged with failure counts; summary says `module unchanged`; *open:* targeted-edit synthesis |
+| 6 | a `7/50` first pass seeded 18 questions and the search proposed breadth-first (18 of 40 moves before any experiment) | **not fixed** — question triage (cluster by module + traceback, cap the active frontier, let a synthesis-ready question pre-empt) is the Stage 3 blocker |
+
+What the pilot does **not** show: a statistically meaningful lift. `n = 1` per firm per pass and the unchanged `V5` first pass varies wildly (`elite_1` drew 47, 48 and 7/50 in three passes). Proposer priors were badly calibrated on these bugs (Brier `0.12–0.42`, `low_prior_wins = 4` for the converging firm), which is the empirical case for the `V7` value head.
+
+#### 3.3.2 The cohort — *pending finding #6 and ≥ 3 seeds per genome*
 
 - **Benchmark A (regression):** `full_stack_hae` (`50` held-out tests) — target: break the `46–49/50` plateau on the 8 non-converged lineages **without** increasing full-company passes.
 - **Benchmark B (new, oracle-free):** a multi-file debugging task where **no benchmark traceback is handed to the company** — firms must author their own probes to localise the fault. This is the benchmark `V5` cannot attempt at all.
@@ -121,11 +147,16 @@ flowchart TD
 
 **What the worker emits** — `[V6 EPISTEMIC]` banner at start; `[epistemic] <firm> q1/h2 prior=0.30 -> SUPPORTED (dU=0.440) ...` per move; `[EPISTEMIC AUDIT] questions=… certified=… evidence_backed=… brier=… resolved=…` at the end; `epistemic_integrity` / `epistemic_efficiency` / `epistemic_audit` on the scorecard; and `<firm>_epistemic_tree.json` (ledger + every search trajectory + audit + the policy that produced it).
 
-**Three things to keep in mind when reading Gen 16:**
+**Things to keep in mind when reading Gen 16 (1–3 by design, 4–8 learnt in the pilot):**
 
 1. **One known oracle leak predates `V6` and is left in place:** `AgentWorkspace.write_file`'s *Monotonic Verification Guard* runs the external benchmark on the four graded module paths to refuse score-lowering overwrites. It is a `V4` safeguard, it applies identically to `V5` and `V6` firms, and it is documented here so that nobody mistakes a guard refusal for epistemic progress. The gatekeeper itself never calls the benchmark; probes cannot import `held_out`.
 2. **Budgets are soft** (`86c964c`, Sep 24): `Budget.can_spend` is unconditionally `True`, so the search's `token_budget` stop never fires in production. The search is bounded by `search_budget_moves`, `max_stagnant_moves` and `all_resolved` / `exhausted`; cost pressure reaches the gene through Net Fitness (`cost_penalty` / `efficiency_bonus`), exactly as it reaches topology genes.
 3. **Iteration 1 is identical in both modes.** A firm that converges on its first pass never opens a ledger and is scored by the `V5` composite — so `V6` can only be *credited* for repair behaviour, which is where Gen 15 plateaued.
+4. **Probes travel as `probe_lines` arrays, not strings.** Under `xgrammar` a multi-line string field made the decoder loop until `max_tokens`; the schema in [`moves.py`](../../hae/epistemic/moves.py) therefore takes an array of ≤ 60 lines, and a packet cut off mid-array is salvaged item by item. Legacy `probe_code` strings are still accepted by the parser. Reading an old tree: `hypotheses_tested = 0` with `stop = exhausted` is the pass-1 signature of this defect, not of an unsolvable question.
+5. **`UNTESTABLE` is not a verdict.** A hypothesis whose probe the gatekeeper refused (invalid Python, forbidden import, too long) is parked: posterior untouched, nothing in `ruled_out`, mechanism not tabu, excluded from `hypotheses_tested` and from the synthesis gate. The ledger summary tells the proposer which probe was refused and why; a re-proposal of the same mechanism with a different probe repairs it in place (`probe_repairs` in the audit). `probes_refused` counts the gatekeeper's refusals from the evidence log.
+6. **Tabu is "same mechanism", not "same words".** [`same_mechanism`](../../hae/epistemic/ledger.py) treats two hypotheses as one if their full signatures have Jaccard ≥ `0.8`, **or** the shorter signature (≥ 6 tokens) is ≥ `75 %` contained in the longer, **or** the claims alone have Jaccard ≥ `0.8`. The thresholds come from the pilot ledgers (seven paraphrased duplicates at claim-Jaccard `1.00` / containment `0.83–0.88`; every distinct pair ≤ `0.48` / ≤ `0.67`). A `tabu_rejections` count is therefore a *detected* re-proposal; it still says nothing about mechanisms the rule cannot see.
+7. **A `module unchanged` synthesis is a System 1 failure, not a gatekeeper refusal.** The synthesiser is asked for a complete module rewrite and sometimes re-emits the current file byte for byte; the move is recorded (`synthesis wrote nothing` / `module unchanged`), counts against `MAX_SYNTHESIS_FAILURES = 2` for that hypothesis, and resolves nothing. Nine syntheses with two verified (`crossover_2`) is what that looks like in an audit.
+8. **Nets are not comparable across `V5` and `V6`, and `n = 1` trajectories are noisy.** The ledger composite re-weights fitness (`60/25/15`), so compare held-out trajectories, not nets; and because iteration 1 is the unchanged `V5` pass, a single run's trajectory is dominated by that first draw (`elite_1`: 47, 48 and 7/50 across three pilot passes). Quote means only over several seeds per genome.
 
 ---
 

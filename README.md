@@ -77,7 +77,7 @@ flowchart LR
     V2 --> V3["V3: Level-3 Code-Overlay<br/>RSI (Completed)"]
     V3 --> V4["V4: Unified llm-d 3x 180B NVFP4<br/>Gen 10-11 (Completed)"]
     V4 --> V5["V5: 'TypeSafe AI' vLLM xgrammar<br/>+ full_stack_hae Gen 12-15<br/>(50/50 Convergence, Completed)"]
-    V5 --> V6["V6: Epistemic Tree-Search Organizations<br/>Ledger + Evidence Gatekeeper + Value Net<br/>(Stage 1-2 Implemented · Gen 16 Pending)"]
+    V5 --> V6["V6: Epistemic Tree-Search Organizations<br/>Ledger + Evidence Gatekeeper + Value Net<br/>(Stage 1-2 Implemented · Gen 16 Pilot Run · Cohort Pending)"]
     V6 --> V7["V7: Parametric RL (GRPO/DPO)<br/>on Certified Epistemic Trajectories (Next)"]
 ```
 
@@ -122,7 +122,7 @@ In **Phase 5 (`V5 TypeSafe AI`)**, we wired **hardware-level Finite-State Machin
 
 ---
 
-### Phase 6 (`V6`): Epistemic Tree-Search Organizations — *"The Scientific Method on Steroids"* *(Stage 1 & 2 **implemented & tested**, Oct 6 2026 — Gen 16 launch pending)*
+### Phase 6 (`V6`): Epistemic Tree-Search Organizations — *"The Scientific Method on Steroids"* *(Stage 1 & 2 **implemented & tested**; **Gen 16 pilot run** Oct 6 2026 — full cohort pending)*
 
 > 📄 **Full `V6` Design, Graepel-Diff, Gen 15 Plateau Audit & How-to-Enable:** **[`experiments/v6_epistemic_search/README.md`](experiments/v6_epistemic_search/README.md)**
 
@@ -132,7 +132,7 @@ In **Phase 5 (`V5 TypeSafe AI`)**, we wired **hardware-level Finite-State Machin
 2. **Independent, Non-LLM Evidence Gatekeeper (`hae/epistemic/gatekeeper.py`):** LLM agents may *propose* questions, competing hypotheses, sandbox experiments, and code diffs; **only** a deterministic gatekeeper that executes those probes may *certify* or *falsify* a belief. Moves that produce no new evidence have zero information gain; proposals that match a `ruled_out` mechanism are rejected as `TABU` before spending a turn.
 3. **Epistemic PUCT Tree Search + Value Network (`hae/epistemic/mcts.py`, `value.py`):** `50–100+` cheap epistemic moves per company (`<150` tokens, `<0.2 s` probes) replace `5` expensive full-company passes. Policy priors are an exploration tie-breaker, **never** a pruning filter — low-prior, mutually exclusive hypotheses are deliberately expanded so that "Move 37" fixes (1-in-10,000 prior) can be found by evidence rather than killed by plausibility. The value function scores *uncertainty actually resolved by evidence* plus a learned head trained on harvested search trees.
 4. **Heritable `epistemic_policy` Gene + Auditable Fitness:** `CompanyGenome` evolves search budget, branching, `c_puct`, low-prior quota, and department→role bindings (Question / Hypothesis / Experiment / Synthesis pods); the breeder recombines and mutates it like topology. `judge.py` retires the post-hoc prose rubric in favour of an **Epistemic Integrity Audit** (`60%` execution · `25%` ledger auditability & calibration · `15%` uncertainty resolved per cost) whenever a ledger exists; `V5` scoring is untouched otherwise.
-5. **Status & Generation 16 Targets:** the engine, runner/worker/breeder integration and audit-based fitness are in `main` behind `epistemic_policy.enabled` (default off; `415` tests green, `$0` GPU). The integration test drives a real ledger → probe → falsify/support → patch → oracle-certify cycle with the *wrong* hypothesis given the higher prior, and the evidence wins. Gen 16 (`{"epistemic_policy": {"enabled": true}}` in the generation spec) targets the `46–49/50` plateau on the 8 non-converged `full_stack_hae` lineages, plus a new **oracle-free** multi-file debugging benchmark where no traceback is handed to the firm — a task the `V5` architecture structurally cannot attempt.
+5. **Status, Gen 16 Pilot & Targets:** the engine, runner/worker/breeder integration and audit-based fitness are in `main` behind `epistemic_policy.enabled` (default off; `443` tests green, `$0` GPU). A **live pilot** (Oct 6 2026; four Gen-14 plateau genomes, one field changed, ≈ 1.7 spot-GPU-hours, cluster deleted afterwards — [`results/hae_gen16_v6_pilot/README.md`](results/hae_gen16_v6_pilot/README.md)) saw **`gen_14_crossover_2` go from its Gen 15 plateau `[47,49,49,49,49]` to `[48,48,50]`**, converging on a patch synthesised from a `0.10`-prior hypothesis after the `0.75`-prior one was falsified; a second firm ended with 18 evidence-backed falsifications (two of them *after* a module-check-passing synthesis, by the oracle's final verdict). The pilot also found five engine defects only a live decoder/proposer could expose — probe transport under `xgrammar`, per-run hypothesis rounds, `UNTESTABLE` probes, paraphrase-proof tabu, no-op syntheses — all fixed in-tree with tests; question triage for catastrophic first passes is the open item before the cohort. `n = 1` per firm: no lift is claimed. Gen 16 (`{"epistemic_policy": {"enabled": true}}` in the generation spec) still targets the `46–49/50` plateau on the 8 non-converged `full_stack_hae` lineages, plus a new **oracle-free** multi-file debugging benchmark where no traceback is handed to the firm — a task the `V5` architecture structurally cannot attempt.
 
 ---
 
