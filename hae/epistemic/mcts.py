@@ -457,6 +457,8 @@ class EpistemicSearchLoop:
         # produced and whether a silent no-op had to be re-prompted.
         if result.get("mode") == "plan":
             self.stats["syntheses_by_plan"] = self.stats.get("syntheses_by_plan", 0) + 1
+        if result.get("mode") == "author":   # the target module did not exist; the move created it
+            self.stats["syntheses_authored"] = self.stats.get("syntheses_authored", 0) + 1
         if result.get("retried"):
             self.stats["synthesis_noop_retries"] = self.stats.get("synthesis_noop_retries", 0) + 1
         if result.get("noop_recovered"):

@@ -82,20 +82,31 @@ _PROBE_ESCAPE_RE = re.compile(
     re.IGNORECASE,
 )
 
-_FAILURE_KEY_RE = re.compile(r"^\s*(?:\[(?P<tag>[^\]]+)\]\s*)?(?:FAIL|ERROR):\s*(?P<name>[A-Za-z_][A-Za-z0-9_]*)")
+# Two oracle shapes: a named test (`[tag] FAIL: test_x (...) -> Exc: msg`) and a
+# whole suite that could not even be imported (`[tag] suite failed to import:
+# ModuleNotFoundError: No module named 'hae.evaluation.harness'`). The second
+# is what a first pass that never wrote the module looks like; Gen 16 cohort
+# finding #7: without this branch it carried no tag, so its question had no
+# module and every synthesis landed on the wrong file.
+_FAILURE_KEY_RE = re.compile(
+    r"^\s*(?:\[(?P<tag>[^\]]+)\]\s*)?"
+    r"(?:(?:FAIL|ERROR):\s*(?P<name>[A-Za-z_][A-Za-z0-9_]*)|(?P<suite>suite failed to import)\b)")
+SUITE_IMPORT_NAME = "suite_import"
 
 
 def failure_key(failure: str) -> Tuple[str, str, str]:
     """(key, tag, test_name) for an oracle failure line.
 
-    Oracle lines look like `[execution_harness] FAIL: test_x (...) -> AssertionError: ...`.
-    The key is stable across iterations even when the assertion message changes,
-    so a question seeded by a failure can be matched to the same failure later.
+    Oracle lines look like `[execution_harness] FAIL: test_x (...) -> AssertionError: ...`
+    or `[execution_harness] suite failed to import: ModuleNotFoundError: ...` (name
+    `suite_import`). The key is stable across iterations even when the message
+    changes, so a question seeded by a failure can be matched to the same
+    failure later.
     """
     m = _FAILURE_KEY_RE.match(failure or "")
     if m:
         tag = (m.group("tag") or "").strip()
-        name = m.group("name")
+        name = m.group("name") or (SUITE_IMPORT_NAME if m.group("suite") else "")
         return (f"{tag}:{name}" if tag else name, tag, name)
     norm = " ".join((failure or "").split())[:120].lower()
     return (f"raw:{norm}", "", "")
@@ -496,9 +507,20 @@ class EvidenceGatekeeper:
                 continue
             _, tag, name = failure_key(line)
             module = self.module_for_tag.get(tag, default_module) if tag else default_module
-            text = (f"Why does `{name or key}` fail"
-                    + (f" in `{module}`" if module else "")
-                    + f"? Oracle: {failure_summary(line)}")
+            summary = failure_summary(line)
+            if summary.startswith("[") and "]" in summary:
+                summary = summary.split("]", 1)[1].strip()
+            if name == SUITE_IMPORT_NAME:
+                # The suite could not import its module at all -- usually the
+                # file does not exist yet. The question must name the module so
+                # that the synthesis move creates *that* file.
+                text = (f"Why can the `{tag}` suite not import"
+                        + (f" `{module}`" if module else " its module")
+                        + f"? Oracle: {summary}")
+            else:
+                text = (f"Why does `{name or key}` fail"
+                        + (f" in `{module}`" if module else "")
+                        + f"? Oracle: {summary}")
             q = state.add_question(text=text, module=module, uncertainty=1.0,
                                    source_failure_tag=tag, source_failure_key=key, source_failure=line)
             seeded.append(q.question_id)

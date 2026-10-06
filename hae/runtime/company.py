@@ -1100,8 +1100,11 @@ class HierarchicalCompanyRunner:
                 f"4. `probe_lines` is a standalone Python script of at most {policy.max_probe_lines} lines, given as a "
                 "JSON array with ONE SOURCE LINE PER ELEMENT (no embedded newlines). It imports the module FROM THE "
                 "WORKSPACE (e.g. `from hae.evaluation.harness import ExecutionHarness`), exercises exactly the "
-                "suspected behaviour, and prints a short marker. It must not read files outside the workspace, "
-                "mutate sys.path, touch the network, or reference held-out tests.\n"
+                "suspected behaviour, and prints a short marker. The Evidence Gatekeeper REFUSES (UNTESTABLE, no "
+                "verdict, and it costs your firm) any probe that uses `__file__`, `importlib.util.find_spec`, "
+                "`inspect.getsource`, absolute paths (`/app`, `/usr`, `/tmp/...`), `../`, `site-packages`, "
+                "`sys.path` mutation, `PYTHONPATH`, the network, or `held_out`. To test whether a module or "
+                "name exists, import it inside `try/except ImportError` and print which branch ran.\n"
                 "5. `prediction` states what the probe prints / exits with IF THE HYPOTHESIS IS TRUE of the current "
                 "code -- not what a fixed implementation would print. The Evidence Gatekeeper runs the probe and "
                 "falsifies any hypothesis whose prediction does not hold.\n"
@@ -1217,7 +1220,12 @@ class HierarchicalCompanyRunner:
                     else:
                         notes.append(f"plan not applicable: {note}")
 
-            # Step 2: the rewrite, anchored by the plan when there is one.
+            # Step 2: the rewrite, anchored by the plan when there is one -- or,
+            # when the module does not exist at all (a first pass that never
+            # wrote it; the oracle says `suite failed to import`), its creation.
+            # Gen 16 cohort finding #7: the search could diagnose a missing
+            # module but every synthesis landed on an existing one.
+            missing = not source
             anchor = ""
             if plan is not None:
                 anchor = (f"\nYour own repair plan, which could not be applied mechanically "
@@ -1225,38 +1233,57 @@ class HierarchicalCompanyRunner:
                           f"  function: {plan.function}\n  rationale: {plan.rationale}\n"
                           f"  replace:\n```python\n{plan.old_text}\n```\n  with:\n```python\n{plan.new_text}\n```\n"
                           "Apply exactly that change in the full module you emit.\n")
-            rewrite_prompt = (
-                f"EPISTEMIC MOVE: SYNTHESIZE a repair of `{target}`.\n\n{finding}{anchor}\n"
-                "Emit `Action: write_file` with the COMPLETE module in which ONLY the code that implements this "
-                "mechanism is changed; every currently passing behaviour must be preserved. The current module is "
-                "shown in the context: your output MUST differ from it -- re-emitting it unchanged is a failed move. "
-                "Do not speculate about other causes: mechanisms under RULED OUT were falsified by evidence."
-            )
+            if missing:
+                notes.append("target module absent: authoring it")
+                rewrite_prompt = (
+                    f"EPISTEMIC MOVE: SYNTHESIZE `{target}`, which does NOT exist in the workspace.\n\n{finding}\n"
+                    f"The held-out suite cannot import `{target}` because the file is missing, so there is nothing to "
+                    "repair: create it. Emit `Action: write_file` with the COMPLETE module implementing this file's "
+                    "section of the specification in the context, consistent with the sibling modules shown there "
+                    "(import paths, class and function names, return types). Do not modify any other file."
+                )
+            else:
+                rewrite_prompt = (
+                    f"EPISTEMIC MOVE: SYNTHESIZE a repair of `{target}`.\n\n{finding}{anchor}\n"
+                    "Emit `Action: write_file` with the COMPLETE module in which ONLY the code that implements this "
+                    "mechanism is changed; every currently passing behaviour must be preserved. The current module is "
+                    "shown in the context: your output MUST differ from it -- re-emitting it unchanged is a failed move. "
+                    "Do not speculate about other causes: mechanisms under RULED OUT were falsified by evidence."
+                )
+            mode = "author" if missing else "rewrite"
             summary = self._execute_agent_with_tools(agent, rewrite_prompt, context=context, max_turns=3,
                                                      target_path=target)
             after = self._module_fingerprint(target)
             if after and after != before:
-                return {"written": True, "path": target, "summary": f"rewrite: {str(summary)[:300]}",
-                        "mode": "rewrite", "retried": False, "noop_recovered": False, "notes": notes}
+                return {"written": True, "path": target, "summary": f"{mode}: {str(summary)[:300]}",
+                        "mode": mode, "retried": False, "noop_recovered": False, "notes": notes}
 
             # Step 3: the no-op retry. Tell the synthesiser what just happened.
-            retry_prompt = (
-                f"EPISTEMIC MOVE: SYNTHESIZE a repair of `{target}` -- SECOND ATTEMPT.\n\n"
+            what_happened = (
+                f"Your previous attempt did not create `{target}`: no `Action: write_file` for that path reached the "
+                "workspace, so the suite still cannot import it."
+                if missing else
                 "Your previous attempt changed nothing: the module you wrote was byte-for-byte identical to the "
-                "current one (same SHA-256), so the oracle failure is still unanswered.\n\n"
-                f"{finding}{anchor}\n"
-                "Name, to yourself, the single function where this mechanism lives, then emit `Action: write_file` "
-                "with the complete module in which that function is actually changed. Output identical to the "
-                "current module will be recorded as a failed synthesis."
+                "current one (same SHA-256), so the oracle failure is still unanswered."
+            )
+            retry_prompt = (
+                f"EPISTEMIC MOVE: SYNTHESIZE {'`' + target + '`' if missing else 'a repair of `' + target + '`'} "
+                f"-- SECOND ATTEMPT.\n\n{what_happened}\n\n{finding}{anchor}\n"
+                + ("Emit `Action: write_file` with `Path: " + target + "` and the complete module. "
+                   if missing else
+                   "Name, to yourself, the single function where this mechanism lives, then emit `Action: write_file` "
+                   "with the complete module in which that function is actually changed. ")
+                + "Output identical to the current workspace will be recorded as a failed synthesis."
             )
             summary2 = self._execute_agent_with_tools(agent, retry_prompt, context=context, max_turns=3,
                                                       target_path=target)
             after2 = self._module_fingerprint(target)
             if after2 and after2 != before:
-                return {"written": True, "path": target, "mode": "rewrite", "retried": True, "noop_recovered": True,
+                return {"written": True, "path": target, "mode": mode, "retried": True, "noop_recovered": True,
                         "summary": f"no-op (re-prompted, then changed): {str(summary2)[:260]}", "notes": notes}
             return {"written": False, "path": target, "mode": "none", "retried": True, "noop_recovered": False,
-                    "summary": (f"no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; "
+                    "summary": (f"no-op (re-prompted, gave up): synthesiser "
+                                f"{'did not create the file' if missing else 're-emitted identical content'} twice; "
                                 f"{'; '.join(notes)[:160]}"), "notes": notes}
 
         return synthesize

@@ -10,6 +10,7 @@ nothing. Everything below `call_llm` is real.
 """
 
 import json
+import os
 import shutil
 import tempfile
 import unittest
@@ -49,19 +50,23 @@ class ScriptedLLM:
     def __init__(self, plan=None, rewrite=None, retry=None):
         self.plan, self.rewrite, self.retry = plan, rewrite, retry
         self.prompts = []
+        self.last_prompt = ""
+        self.retry_prompt = ""
 
     def __call__(self, prompt, model_name, temperature, system_instruction,
                  usage_sink=None, response_format=None, max_tokens=None, **_):
         if usage_sink is not None:
             usage_sink.update({"measured": True, "prompt_tokens": 500, "output_tokens": 100})
+        self.last_prompt = prompt
         if "REPAIR_PLAN packet" in prompt:
             self.prompts.append("plan")
             return self.plan if self.plan is not None else "I cannot plan."
         if "SECOND ATTEMPT" in prompt:
             self.prompts.append("retry")
-            assert "Your previous attempt changed nothing" in prompt
+            self.retry_prompt = prompt
+            assert "Your previous attempt" in prompt
             return self.retry if self.retry is not None else write_action(BUGGY)
-        if "SYNTHESIZE a repair" in prompt:
+        if "SYNTHESIZE" in prompt:
             self.prompts.append("rewrite")
             return self.rewrite if self.rewrite is not None else write_action(BUGGY)
         self.prompts.append("other")
@@ -149,6 +154,31 @@ class SynthesisAdapterTests(unittest.TestCase):
         self.assertIn("no-op (re-prompted, gave up)", res["summary"])
         self.assertEqual(llm.prompts, ["plan", "rewrite", "retry"])   # exactly one retry, never more
         self.assertEqual(self.module(), BUGGY.rstrip("\n"))
+
+    def test_a_missing_module_is_authored_not_repaired(self):
+        # Gen 16 cohort finding #7: a first pass that never wrote the module.
+        # There is no source to plan against, so the move must create the
+        # file, say so, and never pretend it repaired something.
+        os.remove(os.path.join(self.runner.workspace.path, "mypkg", "calc.py"))
+        llm = ScriptedLLM(plan=PLAN_OK, rewrite=write_action(FIXED))
+        res = self.synthesize(llm)
+        self.assertTrue(res["written"])
+        self.assertEqual(res["mode"], "author")
+        self.assertEqual(llm.prompts, ["rewrite"])                   # no REPAIR_PLAN step without a source
+        self.assertTrue(any("target module absent" in n for n in res["notes"]))
+        self.assertIn("return a + b", self.module())
+        # The authoring prompt said what it was doing.
+        self.assertIn("does NOT exist in the workspace", llm.last_prompt)
+
+    def test_authoring_that_writes_nothing_is_reported_honestly(self):
+        os.remove(os.path.join(self.runner.workspace.path, "mypkg", "calc.py"))
+        llm = ScriptedLLM(plan=None, rewrite="I will think about it.", retry="Still thinking.")
+        res = self.synthesize(llm)
+        self.assertFalse(res["written"])
+        self.assertTrue(res["retried"])
+        self.assertIn("did not create the file", res["summary"])
+        self.assertEqual(llm.prompts, ["rewrite", "retry"])
+        self.assertIn("did not create", llm.retry_prompt)
 
     def test_search_loop_counts_plan_and_noop_telemetry(self):
         from hae.epistemic.mcts import EpistemicSearchLoop

@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from hae.epistemic.gatekeeper import (
+    failure_signature,
     INCONCLUSIVE, EvidenceGatekeeper, failure_key, failure_summary,
 )
 from hae.epistemic.ledger import (
@@ -225,6 +226,31 @@ class OracleReconciliationTests(GatekeeperFixture):
         self.assertEqual(rec2["seeded"], [])
         self.assertEqual(len(state.questions), 2)
         self.assertEqual(state.evidence_log[-1].kind, "oracle")
+
+    SUITE = "[harness] suite failed to import: ModuleNotFoundError: No module named 'mypkg.harness'"
+
+    def test_a_suite_that_cannot_import_is_attributed_to_its_module(self):
+        # Gen 16 cohort finding #7: a first pass that never wrote a module makes
+        # the oracle say `suite failed to import`; without a tag the question had
+        # no module and every synthesis landed on an existing file.
+        key, tag, name = failure_key(self.SUITE)
+        self.assertEqual((key, tag, name), ("harness:suite_import", "harness", "suite_import"))
+        self.assertEqual(failure_key("[harness] suite failed to import: SyntaxError: bad")[0], "harness:suite_import")
+        self.assertEqual(failure_signature(self.SUITE), "")      # its own cluster; nothing to merge on
+        state = EpistemicState("f")
+        gk = EvidenceGatekeeper(self.ws, isolate=False, stage_reference=False,
+                                module_for_tag={"calc": "mypkg/calc.py", "harness": "mypkg/harness.py"})
+        rec = gk.reconcile_with_oracle(state, [self.SUITE, self.FAIL], iteration=1, default_module="")
+        self.assertEqual(len(rec["seeded"]), 2)
+        q = state.questions[rec["seeded"][0]]
+        self.assertEqual(q.module, "mypkg/harness.py")
+        self.assertEqual(q.source_failure_key, "harness:suite_import")
+        self.assertIn("cannot import", q.text.replace("can the `harness` suite not import", "cannot import"))
+        self.assertIn("mypkg/harness.py", q.text)
+        self.assertNotIn("[harness]", q.text)
+        # The same line next iteration matches the same question (no re-seeding).
+        rec2 = gk.reconcile_with_oracle(state, [self.SUITE, self.FAIL], iteration=2)
+        self.assertEqual(rec2["seeded"], [])
 
     def test_vanished_failure_certifies_question(self):
         h = self._hyp("add subtracts", 0.3, {"expect_stdout_contains": "ADD 0"})

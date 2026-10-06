@@ -49,7 +49,7 @@ SEARCH_STAT_KEYS = (
     "moves_used", "proposal_rounds", "hypotheses_accepted", "tabu_rejections", "duplicate_rejections",
     "experiments", "supported", "falsified", "inconclusive", "rejected_probes", "probe_repairs",
     "forced_low_prior_picks", "forced_low_prior_wins", "syntheses", "syntheses_verified", "syntheses_unwritten",
-    "syntheses_by_plan", "synthesis_noop_retries", "synthesis_noop_recoveries",
+    "syntheses_by_plan", "syntheses_authored", "synthesis_noop_retries", "synthesis_noop_recoveries",
     "frontier_admissions", "questions_deferred", "questions_asked", "proposer_errors",
 )
 AUDIT_KEYS = (
@@ -266,7 +266,7 @@ def main():
 
     print("\n### V6 mechanics (pooled over the search iterations of each run)")
     print("| run | moves | frontier adm. / deferred | hyps acc. (tabu, dup) | exp. (S/F) | refused / repaired | "
-          "syntheses: plan / total (verified) | no-op retries (recovered) | forced low-prior (wins) | Brier (n) |")
+          "syntheses: plan / authored / total (verified) | no-op retries (recovered) | forced low-prior (wins) | Brier (n) |")
     print("|---|---|---|---|---|---|---|---|---|---|")
     for cid, r in runs.items():
         s = r.get("search_stats")
@@ -277,7 +277,7 @@ def main():
               f"{s.get('hypotheses_accepted', 0)} ({s.get('tabu_rejections', 0)}, {s.get('duplicate_rejections', 0)}) | "
               f"{s.get('experiments', 0)} ({s.get('supported', 0)}/{s.get('falsified', 0)}) | "
               f"{s.get('rejected_probes', 0)} / {s.get('probe_repairs', 0)} | "
-              f"{s.get('syntheses_by_plan', 0)} / {s.get('syntheses', 0)} ({s.get('syntheses_verified', 0)}) | "
+              f"{s.get('syntheses_by_plan', 0)} / {s.get('syntheses_authored', 0)} / {s.get('syntheses', 0)} ({s.get('syntheses_verified', 0)}) | "
               f"{s.get('synthesis_noop_retries', 0)} ({s.get('synthesis_noop_recoveries', 0)}) | "
               f"{s.get('forced_low_prior_picks', 0)} ({s.get('forced_low_prior_wins', 0)}) | "
               f"{fmt(a.get('calibration_brier'), 3)} ({fmt(a.get('calibration_tested'))}) |")
