@@ -1,0 +1,66 @@
+     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: budget=60 moves, k=3, c_puct=1.4, low_prior_quota=0.34, bindings={'question': 'qa', 'hypothesis': 'engineering', 'experiment': 'verification', 'synthesis': 'engineering'}
+ [Iteration 1/5] [self-hosting-benchmark] 8/50 held-out tests (score=16.0)
+[epistemic] gen_14_mutant_1__s3 iteration 2: oracle reconciliation -> certified=0 reopened=0 seeded=17 open=17 uncertainty=17.00
+[epistemic] gen_14_mutant_1__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_1__s3 frontier size 3: 17 open question(s) in 4 cluster(s)
+[epistemic] gen_14_mutant_1__s3 frontier += q1 (1/3; u=1.00; cluster "hae/evaluation/harness.py|AttributeError: '?' object has no attribute ")
+[epistemic] gen_14_mutant_1__s3 frontier += q15 (2/3; u=1.00; cluster 'hae/evaluation/harness.py|AssertionError: # != #')
+[epistemic] gen_14_mutant_1__s3 frontier += q16 (3/3; u=1.00; cluster 'q:q16')
+[epistemic] gen_14_mutant_1__s3 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s3 q1/h1 prior=0.85 -> FALSIFIED (dU=0.425) prediction failed: stdout contains 'MARKER: REPORT_IS_NONE'
+[epistemic] gen_14_mutant_1__s3 q1/h2 prior=0.10 -> FALSIFIED (dU=0.050) prediction failed: stdout contains 'MARKER: REPORT_IS_NONE'
+[epistemic] gen_14_mutant_1__s3 q1/h3 prior=0.05 -> FALSIFIED (dU=0.025) prediction failed: stdout contains 'MARKER: REPORT_IS_NONE'
+[epistemic] gen_14_mutant_1__s3 q15: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s3 q15/h6 prior=0.10 FORCED -> SUPPORTED (dU=0.730) prediction held: exit_code==0; stdout contains 'COUNT:6'
+[epistemic] gen_14_mutant_1__s3 q15/h4 prior=0.65 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'AUTHORED_COUNT:2'
+[epistemic] gen_14_mutant_1__s3 q15/h6 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.250)
+[epistemic] gen_14_mutant_1__s3 frontier += q17 (3/3; u=1.00; cluster 'q:q17')
+[epistemic] gen_14_mutant_1__s3 q16: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s3 q16/h8 prior=0.05 FORCED -> FALSIFIED (dU=0.025) prediction failed: stdout contains 'IMPORT_FAIL_SYNTAX'
+[epistemic] gen_14_mutant_1__s3 q16/h7 prior=0.90 -> SUPPORTED (dU=0.925) prediction held: exit_code==0; stdout contains 'IMPORT_FAIL_MODULE_NOT_FOUND'
+[epistemic] gen_14_mutant_1__s3 q16/h7 synthesized hae/evaluation/verification_loop.py: module check passed: py_compile, import (dU=0.030)
+[epistemic] gen_14_mutant_1__s3 q17: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s3 q17/h10 prior=0.85 -> FALSIFIED (dU=0.425) prediction failed: stdout contains "MORPHOGENESIS_IMPORT_FAIL: No module named 'hae.evaluation.verification_loop'"
+[epistemic] gen_14_mutant_1__s3 q17/h12 prior=0.05 FORCED -> FALSIFIED (dU=0.025) prediction failed: stdout contains "HAE_ROOT_FAIL: No module named 'hae'"
+[epistemic] gen_14_mutant_1__s3 q17/h11 prior=0.10 -> FALSIFIED (dU=0.050) prediction failed: stdout contains "EVAL_PKG_FAIL: No module named 'hae.evaluation'"
+[epistemic] gen_14_mutant_1__s3 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s3 q1/h13 prior=0.65 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'H1_TRUE: returned None'
+[epistemic] gen_14_mutant_1__s3 q1/h15 prior=0.10 FORCED -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'H3_TRUE: AttributeError NoneType'
+[epistemic] gen_14_mutant_1__s3 q1/h14 prior=0.25 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'H2_TRUE: gates is None'
+[epistemic] gen_14_mutant_1__s3 frontier += q10 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AttributeError: '?' object has no attribute ")
+[epistemic] gen_14_mutant_1__s3 q10: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s3 q10/h17 prior=0.65 -> FALSIFIED (dU=0.325) prediction failed: stdout contains 'GATE_IS_NONE'
+[epistemic] gen_14_mutant_1__s3 q10/h16 prior=0.15 FORCED -> FALSIFIED (dU=0.075) prediction failed: stdout contains 'REPORT_IS_NONE'
+[epistemic] gen_14_mutant_1__s3 q10/h18 prior=0.20 -> FALSIFIED (dU=0.100) prediction failed: stdout contains 'MISSING:'
+[epistemic] gen_14_mutant_1__s3 q10: proposed 3 -> 0 accepted, 0 repaired, 3 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s3 frontier += q11 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AttributeError: '?' object has no attribute ")
+[epistemic] gen_14_mutant_1__s3 q11: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s3 q11/h21 prior=0.60 -> FALSIFIED (dU=0.300) prediction failed: stdout contains 'HYPOTHESIS_TRUE: Syntax gate missing from report'
+[epistemic] gen_14_mutant_1__s3 q11/h19 prior=0.15 FORCED -> FALSIFIED (dU=0.075) prediction failed: stdout contains 'HYPOTHESIS_TRUE: Gate result is None'
+[epistemic] gen_14_mutant_1__s3 q11/h20 prior=0.25 -> FALSIFIED (dU=0.125) prediction failed: stdout contains 'HYPOTHESIS_TRUE: gate() returned None'
+[epistemic] gen_14_mutant_1__s3 q11: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s3 q11/h22 prior=0.45 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: SYNTAX_GATE_MISSING'
+[epistemic] gen_14_mutant_1__s3 q11/h24 prior=0.20 FORCED -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: NO_SYNTAX_GATE_OBJ'
+[epistemic] gen_14_mutant_1__s3 q11/h23 prior=0.35 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: SYNTAX_NOT_IN_GATES'
+[epistemic] gen_14_mutant_1__s3 frontier += q12 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AttributeError: '?' object has no attribute ")
+[epistemic] gen_14_mutant_1__s3 q12: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s3 q12/h26 prior=0.65 -> SUPPORTED (dU=0.895) prediction held: exit_code==0; stdout contains 'REPORT_NOT_NONE'
+[epistemic] gen_14_mutant_1__s3 q12/h25 prior=0.15 FORCED -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'REPORT_IS_NONE'
+[epistemic] gen_14_mutant_1__s3 q12/h26 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.085)
+[epistemic] gen_14_mutant_1__s3 q2 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_mutant_1__s3 q3 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_mutant_1__s3 q4 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_mutant_1__s3 q5 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_mutant_1__s3 q6 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_mutant_1__s3 q7 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_mutant_1__s3 q8 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_mutant_1__s3 q9 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_mutant_1__s3 q13 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_mutant_1__s3 q14 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_mutant_1__s3 q17: proposed 3 -> 0 accepted, 0 repaired, 3 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s3 iteration 2: 38 moves, dU=4.940, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py', 'hae/evaluation/verification_loop.py'], counts={'questions': 17, 'questions_open': 14, 'questions_resolved': 3, 'questions_certified': 0, 'questions_exhausted': 4, 'hypotheses': 27, 'hypotheses_untested': 3, 'hypotheses_supported': 3, 'hypotheses_falsified': 21, 'hypo
+ [Iteration 2/5] [self-hosting-benchmark] 50/50 held-out tests (score=100.0)
+[epistemic] gen_14_mutant_1__s3 iteration 3: oracle reconciliation -> certified=17 reopened=0 seeded=0 open=0 uncertainty=0.00
+ [EPISTEMIC AUDIT] questions=17 certified=17 hypotheses_tested=24 evidence_backed=1.00 inconsistencies=0 brier=0.19375 resolved=1.00 moves=38/60 ledger=8357ec928bb4
+ FINAL NET FITNESS: 98.66/100 (Gross: 94.47) | Iterations: 2/5
+WORKER_EXIT=0

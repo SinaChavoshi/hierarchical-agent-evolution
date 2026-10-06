@@ -101,18 +101,20 @@ A vLLM pod that restarts after a partial model download crash-loops (`Safetensor
 
 ## 6. Run 2 — the same 26 slots with the finding 7 fix
 
-*(section written while run 2 was in flight; final tables in [`../hae_gen16_v6_cohort_r2/summary_tables.md`](../hae_gen16_v6_cohort_r2/summary_tables.md) and [`../hae_gen16_v6_cohort_r2/README.md`](../hae_gen16_v6_cohort_r2/README.md))*
+Full report: [`../hae_gen16_v6_cohort_r2/README.md`](../hae_gen16_v6_cohort_r2/README.md). Run 2 differs from run 1 only in the image (`6665432`: A3 + the finding 7 fix), so the two outcome tables are the controlled comparison:
 
-Run 2 drew **9 catastrophic first passes** (7, 7, 7, 8, 11, 21, 22, 23, 26) against run 1's 7, so the fix got a real test. The two with exactly the run-1 shape — `crossover_2__s2` and the control `pareto_1__s1`, both `7/50` with three suites failing to import — now seed **3 questions instead of 18**, each on the right module, and the first move is `h1 prior=0.85 → SUPPORTED 'IMPORT_FAIL_MODULE_NOT_FOUND' → synthesized hae/evaluation/harness.py` — the missing module **authored**, then `7 → 48` at the next oracle call (`V5`-grade recovery, in one iteration instead of never).
+| first pass (`V5`) | run 1 (`b80f543`) | run 2 (fix) |
+|---|---|---|
+| **≤ 35 (catastrophic)** | 7 runs · 0 reached 50 · recovered to ≥ 45: **1** · final mean 26.4 | 9 runs · **2** reached 50 (`[7, 50]`, `[8, 50]`) · recovered to ≥ 45: **6** · final mean 40.2 |
+| 44–49 (plateau) | 16 runs · 2 reached 50 · final mean 48.6 | 16 runs · 4 reached 50 · final mean 48.3 |
+| 50 at iteration 1 | 3 | 1 |
 
-The trace to read is [`../hae_gen16_v6_cohort_r2/traces/gen_14_mutant_2__s1_epistemic_trace.txt`](../hae_gen16_v6_cohort_r2/traces/gen_14_mutant_2__s1_epistemic_trace.txt): **`7/50 → 50/50` in one iteration, 21 moves.** 18 oracle failures were clustered into 4; `q1/h1` (0.85) supported → `harness.py` synthesised → 14 cluster siblings deferred to the oracle; then **two `0.05`-prior hypotheses** — one of them a forced low-prior pick — were supported and synthesised (`morphogenesis.py` by anchored edit, `verification_loop.py`); the oracle certified all 18 questions. `mutant_1__s3` repeated it, `[8, 50]`.
+The two run-1-shaped starts in run 2 (`crossover_2__s2`, control `pareto_1__s1`: `7/50`, three suites failing to import) seed **3 questions instead of 18**, and the first move is `h1 prior=0.85 → SUPPORTED 'IMPORT_FAIL_MODULE_NOT_FOUND' → synthesized hae/evaluation/harness.py` — the missing module **authored**, then `7 → 48` at the next oracle call. The trace to read is [`../hae_gen16_v6_cohort_r2/traces/gen_14_mutant_2__s1_epistemic_trace.txt`](../hae_gen16_v6_cohort_r2/traces/gen_14_mutant_2__s1_epistemic_trace.txt): **`7/50 → 50/50` in one iteration, 21 moves**, two of the four verified syntheses from `0.05`-prior hypotheses (one a forced low-prior pick). The three catastrophic starts that did not recover in run 2 are the other shape — `harness.py` exists and is wrong in 15–20 places — which the fix does not address.
 
-Mechanically (partial, 13 scored runs vs run 1's 25): refused probes `29 %` vs `36 %` of verdicts; no-op syntheses `2` of `32` vs `25` of `116`; `syntheses_authored = 4`. Both are the attribution fix at work: a question that names the right module gets a synthesis plan whose anchors exist.
+Mechanically: refused probes `23 %` vs `37 %` of verdicts, no-op syntheses `16 %` vs `22 %`, forced low-prior picks supported `27 %` vs `17 %`, `syntheses_authored = 5`, questions deferred `293` vs `159`.
 
 > [!WARNING]
-> The partial run-2 numbers above are **self-selected**: converging runs finish first. The fix also changed three things at once (attribution, authoring, proposer prompt), so the plateau-start conversions it shows (`[45, 50]`, `[49, 49, 50]`, `[48, 50]`, `[46, 48, 50]` by 18:45 UTC) cannot be attributed to any one of them. Read the final table in the run-2 README before quoting a rate.
-
----
+> `6/9` vs `1/7` is a clear direction, not a measured rate; the fix changed three things at once (attribution, authoring, proposer prompt); and the plateau row did not move in mean (`n = 16`, different first-pass draws). Read the run-2 report's limits before quoting.
 
 ## 7. Limits of this cohort
 

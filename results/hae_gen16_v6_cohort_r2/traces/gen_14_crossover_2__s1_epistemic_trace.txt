@@ -1,0 +1,88 @@
+     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: budget=60 moves, k=3, c_puct=1.4, low_prior_quota=0.34, bindings={'question': 'qa', 'hypothesis': 'engineering', 'experiment': 'verification', 'synthesis': 'engineering'}
+ [Iteration 1/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_crossover_2__s1 iteration 2: oracle reconciliation -> certified=0 reopened=0 seeded=3 open=3 uncertainty=3.00
+[epistemic] gen_14_crossover_2__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_crossover_2__s1 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_crossover_2__s1 frontier += q1 (1/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_crossover_2__s1 frontier += q2 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_crossover_2__s1 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_2__s1 q1/h1 prior=0.65 -> SUPPORTED (dU=0.895) prediction held: exit_code==0; stdout contains 'MARKER: TESTS_FAILED'
+[epistemic] gen_14_crossover_2__s1 q1/h2 prior=0.25 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: DISCOVERY_FAILED'
+[epistemic] gen_14_crossover_2__s1 q1/h1 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; plan not applicable: plan is a no-op (new_lines == old_lines) (failure 1/2)
+[epistemic] gen_14_crossover_2__s1 q1/h1 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.085)
+[epistemic] gen_14_crossover_2__s1 q3 deferred to the oracle: same cluster as resolved q1
+[epistemic] gen_14_crossover_2__s1 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_2__s1 q2/h6 prior=0.20 FORCED -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 21)
+[epistemic] gen_14_crossover_2__s1 q2/h4 prior=0.45 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 23)
+[epistemic] gen_14_crossover_2__s1 q2/h5 prior=0.35 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 28)
+[epistemic] gen_14_crossover_2__s1 q2: proposed 3 -> 0 accepted, 3 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_2__s1 q2/h6 prior=0.20 FORCED -> FALSIFIED (dU=0.100) prediction failed: stdout contains 'HYPOTHESIS SUPPORTED: Pytest used, returned FAILED'
+[epistemic] gen_14_crossover_2__s1 q2/h4 prior=0.45 -> SUPPORTED (dU=0.735) prediction held: exit_code==0; stdout contains 'HYPOTHESIS SUPPORTED: Tests gate returned FAILED instead of SKIPPED'
+[epistemic] gen_14_crossover_2__s1 Principal AI Accelerator Architect: anchored edit in `ExecutionHarness._gate_tests`: replaced 12 line(s) at line 526 (exact match) with 12; The current implementation incorrectly returns FAILED when pytest encounters ModuleNotFoundError during collection,
+[epistemic] gen_14_crossover_2__s1 q2/h4 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.145)
+[epistemic] gen_14_crossover_2__s1 iteration 2: 13 moves, dU=1.960, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 6, 'hypotheses_untested': 2, 'hypotheses_supported': 2, 'hypotheses_falsified': 2, 'hypotheses_certified': 0, 'hypotheses_untest
+ [Iteration 2/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_crossover_2__s1 iteration 3: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.50
+[epistemic] gen_14_crossover_2__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_crossover_2__s1 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_crossover_2__s1 frontier += q1 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_crossover_2__s1 frontier += q2 (2/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_crossover_2__s1 q1/h3 prior=0.10 -> FALSIFIED (dU=0.250) prediction failed: stdout contains 'MARKER: SKIPPED'
+[epistemic] gen_14_crossover_2__s1 q2/h5 prior=0.35 -> FALSIFIED (dU=0.250) prediction failed: stdout contains 'HYPOTHESIS SUPPORTED: Smoke FAILED, Tests SKIPPED'
+[epistemic] gen_14_crossover_2__s1 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_2__s1 q1/h9 prior=0.10 FORCED -> SUPPORTED (dU=0.230) prediction held: exit_code==0; stdout contains 'DETAIL:'
+[epistemic] gen_14_crossover_2__s1 q1/h9 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.250)
+[epistemic] gen_14_crossover_2__s1 q3 deferred to the oracle: same cluster as resolved q1
+[epistemic] gen_14_crossover_2__s1 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_2__s1 q2/h10 prior=0.85 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (unterminated string literal (detected at line 21) at line 21)
+[epistemic] gen_14_crossover_2__s1 q2/h11 prior=0.10 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (unterminated string literal (detected at line 18) at line 18)
+[epistemic] gen_14_crossover_2__s1 q2/h12 prior=0.05 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (unterminated string literal (detected at line 18) at line 18)
+[epistemic] gen_14_crossover_2__s1 q2: proposed 3 -> 0 accepted, 3 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_2__s1 q2/h12 prior=0.05 FORCED -> SUPPORTED (dU=0.215) prediction held: exit_code==0; stdout contains 'TESTS_GATE_STATUS: failed'
+[epistemic] gen_14_crossover_2__s1 Principal AI Accelerator Architect: anchored edit in `ExecutionHarness._gate_tests`: replaced 12 line(s) at line 526 (exact match) with 17; Pytest reports collection errors (like ModuleNotFoundError) with exit code 2, which the current logic treats as a ge
+[epistemic] gen_14_crossover_2__s1 q2/h12 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.265)
+[epistemic] gen_14_crossover_2__s1 iteration 3: 12 moves, dU=1.460, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 12, 'hypotheses_untested': 4, 'hypotheses_supported': 2, 'hypotheses_falsified': 6, 'hypotheses_certified': 0, 'hypotheses_untes
+ [Iteration 3/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_crossover_2__s1 iteration 4: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.50
+[epistemic] gen_14_crossover_2__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_crossover_2__s1 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_crossover_2__s1 frontier += q1 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_crossover_2__s1 frontier += q2 (2/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_crossover_2__s1 q1/h7 prior=0.65 -> FALSIFIED (dU=0.188) prediction failed: stdout contains 'TESTS_GATE_STATUS: passed'
+[epistemic] gen_14_crossover_2__s1 q2/h10 prior=0.85 -> SUPPORTED (dU=0.700) prediction held: exit_code==0; stdout contains 'TESTS_GATE_STATUS: failed'
+[epistemic] gen_14_crossover_2__s1 q2/h10 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; plan not applicable: plan is a no-op (new_lines == old_lines) (failure 1/2)
+[epistemic] gen_14_crossover_2__s1 q2/h10 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; plan not applicable: plan is a no-op (new_lines == old_lines) (failure 2/2)
+[epistemic] gen_14_crossover_2__s1 q1/h8 prior=0.25 -> FALSIFIED (dU=0.062) prediction failed: stdout contains 'METHOD: stdlib'
+[epistemic] gen_14_crossover_2__s1 q2/h11 prior=0.10 -> SUPPORTED (dU=0.000) prediction held: exit_code==0; stdout contains 'TESTS_GATE_STATUS: failed'
+[epistemic] gen_14_crossover_2__s1 Principal AI Accelerator Architect: anchored edit in `ExecutionHarness._run_stdlib_tests`: replaced 6 line(s) at line 632 (exact match) with 7; The stdlib fallback subprocess script catches ModuleNotFoundError during import and prints 'IMPORT_ERRORS' to st
+[epistemic] gen_14_crossover_2__s1 q2/h11 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.030)
+[epistemic] gen_14_crossover_2__s1 q1: proposed 3 -> 2 accepted, 0 repaired, 1 tabu, 0 duplicate
+[epistemic] gen_14_crossover_2__s1 q1/h14 prior=0.20 FORCED -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 8)
+[epistemic] gen_14_crossover_2__s1 q1/h13 prior=0.35 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 8)
+[epistemic] gen_14_crossover_2__s1 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_2__s1 q1/h17 prior=0.20 FORCED -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: AGGREGATION_BUG'
+[epistemic] gen_14_crossover_2__s1 q1/h15 prior=0.45 -> SUPPORTED (dU=0.335) prediction held: exit_code==0; stdout contains 'MARKER: FAILED_AS_EXPECTED'
+[epistemic] gen_14_crossover_2__s1 Principal AI Accelerator Architect: anchored edit in `_run_stdlib_tests`: replaced 14 line(s) at line 588 (exact match) with 16; The stdlib fallback runner incorrectly treats successful execution of bare test functions (which return None) as failures becau
+[epistemic] gen_14_crossover_2__s1 q1/h15 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.145)
+[epistemic] gen_14_crossover_2__s1 q3 deferred to the oracle: same cluster as resolved q1
+[epistemic] gen_14_crossover_2__s1 iteration 4: 14 moves, dU=1.460, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 17, 'hypotheses_untested': 1, 'hypotheses_supported': 3, 'hypotheses_falsified': 11, 'hypotheses_certified': 0, 'hypotheses_unte
+ [Iteration 4/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_crossover_2__s1 iteration 5: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.50
+[epistemic] gen_14_crossover_2__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_crossover_2__s1 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_crossover_2__s1 frontier += q1 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_crossover_2__s1 frontier += q2 (2/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_crossover_2__s1 q1/h16 prior=0.35 -> SUPPORTED (dU=0.555) prediction held: exit_code==0; stdout contains 'MARKER: PYTEST_ZERO_COLLECT'
+[epistemic] gen_14_crossover_2__s1 Principal AI Accelerator Architect: anchored edit in `ExecutionHarness._gate_tests`: replaced 2 line(s) at line 523 (exact match) with 5; Pytest fails to collect tests in temporary directories because it defaults to rootdir detection which may exclude the
+[epistemic] gen_14_crossover_2__s1 q1/h16 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.175)
+[epistemic] gen_14_crossover_2__s1 q3 deferred to the oracle: same cluster as resolved q1
+[epistemic] gen_14_crossover_2__s1 q2: proposed 3 -> 0 accepted, 0 repaired, 2 tabu, 1 duplicate
+[epistemic] gen_14_crossover_2__s1 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_2__s1 q2/h18 prior=0.45 -> SUPPORTED (dU=0.585) prediction held: exit_code==0; stdout contains 'Status: failed'
+[epistemic] gen_14_crossover_2__s1 q2/h18 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.145)
+[epistemic] gen_14_crossover_2__s1 iteration 5: 6 moves, dU=1.460, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 20, 'hypotheses_untested': 2, 'hypotheses_supported': 3, 'hypotheses_falsified': 13, 'hypotheses_certified': 0, 'hypotheses_untes
+ [Iteration 5/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_crossover_2__s1 iteration 6: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.50
+ [EPISTEMIC AUDIT] questions=3 certified=0 hypotheses_tested=16 evidence_backed=1.00 inconsistencies=0 brier=0.122344 resolved=0.17 moves=45/240 ledger=c8107c1a1688
+ FINAL NET FITNESS: 79.46/100 (Gross: 75.41) | Iterations: 5/5
+WORKER_EXIT=0

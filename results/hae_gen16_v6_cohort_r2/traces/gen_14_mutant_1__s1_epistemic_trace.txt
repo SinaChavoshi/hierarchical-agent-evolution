@@ -1,0 +1,77 @@
+     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: budget=60 moves, k=3, c_puct=1.4, low_prior_quota=0.34, bindings={'question': 'qa', 'hypothesis': 'engineering', 'experiment': 'verification', 'synthesis': 'engineering'}
+ [Iteration 1/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_mutant_1__s1 iteration 2: oracle reconciliation -> certified=0 reopened=0 seeded=3 open=3 uncertainty=3.00
+[epistemic] gen_14_mutant_1__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_1__s1 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_mutant_1__s1 frontier += q1 (1/3; u=1.00; cluster 'hae/evaluation/harness.py|AssertionError: # != #')
+[epistemic] gen_14_mutant_1__s1 frontier += q2 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_mutant_1__s1 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s1 q1/h1 prior=0.45 -> FALSIFIED (dU=0.225) prediction failed: stdout contains 'AUTHORED_COUNT:2'
+[epistemic] gen_14_mutant_1__s1 q1/h2 prior=0.35 -> SUPPORTED (dU=0.580) prediction held: exit_code==0; stdout contains 'PY_COUNT:2'
+[epistemic] gen_14_mutant_1__s1 q1/h2 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.175)
+[epistemic] gen_14_mutant_1__s1 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s1 q2/h6 prior=0.10 FORCED -> SUPPORTED (dU=0.730) prediction held: exit_code==0; stdout contains 'STATUS: failed'
+[epistemic] gen_14_mutant_1__s1 q2/h4 prior=0.65 -> SUPPORTED (dU=0.165) prediction held: exit_code==0; stdout contains 'STATUS: failed'
+[epistemic] gen_14_mutant_1__s1 Principal AI Accelerator Architect: anchored edit in `ExecutionHarness._gate_tests`: replaced 9 line(s) at line 725 (exact match) with 12; The stdlib fallback test runner fails to collect bare test functions because it incorrectly uses `unittest.FunctionTe
+[epistemic] gen_14_mutant_1__s1 q2/h4 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.085)
+[epistemic] gen_14_mutant_1__s1 q3 deferred to the oracle: same cluster as resolved q2
+[epistemic] gen_14_mutant_1__s1 iteration 2: 8 moves, dU=1.960, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 6, 'hypotheses_untested': 2, 'hypotheses_supported': 3, 'hypotheses_falsified': 1, 'hypotheses_certified': 0, 'hypotheses_untestable
+ [Iteration 2/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_mutant_1__s1 iteration 3: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.50
+[epistemic] gen_14_mutant_1__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_1__s1 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_mutant_1__s1 frontier += q2 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_mutant_1__s1 frontier += q1 (2/3; u=0.75; cluster 'hae/evaluation/harness.py|AssertionError: # != #')
+[epistemic] gen_14_mutant_1__s1 q2/h6 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.730)
+[epistemic] gen_14_mutant_1__s1 q3 deferred to the oracle: same cluster as resolved q2
+[epistemic] gen_14_mutant_1__s1 q1/h3 prior=0.20 -> FALSIFIED (dU=0.250) prediction failed: stdout contains 'AUTHORED:3'
+[epistemic] gen_14_mutant_1__s1 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s1 q1/h7 prior=0.65 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'AUTHORED_COUNT:3'
+[epistemic] gen_14_mutant_1__s1 q1/h9 prior=0.10 FORCED -> UNTESTABLE (dU=0.000) rejected: probe references the repository root
+[epistemic] gen_14_mutant_1__s1 q1/h8 prior=0.25 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'BUNDLE_AUTHORED:3'
+[epistemic] gen_14_mutant_1__s1 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s1 q1/h10 prior=0.45 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'AUTHORED_COUNT=4'
+[epistemic] gen_14_mutant_1__s1 q1/h12 prior=0.20 FORCED -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'AUTHORED_COUNT=4'
+[epistemic] gen_14_mutant_1__s1 q1/h11 prior=0.35 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'AUTHORED_COUNT=4'
+[epistemic] gen_14_mutant_1__s1 iteration 3: 10 moves, dU=0.980, stop=stagnation, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 2, 'questions_resolved': 1, 'questions_certified': 0, 'questions_exhausted': 1, 'hypotheses': 12, 'hypotheses_untested': 1, 'hypotheses_supported': 1, 'hypotheses_falsified': 9, 'hypotheses_certified': 0, 'hypotheses_untestable': 1, 
+ [Iteration 3/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_mutant_1__s1 iteration 4: oracle reconciliation -> certified=0 reopened=1 seeded=0 open=3 uncertainty=2.25
+[epistemic] gen_14_mutant_1__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_1__s1 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_mutant_1__s1 frontier += q2 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_mutant_1__s1 frontier += q1 (2/3; u=0.50; cluster 'hae/evaluation/harness.py|AssertionError: # != #')
+[epistemic] gen_14_mutant_1__s1 q2/h5 prior=0.25 -> SUPPORTED (dU=0.525) prediction held: exit_code==0; stdout contains 'METHOD: pytest'
+[epistemic] gen_14_mutant_1__s1 q2/h5 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.205)
+[epistemic] gen_14_mutant_1__s1 q3 deferred to the oracle: same cluster as resolved q2
+[epistemic] gen_14_mutant_1__s1 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s1 q1/h13 prior=0.45 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'PYTHON_COUNT:2'
+[epistemic] gen_14_mutant_1__s1 q1/h15 prior=0.20 FORCED -> SUPPORTED (dU=0.260) prediction held: exit_code==0; stdout contains 'AUTHORED_COUNT:1'
+[epistemic] gen_14_mutant_1__s1 q1/h15 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.220)
+[epistemic] gen_14_mutant_1__s1 iteration 4: 6 moves, dU=1.210, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 15, 'hypotheses_untested': 1, 'hypotheses_supported': 2, 'hypotheses_falsified': 11, 'hypotheses_certified': 0, 'hypotheses_untestab
+ [Iteration 4/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_mutant_1__s1 iteration 5: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.50
+[epistemic] gen_14_mutant_1__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_1__s1 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_mutant_1__s1 frontier += q1 (1/3; u=0.75; cluster 'hae/evaluation/harness.py|AssertionError: # != #')
+[epistemic] gen_14_mutant_1__s1 frontier += q3 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_mutant_1__s1 q1/h14 prior=0.35 -> FALSIFIED (dU=0.237) prediction failed: stdout contains 'PYTHON_COUNT:2'
+[epistemic] gen_14_mutant_1__s1 q3: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s1 q3/h16 prior=0.45 -> UNTESTABLE (dU=0.000) rejected: probe has 50 non-blank lines; the policy allows 40
+[epistemic] gen_14_mutant_1__s1 q3/h18 prior=0.10 FORCED -> FALSIFIED (dU=0.056) prediction failed: stdout contains 'HYPOTHESIS_SUPPORTED'
+[epistemic] gen_14_mutant_1__s1 q3/h17 prior=0.35 -> UNTESTABLE (dU=0.000) rejected: probe has 41 non-blank lines; the policy allows 40
+[epistemic] gen_14_mutant_1__s1 q3: proposed 3 -> 0 accepted, 2 repaired, 1 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s1 q3/h16 prior=0.45 -> SUPPORTED (dU=0.779) prediction held: exit_code==0; stdout contains 'MARKER: TESTS_FAILED_AS_EXPECTED'
+[epistemic] gen_14_mutant_1__s1 q3/h16 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.145)
+[epistemic] gen_14_mutant_1__s1 q2 deferred to the oracle: same cluster as resolved q3
+[epistemic] gen_14_mutant_1__s1 q1: proposed 3 -> 2 accepted, 0 repaired, 1 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s1 q1/h19 prior=0.15 FORCED -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'python_files=4'
+[epistemic] gen_14_mutant_1__s1 q1/h20 prior=0.25 -> FALSIFIED (dU=0.001) prediction failed: stdout contains 'authored_files=4'
+[epistemic] gen_14_mutant_1__s1 q1: proposed 3 -> 2 accepted, 0 repaired, 1 tabu, 0 duplicate
+[epistemic] gen_14_mutant_1__s1 q1/h21 prior=0.35 -> SUPPORTED (dU=0.316) prediction held: exit_code==0; stdout contains 'authored_files=4'
+[epistemic] gen_14_mutant_1__s1 q1/h21 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.175)
+[epistemic] gen_14_mutant_1__s1 iteration 5: 14 moves, dU=1.710, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 22, 'hypotheses_untested': 2, 'hypotheses_supported': 2, 'hypotheses_falsified': 17, 'hypotheses_certified': 0, 'hypotheses_untesta
+ [Iteration 5/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_mutant_1__s1 iteration 6: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.25
+ [EPISTEMIC AUDIT] questions=3 certified=0 hypotheses_tested=19 evidence_backed=1.00 inconsistencies=0 brier=0.131316 resolved=0.25 moves=38/240 ledger=1168318e94a5
+ FINAL NET FITNESS: 81.74/100 (Gross: 77.82) | Iterations: 5/5
+WORKER_EXIT=0

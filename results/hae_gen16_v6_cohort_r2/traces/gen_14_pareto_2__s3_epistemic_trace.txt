@@ -1,0 +1,72 @@
+     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: budget=60 moves, k=3, c_puct=1.4, low_prior_quota=0.34, bindings={'question': 'qa', 'hypothesis': 'engineering', 'experiment': 'verification', 'synthesis': 'engineering'}
+ [Iteration 1/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_pareto_2__s3 iteration 2: oracle reconciliation -> certified=0 reopened=0 seeded=3 open=3 uncertainty=3.00
+[epistemic] gen_14_pareto_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_pareto_2__s3 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_pareto_2__s3 frontier += q1 (1/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_pareto_2__s3 frontier += q2 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_pareto_2__s3 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q1/h1 prior=0.45 -> FALSIFIED (dU=0.225) prediction failed: stdout contains 'COLLECTED_COUNT:0'
+[epistemic] gen_14_pareto_2__s3 q1/h3 prior=0.30 -> UNTESTABLE (dU=0.000) rejected: probe has 49 non-blank lines; the policy allows 40
+[epistemic] gen_14_pareto_2__s3 q1/h2 prior=0.25 -> FALSIFIED (dU=0.125) prediction failed: stdout contains 'IMPORT_ERROR:'
+[epistemic] gen_14_pareto_2__s3 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q2/h6 prior=0.10 FORCED -> FALSIFIED (dU=0.050) prediction failed: stdout contains 'Status: skipped'
+[epistemic] gen_14_pareto_2__s3 q2/h4 prior=0.65 -> SUPPORTED (dU=0.845) prediction held: exit_code==0; stdout contains 'Status: failed'
+[epistemic] gen_14_pareto_2__s3 q2/h4 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.085)
+[epistemic] gen_14_pareto_2__s3 q1: proposed 3 -> 2 accepted, 1 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q1/h8 prior=0.25 FORCED -> SUPPORTED (dU=0.425) prediction held: exit_code==0; stdout contains 'STATUS:failed'
+[epistemic] gen_14_pareto_2__s3 q1/h8 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.205)
+[epistemic] gen_14_pareto_2__s3 q3 deferred to the oracle: same cluster as resolved q1
+[epistemic] gen_14_pareto_2__s3 iteration 2: 11 moves, dU=1.960, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 8, 'hypotheses_untested': 3, 'hypotheses_supported': 2, 'hypotheses_falsified': 3, 'hypotheses_certified': 0, 'hypotheses_untestabl
+ [Iteration 2/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_pareto_2__s3 iteration 3: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.50
+[epistemic] gen_14_pareto_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_pareto_2__s3 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_pareto_2__s3 frontier += q2 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_pareto_2__s3 frontier += q1 (2/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_pareto_2__s3 q2/h5 prior=0.25 -> SUPPORTED (dU=0.525) prediction held: exit_code==0; stdout contains 'Status: failed'
+[epistemic] gen_14_pareto_2__s3 q2/h5 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.205)
+[epistemic] gen_14_pareto_2__s3 q1/h7 prior=0.45 -> FALSIFIED (dU=0.162) prediction failed: stdout contains 'METHOD_EXISTS'
+[epistemic] gen_14_pareto_2__s3 q1/h3 prior=0.30 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 24)
+[epistemic] gen_14_pareto_2__s3 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q1/h11 prior=0.10 FORCED -> SUPPORTED (dU=0.318) prediction held: exit_code==0; stdout contains 'STATUS: failed'
+[epistemic] gen_14_pareto_2__s3 q1/h11 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.250)
+[epistemic] gen_14_pareto_2__s3 q3 deferred to the oracle: same cluster as resolved q1
+[epistemic] gen_14_pareto_2__s3 iteration 3: 7 moves, dU=1.460, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 11, 'hypotheses_untested': 2, 'hypotheses_supported': 2, 'hypotheses_falsified': 6, 'hypotheses_certified': 0, 'hypotheses_untestabl
+ [Iteration 3/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_pareto_2__s3 iteration 4: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.50
+[epistemic] gen_14_pareto_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_pareto_2__s3 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_pareto_2__s3 frontier += q1 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_pareto_2__s3 frontier += q2 (2/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_pareto_2__s3 q1/h10 prior=0.35 -> SUPPORTED (dU=0.555) prediction held: exit_code==0; stdout contains 'STATUS: failed'
+[epistemic] gen_14_pareto_2__s3 q1/h10 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.175)
+[epistemic] gen_14_pareto_2__s3 q3 deferred to the oracle: same cluster as resolved q1
+[epistemic] gen_14_pareto_2__s3 q2: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q2/h12 prior=0.45 -> SUPPORTED (dU=0.585) prediction held: exit_code==0; stdout contains 'TESTS_STATUS: failed'
+[epistemic] gen_14_pareto_2__s3 q2/h12 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; plan not applicable: plan is a no-op (new_lines == old_lines) (failure 1/2)
+[epistemic] gen_14_pareto_2__s3 q2/h12 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.145)
+[epistemic] gen_14_pareto_2__s3 iteration 4: 6 moves, dU=1.460, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 14, 'hypotheses_untested': 3, 'hypotheses_supported': 2, 'hypotheses_falsified': 8, 'hypotheses_certified': 0, 'hypotheses_untestabl
+ [Iteration 4/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_pareto_2__s3 iteration 5: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.50
+[epistemic] gen_14_pareto_2__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_pareto_2__s3 frontier size 3: 3 open question(s) in 2 cluster(s)
+[epistemic] gen_14_pareto_2__s3 frontier += q2 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_pareto_2__s3 frontier += q1 (2/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_pareto_2__s3 q2/h13 prior=0.35 -> SUPPORTED (dU=0.555) prediction held: exit_code==0; stdout contains 'TESTS_STATUS: failed'
+[epistemic] gen_14_pareto_2__s3 q2/h13 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; plan not applicable: anchor not found in the module (failure 1/2)
+[epistemic] gen_14_pareto_2__s3 q2/h13 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; plan not applicable: plan is a no-op (new_lines == old_lines) (failure 2/2)
+[epistemic] gen_14_pareto_2__s3 q1/h9 prior=0.15 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('inspect.getsource')
+[epistemic] gen_14_pareto_2__s3 q2/h14 prior=0.20 -> SUPPORTED (dU=0.000) prediction held: exit_code==0; stdout contains 'TESTS_STATUS: failed'
+[epistemic] gen_14_pareto_2__s3 q2/h14 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.175)
+[epistemic] gen_14_pareto_2__s3 q1: proposed 3 -> 1 accepted, 1 repaired, 1 tabu, 0 duplicate
+[epistemic] gen_14_pareto_2__s3 q1/h9 prior=0.15 FORCED -> SUPPORTED (dU=0.495) prediction held: exit_code==0; stdout contains 'FILTERED_OUT'
+[epistemic] gen_14_pareto_2__s3 Cluster Reliability & Site Reliability Engineer: anchored edit in `ExecutionHarness._gate_tests`: replaced 12 line(s) at line 695 (exact match) with 17; The stdlib fallback runner incorrectly filters out bare test functions with optional arguments (e.g., `def test_x(ar
+[epistemic] gen_14_pareto_2__s3 q1/h9 synthesized hae/evaluation/harness.py: module check passed: py_compile, import (dU=0.235)
+[epistemic] gen_14_pareto_2__s3 q3 deferred to the oracle: same cluster as resolved q1
+[epistemic] gen_14_pareto_2__s3 iteration 5: 9 moves, dU=1.460, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py'], counts={'questions': 3, 'questions_open': 1, 'questions_resolved': 2, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 15, 'hypotheses_untested': 1, 'hypotheses_supported': 3, 'hypotheses_falsified': 10, 'hypotheses_certified': 0, 'hypotheses_untestab
+ [Iteration 5/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_pareto_2__s3 iteration 6: oracle reconciliation -> certified=0 reopened=2 seeded=0 open=3 uncertainty=2.50
+ [EPISTEMIC AUDIT] questions=3 certified=0 hypotheses_tested=13 evidence_backed=1.00 inconsistencies=0 brier=0.141923 resolved=0.17 moves=33/240 ledger=76a21a6e1305
+ FINAL NET FITNESS: 80.47/100 (Gross: 76.68) | Iterations: 5/5
+WORKER_EXIT=0
