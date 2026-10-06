@@ -1,0 +1,13 @@
+# Files `gcloud builds submit` must not upload. Without this file gcloud
+# falls back to .gitignore semantics only when .gitignore exists *and*
+# `gcloudignore/enabled` is set; the Gen 16 pilot builds uploaded results/
+# and the local .git on every submit.
+.git
+.gitignore
+.gcloudignore
+results/
+outputs/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.log

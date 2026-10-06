@@ -1,0 +1,26 @@
+{
+  "generation": 16,
+  "name": "V6 epistemic-search cohort: Gen 15 lineages re-run with the gene on (Benchmark A)",
+  "design": "within-genome A/B of epistemic_policy.enabled against the Gen 15 (V5) trajectories; no breeding, so the gene is the only variable",
+  "source_population": "results/hae_gen15_fullstack_v5/generation_14_population.json",
+  "source_summary": "results/hae_gen15_fullstack_v5/generation_15_summary.json",
+  "task_file": "configs/tasks/self-hosting-fullstack-iter5.json",
+  "objective": "Implement the 4 core self-hosting modules of the Hierarchical Agent Evolution (HAE) engine: hae/evaluation/artifacts.py, hae/evaluation/harness.py, hae/evaluation/verification_loop.py, hae/genome/morphogenesis.py",
+  "selection": {
+    "non_converged": 8,
+    "non_converged_seeds": 3,
+    "converged_controls": 2,
+    "converged_control_seeds": 1,
+    "order": "net_fitness desc, then company_id"
+  },
+  "epistemic_policy": {
+    "enabled": true,
+    "search_budget_moves": 60,
+    "frontier_size": 3
+  },
+  "notes": [
+    "Seeds are replicas of one genome under distinct company ids (<id>__s1..s3): the search rng is derived from the company id and the sampler is stochastic, so replicas are independent draws of the same firm.",
+    "Controls are the two Gen 15 convergers: pareto_1 converged at iteration 1 (never opens a ledger; exercises the V5 composite path under the V6 build) and mutant_3 converged at iteration 2 (one easy repair; checks V6 does not make an easy repair harder).",
+    "Everything else is byte-identical to the Gen 14 genome that ran in Gen 15: same task file, model, budgets, max_iterations=5."
+  ]
+}
