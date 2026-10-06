@@ -126,6 +126,14 @@ class EpistemicSearchLoop:
     def run(self, budget_moves: Optional[int] = None) -> SearchResult:
         budget = int(budget_moves if budget_moves is not None else self.policy.search_budget_moves)
         stop_reason = ""
+        # `max_hypothesis_rounds` is a per-search allowance, not a lifetime cap.
+        # Gen 16 pilot pass 1: every question spent both rounds on replies the
+        # decoder had cut off during iteration 2, and iterations 3-5 then ran
+        # 0 moves ("exhausted") although the oracle still reported failures.
+        # What must persist across iterations is the memory of *falsified*
+        # mechanisms, and that lives in the tabu list, not in this counter.
+        for q in self.state.open_questions():
+            q.hypothesis_rounds = 0
         while True:
             if self.moves_used >= budget:
                 stop_reason = STOP_BUDGET

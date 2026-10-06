@@ -210,6 +210,34 @@ class StoppingTests(SearchFixture):
         self.assertEqual(res.synthesized_paths, [])
 
 
+class RoundsArePerSearchRunTests(SearchFixture):
+    """Gen 16 pilot pass 1: questions starved in iteration 2 stayed dead for
+    iterations 3-5 because the proposal-round cap was treated as lifetime."""
+
+    def test_starved_question_gets_fresh_rounds_in_the_next_run(self):
+        starved = FakeSystem1(self.ws, rounds=[])  # proposer returns nothing (e.g. truncated packets)
+        first = self.loop(starved, max_hypothesis_rounds=2, max_stagnant_moves=8).run()
+        self.assertEqual(first.stats["proposal_rounds"], 2)
+        self.assertEqual(first.stop_reason, STOP_EXHAUSTED)
+        self.assertEqual(self.q.hypothesis_rounds, 2)
+        # Next repair iteration, same ledger: the proposer now works.
+        healthy = FakeSystem1(self.ws, rounds=[[wrong(0.8), right(0.2)]])
+        second = self.loop(healthy, max_hypothesis_rounds=2, max_stagnant_moves=8).run()
+        self.assertEqual(healthy.propose_calls, 1)
+        self.assertEqual(second.stop_reason, STOP_RESOLVED)
+        self.assertEqual(self.q.status, Q_RESOLVED)
+
+    def test_falsified_mechanisms_stay_tabu_across_runs(self):
+        first_sys = FakeSystem1(self.ws, rounds=[[wrong(0.8, 1)]])
+        self.loop(first_sys, max_hypothesis_rounds=1).run()
+        self.assertEqual(self.state.hypotheses_for(self.q.question_id)[0].status, FALSIFIED)
+        # The next run re-proposes the same dead mechanism plus the right one.
+        second_sys = FakeSystem1(self.ws, rounds=[[wrong(0.8, 1), right(0.3)]])
+        res = self.loop(second_sys, max_hypothesis_rounds=1).run()
+        self.assertEqual(res.stats["tabu_rejections"], 1)
+        self.assertEqual(res.stop_reason, STOP_RESOLVED)
+
+
 class TrajectoryTests(SearchFixture):
 
     def test_every_move_carries_features_hashes_and_values(self):

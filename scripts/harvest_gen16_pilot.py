@@ -18,8 +18,8 @@ import re
 import subprocess
 import time
 
-JOB_LABEL = "app=hae-gen16-v6-pilot"
-OUT_ROOT = "results/hae_gen16_v6_pilot"
+JOB_LABEL = "app=hae-gen16-v6-pilot"   # overridden by --job-label
+OUT_ROOT = "results/hae_gen16_v6_pilot"  # overridden by --out-root
 POP_FILE = "configs/generation_16_pilot_population.json"
 REMOTE_OUT = "/data/outputs/generation_16"
 
@@ -99,11 +99,16 @@ def one_pass(idx_to_cid, copied: set) -> dict:
 
 
 def main():
+    global JOB_LABEL, OUT_ROOT
     ap = argparse.ArgumentParser()
     ap.add_argument("--watch", action="store_true")
     ap.add_argument("--interval", type=int, default=120)
     ap.add_argument("--max-passes", type=int, default=120)
+    ap.add_argument("--job-label", default=JOB_LABEL, help="pod label selector of the pilot Job")
+    ap.add_argument("--out-root", default=OUT_ROOT, help="local results directory")
+    ap.add_argument("--firms", type=int, default=None, help="expected number of firms (default: population size)")
     args = ap.parse_args()
+    JOB_LABEL, OUT_ROOT = args.job_label, args.out_root
 
     pop = json.load(open(POP_FILE))["population"]
     idx_to_cid = {str(i): g["company_id"] for i, g in enumerate(pop)}
@@ -117,8 +122,9 @@ def main():
                   f"epi_lines={e['epistemic_lines']} | {e['last']}")
         with open(os.path.join(OUT_ROOT, "pilot_status.json"), "w") as f:
             json.dump(status, f, indent=2)
+        expected = args.firms or len(pop)
         done = [e for e in status.values() if e["worker_exit"] is not None and (e["harvested"] or e["phase"] == "Failed")]
-        if status and len(done) >= len(pop):
+        if status and len(done) >= expected:
             print("ALL_DONE")
             break
         if not args.watch:
