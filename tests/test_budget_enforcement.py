@@ -1,11 +1,20 @@
-"""The budget is enforced by the runner, not merely scored afterwards.
+"""The budget is an accounting ledger, not a circuit breaker.
 
-V1's `budget_usd` adjusted the fitness score after the money was gone. These
-tests pin the difference: calls are actually refused.
+History, because the tests here changed meaning once and must not silently do
+so again. V1's `budget_usd` adjusted the fitness score after the money was
+gone. V2 made `Budget` a hard ceiling that refused calls. Commit 86c964c
+(2026-09-24, "remove hard call/token truncation") reversed that for self-hosted
+clusters: `can_spend` is always True, nothing is ever refused, and efficiency
+pressure comes from Net Fitness (`cost_penalty` / `efficiency_bonus`) instead.
+
+The tests below pin the soft-accounting contract. The ones that asserted hard
+refusals sat failing -- and one of them, `while b.can_spend(): charge()`,
+spinning forever -- for eleven days, which is how long the full suite was
+un-runnable without anyone noticing. A test that encodes a contract the code
+has abandoned is worse than no test.
 """
 
 import unittest
-from unittest import mock
 
 from hae.runtime.company import HierarchicalCompanyRunner
 from hae.task import Budget
@@ -22,35 +31,56 @@ class _Runner(HierarchicalCompanyRunner):
             setattr(self, attr, 0)
 
 
-class BudgetEnforcementTest(unittest.TestCase):
+class SoftAccountingTest(unittest.TestCase):
+    """Spend is recorded faithfully and never blocks."""
 
-    def test_calls_are_refused_once_the_ceiling_is_reached(self):
+    def test_calls_are_not_refused_past_the_ceiling(self):
         r = _Runner(Budget(limit_usd=0.001, reserve_fraction=0.0))
         r._account_tokens(is_pro=True, prompt_text="", system_text="",
                           response_text="", label="ceo",
                           usage={"measured": True, "prompt_tokens": 100000,
                                  "output_tokens": 100000})
-        self.assertFalse(r._may_call("next agent"))
+        self.assertGreater(r.budget.spent_usd, r.budget.limit_usd)
+        self.assertTrue(r._may_call("next agent"))
+        self.assertEqual(r.budget.refusals, 0)
 
-    def test_reserved_calls_survive_the_working_limit(self):
+    def test_reserved_and_ordinary_calls_are_treated_alike(self):
         b = Budget(limit_usd=1.0, reserve_fraction=0.5)
         r = _Runner(b)
         b.charge(0.6, "departments")
-        self.assertFalse(r._may_call("another department"))
+        self.assertTrue(r._may_call("another department"))
         self.assertTrue(r._may_call("ceo synthesis", reserved=True))
 
     def test_no_budget_means_no_ceiling(self):
         r = _Runner(None)
         self.assertTrue(r._may_call("anything"))
 
-    def test_refusals_are_counted_not_swallowed(self):
+    def test_overrun_is_visible_in_the_ledger_not_in_refusals(self):
+        """The scorecard must still be able to see that a firm overspent."""
         b = Budget(limit_usd=0.0001, reserve_fraction=0.0)
-        r = _Runner(b)
         b.charge(0.01, "over")
-        r._may_call("a")
-        r._may_call("b")
-        self.assertEqual(b.refusals, 2)
-        self.assertTrue(b.overrun)
+        self.assertFalse(b.overrun)
+        self.assertFalse(b.exhausted)
+        self.assertFalse(b.working_exhausted)
+        self.assertEqual(b.refusals, 0)
+        self.assertEqual(b.remaining_usd, 0.0)
+        self.assertGreater(b.spent_usd, b.limit_usd)
+        self.assertEqual(len(b.charges), 1)
+
+    def test_charge_never_spins_a_can_spend_loop(self):
+        """Regression: `while b.can_spend(): charge()` was an infinite loop.
+
+        `can_spend` is unconditionally True, so any caller that loops on it
+        must bound the loop itself. This pins the property the old test
+        tripped over so nobody writes that loop again.
+        """
+        b = Budget(limit_usd=0.10, max_calls=10_000)
+        for _ in range(50):
+            self.assertTrue(b.can_spend())
+            b.charge(0.01, label="worker")
+        self.assertTrue(b.can_spend())
+        self.assertEqual(b.calls, 50)
+        self.assertAlmostEqual(b.spent_usd, 0.50, places=6)
 
     def test_budget_notice_is_not_mistakable_for_a_finding(self):
         """A truncated run must not read as an agent's considered output."""
@@ -68,36 +98,19 @@ class BudgetEnforcementTest(unittest.TestCase):
                               response_text="", usage=dict(usage))
         self.assertGreater(pro.budget.spent_usd, flash.budget.spent_usd)
 
+    def test_negative_charges_are_rejected(self):
+        with self.assertRaises(ValueError):
+            Budget(limit_usd=1.0).charge(-0.01)
 
-if __name__ == "__main__":
-    unittest.main()
 
-
-class CallCeilingReserveTest(unittest.TestCase):
-    """The call ceiling must hold back a reserve, like the dollar ceiling.
-
-    Found while sizing budgets for V2 Generation 1. At the rate measured from
-    Gen 11 scorecards (~$0.0077/call) a firm hits `max_calls` long before it
-    approaches `limit_usd`, so the call ceiling is the one that binds in
-    practice. It had no reserve, which meant the mechanism guaranteeing the
-    CEO's closing synthesis survives an overrun was guarding the ceiling that
-    never fires and not the one that always does.
+class ReserveArithmeticTest(unittest.TestCase):
+    """The reserve is still computed and reported, even though nothing is
+    refused on it any more. Scorecards and generation sizing read it.
     """
 
-    def test_synthesis_survives_the_call_ceiling(self):
-        """The original symptom: dollars to spare, deliverable discarded."""
-        b = Budget(limit_usd=10.0, max_calls=5)
-        while b.can_spend():
-            b.charge(0.01, label="worker")
-        self.assertGreater(b.remaining_usd, 9.0)     # nowhere near the money
-        self.assertTrue(b.can_spend(reserved=True))  # but synthesis proceeds
-        b.charge(0.01, label="ceo-synthesis", reserved=True)
-        self.assertTrue(b.exhausted)
-
     def test_reserve_never_rounds_away(self):
-        """A small `max_calls` must still hold back a call. `int()` on
-        `3 * 0.9` is 2, but `int()` on `1 * 0.9` is 0 -- and a reserve of zero
-        is the bug this test exists to prevent."""
+        """`int()` on `3 * 0.9` is 2, but `int()` on `1 * 0.9` is 0 -- and a
+        reserve of zero would misreport the ceiling a firm was sized for."""
         for max_calls in (1, 2, 3, 10, 120, 400):
             b = Budget(limit_usd=5.0, max_calls=max_calls)
             held = max_calls - b.working_max_calls
@@ -113,16 +126,16 @@ class CallCeilingReserveTest(unittest.TestCase):
         self.assertIsNone(b.working_max_calls)
         self.assertFalse(b.working_exhausted)
 
-    def test_dollar_ceiling_still_independently_binds(self):
-        """Raising `max_calls` must not disable the money ceiling."""
-        b = Budget(limit_usd=0.10, max_calls=10_000)
-        while b.can_spend():
-            b.charge(0.01, label="worker")
-        self.assertFalse(b.can_spend())
-        self.assertLess(b.calls, 100)
+    def test_working_limit_holds_back_the_reserve(self):
+        b = Budget(limit_usd=1.0, reserve_fraction=0.25)
+        self.assertAlmostEqual(b.working_limit_usd, 0.75)
 
     def test_reported_in_to_dict(self):
-        """Scorecards read this. A ceiling that is enforced but not reported
-        makes a truncated run indistinguishable from a short one."""
+        """Scorecards read this. A ceiling that is sized but not reported
+        makes an expensive run indistinguishable from a cheap one."""
         b = Budget(limit_usd=3.0, max_calls=400)
         self.assertEqual(b.to_dict()["working_max_calls"], 360)
+
+
+if __name__ == "__main__":
+    unittest.main()
