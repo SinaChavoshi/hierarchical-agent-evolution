@@ -79,6 +79,45 @@ flowchart TD
     Value --> Tree
 ```
 
+### 3.0 Worked Walkthrough: How Prior Probability ($P$), Step Reward ($\Delta U$), Overlaying Value ($V$), and Calibration Work Together
+
+To see how `V6` separates intuition from verification without any ML black boxes, follow a single open bug question (`q2`, starting at **Uncertainty $U = 1.0$** and ledger **Overlaying Value $V = 0.05$**) using the exact numbers from `gen_14_crossover_2` in the Gen 16 pilot:
+
+1. **Prior Probability ($P$) — *"Which hunch do we check first?"* (LLM System 1 intuition)**
+   * The LLM inspects the failure and proposes two competing explanations (`ProposeHypothesis` in [`hae/epistemic/moves.py`](../../hae/epistemic/moves.py)), each paired with a tiny sandbox reproduction script (`probe_lines`) and a falsifiable prediction:
+     * **Hypothesis $H_1$:** *"The parent manager attribute is a raw dict instead of an object."* $\rightarrow$ LLM guesses **$P_1 = 0.75$ (75% likely)**.
+     * **Hypothesis $H_2$:** *"The parent manager object is valid, `recombine()` just omits passing it to the constructor."* $\rightarrow$ LLM guesses **$P_2 = 0.10$ (10% likely)**.
+   * **Crucial invariant:** $P_i$ is an unverified guess. It never counts as evidence; it only orders which probe PUCT runs first (while `low_prior_quota = 0.34` reserves 34% of expansions for long-shot underdogs like $H_2$ so high-prior hallucinations cannot starve the true fix).
+
+2. **Move 1 — Sandbox Falsifies $H_1$ (`75%` hunch) $\rightarrow$ Process-of-Elimination Credit ($\Delta U = +0.44$)**
+   * [`EvidenceGatekeeper.apply()`](../../hae/epistemic/gatekeeper.py) executes $H_1$'s probe in an isolated stage. **The prediction fails (`FALSIFIED`).**
+   * Even though $H_1$ was wrong, proving what the bug *isn't* narrows the search space. The gatekeeper zeroes $H_1$'s posterior ($0.75 \rightarrow 0.0$), adds $H_1$ to the **tabu list** (`ruled_out`), and updates question uncertainty by process of elimination (`ELIMINATION_CREDIT = 0.5`):
+     $$\text{mass} = 0.75 + 0.10 = 0.85, \qquad \text{dead} = 0.75, \qquad \frac{\text{dead}}{\text{mass}} = \frac{0.75}{0.85} = 0.882 \;(88.2\%\text{ of proposed suspects eliminated})$$
+     $$U_{\text{new}} = U_0 \times \left(1 - 0.5 \times \frac{0.75}{0.85}\right) = 1.0 - 0.441 = \mathbf{0.559 \approx 0.56}$$
+   * Why cap elimination credit at `0.5`? Because ruling out every suspect on the board (`dead / mass = 1.0`) still hasn't proven what the bug *actually is* — so elimination alone can at most cut uncertainty in half (`0.50`).
+   * **Step Reward ($\Delta U$):** $1.0 - 0.56 = \mathbf{+0.44}$. **Overlaying Ledger Value ($V$):** rises from $0.05 \rightarrow \mathbf{0.31}$.
+
+3. **Move 2 — Sandbox Confirms $H_2$ (`10%` "Move 37" underdog) $\rightarrow$ Positive Proof ($\Delta U = +0.425$)**
+   * The loop next tests $H_2$ (`prior = 0.10`). **Its sandbox probe matches its prediction (`SUPPORTED`)!**
+   * With positive physical reproduction (`SUPPORT_STRENGTH = 0.85`), posterior confidence jumps to $p'_2 = 1 - (1 - 0.10)(1 - 0.85) = \mathbf{0.865}$, and question uncertainty drops to:
+     $$U_{\text{new}} = \max\!\big(0.05,\; 1.0 \times (1 - 0.865)\big) = \mathbf{0.135}$$
+   * **Step Reward ($\Delta U$):** $0.56 - 0.135 = \mathbf{+0.425}$. **Overlaying Ledger Value ($V$):** jumps from $0.31 \rightarrow \mathbf{0.68}$.
+
+4. **Move 3 — Patch Synthesis & Oracle Certification $\rightarrow$ $U = 0.00, V = 1.00$**
+   * Only now — **after** a hypothesis is physically `SUPPORTED` — does the loop allow an engineer to edit `morphogenesis.py`. Once [`verify_module()`](../../hae/epistemic/gatekeeper.py) compiles and passes local checks (`Q_RESOLVED`), $U$ drops to `0.02` ($V = 0.92$). When the external 50-test oracle suite confirms `50/50` next iteration, `q2` becomes `CERTIFIED` ($U = 0.00, V = 1.00$).
+
+5. **AlphaFold-Style Confidence Calibration (Grading the LLM's Honesty via Brier Score)**
+   * Just as AlphaFold predicts per-residue confidence (**pLDDT**) and is penalized whenever stated confidence diverges from physical accuracy, [`calibration_report()`](../../hae/epistemic/value.py) grades every tested prior $P_i$ against the gatekeeper's actual binary verdict $O_i \in \{0, 1\}$ using Brier error $(P_i - O_i)^2$:
+     * Bragging **$P_1 = 0.75$** on a false hunch ($O_1 = 0$) incurs $(0.75 - 0)^2 = \mathbf{0.5625}$ error.
+     * Across generations, [`epistemic_integrity_score()`](../../hae/evaluation/judge.py) rewards lineages whose priors beat uninformative coin-flipping ($\text{Brier} < 0.25$) and breeds out overconfident hallucinating lineages.
+
+| Quantity | Who sets it? | Range | Plain-English Role |
+| :--- | :--- | :---: | :--- |
+| **Prior Probability ($P_i$)** | LLM (System 1) | `0.05 – 0.95` | *"My gut hunch that Hypothesis $i$ is the bug."* Orders which probe runs first; never counts as evidence. |
+| **Step Reward ($\Delta U$)** | Gatekeeper (Python) | `0.0 – 1.0` | *"How much real uncertainty this single sandbox experiment just eliminated."* (`0` for refused/no-op moves.) |
+| **Overlaying Value ($V(E_t)$)** | [`EpistemicValueFunction`](../../hae/epistemic/value.py) | `0.0 – 1.0` | *"How close is the whole ledger to a verified fix?"* ($\alpha \cdot \text{resolved\_fraction} + (1-\alpha)\hat{V}(E_t)$.) |
+| **Calibration (pLDDT / Brier)** | [`calibration_report`](../../hae/epistemic/value.py) | `0.0 – 100` | *"Did the LLM's stated probabilities match physical reality?"* Penalizes confident wrong guesses. |
+
 ### 3.1 Stage 1 — Core Engine (`hae/epistemic/`, CPU-only, `$0` GPU)
 
 | Module | Responsibility | Key Invariants |
