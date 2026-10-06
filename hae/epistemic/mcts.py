@@ -453,6 +453,14 @@ class EpistemicSearchLoop:
                         f"(failure {h.synthesis_failures}/{MAX_SYNTHESIS_FAILURES})")
             return
         path = str(result.get("path") or q.module or "")
+        # Optional telemetry from the runner's adapter (A2): how the patch was
+        # produced and whether a silent no-op had to be re-prompted.
+        if result.get("mode") == "plan":
+            self.stats["syntheses_by_plan"] = self.stats.get("syntheses_by_plan", 0) + 1
+        if result.get("retried"):
+            self.stats["synthesis_noop_retries"] = self.stats.get("synthesis_noop_retries", 0) + 1
+        if result.get("noop_recovered"):
+            self.stats["synthesis_noop_recoveries"] = self.stats.get("synthesis_noop_recoveries", 0) + 1
         if not result.get("written", True) or not path:
             h.synthesis_failures += 1
             self.stats["syntheses_unwritten"] += 1

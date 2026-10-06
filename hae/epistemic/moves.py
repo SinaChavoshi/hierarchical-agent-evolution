@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from hae.epistemic.ledger import clamp_prior, mechanism_signature
 
@@ -167,6 +167,138 @@ V6_QUESTION_SCHEMA: Dict[str, Any] = {
         },
     },
 }
+
+# Synthesis as an anchored change (Gen 16 pilot finding #5). Asked for a
+# complete module rewrite, the synthesiser re-emitted the current file byte
+# for byte on 7 of 9 moves. A REPAIR_PLAN names the function, quotes the
+# exact lines to replace (`old_lines`, verbatim from the current module) and
+# the lines that replace them (`new_lines`). The runner applies the edit
+# itself when the anchor matches exactly once; the LLM rewrite is only the
+# fallback. Line arrays for the same reason as `probe_lines`.
+MAX_REPAIR_OLD_LINES = 40
+MAX_REPAIR_NEW_LINES = 120
+
+V6_REPAIR_PLAN_SCHEMA: Dict[str, Any] = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "RepairPlanPacket",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "packet": {"type": "string", "enum": ["REPAIR_PLAN"]},
+                "hypothesis_id": {"type": "string", "maxLength": 16},
+                "function": {"type": "string", "maxLength": 80},
+                "rationale": {"type": "string", "maxLength": 300},
+                "old_lines": {
+                    "type": "array",
+                    "maxItems": MAX_REPAIR_OLD_LINES,
+                    "items": {"type": "string", "maxLength": 200},
+                },
+                "new_lines": {
+                    "type": "array",
+                    "maxItems": MAX_REPAIR_NEW_LINES,
+                    "items": {"type": "string", "maxLength": 200},
+                },
+            },
+            "required": ["packet", "hypothesis_id", "function", "rationale", "old_lines", "new_lines"],
+            "additionalProperties": False,
+        },
+    },
+}
+
+
+@dataclass
+class RepairPlan:
+    """An anchored edit: replace `old_lines` (verbatim) with `new_lines`."""
+
+    function: str
+    rationale: str
+    old_lines: List[str]
+    new_lines: List[str]
+    hypothesis_id: str = ""
+
+    @property
+    def old_text(self) -> str:
+        return "\n".join(self.old_lines)
+
+    @property
+    def new_text(self) -> str:
+        return "\n".join(self.new_lines)
+
+
+def parse_repair_plan(raw: str) -> Optional[RepairPlan]:
+    """Parses a REPAIR_PLAN packet; None when there is no usable anchor."""
+    data = extract_json_object(raw)
+    if not data:
+        return None
+    old = data.get("old_lines")
+    new = data.get("new_lines")
+    if not isinstance(old, list) or not isinstance(new, list):
+        return None
+    old_lines = [str(x) for x in old if x is not None]
+    new_lines = [str(x) for x in new if x is not None]
+    if not any(ln.strip() for ln in old_lines):
+        return None
+    return RepairPlan(
+        function=" ".join(str(data.get("function", "")).split()),
+        rationale=" ".join(str(data.get("rationale", "")).split()),
+        old_lines=old_lines, new_lines=new_lines,
+        hypothesis_id=str(data.get("hypothesis_id", "") or ""),
+    )
+
+
+def _strip_common_indent(lines: List[str]) -> List[str]:
+    indents = [len(ln) - len(ln.lstrip()) for ln in lines if ln.strip()]
+    cut = min(indents) if indents else 0
+    return [ln[cut:] if ln.strip() else "" for ln in lines]
+
+
+def apply_repair_plan(source: str, plan: RepairPlan) -> Tuple[Optional[str], str]:
+    """Applies the plan to `source` when its anchor is unambiguous.
+
+    Returns `(new_source, note)`; `new_source` is None when the anchor was not
+    found or matched more than once. Three match strategies, strictest first:
+    exact text; lines compared with trailing whitespace stripped; lines
+    compared with their common indentation removed (the replacement is then
+    re-indented to the anchor's indentation). A plan whose new text equals its
+    old text is a no-op and is refused here, before it costs a write.
+    """
+    if plan.new_text == plan.old_text:
+        return None, "plan is a no-op (new_lines == old_lines)"
+    src_lines = source.split("\n")
+    old = plan.old_lines
+    n = len(old)
+    if n == 0 or n > len(src_lines):
+        return None, "anchor longer than the module"
+
+    def find(norm) -> List[int]:
+        target = norm(old)
+        return [i for i in range(len(src_lines) - n + 1) if norm(src_lines[i:i + n]) == target]
+
+    strategies = (
+        ("exact", lambda lines: list(lines), False),
+        ("rstrip", lambda lines: [ln.rstrip() for ln in lines], False),
+        ("dedent", lambda lines: [ln.rstrip() for ln in _strip_common_indent(list(lines))], True),
+    )
+    for label, norm, reindent in strategies:
+        hits = find(norm)
+        if len(hits) > 1:
+            return None, f"anchor is ambiguous ({len(hits)} matches, {label})"
+        if len(hits) == 1:
+            i = hits[0]
+            new_lines = list(plan.new_lines)
+            if reindent:
+                window = src_lines[i:i + n]
+                indents = [len(ln) - len(ln.lstrip()) for ln in window if ln.strip()]
+                anchor_indent = " " * (min(indents) if indents else 0)
+                new_lines = [(anchor_indent + ln) if ln.strip() else "" for ln in _strip_common_indent(new_lines)]
+            out = src_lines[:i] + new_lines + src_lines[i + n:]
+            new_source = "\n".join(out)
+            if new_source == source:
+                return None, "edit leaves the module unchanged"
+            return new_source, f"replaced {n} line(s) at line {i + 1} ({label} match) with {len(new_lines)}"
+    return None, "anchor not found in the module"
 
 
 # ---------------------------------------------------------------------------

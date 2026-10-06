@@ -20,7 +20,8 @@ from hae.epistemic.ledger import EpistemicState, Hypothesis, Question
 from hae.epistemic.mcts import EpistemicSearchLoop
 from hae.epistemic.moves import (
     MOVE_ASK_QUESTION, MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT, MOVE_SYNTHESIZE,
-    V6_HYPOTHESIS_SCHEMA, HypothesisProposal, extract_json_object, parse_hypothesis_packet,
+    V6_HYPOTHESIS_SCHEMA, V6_REPAIR_PLAN_SCHEMA, HypothesisProposal, apply_repair_plan,
+    extract_json_object, parse_hypothesis_packet, parse_repair_plan,
 )
 from hae.epistemic.value import EpistemicValueFunction
 
@@ -1059,10 +1060,20 @@ class HierarchicalCompanyRunner:
         }
 
     def _module_fingerprint(self, path: str) -> str:
+        """Whitespace-normalised hash of a module, used by the synthesis move to detect no-ops.
+
+        Trailing whitespace per line and trailing blank lines are ignored: the
+        tool-loop fence parser drops the newline before the closing fence, so a
+        re-emission that differs only there is still a no-op and must be
+        re-prompted rather than counted as a synthesis.
+        """
         r = self.workspace.read_file(path)
         if r.get("status") not in ("ok", "success"):
             return ""
-        return hashlib.sha256(r.get("content", "").encode("utf-8", errors="replace")).hexdigest()
+        lines = [ln.rstrip() for ln in str(r.get("content", "")).splitlines()]
+        while lines and not lines[-1]:
+            lines.pop()
+        return hashlib.sha256("\n".join(lines).encode("utf-8", errors="replace")).hexdigest()
 
     def _epistemic_module_context(self, module: str, objective: str, cap: int = 24000) -> str:
         if not module:
@@ -1117,7 +1128,24 @@ class HierarchicalCompanyRunner:
         return propose
 
     def _synthesize_patch_adapter(self, agent: AgentGenome, objective: str):
-        """System 1 adapter: turn a SUPPORTED hypothesis into a module rewrite via the tool loop."""
+        """System 1 adapter: turn a SUPPORTED hypothesis into an *anchored change* to its module.
+
+        Gen 16 pilot finding #5: asked for a complete rewrite, the synthesiser
+        re-emitted the current module byte for byte on 7 of 9 moves. The move
+        now runs in up to three steps, each cheaper than the next:
+
+          1. REPAIR_PLAN packet (grammar-constrained): which function, which
+             exact lines (`old_lines`, verbatim) become which lines
+             (`new_lines`). If the anchor matches exactly once, the runner
+             applies the edit itself -- no rewrite, no chance of a silent no-op.
+          2. Otherwise the tool-loop rewrite, with the plan as its anchor and
+             an explicit instruction that the output must differ.
+          3. If the module hash still did not move, one re-prompt inside the
+             same move: "your previous attempt changed nothing".
+
+        The returned dict says which step wrote (`mode`) and whether a no-op
+        had to be re-prompted (`retried`, `noop_recovered`).
+        """
 
         def synthesize(question: Question, hypothesis: Hypothesis, state: EpistemicState) -> Dict[str, Any]:
             target = (question.module or (self._required_modules[0] if self._required_modules else "")).lstrip("./")
@@ -1131,32 +1159,105 @@ class HierarchicalCompanyRunner:
                 evidence_lines.append(
                     f"- {ev.command} (exit {ev.exit_code}, prediction {'HELD' if ev.matched_prediction else 'FAILED'}): "
                     f"{ev.detail}\n    stdout: {ev.stdout[:400]!r}\n    stderr: {ev.stderr[-300:]!r}")
-            prompt = (
-                f"EPISTEMIC MOVE: SYNTHESIZE a repair of `{target}`.\n\n"
-                f"The Evidence Gatekeeper SUPPORTED this hypothesis about the current implementation:\n"
+            finding = (
+                f"The Evidence Gatekeeper SUPPORTED this hypothesis about the current implementation of `{target}`:\n"
                 f"  CLAIM: {hypothesis.claim}\n"
                 f"  MECHANISM: {hypothesis.mechanism}\n"
                 f"  PROBE THAT CONFIRMED IT:\n```python\n{hypothesis.probe_code}\n```\n"
                 f"  EVIDENCE:\n" + ("\n".join(evidence_lines) or "  (none recorded)") + "\n\n"
-                f"Oracle failure being answered: {question.source_failure or question.text}\n\n"
-                "Rewrite the COMPLETE module so that this mechanism is fixed while every currently passing "
-                "behaviour is preserved. Do not speculate about other causes: mechanisms under RULED OUT were "
-                "falsified by evidence. Emit `Action: write_file` with the full module as your first response."
+                f"Oracle failure being answered: {question.source_failure or question.text}\n"
             )
             context = (
                 f"{state.summary(question.question_id)}\n\n"
                 f"{self._get_focused_module_context(target, objective)}"
             )
+            current = self.workspace.read_file(target)
+            source = current.get("content", "") if current.get("status") in ("ok", "success") else ""
             before = self._module_fingerprint(target)
-            summary = self._execute_agent_with_tools(agent, prompt, context=context, max_turns=3, target_path=target)
+            notes: List[str] = []
+
+            # Step 1: an anchored plan, applied by the runner.
+            plan = None
+            if source:
+                plan_prompt = (
+                    f"EPISTEMIC MOVE: SYNTHESIZE -- plan the smallest repair of `{target}` that fixes this mechanism.\n\n"
+                    f"{finding}\n"
+                    "Reply with a REPAIR_PLAN packet: `function` (where the change lands), `rationale` (one sentence), "
+                    "`old_lines` (the exact lines of the CURRENT module to replace -- copied verbatim, including "
+                    "indentation, 1-40 consecutive lines, enough to be unique in the file) and `new_lines` (the lines "
+                    "that replace them, same indentation). The runner applies the edit mechanically: if `old_lines` is "
+                    "not found verbatim exactly once, the plan is discarded. Do not restate the whole module. "
+                    "`new_lines` MUST differ from `old_lines`. Mechanisms under RULED OUT were falsified by evidence; "
+                    f"do not address them. Set `hypothesis_id` to \"{hypothesis.hypothesis_id}\"."
+                )
+                try:
+                    raw_plan = self._execute_agent(agent, plan_prompt, context=context,
+                                                   response_format=V6_REPAIR_PLAN_SCHEMA, max_tokens=3000)
+                except Exception as exc:  # the plan is an optimisation; the rewrite path still exists
+                    raw_plan = ""
+                    notes.append(f"plan call failed: {type(exc).__name__}")
+                plan = parse_repair_plan(raw_plan) if raw_plan else None
+                if plan is None:
+                    notes.append("no usable plan")
+                else:
+                    new_source, note = apply_repair_plan(source, plan)
+                    if new_source is not None:
+                        w_res = self.workspace.write_file(target, new_source)
+                        after = self._module_fingerprint(target)
+                        if w_res.get("status") in ("ok", "success") and after and after != before:
+                            with self._code_build_lock:
+                                self._code_written_this_run = True
+                                self._written_modules_this_run.add(target)
+                            summary = f"anchored edit in `{plan.function or '?'}`: {note}; {plan.rationale}"
+                            print(f"[epistemic] {self.genome.company_id} {agent.role}: {summary[:220]}", flush=True)
+                            return {"written": True, "path": target, "summary": summary[:400],
+                                    "mode": "plan", "retried": False, "noop_recovered": False}
+                        notes.append(f"plan write refused: {str(w_res.get('status'))[:60]} "
+                                     f"{str(w_res.get('message') or w_res.get('error') or '')[:120]}".strip())
+                    else:
+                        notes.append(f"plan not applicable: {note}")
+
+            # Step 2: the rewrite, anchored by the plan when there is one.
+            anchor = ""
+            if plan is not None:
+                anchor = (f"\nYour own repair plan, which could not be applied mechanically "
+                          f"({notes[-1] if notes else 'anchor mismatch'}):\n"
+                          f"  function: {plan.function}\n  rationale: {plan.rationale}\n"
+                          f"  replace:\n```python\n{plan.old_text}\n```\n  with:\n```python\n{plan.new_text}\n```\n"
+                          "Apply exactly that change in the full module you emit.\n")
+            rewrite_prompt = (
+                f"EPISTEMIC MOVE: SYNTHESIZE a repair of `{target}`.\n\n{finding}{anchor}\n"
+                "Emit `Action: write_file` with the COMPLETE module in which ONLY the code that implements this "
+                "mechanism is changed; every currently passing behaviour must be preserved. The current module is "
+                "shown in the context: your output MUST differ from it -- re-emitting it unchanged is a failed move. "
+                "Do not speculate about other causes: mechanisms under RULED OUT were falsified by evidence."
+            )
+            summary = self._execute_agent_with_tools(agent, rewrite_prompt, context=context, max_turns=3,
+                                                     target_path=target)
             after = self._module_fingerprint(target)
-            written = bool(after) and after != before
-            if not written and after and after == before and "CODE_ARTIFACT_WRITTEN" in str(summary):
-                # Gen 16 pilot: the tool loop reported a successful write but the
-                # module hash did not move -- the synthesiser re-emitted the
-                # current file byte for byte. Say so, instead of echoing SUCCESS.
-                summary = f"module unchanged: synthesiser re-emitted identical content ({str(summary)[:200]})"
-            return {"written": written, "path": target, "summary": str(summary)[:400]}
+            if after and after != before:
+                return {"written": True, "path": target, "summary": f"rewrite: {str(summary)[:300]}",
+                        "mode": "rewrite", "retried": False, "noop_recovered": False, "notes": notes}
+
+            # Step 3: the no-op retry. Tell the synthesiser what just happened.
+            retry_prompt = (
+                f"EPISTEMIC MOVE: SYNTHESIZE a repair of `{target}` -- SECOND ATTEMPT.\n\n"
+                "Your previous attempt changed nothing: the module you wrote was byte-for-byte identical to the "
+                "current one (same SHA-256), so the oracle failure is still unanswered.\n\n"
+                f"{finding}{anchor}\n"
+                "Name, to yourself, the single function where this mechanism lives, then emit `Action: write_file` "
+                "with the complete module in which that function is actually changed. Output identical to the "
+                "current module will be recorded as a failed synthesis."
+            )
+            summary2 = self._execute_agent_with_tools(agent, retry_prompt, context=context, max_turns=3,
+                                                      target_path=target)
+            after2 = self._module_fingerprint(target)
+            if after2 and after2 != before:
+                return {"written": True, "path": target, "mode": "rewrite", "retried": True, "noop_recovered": True,
+                        "summary": f"no-op (re-prompted, then changed): {str(summary2)[:260]}", "notes": notes}
+            return {"written": False, "path": target, "mode": "none", "retried": True, "noop_recovered": False,
+                    "summary": (f"no-op (re-prompted, gave up): synthesiser re-emitted identical content twice; "
+                                f"{'; '.join(notes)[:160]}"), "notes": notes}
 
         return synthesize
 
