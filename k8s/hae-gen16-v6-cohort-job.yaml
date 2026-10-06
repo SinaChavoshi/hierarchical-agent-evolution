@@ -1,0 +1,126 @@
+# Generation 16 -- V6 epistemic-search COHORT (26 firm-runs).
+#
+# Population: configs/generation_16_population.json, built by
+# scripts/make_gen16_cohort_population.py from configs/generations/gen16_cohort.json:
+#   * the 8 non-converged Gen 15 lineages x 3 seeds   (indices 0-7, 10-17, 18-25 = seeds 1, 2, 3)
+#   * the 2 converged lineages (mutant_3, pareto_1) x 1 seed as controls (indices 8, 9)
+# every firm with epistemic_policy {enabled, search_budget_moves 60, frontier_size 3}.
+# Replicas are seed-major, so indices 0-9 alone are one seed of every lineage.
+#
+# Image v6-gen16-cohort = main @ b80f543: the three pilot fixes (UNTESTABLE
+# hypotheses + in-place probe repair, tabu proposals, oracle-reopen seeding)
+# plus A1 (question frontier + cluster triage) and A2 (synthesis as an anchored
+# REPAIR_PLAN with a no-op retry).
+#
+# Serving: k8s/gen16-cohort-serving.yaml -- 4 x vLLM (Qwen3.8-Flash-Next
+# NVFP4, TP=2) behind llmd-inference-gateway, on 4 spot g4-standard-96 nodes.
+# The 26 firm pods run on the on-demand CPU pool `firm-pool` (4 x
+# e2-standard-32; 26 x 4 vCPU / 8 Gi requests fit with room to spare).
+#
+# Launch / harvest / teardown: k8s/cluster-setup.sh, scripts/harvest_gen16_pilot.py
+# (--job-label app=hae-gen16-v6-cohort), k8s/teardown.sh.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hae-gen16-v6-cohort
+  namespace: default
+  labels:
+    app: hae-gen16-v6-cohort
+    hae.generation: "16"
+    hae.experiment-set: v6-epistemic-cohort-qwen38-180b
+spec:
+  completionMode: Indexed
+  completions: 26
+  parallelism: 26
+  # One retry per index covers a spot preemption; a second failure of the same
+  # firm is a result, not noise.
+  backoffLimitPerIndex: 1
+  maxFailedIndexes: 26
+  # Keep finished pods around long enough to harvest the tarball from the log
+  # (and `kubectl cp` as a fallback). teardown.sh deletes the Job explicitly.
+  ttlSecondsAfterFinished: 28800
+  template:
+    metadata:
+      labels:
+        app: hae-gen16-v6-cohort
+        hae.generation: "16"
+    spec:
+      # Firm pods are CPU-only and run on the on-demand `firm-pool`
+      # (4 x e2-standard-32), NOT on the spot GPU nodes: a spot preemption
+      # then costs the firm an LLM retry (the client retries 5x with backoff and
+      # the gateway re-discovers replicas every 5 s), not the whole run.
+      # On 2026-10-06 one of the four g4 spot nodes was preempted five minutes
+      # after it came up, which is what prompted this.
+      nodeSelector:
+        cloud.google.com/gke-nodepool: firm-pool
+      restartPolicy: Never
+      containers:
+      - name: firm-evaluator
+        image: us-central1-docker.pkg.dev/gemle-gke-dev/chavoshi-repo/agent-evolution:v6-gen16-cohort
+        imagePullPolicy: IfNotPresent
+        command:
+        - "/bin/bash"
+        - "-c"
+        - |
+          python -m hae.orchestration.worker \
+            --generation 16 \
+            --region us-central1 \
+            --population-file /app/configs/generation_16_population.json \
+            --task-file /app/configs/tasks/self-hosting-fullstack-iter5.json \
+            --output-dir /data/outputs \
+            --objective "Implement the 4 core self-hosting modules of the Hierarchical Agent Evolution (HAE) engine: hae/evaluation/artifacts.py, hae/evaluation/harness.py, hae/evaluation/verification_loop.py, hae/genome/morphogenesis.py"
+          RC=$?
+          echo "WORKER_EXIT=$RC"
+          # Harvest path 1: outputs as a base64 tarball in the pod log (GCS sync
+          # from pods returned HTTP 403 in Gen 15, so the log is the durable copy).
+          if [ -d /data/outputs/generation_16 ]; then
+            echo "=== OUTPUT_TGZ_B64 BEGIN ==="
+            tar czf - -C /data/outputs generation_16 | base64
+            echo
+            echo "=== OUTPUT_TGZ_B64 END ==="
+          fi
+          # Harvest path 2: keep the container alive so `kubectl cp` works.
+          sleep 1500
+          exit $RC
+        env:
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "gemle-gke-dev"
+        - name: GOOGLE_CLOUD_LOCATION
+          value: "us-central1"
+        - name: GCS_BUCKET
+          value: "gemle-gke-dev-agent-evolution"
+        - name: LLM_PROVIDER
+          value: "vllm"
+        - name: V5_TYPESAFE_PROTOCOL
+          value: "1"
+        - name: VLLM_BASE_URL
+          value: "http://vllm-qwen38-gateway.default.svc.cluster.local:8000/v1"
+        - name: VLLM_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: VLLM_MAX_TOKENS
+          value: "8192"
+        - name: WORKER_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: EXECUTIVE_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: JUDGE_MODEL
+          value: "nvidia/Qwen3.8-Flash-Next-NVFP4"
+        - name: HAE_REQUIRE_NETWORK_ISOLATION
+          value: "0"
+        - name: FIRM_INDEX
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['batch.kubernetes.io/job-completion-index']
+        resources:
+          requests:
+            cpu: "4"
+            memory: "8Gi"
+          limits:
+            cpu: "8"
+            memory: "16Gi"
+        volumeMounts:
+        - name: workdir
+          mountPath: /data
+      volumes:
+      - name: workdir
+        emptyDir: {}
