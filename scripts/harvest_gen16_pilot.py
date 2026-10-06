@@ -8,6 +8,9 @@ Gen 15, so this is the primary harvest path, not a fallback.
 Usage:
     python3 scripts/harvest_gen16_pilot.py --watch        # loop until all done
     python3 scripts/harvest_gen16_pilot.py                # single pass
+    # the Gen 16 cohort (26 firm-runs, ids <lineage>__s<k>):
+    python3 scripts/harvest_gen16_pilot.py --watch --job-label app=hae-gen16-v6-cohort \
+        --population-file configs/generation_16_population.json --out-root results/hae_gen16_v6_cohort
 """
 from __future__ import annotations
 
@@ -20,7 +23,7 @@ import time
 
 JOB_LABEL = "app=hae-gen16-v6-pilot"   # overridden by --job-label
 OUT_ROOT = "results/hae_gen16_v6_pilot"  # overridden by --out-root
-POP_FILE = "configs/generation_16_pilot_population.json"
+POP_FILE = "configs/generation_16_pilot_population.json"   # overridden by --population-file
 REMOTE_OUT = "/data/outputs/generation_16"
 
 ITER_RE = re.compile(r"\[Iteration (\d+)/(\d+)\] \[self-hosting-benchmark\] (?:(\d+)/50 held-out tests|submission mutates sys\.path)")
@@ -107,10 +110,11 @@ def main():
     ap.add_argument("--job-label", default=JOB_LABEL, help="pod label selector of the pilot Job")
     ap.add_argument("--out-root", default=OUT_ROOT, help="local results directory")
     ap.add_argument("--firms", type=int, default=None, help="expected number of firms (default: population size)")
+    ap.add_argument("--population-file", default=POP_FILE, help="population the Job indexes into (index -> company_id)")
     args = ap.parse_args()
     JOB_LABEL, OUT_ROOT = args.job_label, args.out_root
 
-    pop = json.load(open(POP_FILE))["population"]
+    pop = json.load(open(args.population_file))["population"]
     idx_to_cid = {str(i): g["company_id"] for i, g in enumerate(pop)}
     copied: set = set()
     for step in range(args.max_passes if args.watch else 1):
@@ -120,7 +124,7 @@ def main():
         for cid, e in status.items():
             print(f"  {cid:22s} {e['phase']:10s} traj={e['trajectory']} final={e['final']} "
                   f"epi_lines={e['epistemic_lines']} | {e['last']}")
-        with open(os.path.join(OUT_ROOT, "pilot_status.json"), "w") as f:
+        with open(os.path.join(OUT_ROOT, "harvest_status.json"), "w") as f:
             json.dump(status, f, indent=2)
         expected = args.firms or len(pop)
         done = [e for e in status.values() if e["worker_exit"] is not None and (e["harvested"] or e["phase"] == "Failed")]
