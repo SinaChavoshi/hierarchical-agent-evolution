@@ -13,7 +13,7 @@ from hae.epistemic.value import (
 )
 from hae.evaluation.judge import (
     EPISTEMIC_WEIGHTS, RUBRIC_WEIGHTS, StrategicFitnessEvaluator, composite_score,
-    epistemic_efficiency_score, epistemic_integrity_score,
+    epistemic_efficiency_score, epistemic_integrity_score, proposal_discipline,
 )
 
 JUDGED = {"strategic_depth": 90, "technical_feasibility": 90, "cross_functional_coherence": 90,
@@ -104,6 +104,36 @@ class ScoreFunctionTests(unittest.TestCase):
         disciplined = epistemic_integrity_score(audit)
         audit["tabu_rejections"], audit["proposed_total"] = 4, 6
         self.assertLess(epistemic_integrity_score(audit), disciplined)
+
+    def test_refused_and_repaired_probes_cost_discipline(self):
+        # Pilot finding: a refused probe (UNTESTABLE) or a probe the gatekeeper
+        # had to repair in place was free. Full weight for refused, half for
+        # repaired and for duplicates caught before they cost a move.
+        base = {"proposed_total": 8, "tabu_rejections": 0, "duplicate_rejections": 0,
+                "probes_refused": 0, "probe_repairs": 0}
+        self.assertEqual(proposal_discipline(base), 1.0)
+        self.assertEqual(proposal_discipline(dict(base, probes_refused=2)), 0.75)
+        self.assertEqual(proposal_discipline(dict(base, probe_repairs=2)), 0.875)
+        self.assertEqual(proposal_discipline(dict(base, duplicate_rejections=2)), 0.875)
+        self.assertEqual(proposal_discipline(dict(base, tabu_rejections=2, probes_refused=2)), 0.5)
+        # Bounded: the term cannot go negative however bad the proposer was.
+        self.assertEqual(proposal_discipline(dict(base, tabu_rejections=8, probes_refused=8)), 0.0)
+        # Nothing proposed, nothing to penalise.
+        self.assertEqual(proposal_discipline({"proposed_total": 0, "probes_refused": 3}), 1.0)
+        # And it flows into integrity: refused probes lower the score, by at most the 15% share.
+        audit = build_epistemic_audit(_ledger(), {"hypotheses_accepted": 2})
+        clean = epistemic_integrity_score(audit)
+        audit["probes_refused"] = audit["proposed_total"]
+        penalised = epistemic_integrity_score(audit)
+        self.assertLess(penalised, clean)
+        self.assertAlmostEqual(clean - penalised, 15.0, places=1)
+
+    def test_audits_without_the_new_counters_score_as_before(self):
+        audit = build_epistemic_audit(_ledger(), {"hypotheses_accepted": 2})
+        with_keys = epistemic_integrity_score(audit)
+        for key in ("probes_refused", "probe_repairs", "duplicate_rejections"):
+            audit.pop(key, None)
+        self.assertEqual(epistemic_integrity_score(audit), with_keys)
 
     def test_calibration_credit_requires_tested_hypotheses(self):
         audit = build_epistemic_audit(_ledger())

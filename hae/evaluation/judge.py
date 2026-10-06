@@ -198,6 +198,35 @@ EPISTEMIC_WEIGHTS: Dict[str, float] = {
 UNINFORMATIVE_BRIER = 0.25
 
 
+def proposal_discipline(audit: Mapping[str, Any]) -> float:
+    """0-1: how much of what System 1 proposed was *new, testable* work.
+
+    Each proposal that the organisation had to catch costs a share of the
+    term, weighted by how much it cost the search:
+
+      * `tabu_rejections`    1.0 -- a re-proposal of a mechanism already
+                                   falsified (lexical or paraphrased);
+      * `probes_refused`     1.0 -- a hypothesis whose probe the gatekeeper
+                                   could not run at all (`UNTESTABLE`);
+      * `duplicate_rejections` 0.5 -- a re-proposal of a hypothesis still on the
+                                   ledger (caught before it cost a move);
+      * `probe_repairs`      0.5 -- a probe the gatekeeper had to repair in
+                                   place before it could run.
+
+    The denominator is everything proposed (`proposed_total`, which already
+    includes the tabu and duplicate rejections). Audits written before these
+    counters existed score exactly as before: the new keys default to zero.
+    """
+    proposed = int(audit.get("proposed_total", 0) or 0)
+    if proposed <= 0:
+        return 1.0
+    cost = (float(audit.get("tabu_rejections", 0) or 0)
+            + float(audit.get("probes_refused", 0) or 0)
+            + 0.5 * float(audit.get("duplicate_rejections", 0) or 0)
+            + 0.5 * float(audit.get("probe_repairs", 0) or 0))
+    return max(0.0, min(1.0, 1.0 - cost / float(proposed)))
+
+
 def epistemic_integrity_score(audit: Optional[Mapping[str, Any]]) -> Optional[float]:
     """0-100 from a ledger audit, or None when there is no ledger to audit.
 
@@ -209,8 +238,9 @@ def epistemic_integrity_score(audit: Optional[Mapping[str, Any]]) -> Optional[fl
         Brier score against the gatekeeper's verdicts. Zero until something
         has been tested;
       * certification (30%): share of questions the oracle later confirmed;
-      * tabu discipline (15%): share of proposals that were not re-proposals
-        of mechanisms already falsified.
+      * proposal discipline (15%): share of proposals that were new, testable
+        work -- not re-proposals of falsified or existing mechanisms, not
+        probes the gatekeeper had to refuse or repair (`proposal_discipline`).
     """
     if not audit:
         return None
@@ -227,9 +257,7 @@ def epistemic_integrity_score(audit: Optional[Mapping[str, Any]]) -> Optional[fl
     else:
         calibration = 0.0
     certified = max(0.0, min(1.0, int(audit.get("questions_certified", 0) or 0) / float(questions)))
-    proposed = int(audit.get("proposed_total", 0) or 0)
-    tabu = int(audit.get("tabu_rejections", 0) or 0)
-    discipline = 1.0 - (tabu / float(proposed)) if proposed > 0 else 1.0
+    discipline = proposal_discipline(audit)
     score = 100.0 * (0.30 * backed + 0.25 * calibration + 0.30 * certified + 0.15 * discipline)
     return round(max(0.0, min(100.0, score)), 2)
 
