@@ -3,16 +3,26 @@
 import os
 import re
 import json
+import hashlib
 import time
 import threading
 import concurrent.futures
 from typing import Dict, Tuple, List, Any, Optional
-from hae.genome.schema import CompanyGenome, DepartmentGenome, AgentGenome, OpExBreakdown
+from hae.genome.schema import CompanyGenome, DepartmentGenome, AgentGenome, OpExBreakdown, EpistemicPolicyGene
 from hae.infra.llm import call_llm
 from hae.runtime.workspace import AgentWorkspace
 from hae.evaluation.artifacts import filter_bundle
 from hae.evaluation.verification_loop import VERIFY_TOOL_GUIDE, VerificationLoop
 from hae.task.budget import Budget
+from hae.epistemic.audit import build_epistemic_audit
+from hae.epistemic.gatekeeper import EvidenceGatekeeper
+from hae.epistemic.ledger import EpistemicState, Hypothesis, Question
+from hae.epistemic.mcts import EpistemicSearchLoop
+from hae.epistemic.moves import (
+    MOVE_ASK_QUESTION, MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT, MOVE_SYNTHESIZE,
+    V6_HYPOTHESIS_SCHEMA, HypothesisProposal, parse_hypothesis_packet,
+)
+from hae.epistemic.value import EpistemicValueFunction
 
 # V5 TypeSafe AI Hardware-Enforced JSON Schemas (vLLM xgrammar Constrained Decoding)
 V5_CEO_DIRECTIVE_SCHEMA: Dict[str, Any] = {
@@ -314,6 +324,13 @@ class HierarchicalCompanyRunner:
         self._written_modules_this_run: set = set()
         self._locked_passing_modules: set = set()
         self.xgrammar_calls = 0
+
+        # V6: the firm's epistemic ledger. One per firm, persisted across the
+        # worker's repair iterations so settled knowledge and ruled-out
+        # mechanisms carry forward. None until the first epistemic iteration.
+        self.epistemic_state: Optional[EpistemicState] = None
+        self.epistemic_searches: List[Dict[str, Any]] = []
+        self.epistemic_search_stats: Dict[str, Any] = {}
 
     def _has_valid_module_artifact(self, mod_path: str) -> bool:
         """Returns True once `mod_path` has been written with valid Python content."""
@@ -875,21 +892,36 @@ class HierarchicalCompanyRunner:
         )
 
         # Append physical workspace files so the judge and verifier inspect the full authored implementation.
+        final_deliverable, workspace_bundle = self._append_workspace_files(final_deliverable)
+        return self._finalize_run_output(start_time, final_deliverable, departmental_briefs, workspace_bundle)
+
+    # ------------------------------------------------------------------ #
+    # Shared run epilogue
+    # ------------------------------------------------------------------ #
+
+    def _append_workspace_files(self, final_deliverable: str) -> Tuple[str, Dict[str, str]]:
+        """Appends every authored file as a `### File:` block. Returns (deliverable, bundle)."""
         workspace_bundle = filter_bundle(self.workspace.export_bundle())
         for path, content in workspace_bundle.items():
             if len(content) > 50000:
                 content = content[:50000] + "\n# [TRUNCATED DUE TO SIZE]"
             if f"### File: {path}" not in final_deliverable and f"### File: `{path}`" not in final_deliverable:
                 final_deliverable += f"\n\n### File: {path}\n```python\n{content}\n```"
+        return final_deliverable, workspace_bundle
 
+    def _finalize_run_output(self, start_time: float, final_deliverable: str,
+                             departmental_briefs: Dict[str, str],
+                             workspace_bundle: Dict[str, str],
+                             extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """OpEx accounting and the standard run-output record (shared by V5 and V6 paths)."""
         elapsed = round(time.time() - start_time, 2)
-        
+
         # Calculate OpEx
         flash_cost = (self.flash_input_tokens / 1000.0) * COST_TABLE["gemini-2.5-flash"]["input_per_1k"] + \
                      (self.flash_output_tokens / 1000.0) * COST_TABLE["gemini-2.5-flash"]["output_per_1k"]
         pro_cost = (self.pro_input_tokens / 1000.0) * COST_TABLE["gemini-2.5-pro"]["input_per_1k"] + \
                    (self.pro_output_tokens / 1000.0) * COST_TABLE["gemini-2.5-pro"]["output_per_1k"]
-        
+
         total_cost = round(flash_cost + pro_cost, 4)
         total_tokens = self.flash_input_tokens + self.flash_output_tokens + self.pro_input_tokens + self.pro_output_tokens
 
@@ -937,7 +969,7 @@ class HierarchicalCompanyRunner:
             fully_measured=(self.estimated_calls == 0 and self.measured_calls > 0)
         )
 
-        return {
+        output: Dict[str, Any] = {
             "final_deliverable": final_deliverable,
             "departmental_briefs": departmental_briefs,
             "elapsed_seconds": elapsed,
@@ -967,3 +999,265 @@ class HierarchicalCompanyRunner:
             "budget_exhausted": bool(self.budget and self.budget.overrun),
             "opex": opex.to_dict()
         }
+        if extra:
+            output.update(extra)
+        return output
+
+    # ------------------------------------------------------------------ #
+    # V6: Epistemic tree-search (replaces the linear repair pass)
+    # ------------------------------------------------------------------ #
+
+    @property
+    def epistemic_policy(self) -> EpistemicPolicyGene:
+        return self.genome.epistemic_policy or EpistemicPolicyGene()
+
+    def _make_gatekeeper(self, policy: Optional[EpistemicPolicyGene] = None) -> EvidenceGatekeeper:
+        policy = policy or self.epistemic_policy
+        return EvidenceGatekeeper(
+            self.workspace,
+            timeout_s=policy.experiment_timeout_s,
+            max_probe_lines=policy.max_probe_lines,
+            graded_modules=self._required_modules,
+            module_for_tag=SUITE_TAG_TO_MODULE,
+            logger=lambda msg: print(msg, flush=True),
+        )
+
+    def _find_agent_for(self, keyword: str, needs_tools: bool) -> AgentGenome:
+        """The agent a move kind is routed to, by department keyword.
+
+        Matches the keyword against each department's id, name and mandate
+        (the same inference `is_technical_department` uses, so pods invented
+        by morphogenesis route correctly). Falls back to the first technical
+        department, then to the first department.
+        """
+        keyword = (keyword or "").lower().strip()
+        ordered: List[DepartmentGenome] = []
+        for dept in self.genome.departments:
+            dept_text = f"{dept.dept_id} {dept.name} {dept.mandate}".lower()
+            if keyword and keyword in dept_text:
+                ordered.append(dept)
+        ordered += [d for d in self.genome.departments if is_technical_department(d) and d not in ordered]
+        ordered += [d for d in self.genome.departments if d not in ordered]
+        for dept in ordered:
+            agents = list(dept.agents)
+            if needs_tools:
+                preferred = [a for a in agents if a.tools_enabled or "engineer" in a.role.lower()]
+                if preferred:
+                    return preferred[0]
+            if agents:
+                return agents[0]
+            if dept.manager is not None:
+                return dept.manager
+        return self.genome.ceo
+
+    def _bind_epistemic_agents(self, policy: EpistemicPolicyGene) -> Dict[str, AgentGenome]:
+        return {
+            "question": self._find_agent_for(policy.role_bindings.get("question", "qa"), needs_tools=False),
+            "hypothesis": self._find_agent_for(policy.role_bindings.get("hypothesis", "engineering"), needs_tools=False),
+            "experiment": self._find_agent_for(policy.role_bindings.get("experiment", "verification"), needs_tools=False),
+            "synthesis": self._find_agent_for(policy.role_bindings.get("synthesis", "engineering"), needs_tools=True),
+        }
+
+    def _module_fingerprint(self, path: str) -> str:
+        r = self.workspace.read_file(path)
+        if r.get("status") not in ("ok", "success"):
+            return ""
+        return hashlib.sha256(r.get("content", "").encode("utf-8", errors="replace")).hexdigest()
+
+    def _epistemic_module_context(self, module: str, objective: str, cap: int = 24000) -> str:
+        if not module:
+            return f"Full Technical Specification:\n{objective[:cap]}"
+        ctx = self._get_focused_module_context(module, objective)
+        if len(ctx) > cap:
+            ctx = ctx[:cap] + "\n# [CONTEXT TRUNCATED FOR THE PROPOSER; THE SYNTHESISER SEES THE FULL MODULE]"
+        return ctx
+
+    def _propose_hypotheses_adapter(self, agent: AgentGenome, objective: str, policy: EpistemicPolicyGene):
+        """System 1 adapter: ask a department for k falsifiable hypotheses as a HYPOTHESIS_SET packet."""
+
+        def propose(question: Question, state: EpistemicState, k: int) -> List[HypothesisProposal]:
+            k = max(2, int(k))
+            prompt = (
+                f"EPISTEMIC MOVE: PROPOSE {k} MUTUALLY-EXCLUSIVE HYPOTHESES for question {question.question_id}.\n"
+                f"QUESTION: {question.text}\n"
+                f"MODULE UNDER INVESTIGATION: `{question.module or 'see specification'}`\n\n"
+                "Rules of the ledger:\n"
+                "1. Each hypothesis names ONE concrete mechanism in the CURRENT implementation that would cause this failure.\n"
+                "2. Hypotheses must be mutually exclusive, and at least one must be a mechanism you consider UNLIKELY.\n"
+                "3. `prior` is your honest probability (0.05-0.95) that this mechanism is the actual cause. It is "
+                "recorded and later scored for calibration against the evidence, so do not inflate it.\n"
+                f"4. `probe_code` is a standalone Python script of at most {policy.max_probe_lines} lines that imports "
+                "the module FROM THE WORKSPACE (e.g. `from hae.evaluation.harness import ExecutionHarness`), "
+                "exercises exactly the suspected behaviour, and prints a short marker. It must not read files outside "
+                "the workspace, mutate sys.path, touch the network, or reference held-out tests.\n"
+                "5. `prediction` states what the probe prints / exits with IF THE HYPOTHESIS IS TRUE of the current "
+                "code -- not what a fixed implementation would print. The Evidence Gatekeeper runs the probe and "
+                "falsifies any hypothesis whose prediction does not hold.\n"
+                "6. Never re-propose a mechanism listed under RULED OUT. It has already been falsified by evidence.\n"
+                f"Set `question_id` to \"{question.question_id}\"."
+            )
+            context = (
+                f"{state.summary(question.question_id)}\n\n"
+                f"{self._epistemic_module_context(question.module, objective)}"
+            )
+            raw = self._execute_agent(agent, prompt, context=context,
+                                      response_format=V6_HYPOTHESIS_SCHEMA, max_tokens=1600)
+            proposals = parse_hypothesis_packet(raw, max_items=k)
+            if not proposals:
+                print(f"[epistemic] {self.genome.company_id} {agent.role}: no parseable hypotheses "
+                      f"(head: {raw[:160]!r})", flush=True)
+            return proposals
+
+        return propose
+
+    def _synthesize_patch_adapter(self, agent: AgentGenome, objective: str):
+        """System 1 adapter: turn a SUPPORTED hypothesis into a module rewrite via the tool loop."""
+
+        def synthesize(question: Question, hypothesis: Hypothesis, state: EpistemicState) -> Dict[str, Any]:
+            target = (question.module or (self._required_modules[0] if self._required_modules else "")).lstrip("./")
+            if not target:
+                return {"written": False, "path": "", "summary": "no target module for this question"}
+            evidence_lines = []
+            for eid in hypothesis.evidence_ids:
+                ev = state.evidence_by_id(eid)
+                if ev is None:
+                    continue
+                evidence_lines.append(
+                    f"- {ev.command} (exit {ev.exit_code}, prediction {'HELD' if ev.matched_prediction else 'FAILED'}): "
+                    f"{ev.detail}\n    stdout: {ev.stdout[:400]!r}\n    stderr: {ev.stderr[-300:]!r}")
+            prompt = (
+                f"EPISTEMIC MOVE: SYNTHESIZE a repair of `{target}`.\n\n"
+                f"The Evidence Gatekeeper SUPPORTED this hypothesis about the current implementation:\n"
+                f"  CLAIM: {hypothesis.claim}\n"
+                f"  MECHANISM: {hypothesis.mechanism}\n"
+                f"  PROBE THAT CONFIRMED IT:\n```python\n{hypothesis.probe_code}\n```\n"
+                f"  EVIDENCE:\n" + ("\n".join(evidence_lines) or "  (none recorded)") + "\n\n"
+                f"Oracle failure being answered: {question.source_failure or question.text}\n\n"
+                "Rewrite the COMPLETE module so that this mechanism is fixed while every currently passing "
+                "behaviour is preserved. Do not speculate about other causes: mechanisms under RULED OUT were "
+                "falsified by evidence. Emit `Action: write_file` with the full module as your first response."
+            )
+            context = (
+                f"{state.summary(question.question_id)}\n\n"
+                f"{self._get_focused_module_context(target, objective)}"
+            )
+            before = self._module_fingerprint(target)
+            summary = self._execute_agent_with_tools(agent, prompt, context=context, max_turns=3, target_path=target)
+            after = self._module_fingerprint(target)
+            return {"written": bool(after) and after != before, "path": target, "summary": str(summary)[:400]}
+
+        return synthesize
+
+    def reconcile_epistemic_state(self, failures: List[str], iteration: int) -> Dict[str, Any]:
+        """Lets the oracle's latest verdict certify / reopen questions. Creates the ledger if needed."""
+        if self.epistemic_state is None:
+            self.epistemic_state = EpistemicState(self.genome.company_id)
+        gatekeeper = self._make_gatekeeper()
+        default_module = self._required_modules[0] if len(self._required_modules) == 1 else ""
+        rec = gatekeeper.reconcile_with_oracle(self.epistemic_state, failures, iteration=iteration,
+                                               default_module=default_module)
+        print(f"[epistemic] {self.genome.company_id} iteration {iteration}: oracle reconciliation -> "
+              f"certified={len(rec['certified'])} reopened={len(rec['reopened'])} seeded={len(rec['seeded'])} "
+              f"open={len(self.epistemic_state.open_questions())} "
+              f"uncertainty={self.epistemic_state.total_uncertainty():.2f}", flush=True)
+        return rec
+
+    def epistemic_audit(self, token_usage: int = 0) -> Optional[Dict[str, Any]]:
+        if self.epistemic_state is None:
+            return None
+        return build_epistemic_audit(self.epistemic_state, self.epistemic_search_stats,
+                                     budget_moves=int(self.epistemic_search_stats.get("budget_moves", 0)),
+                                     token_usage=token_usage)
+
+    def _epistemic_deliverable(self, state: EpistemicState, search: Dict[str, Any], iteration: int) -> str:
+        counts = state.counts()
+        ledger_view = {
+            "iteration": iteration,
+            "counts": counts,
+            "uncertainty": {"initial": state.initial_uncertainty(), "remaining": state.total_uncertainty()},
+            "settled_knowledge": [f.statement for f in state.settled_knowledge][-12:],
+            "ruled_out": [b.claim for b in state.ruled_out][-12:],
+            "open_questions": [
+                {"id": q.question_id, "module": q.module, "uncertainty": round(q.uncertainty, 3),
+                 "status": q.status, "text": q.text[:200]}
+                for q in state.open_questions()][:12],
+            "ledger_hash": state.state_hash(),
+        }
+        return (
+            f"### V6 Epistemic Ledger (iteration {iteration}; beliefs written only by the Evidence Gatekeeper)\n"
+            f"```json\n{json.dumps(ledger_view, indent=1)}\n```\n\n"
+            f"### Epistemic Search ({search.get('moves_used', 0)} moves, stop={search.get('stop_reason', '')})\n"
+            f"```json\n{json.dumps(search.get('stats', {}), indent=1)}\n```"
+        )
+
+    def _merge_search_stats(self, stats: Dict[str, Any]) -> None:
+        merged = self.epistemic_search_stats
+        for key, value in stats.items():
+            if isinstance(value, bool):
+                merged[key] = value
+            elif isinstance(value, (int, float)):
+                merged[key] = merged.get(key, 0) + value
+            else:
+                merged[key] = value
+        merged["iterations"] = merged.get("iterations", 0) + 1
+
+    def run_epistemic_search(self, objective: str, failures: List[str],
+                             iteration: int = 2, max_iterations: int = 1) -> Dict[str, Any]:
+        """One repair iteration as an epistemic tree-search instead of a linear rewrite.
+
+        The oracle's failures seed or update the ledger; System 1 agents
+        propose hypotheses with probes; the gatekeeper runs them; a patch is
+        synthesised only for a hypothesis that survived. Returns the same
+        record shape as `run()` plus `epistemic_ledger` and `epistemic_search`.
+        """
+        start_time = time.time()
+        policy = self.epistemic_policy
+        if not hasattr(self.genome.ceo, "model_tier") or not self.genome.ceo.model_tier:
+            self.genome.ceo.model_tier = "executive"
+        self._init_required_modules_for_objective(objective)
+        self.reconcile_epistemic_state(list(failures or []), iteration=iteration)
+        state = self.epistemic_state
+        assert state is not None
+
+        agents = self._bind_epistemic_agents(policy)
+        print(f"[epistemic] {self.genome.company_id}: bindings hypothesis={agents['hypothesis'].role!r} "
+              f"synthesis={agents['synthesis'].role!r} budget={policy.search_budget_moves} moves "
+              f"k={policy.branching_k} c_puct={policy.c_puct} low_prior_quota={policy.low_prior_quota}", flush=True)
+
+        gatekeeper = self._make_gatekeeper(policy)
+        seed_material = f"{self.genome.company_id}:{iteration}".encode("utf-8")
+        loop = EpistemicSearchLoop(
+            state, gatekeeper, EpistemicValueFunction(policy.value_alpha), policy,
+            propose_hypotheses=self._propose_hypotheses_adapter(agents["hypothesis"], objective, policy),
+            synthesize_patch=self._synthesize_patch_adapter(agents["synthesis"], objective),
+            may_continue=lambda: self._may_call("epistemic search move"),
+            agent_roles={MOVE_PROPOSE_HYPOTHESIS: agents["hypothesis"].role,
+                         MOVE_RUN_EXPERIMENT: "EvidenceGatekeeper",
+                         MOVE_SYNTHESIZE: agents["synthesis"].role,
+                         MOVE_ASK_QUESTION: agents["question"].role},
+            rng_seed=int(hashlib.sha256(seed_material).hexdigest()[:8], 16),
+            logger=lambda msg: print(
+                f"[epistemic] {self.genome.company_id} "
+                f"{msg[len('[epistemic] '):] if msg.startswith('[epistemic] ') else msg}", flush=True),
+        )
+        result = loop.run(policy.search_budget_moves)
+        search = result.to_dict()
+        search["iteration"] = iteration
+        self.epistemic_searches.append(search)
+        self._merge_search_stats(result.stats)
+        print(f"[epistemic] {self.genome.company_id} iteration {iteration}: {result.moves_used} moves, "
+              f"dU={result.delta_u_total:.3f}, stop={result.stop_reason}, "
+              f"synthesized={result.synthesized_paths}, counts={state.counts()}", flush=True)
+
+        final_deliverable = self._epistemic_deliverable(state, search, iteration)
+        departmental_briefs = {
+            "epistemic_search": json.dumps({"iteration": iteration, "moves_used": result.moves_used,
+                                            "delta_u_total": result.delta_u_total,
+                                            "stop_reason": result.stop_reason,
+                                            "synthesized_paths": result.synthesized_paths}),
+        }
+        final_deliverable, workspace_bundle = self._append_workspace_files(final_deliverable)
+        return self._finalize_run_output(
+            start_time, final_deliverable, departmental_briefs, workspace_bundle,
+            extra={"epistemic_ledger": state.to_dict(), "epistemic_search": search,
+                   "epistemic_iteration": iteration})

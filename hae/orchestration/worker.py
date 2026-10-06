@@ -139,6 +139,18 @@ def evaluate_single_firm(
     runner = HierarchicalCompanyRunner(
         firm_genome, budget=task.budget, seed_files=seed_files)
 
+    # V6: the `epistemic_policy` gene decides whether repair iterations run as
+    # an evidence-gated tree-search (ledger + gatekeeper + PUCT) or as the V5
+    # linear rewrite. Iteration 1 is identical in both modes; the ledger only
+    # exists once the oracle has produced failures to reason about.
+    epistemic_policy = getattr(firm_genome, "epistemic_policy", None)
+    epistemic_enabled = bool(epistemic_policy and getattr(epistemic_policy, "enabled", False))
+    if epistemic_enabled:
+        print(f"     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: "
+              f"budget={epistemic_policy.search_budget_moves} moves, k={epistemic_policy.branching_k}, "
+              f"c_puct={epistemic_policy.c_puct}, low_prior_quota={epistemic_policy.low_prior_quota}, "
+              f"bindings={epistemic_policy.role_bindings}")
+
     max_iters = max(1, int(getattr(task, "max_iterations", 1)))
     total_elapsed = 0.0
     iterations_history: List[Dict[str, Any]] = []
@@ -148,6 +160,7 @@ def evaluate_single_firm(
     best_briefs: Dict[str, str] = {}
     run_output: Dict[str, Any] = {}
     outcome = None
+    failures_list: List[str] = []
 
     for it in range(1, max_iters + 1):
         if it == 1:
@@ -156,8 +169,8 @@ def evaluate_single_firm(
             for path, content in best_workspace_files.items():
                 runner.workspace.write_file(path, content)
             runner.verification_loop.used = 0
-            failures_list = (best_outcome.evidence.get("failures", [])
-                             if best_outcome and best_outcome.evidence else [])
+            failures_list = list(best_outcome.evidence.get("failures", [])
+                                 if best_outcome and best_outcome.evidence else [])
             failures_text = (
                 "\n".join(f"  - {f}" for f in failures_list)
                 if failures_list else f"  - {best_outcome.detail if best_outcome else 'verification failed'}"
@@ -179,7 +192,14 @@ def evaluate_single_firm(
             )
             print(f"---> [ITERATION {it}/{max_iters}] Re-running {firm_genome.company_id} with ground-truth repair feedback...")
 
-        run_output = runner.run(current_objective)
+        if it >= 2 and epistemic_enabled:
+            # Same objective (the feedback block still seeds `_required_modules`),
+            # but the repair is an epistemic search over oracle failures rather
+            # than a linear rewrite.
+            run_output = runner.run_epistemic_search(
+                current_objective, failures_list, iteration=it, max_iterations=max_iters)
+        else:
+            run_output = runner.run(current_objective)
         total_elapsed += run_output.get("elapsed_seconds", 0.0)
 
         if run_output.get("budget_exhausted"):
@@ -238,6 +258,33 @@ def evaluate_single_firm(
     run_output["iterations_used"] = len(iterations_history)
     run_output["iterations_history"] = iterations_history
 
+    # V6: the oracle's final verdict is the last word in the ledger. Failures
+    # that vanished are certified; questions the search marked RESOLVED but the
+    # oracle still fails are reopened and their patches falsified. Only then is
+    # the ledger audited (non-LLM) and handed to the fitness evaluator.
+    epistemic_audit: Optional[Dict[str, Any]] = None
+    if epistemic_enabled and getattr(runner, "epistemic_state", None) is not None:
+        try:
+            final_failures = list(outcome.evidence.get("failures", [])
+                                  if outcome and outcome.evidence else [])
+            runner.reconcile_epistemic_state(final_failures, iteration=len(iterations_history) + 1)
+            epistemic_audit = runner.epistemic_audit(token_usage=int(run_output.get("token_usage", 0) or 0))
+            run_output["epistemic_ledger"] = runner.epistemic_state.to_dict()
+            run_output["epistemic_searches"] = list(runner.epistemic_searches)
+            if epistemic_audit:
+                print(f" [EPISTEMIC AUDIT] questions={epistemic_audit.get('questions', 0)} "
+                      f"certified={epistemic_audit.get('questions_certified', 0)} "
+                      f"hypotheses_tested={epistemic_audit.get('hypotheses_tested', 0)} "
+                      f"evidence_backed={epistemic_audit.get('evidence_backed_fraction', 0.0):.2f} "
+                      f"inconsistencies={epistemic_audit.get('status_inconsistencies', 0)} "
+                      f"brier={epistemic_audit.get('calibration_brier')} "
+                      f"resolved={epistemic_audit.get('resolved_fraction', 0.0):.2f} "
+                      f"moves={epistemic_audit.get('moves_used', 0)}/{epistemic_audit.get('budget_moves', 0)} "
+                      f"ledger={epistemic_audit.get('ledger_hash', '')[:12]}")
+        except Exception as exc:  # the audit must never take the firm down with it
+            print(f" [EPISTEMIC AUDIT] failed ({type(exc).__name__}: {exc}); scoring falls back to V5 composite.")
+            epistemic_audit = None
+
     # Level 3 RSI: Promote 100%-verified hae/ modules into firm_genome.code_overlays
     if outcome and outcome.score is not None and float(outcome.score) >= 100.0:
         for path, content in best_workspace_files.items():
@@ -258,7 +305,8 @@ def evaluate_single_firm(
         departmental_briefs=run_output["departmental_briefs"],
         elapsed_seconds=run_output["elapsed_seconds"],
         token_usage=run_output["token_usage"],
-        verification=outcome
+        verification=outcome,
+        epistemic_audit=epistemic_audit,
     )
 
     gross_score = eval_res.fitness.fitness_score
@@ -295,6 +343,10 @@ def evaluate_single_firm(
         "execution_integrity": getattr(eval_res.fitness, "execution_integrity", 0.0),
         "execution_evaluable": getattr(eval_res.fitness, "execution_evaluable", False),
         "evaluation_failed": getattr(eval_res.fitness, "evaluation_failed", False),
+        "epistemic_integrity": getattr(eval_res.fitness, "epistemic_integrity", None),
+        "epistemic_efficiency": getattr(eval_res.fitness, "epistemic_efficiency", None),
+        "epistemic_evaluable": bool(getattr(eval_res.fitness, "epistemic_evaluable", False)),
+        "epistemic_audit": epistemic_audit,
         "elapsed_seconds": eval_res.fitness.elapsed_seconds,
         "token_usage": eval_res.fitness.token_usage,
         "iterations_used": len(iterations_history),
@@ -314,6 +366,22 @@ def evaluate_single_firm(
     local_path = os.path.join(gen_dir, f"{company_id}_result.json")
     with open(local_path, "w") as f:
         json.dump(result_payload, f, indent=2, default=str)
+
+    # V6: the full reasoning trail (ledger, every search trajectory, audit)
+    # lives in a sidecar so the scorecard stays readable and the trail stays
+    # inspectable. The ledger is the research artefact, not the prose.
+    if epistemic_audit is not None or run_output.get("epistemic_ledger"):
+        tree_path = os.path.join(gen_dir, f"{company_id}_epistemic_tree.json")
+        with open(tree_path, "w") as f:
+            json.dump({
+                "company_id": company_id,
+                "generation": generation,
+                "ledger": run_output.get("epistemic_ledger"),
+                "searches": run_output.get("epistemic_searches", []),
+                "audit": epistemic_audit,
+                "policy": epistemic_policy.to_dict() if hasattr(epistemic_policy, "to_dict") else None,
+            }, f, indent=2, default=str)
+        print(f" Wrote epistemic tree: {tree_path}")
 
     # Sync to GCS
     if gcs_bucket:

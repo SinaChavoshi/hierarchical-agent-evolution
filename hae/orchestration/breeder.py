@@ -23,9 +23,11 @@ import copy
 import glob
 import json
 import os
+import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
+from hae.epistemic.genes import crossover_epistemic_policy, mutate_epistemic_policy
 from hae.evaluation.judge import (
     JUDGED_DIMENSIONS,
     composite_score,
@@ -33,7 +35,7 @@ from hae.evaluation.judge import (
     resolve_execution_score,
 )
 from hae.genome.morphogenesis import MorphogenesisEngine, StructuralCrossoverEngine
-from hae.genome.schema import CompanyGenome, GenomeValidationError
+from hae.genome.schema import CompanyGenome, EpistemicPolicyGene, GenomeValidationError
 from hae.runtime.overlay import get_overlay_class
 
 GENERATION_CONFIG_DIR = "configs/generations"
@@ -70,6 +72,11 @@ class GenerationSpec:
     objective: str = ""
     benchmark_task: str = ""
     task_file: str = ""
+    # V6: field overrides stamped onto every child's `epistemic_policy` gene
+    # after inheritance, e.g. {"enabled": true}. Switching the epistemic
+    # search on is a generation-level decision (it changes what fitness
+    # measures), while the numeric fields keep evolving per lineage.
+    epistemic_policy: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def population_size(self) -> int:
@@ -234,10 +241,16 @@ def rank_scorecards(scorecard_dir: str) -> List[RankedFirm]:
             details = ver.get("evidence") or ver.get("details") or {}
             gates_passed = int(details.get("tests_passed", 1 if exec_score >= 100.0 else 0))
 
+        # V6 scorecards carry the non-LLM ledger audit; ranking must use the
+        # same composite the worker scored with, or the breeder would select
+        # on a different fitness than the one the firms were measured by.
+        audit = card.get("epistemic_audit")
+        epistemic_audit = audit if isinstance(audit, dict) and audit else None
+
         ranked.append(RankedFirm(
             company_id=company_id,
             genome=genome,
-            rubric_score=composite_score(judged, exec_score),
+            rubric_score=composite_score(judged, exec_score, epistemic_audit=epistemic_audit),
             execution_integrity=exec_score or 0.0,
             gates_passed=gates_passed,
             legacy_net=float(card.get("fitness_score")
@@ -334,6 +347,7 @@ class Breeder:
             population.append(self._with_mandate(
                 child, child.company_id, "Seed topology variant"))
 
+        self._apply_policy_overrides(population)
         self._assert_distinct(population)
         return population
 
@@ -396,6 +410,12 @@ class Breeder:
             merged_overlays = dict(b.genome.code_overlays or {})
             merged_overlays.update(a.genome.code_overlays or {})
             child.code_overlays = merged_overlays
+            # The search policy recombines like topology does: per-field, with
+            # numeric midpoints, under a seed derived from the slot so the
+            # same spec always breeds the same child.
+            child.epistemic_policy = crossover_epistemic_policy(
+                a.genome.epistemic_policy, b.genome.epistemic_policy,
+                random.Random(f"gen{gen}-crossover-{i + 1}"))
             population.append(self._with_mandate(
                 child, child.company_id,
                 f"Crossover of {a.company_id} and {b.company_id}"))
@@ -433,12 +453,49 @@ class Breeder:
                     target_generation=gen,
                     child_id=f"gen_{gen}_mutant_{i + 1}")
             child.code_overlays = dict(parent.genome.code_overlays or {})
+            # Bounded jitter on the numeric search knobs and, rarely, a role
+            # re-binding. `enabled` is never flipped by an operator.
+            child.epistemic_policy = mutate_epistemic_policy(
+                parent.genome.epistemic_policy,
+                random.Random(f"gen{gen}-mutant-{i + 1}"))
             population.append(self._with_mandate(
                 child, child.company_id,
                 f"Morphogenesis from {parent.company_id}"))
 
+        self._apply_policy_overrides(population)
         self._assert_distinct(population)
         return population
+
+    def _apply_policy_overrides(self, population: List[CompanyGenome]) -> None:
+        """Stamps the spec's `epistemic_policy` overrides onto every child.
+
+        Applied after inheritance so the cohort-level decision (is the search
+        on? what budget?) wins, while unlisted fields keep whatever the
+        operators bred. Unknown or out-of-range fields raise: a generation
+        config that says `enabled: true` and is silently ignored is a
+        generation that did not run the experiment it claims to have run.
+        """
+        overrides = dict(self.spec.epistemic_policy or {})
+        if not overrides:
+            return
+        unknown = set(overrides) - set(EpistemicPolicyGene().to_dict())
+        if unknown:
+            raise BreedingError(
+                f"Generation {self.spec.generation} sets unknown epistemic_policy "
+                f"fields {sorted(unknown)}.")
+        for genome in population:
+            current = genome.epistemic_policy.to_dict() if genome.epistemic_policy else {}
+            current.update(overrides)
+            try:
+                genome.epistemic_policy = EpistemicPolicyGene.from_dict(current)
+            except (GenomeValidationError, ValueError, TypeError) as exc:
+                raise BreedingError(
+                    f"Generation {self.spec.generation} epistemic_policy override "
+                    f"{overrides} is invalid for {genome.company_id}: {exc}") from exc
+            if overrides.get("enabled"):
+                genome.mutation_history.append(
+                    f"Generation {self.spec.generation}: V6 epistemic search enabled "
+                    f"(budget={genome.epistemic_policy.search_budget_moves} moves)")
 
     def _pareto_dimensions(self) -> List[str]:
         # Execution first: it is the dimension the programme exists to improve

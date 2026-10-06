@@ -179,6 +179,94 @@ class DepartmentGenome(_Model):
         return 1 + len(self.agents)
 
 
+# Heritable bounds for the V6 epistemic search policy. Each entry is
+# (lower, upper, is_integer). A mutation that lands outside is clamped by the
+# operator and rejected here, so an out-of-range policy never reaches a worker.
+EPISTEMIC_POLICY_BOUNDS: Dict[str, tuple] = {
+    "search_budget_moves": (4, 400, True),
+    "branching_k": (2, 6, True),
+    "c_puct": (0.1, 5.0, False),
+    "low_prior_quota": (0.0, 0.8, False),
+    "experiment_timeout_s": (5, 120, True),
+    "max_probe_lines": (10, 200, True),
+    "value_alpha": (0.0, 1.0, False),
+    "min_hypotheses_before_synthesis": (1, 6, True),
+    "max_stagnant_moves": (2, 50, True),
+    "max_hypothesis_rounds": (1, 5, True),
+}
+
+# The four System-1 move kinds a firm binds to departments, and the default
+# department keyword each is routed to.
+EPISTEMIC_MOVE_KINDS = ("question", "hypothesis", "experiment", "synthesis")
+DEFAULT_EPISTEMIC_ROLE_BINDINGS: Dict[str, str] = {
+    "question": "qa",
+    "hypothesis": "engineering",
+    "experiment": "verification",
+    "synthesis": "engineering",
+}
+
+
+@dataclass
+class EpistemicPolicyGene(_Model):
+    """How a firm searches when its first attempt fails the oracle (V6).
+
+    Everything here is a *search* parameter: how many moves the firm may spend
+    in its epistemic tree-search per repair iteration, how wide it branches,
+    how strongly the policy prior steers exploration, and what fraction of
+    expansions are forced onto the lowest-prior untested hypothesis so that
+    the prior can never prune (the Move-37 rule). None of it can set a belief:
+    confidence in the ledger is written only by the evidence gatekeeper.
+
+    `enabled` defaults to False. Every V5 genome, population file and test
+    therefore behaves exactly as before; a Gen 16+ population opts in.
+    """
+
+    enabled: bool = False
+    search_budget_moves: int = 40
+    branching_k: int = 3
+    c_puct: float = 1.4
+    low_prior_quota: float = 0.34
+    experiment_timeout_s: int = 20
+    max_probe_lines: int = 40
+    value_alpha: float = 0.6
+    min_hypotheses_before_synthesis: int = 2
+    max_stagnant_moves: int = 8
+    max_hypothesis_rounds: int = 2
+    role_bindings: Dict[str, str] = field(
+        default_factory=lambda: dict(DEFAULT_EPISTEMIC_ROLE_BINDINGS))
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.enabled = bool(self.enabled)
+        for name, (lo, hi, is_int) in EPISTEMIC_POLICY_BOUNDS.items():
+            raw = getattr(self, name)
+            try:
+                value = int(round(float(raw))) if is_int else float(raw)
+            except (TypeError, ValueError):
+                raise GenomeValidationError(
+                    f"EpistemicPolicyGene.{name} must be numeric, got {raw!r}")
+            if not lo <= value <= hi:
+                raise GenomeValidationError(
+                    f"EpistemicPolicyGene.{name} must be within [{lo}, {hi}], "
+                    f"got {value}")
+            setattr(self, name, value)
+        if self.role_bindings is None:
+            self.role_bindings = dict(DEFAULT_EPISTEMIC_ROLE_BINDINGS)
+        elif not isinstance(self.role_bindings, Mapping):
+            raise GenomeValidationError(
+                "EpistemicPolicyGene.role_bindings must be a mapping, got "
+                f"{type(self.role_bindings).__name__}")
+        else:
+            merged = dict(DEFAULT_EPISTEMIC_ROLE_BINDINGS)
+            merged.update({str(k): str(v) for k, v in self.role_bindings.items()})
+            unknown = set(merged) - set(EPISTEMIC_MOVE_KINDS)
+            if unknown:
+                raise GenomeValidationError(
+                    f"EpistemicPolicyGene.role_bindings has unknown move kinds "
+                    f"{sorted(unknown)}; known: {EPISTEMIC_MOVE_KINDS}")
+            self.role_bindings = merged
+
+
 @dataclass
 class CompanyGenome(_Model):
     """A whole firm: a CEO, its departments, and its operating budget."""
@@ -193,6 +281,10 @@ class CompanyGenome(_Model):
         "Dialectic review: challenge assumptions, stress-test trade-offs")
     budget_usd: float = 0.50
     code_overlays: Dict[str, str] = field(default_factory=dict)
+    # V6: how the firm searches after its first oracle failure. Absent from
+    # every pre-Gen-16 genome; defaults to a disabled policy so archived
+    # genomes load and run exactly as they did.
+    epistemic_policy: Optional[EpistemicPolicyGene] = None
     extra: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -227,6 +319,14 @@ class CompanyGenome(_Model):
                 f"CompanyGenome.code_overlays must be a mapping, got {type(self.code_overlays).__name__}")
         else:
             self.code_overlays = {str(k): str(v) for k, v in self.code_overlays.items()}
+        if self.epistemic_policy is None:
+            self.epistemic_policy = EpistemicPolicyGene()
+        elif isinstance(self.epistemic_policy, Mapping):
+            self.epistemic_policy = EpistemicPolicyGene.from_dict(self.epistemic_policy)
+        elif not isinstance(self.epistemic_policy, EpistemicPolicyGene):
+            raise GenomeValidationError(
+                "CompanyGenome.epistemic_policy must be a mapping or "
+                f"EpistemicPolicyGene, got {type(self.epistemic_policy).__name__}")
 
     @property
     def total_agent_count(self) -> int:
@@ -273,6 +373,14 @@ class FitnessScore(_Model):
     # False when no gate could be evaluated, in which case `fitness_score` is
     # prose-only and `execution_integrity` carries no information.
     execution_evaluable: bool = False
+    # V6, measured from the firm's epistemic ledger by `hae.epistemic.audit`:
+    # how much of the reasoning trail is evidence-backed and calibrated, and
+    # how much uncertainty was resolved per move. The judge never sees either.
+    epistemic_integrity: float = 0.0
+    epistemic_efficiency: float = 0.0
+    # False for a firm that produced no ledger (every V5 firm), in which case
+    # the two fields above carry no information and the V5 composite applies.
+    epistemic_evaluable: bool = False
     # True when the judge call or its JSON could not be parsed. Such a firm
     # scores 0.0 and must never be bred forward.
     evaluation_failed: bool = False
@@ -288,6 +396,7 @@ class FitnessScore(_Model):
         for name in ("strategic_depth", "technical_feasibility",
                      "cross_functional_coherence", "risk_mitigation",
                      "actionability_and_synthesis", "execution_integrity",
+                     "epistemic_integrity", "epistemic_efficiency",
                      "fitness_score"):
             value = float(getattr(self, name))
             if not 0.0 <= value <= 100.0:

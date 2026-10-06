@@ -77,7 +77,7 @@ flowchart LR
     V2 --> V3["V3: Level-3 Code-Overlay<br/>RSI (Completed)"]
     V3 --> V4["V4: Unified llm-d 3x 180B NVFP4<br/>Gen 10-11 (Completed)"]
     V4 --> V5["V5: 'TypeSafe AI' vLLM xgrammar<br/>+ full_stack_hae Gen 12-15<br/>(50/50 Convergence, Completed)"]
-    V5 --> V6["V6: Epistemic Tree-Search Organizations<br/>Ledger + Evidence Gatekeeper + Value Net<br/>(In Progress: Stage 1-2)"]
+    V5 --> V6["V6: Epistemic Tree-Search Organizations<br/>Ledger + Evidence Gatekeeper + Value Net<br/>(Stage 1-2 Implemented · Gen 16 Pending)"]
     V6 --> V7["V7: Parametric RL (GRPO/DPO)<br/>on Certified Epistemic Trajectories (Next)"]
 ```
 
@@ -122,17 +122,17 @@ In **Phase 5 (`V5 TypeSafe AI`)**, we wired **hardware-level Finite-State Machin
 
 ---
 
-### Phase 6 (`V6`): Epistemic Tree-Search Organizations — *"The Scientific Method on Steroids"* *(In Progress — Stage 1 & 2)*
+### Phase 6 (`V6`): Epistemic Tree-Search Organizations — *"The Scientific Method on Steroids"* *(Stage 1 & 2 **implemented & tested**, Oct 6 2026 — Gen 16 launch pending)*
 
-> 📄 **Full `V6` Design, Graepel-Diff & Gen 15 Plateau Audit:** **[`experiments/v6_epistemic_search/README.md`](experiments/v6_epistemic_search/README.md)**
+> 📄 **Full `V6` Design, Graepel-Diff, Gen 15 Plateau Audit & How-to-Enable:** **[`experiments/v6_epistemic_search/README.md`](experiments/v6_epistemic_search/README.md)**
 
 `V5` proved that LLM intuition + a greedy repair loop can reach `50/50` — but only sometimes, and only when an external oracle hands over the exact failing traceback. Following Thore Graepel's AlphaGo analysis (*LLMs are System 1; chain-of-thought is "the same next-token prediction process, iterated for longer"*), `V6` rebuilds the company runtime so that **the LLM supplies only hunches and the organization itself is the explicit, auditable System 2**:
 
 1. **Explicit, Persistent, Inspectable Epistemic Ledger (`hae/epistemic/ledger.py`):** The central state of a company is no longer a code blob plus a test score but an immutable, content-addressed `EpistemicState` — `settled_knowledge` (certified facts), `hypotheses` (with calibrated confidence), `ruled_out` (falsified beliefs + the evidence that killed them), and `open_questions` (unresolved uncertainty).
 2. **Independent, Non-LLM Evidence Gatekeeper (`hae/epistemic/gatekeeper.py`):** LLM agents may *propose* questions, competing hypotheses, sandbox experiments, and code diffs; **only** a deterministic gatekeeper that executes those probes may *certify* or *falsify* a belief. Moves that produce no new evidence have zero information gain; proposals that match a `ruled_out` mechanism are rejected as `TABU` before spending a turn.
 3. **Epistemic PUCT Tree Search + Value Network (`hae/epistemic/mcts.py`, `value.py`):** `50–100+` cheap epistemic moves per company (`<150` tokens, `<0.2 s` probes) replace `5` expensive full-company passes. Policy priors are an exploration tie-breaker, **never** a pruning filter — low-prior, mutually exclusive hypotheses are deliberately expanded so that "Move 37" fixes (1-in-10,000 prior) can be found by evidence rather than killed by plausibility. The value function scores *uncertainty actually resolved by evidence* plus a learned head trained on harvested search trees.
-4. **Heritable `epistemic_policy` Gene + Auditable Fitness:** `CompanyGenome` evolves search budget, branching, `c_puct`, low-prior quota, and department→role bindings (Question / Hypothesis / Experiment / Synthesis pods). `judge.py` retires the post-hoc prose rubric in favour of an **Epistemic Integrity Audit** (`60%` execution · `25%` ledger auditability & calibration · `15%` uncertainty resolved per cost).
-5. **Generation 16 Targets:** break the `46–49/50` plateau on the 8 non-converged `full_stack_hae` lineages, and attempt a new **oracle-free** multi-file debugging benchmark where no traceback is handed to the firm — a task the `V5` architecture structurally cannot attempt.
+4. **Heritable `epistemic_policy` Gene + Auditable Fitness:** `CompanyGenome` evolves search budget, branching, `c_puct`, low-prior quota, and department→role bindings (Question / Hypothesis / Experiment / Synthesis pods); the breeder recombines and mutates it like topology. `judge.py` retires the post-hoc prose rubric in favour of an **Epistemic Integrity Audit** (`60%` execution · `25%` ledger auditability & calibration · `15%` uncertainty resolved per cost) whenever a ledger exists; `V5` scoring is untouched otherwise.
+5. **Status & Generation 16 Targets:** the engine, runner/worker/breeder integration and audit-based fitness are in `main` behind `epistemic_policy.enabled` (default off; `415` tests green, `$0` GPU). The integration test drives a real ledger → probe → falsify/support → patch → oracle-certify cycle with the *wrong* hypothesis given the higher prior, and the evidence wins. Gen 16 (`{"epistemic_policy": {"enabled": true}}` in the generation spec) targets the `46–49/50` plateau on the 8 non-converged `full_stack_hae` lineages, plus a new **oracle-free** multi-file debugging benchmark where no traceback is handed to the firm — a task the `V5` architecture structurally cannot attempt.
 
 ---
 
@@ -161,11 +161,11 @@ hierarchical-agent-evolution/
 │   └── v6_epistemic_search/README.md         # Phase 6: Epistemic Tree-Search design, Graepel diff & Gen 15 audit
 ├── hae/
 │   ├── controller/                  # Evolutionary tournament controller, crossover & mutation engine
-│   ├── orchestration/               # Distributed GKE worker & sandboxed verification loop
-│   ├── runtime/                     # HierarchicalCompanyRunner (V5 xgrammar protocol + V6 epistemic loop)
+│   ├── orchestration/               # Distributed GKE worker (V5 / V6 dispatch) & declarative generation breeder
+│   ├── runtime/                     # HierarchicalCompanyRunner (V5 xgrammar protocol + V6 run_epistemic_search)
 │   ├── genome/                      # CompanyGenome, AgentNode, epistemic_policy gene & Morphogenesis engine
-│   ├── epistemic/                   # V6: EpistemicState ledger, moves, Evidence Gatekeeper, value fn, PUCT search
-│   ├── evaluation/                  # Deterministic SelfHostingBenchmark, harness, verification loop & judge
+│   ├── epistemic/                   # V6: ledger, moves, Evidence Gatekeeper, value fn, PUCT search, audit, gene operators
+│   ├── evaluation/                  # Deterministic SelfHostingBenchmark, harness, verification loop & judge (V5 + audit composite)
 │   └── compiler/                    # Target compiler optimization module (V2/V3 benchmark)
 ├── k8s/                             # GKE deployment manifests & job specs
 └── scripts/                         # Evaluation, plotting, and forensic audit utilities

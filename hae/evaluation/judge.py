@@ -184,8 +184,74 @@ def execution_integrity(gate_status: Optional[Mapping[str, str]]) -> Optional[fl
 EXECUTION_PROSE_FLOOR: float = 0.20
 
 
+# V6 composite, used only when a firm produced an epistemic ledger. Prose has
+# no weight here: a firm's reasoning is scored from its evidence trail, not
+# from its description of it. Must sum to 1.0.
+EPISTEMIC_WEIGHTS: Dict[str, float] = {
+    "execution_integrity": 0.60,
+    "epistemic_integrity": 0.25,
+    "epistemic_efficiency": 0.15,
+}
+
+# A Brier score of 0.25 is what "always say 0.5" earns: no information. Priors
+# earn calibration credit only for beating that.
+UNINFORMATIVE_BRIER = 0.25
+
+
+def epistemic_integrity_score(audit: Optional[Mapping[str, Any]]) -> Optional[float]:
+    """0-100 from a ledger audit, or None when there is no ledger to audit.
+
+    Four measured parts:
+      * evidence backing (30%): every verdict, settled fact and ruled-out
+        mechanism cites evidence that is on the log, and statuses are
+        internally consistent;
+      * calibration (25%): System 1's stated priors beat an uninformative
+        Brier score against the gatekeeper's verdicts. Zero until something
+        has been tested;
+      * certification (30%): share of questions the oracle later confirmed;
+      * tabu discipline (15%): share of proposals that were not re-proposals
+        of mechanisms already falsified.
+    """
+    if not audit:
+        return None
+    questions = int(audit.get("questions", 0) or 0)
+    if questions <= 0:
+        return None
+    backed = max(0.0, min(1.0, float(audit.get("evidence_backed_fraction", 0.0))))
+    if int(audit.get("status_inconsistencies", 0) or 0) > 0:
+        backed = 0.0
+    tested = int(audit.get("calibration_tested", 0) or 0)
+    if tested > 0:
+        brier = max(0.0, float(audit.get("calibration_brier", UNINFORMATIVE_BRIER)))
+        calibration = max(0.0, 1.0 - brier / UNINFORMATIVE_BRIER)
+    else:
+        calibration = 0.0
+    certified = max(0.0, min(1.0, int(audit.get("questions_certified", 0) or 0) / float(questions)))
+    proposed = int(audit.get("proposed_total", 0) or 0)
+    tabu = int(audit.get("tabu_rejections", 0) or 0)
+    discipline = 1.0 - (tabu / float(proposed)) if proposed > 0 else 1.0
+    score = 100.0 * (0.30 * backed + 0.25 * calibration + 0.30 * certified + 0.15 * discipline)
+    return round(max(0.0, min(100.0, score)), 2)
+
+
+def epistemic_efficiency_score(audit: Optional[Mapping[str, Any]]) -> Optional[float]:
+    """0-100: uncertainty resolved, and resolved per unit of move budget."""
+    if not audit:
+        return None
+    moves = int(audit.get("moves_used", 0) or 0)
+    if moves <= 0:
+        return 0.0
+    resolved = max(0.0, min(1.0, float(audit.get("resolved_fraction", 0.0))))
+    budget = int(audit.get("budget_moves", 0) or 0)
+    used_fraction = (moves / float(budget)) if budget > 0 else 1.0
+    per_budget = min(1.0, resolved / used_fraction) if used_fraction > 0 else 0.0
+    score = 100.0 * (0.60 * resolved + 0.40 * per_budget)
+    return round(max(0.0, min(100.0, score)), 2)
+
+
 def composite_score(judged: Mapping[str, float],
-                    execution: Optional[float]) -> float:
+                    execution: Optional[float],
+                    epistemic_audit: Optional[Mapping[str, Any]] = None) -> float:
     """Weighted blend of judged dimensions and measured execution integrity.
 
     When execution integrity is unavailable the judged weights are
@@ -199,7 +265,20 @@ def composite_score(judged: Mapping[str, float],
     higher than `10.0` even with perfect prose (`0.20 * 50.0 = 10.0`), while
     passing tests both adds direct execution credit (`0.50 * execution`) and
     unlocks the architectural prose score.
+
+    V6: when `epistemic_audit` is supplied (the firm ran an epistemic search
+    and produced a ledger), the score is instead `EPISTEMIC_WEIGHTS` over
+    execution, ledger integrity and search efficiency. Prose is not in it.
     """
+    integrity = epistemic_integrity_score(epistemic_audit)
+    if integrity is not None:
+        exec_val = max(0.0, min(100.0, float(execution))) if execution is not None else 0.0
+        efficiency = epistemic_efficiency_score(epistemic_audit) or 0.0
+        total = (EPISTEMIC_WEIGHTS["execution_integrity"] * exec_val
+                 + EPISTEMIC_WEIGHTS["epistemic_integrity"] * integrity
+                 + EPISTEMIC_WEIGHTS["epistemic_efficiency"] * efficiency)
+        return round(total, 2)
+
     if execution is None:
         judged_total = sum(RUBRIC_WEIGHTS[d] for d in JUDGED_DIMENSIONS)
         return round(
@@ -340,6 +419,7 @@ class StrategicFitnessEvaluator:
         elapsed_seconds: float = 0.0,
         token_usage: int = 0,
         verification: Any = None,
+        epistemic_audit: Optional[Mapping[str, Any]] = None,
     ) -> EvaluationResult:
         """Scores a firm on five judged dimensions plus measured execution integrity.
 
@@ -347,8 +427,23 @@ class StrategicFitnessEvaluator:
         `VerificationReport` (from `ExecutionHarness`), or a dict carrying
         `gate_status` or `evaluable`+`score`. Omitting it scores the firm on
         prose alone and sets `execution_evaluable=False` on the result.
+
+        `epistemic_audit` (V6) is the dict from
+        `hae.epistemic.audit.build_epistemic_audit`. When present, the
+        composite follows `EPISTEMIC_WEIGHTS` and the judged prose carries no
+        weight; the judged dimensions are still recorded for Pareto diversity.
         """
         exec_score = resolve_execution_score(verification)
+        integrity = epistemic_integrity_score(epistemic_audit)
+        efficiency = epistemic_efficiency_score(epistemic_audit) if integrity is not None else None
+
+        def _stamp(fitness: FitnessScore) -> FitnessScore:
+            fitness.execution_integrity = exec_score if exec_score is not None else 0.0
+            fitness.execution_evaluable = exec_score is not None
+            fitness.epistemic_evaluable = integrity is not None
+            fitness.epistemic_integrity = integrity if integrity is not None else 0.0
+            fitness.epistemic_efficiency = efficiency if efficiency is not None else 0.0
+            return fitness
 
         obj_view = objective if len(objective) <= 4500 else (objective[:4500] + "\n...[4-Module Full-Stack Specification & 50 Held-Out Unit Tests]...")
         deliv_view = final_deliverable if len(final_deliverable) <= 26000 else (final_deliverable[:26000] + "\n...[Remaining Verified Module Implementation Lines]...")
@@ -389,13 +484,11 @@ Score this proposal rigorously according to your rubric. Return only the JSON ob
                 elapsed_seconds=elapsed_seconds,
             )
             fitness.evaluation_failed = True
-            fitness.execution_integrity = exec_score if exec_score is not None else 0.0
-            fitness.execution_evaluable = exec_score is not None
             return self._result(company_id, generation, objective,
-                                final_deliverable, departmental_briefs, fitness)
+                                final_deliverable, departmental_briefs, _stamp(fitness))
 
         judged = {d: _clamp(parsed.get(d)) for d in JUDGED_DIMENSIONS}
-        overall = composite_score(judged, exec_score)
+        overall = composite_score(judged, exec_score, epistemic_audit=epistemic_audit)
 
         fitness = FitnessScore(
             strategic_depth=judged["strategic_depth"],
@@ -410,10 +503,8 @@ Score this proposal rigorously according to your rubric. Return only the JSON ob
             elapsed_seconds=elapsed_seconds,
         )
         fitness.evaluation_failed = False
-        fitness.execution_integrity = exec_score if exec_score is not None else 0.0
-        fitness.execution_evaluable = exec_score is not None
         return self._result(company_id, generation, objective,
-                            final_deliverable, departmental_briefs, fitness)
+                            final_deliverable, departmental_briefs, _stamp(fitness))
 
     @staticmethod
     def _result(company_id, generation, objective, final_deliverable,
