@@ -40,8 +40,8 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from hae.epistemic.gatekeeper import EvidenceGatekeeper
 from hae.epistemic.ledger import (
-    CERTIFIED, FALSIFIED, SUPPORTED, UNVERIFIED, TABU_SIMILARITY,
-    EpistemicState, Hypothesis, MoveRecord, Question, signature_similarity,
+    CERTIFIED, FALSIFIED, SUPPORTED, UNTESTABLE, UNVERIFIED, TABU_SIMILARITY,
+    EpistemicState, Hypothesis, LedgerError, MoveRecord, Question, signature_similarity,
 )
 from hae.epistemic.moves import (
     MOVE_ASK_QUESTION, MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT, MOVE_SYNTHESIZE,
@@ -113,8 +113,8 @@ class EpistemicSearchLoop:
         self.synthesized_paths: List[str] = []
         self.stats: Dict[str, Any] = {
             "proposal_rounds": 0, "hypotheses_accepted": 0, "tabu_rejections": 0,
-            "duplicate_rejections": 0, "experiments": 0, "supported": 0, "falsified": 0,
-            "inconclusive": 0, "rejected_probes": 0, "forced_low_prior_picks": 0,
+            "duplicate_rejections": 0, "probe_repairs": 0, "experiments": 0, "supported": 0,
+            "falsified": 0, "inconclusive": 0, "rejected_probes": 0, "forced_low_prior_picks": 0,
             "forced_low_prior_wins": 0, "syntheses": 0, "syntheses_verified": 0,
             "syntheses_unwritten": 0, "questions_asked": 0, "proposer_errors": 0,
         }
@@ -201,7 +201,9 @@ class EpistemicSearchLoop:
     def _choose_action(self, q: Question) -> Tuple[str, Optional[Hypothesis], bool]:
         hyps = self.state.hypotheses_for(q.question_id)
         untested = [h for h in hyps if h.status == UNVERIFIED]
-        tested = [h for h in hyps if h.status != UNVERIFIED]
+        # Only verdicts count towards the synthesis gate; an UNTESTABLE sibling
+        # (probe refused, never ran) is not evidence of anything.
+        tested = [h for h in hyps if h.tested]
         ready = [h for h in hyps if h.status == SUPPORTED and not h.patch_applied
                  and h.synthesis_failures < MAX_SYNTHESIS_FAILURES]
         if ready and (len(tested) >= self.policy.min_hypotheses_before_synthesis or not untested):
@@ -272,14 +274,35 @@ class EpistemicSearchLoop:
             self._record(MOVE_PROPOSE_HYPOTHESIS, q.question_id, note=f"proposer error: {type(exc).__name__}: {exc}",
                          features_before=feats, value_before=v0, hash_before=h0)
             return
-        accepted = tabu = dup = 0
+        accepted = tabu = dup = repaired = 0
         existing = self.state.hypotheses_for(q.question_id)
         for prop in proposals[: int(self.policy.branching_k)]:
             sig = prop.signature
             if self.state.is_tabu(sig, q.question_id):
                 tabu += 1
                 continue
-            if any(signature_similarity(sig, h.mechanism_signature) >= TABU_SIMILARITY for h in existing):
+            # A proposal that restates a mechanism whose probe the gatekeeper
+            # refused is a repair, not a duplicate: the new probe is swapped in
+            # and the hypothesis returns to the untested pool. Prior and id are
+            # kept, so calibration still scores the belief that was originally
+            # declared. Re-submitting the identical broken probe is a duplicate.
+            parked = [h for h in existing if h.status == UNTESTABLE
+                      and signature_similarity(sig, h.mechanism_signature) >= TABU_SIMILARITY]
+            if parked:
+                target = max(parked, key=lambda h: (signature_similarity(sig, h.mechanism_signature),
+                                                    h.hypothesis_id))
+                if prop.probe_code.strip() == target.probe_code.strip():
+                    dup += 1
+                    continue
+                try:
+                    self.state.repair_probe(target.hypothesis_id, prop.probe_code, prop.prediction)
+                except LedgerError:
+                    dup += 1
+                    continue
+                repaired += 1
+                continue
+            if any(signature_similarity(sig, h.mechanism_signature) >= TABU_SIMILARITY
+                   for h in existing if h.status != UNTESTABLE):
                 dup += 1
                 continue
             h = self.state.add_hypothesis(
@@ -290,11 +313,13 @@ class EpistemicSearchLoop:
         self.stats["hypotheses_accepted"] += accepted
         self.stats["tabu_rejections"] += tabu
         self.stats["duplicate_rejections"] += dup
-        self._record(MOVE_PROPOSE_HYPOTHESIS, q.question_id,
-                     note=f"{accepted} accepted, {tabu} tabu, {dup} duplicate of {len(proposals)} proposed",
+        self.stats["probe_repairs"] += repaired
+        summary = (f"{accepted} accepted, {repaired} repaired, {tabu} tabu, {dup} duplicate "
+                   f"of {len(proposals)} proposed")
+        self._record(MOVE_PROPOSE_HYPOTHESIS, q.question_id, note=summary,
                      features_before=feats, value_before=v0, hash_before=h0)
         self.logger(f"[epistemic] {q.question_id}: proposed {len(proposals)} -> {accepted} accepted, "
-                    f"{tabu} tabu, {dup} duplicate")
+                    f"{repaired} repaired, {tabu} tabu, {dup} duplicate")
 
     def _do_experiment(self, q: Question, h: Hypothesis, forced: bool) -> None:
         feats, v0, h0 = self._snapshot()

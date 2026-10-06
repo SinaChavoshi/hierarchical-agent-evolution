@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any, Dict, Mapping, Optional
 
 from hae.epistemic.ledger import (
-    CERTIFIED, FALSIFIED, Q_CERTIFIED, Q_RESOLVED, SUPPORTED, UNVERIFIED, EpistemicState,
+    CERTIFIED, FALSIFIED, Q_CERTIFIED, Q_RESOLVED, SUPPORTED, EpistemicState,
 )
 from hae.epistemic.moves import MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT, MOVE_SYNTHESIZE
 from hae.epistemic.value import calibration_report
@@ -28,7 +28,10 @@ def build_epistemic_audit(state: EpistemicState, search_stats: Optional[Mapping[
     stats = dict(search_stats or {})
     counts = state.counts()
     hyps = list(state.hypotheses.values())
-    tested = [h for h in hyps if h.status != UNVERIFIED]
+    # A hypothesis is "tested" only once a probe ran and yielded a verdict.
+    # UNTESTABLE (probe refused by the gatekeeper) is reported separately.
+    tested = [h for h in hyps if h.tested]
+    refused = [e for e in state.evidence_log if e.kind == "probe_rejected"]
 
     def _backed(ids) -> bool:
         ids = list(ids)
@@ -82,6 +85,9 @@ def build_epistemic_audit(state: EpistemicState, search_stats: Optional[Mapping[
         "hypotheses_supported": counts["hypotheses_supported"],
         "hypotheses_falsified": counts["hypotheses_falsified"],
         "hypotheses_certified": counts["hypotheses_certified"],
+        "hypotheses_untestable": counts.get("hypotheses_untestable", 0),
+        "probes_refused": len(refused),
+        "probe_repairs": int(stats.get("probe_repairs", 0)),
         "evidence": counts["evidence"],
         "settled_facts": counts["settled_facts"],
         "ruled_out": counts["ruled_out"],

@@ -50,7 +50,13 @@ UNVERIFIED = "UNVERIFIED"
 SUPPORTED = "SUPPORTED"
 FALSIFIED = "FALSIFIED"
 CERTIFIED = "CERTIFIED"
-HYPOTHESIS_STATUSES = (UNVERIFIED, SUPPORTED, FALSIFIED, CERTIFIED)
+# The gatekeeper refused to run the probe (invalid Python, forbidden import,
+# too long...). Says nothing about the mechanism, so it is never tabu; but
+# the hypothesis must leave the "untested" pool or PUCT re-selects it
+# forever (Gen 16 pilot pass 2: one hypothesis re-selected 17 times, 32
+# moves burnt on the same syntax error). A proposer may repair the probe.
+UNTESTABLE = "UNTESTABLE"
+HYPOTHESIS_STATUSES = (UNVERIFIED, SUPPORTED, FALSIFIED, CERTIFIED, UNTESTABLE)
 
 Q_OPEN = "OPEN"
 # A supported hypothesis was synthesised into the module and the module's own
@@ -289,6 +295,8 @@ class Hypothesis:
     proposed_by: str = ""
     patch_applied: bool = False
     synthesis_failures: int = 0
+    probe_rejections: int = 0
+    last_rejection: str = ""
     created_at: float = field(default_factory=_now)
 
     def __post_init__(self) -> None:
@@ -305,7 +313,8 @@ class Hypothesis:
 
     @property
     def tested(self) -> bool:
-        return self.status != UNVERIFIED
+        """True only once a probe actually ran and produced a verdict."""
+        return self.status in (SUPPORTED, FALSIFIED, CERTIFIED)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -484,6 +493,30 @@ class EpistemicState:
     def untested_hypotheses(self, question_id: str) -> List[Hypothesis]:
         return self.hypotheses_for(question_id, status=UNVERIFIED)
 
+    def untestable_hypotheses(self, question_id: str) -> List[Hypothesis]:
+        return self.hypotheses_for(question_id, status=UNTESTABLE)
+
+    def repair_probe(self, hypothesis_id: str, probe_code: str,
+                     prediction: Optional[Mapping[str, Any]] = None) -> Hypothesis:
+        """Replaces the probe of an UNTESTABLE hypothesis and returns it to UNVERIFIED.
+
+        A proposal-level operation, like `add_hypothesis`: no belief changes
+        hands. The mechanism, prior and id are kept so calibration still scores
+        the original prior once the repaired probe finally runs.
+        """
+        h = self.hypotheses.get(hypothesis_id)
+        if h is None:
+            raise LedgerError(f"Unknown hypothesis {hypothesis_id!r}")
+        if h.status != UNTESTABLE:
+            raise LedgerError(f"Only an UNTESTABLE hypothesis may have its probe repaired, {hypothesis_id} is {h.status}")
+        if not str(probe_code or "").strip():
+            raise LedgerError("A repaired probe must not be empty")
+        h.probe_code = str(probe_code)
+        if prediction is not None:
+            h.prediction = dict(prediction)
+        h.status = UNVERIFIED
+        return h
+
     def evidence_by_id(self, evidence_id: str) -> Optional[Evidence]:
         for e in self.evidence_log:
             if e.evidence_id == evidence_id:
@@ -567,6 +600,30 @@ class EpistemicState:
                     mechanism_signature=h.mechanism_signature,
                     killing_evidence_id=evidence_id,
                 ))
+        return h
+
+    def mark_untestable(self, hypothesis_id: str, evidence_id: str, reason: str,
+                        authority: Any) -> Hypothesis:
+        """Parks a hypothesis whose probe the gatekeeper refused to run.
+
+        Not a verdict: posterior is untouched, nothing enters `ruled_out`, the
+        mechanism stays proposable. The hypothesis simply leaves the untested
+        pool until a proposer repairs its probe (`repair_probe`).
+        """
+        _require_authority(authority, "mark_untestable")
+        h = self.hypotheses.get(hypothesis_id)
+        if h is None:
+            raise LedgerError(f"Unknown hypothesis {hypothesis_id!r}")
+        ev = self.evidence_by_id(evidence_id)
+        if ev is None or ev.kind != "probe_rejected":
+            raise LedgerError("mark_untestable needs probe_rejected evidence on the log")
+        if h.status != UNVERIFIED:
+            raise LedgerError(f"Only an UNVERIFIED hypothesis can become UNTESTABLE, {hypothesis_id} is {h.status}")
+        if evidence_id not in h.evidence_ids:
+            h.evidence_ids.append(evidence_id)
+        h.status = UNTESTABLE
+        h.probe_rejections += 1
+        h.last_rejection = " ".join(str(reason or "").split())[:300]
         return h
 
     def lower_uncertainty(self, question_id: str, new_value: float, authority: Any) -> float:
@@ -711,6 +768,7 @@ class EpistemicState:
             "hypotheses_supported": sum(1 for h in hs if h.status == SUPPORTED),
             "hypotheses_falsified": sum(1 for h in hs if h.status == FALSIFIED),
             "hypotheses_certified": sum(1 for h in hs if h.status == CERTIFIED),
+            "hypotheses_untestable": sum(1 for h in hs if h.status == UNTESTABLE),
             "evidence": len(self.evidence_log),
             "settled_facts": len(self.settled_knowledge),
             "ruled_out": len(self.ruled_out),
@@ -721,7 +779,8 @@ class EpistemicState:
         """A compact, human-readable ledger view for prompts and logs.
 
         This is what a System 1 proposer is shown: what is settled, what has
-        been ruled out (so it does not propose it again), and what is open.
+        been ruled out (so it does not propose it again), what is open, and
+        which probes the gatekeeper refused to run (so it can repair them).
         """
         lines: List[str] = [f"EPISTEMIC LEDGER for {self.company_id} "
                             f"(uncertainty {self.total_uncertainty():.2f}/{self.initial_uncertainty():.2f})"]
@@ -746,4 +805,7 @@ class EpistemicState:
                 for h in self.hypotheses_for(q.question_id)[-max_items:]:
                     lines.append(f"      {h.hypothesis_id} {h.status:<10} prior={h.prior:.2f} "
                                  f"post={h.posterior:.2f} {h.claim}")
+                    if h.status == UNTESTABLE and h.last_rejection:
+                        lines.append(f"          PROBE REFUSED ({h.last_rejection}). Re-propose this mechanism "
+                                     f"with a corrected probe_lines array if you still believe it.")
         return "\n".join(lines)

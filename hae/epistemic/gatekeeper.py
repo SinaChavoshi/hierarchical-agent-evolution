@@ -314,7 +314,17 @@ class EvidenceGatekeeper:
     def apply(self, state: EpistemicState, hypothesis: Hypothesis, evidence: Evidence) -> float:
         """Deterministic belief revision. Returns the uncertainty resolved (>= 0)."""
         state.record_evidence(evidence, self.authority)
-        if evidence.kind == "probe_rejected" or evidence.detail.startswith(INCONCLUSIVE):
+        if evidence.kind == "probe_rejected":
+            # The probe never ran, so nothing was learnt about the mechanism
+            # and no belief moves. But the hypothesis must leave the untested
+            # pool: left UNVERIFIED with a growing visit count, PUCT re-selected
+            # one such hypothesis 17 times in the Gen 16 pilot. UNTESTABLE
+            # parks it until a proposer repairs the probe (ledger.repair_probe).
+            if hypothesis.status == UNVERIFIED:
+                state.mark_untestable(hypothesis.hypothesis_id, evidence.evidence_id,
+                                      evidence.detail, self.authority)
+            return 0.0
+        if evidence.detail.startswith(INCONCLUSIVE):
             return 0.0
         q = state.questions[hypothesis.question_id]
         if evidence.matched_prediction:

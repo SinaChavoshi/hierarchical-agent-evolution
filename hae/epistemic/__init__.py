@@ -17,7 +17,7 @@ Technology Review, 2 Oct 2026. See experiments/v6_epistemic_search/README.md.
 from hae.epistemic.audit import build_epistemic_audit
 from hae.epistemic.gatekeeper import EvidenceGatekeeper, failure_key
 from hae.epistemic.ledger import (
-    CERTIFIED, FALSIFIED, SUPPORTED, UNVERIFIED,
+    CERTIFIED, FALSIFIED, SUPPORTED, UNTESTABLE, UNVERIFIED,
     Q_CERTIFIED, Q_EXHAUSTED, Q_OPEN, Q_RESOLVED,
     CertifiedFact, EpistemicState, Evidence, FalsifiedBelief, GatekeeperAuthority,
     Hypothesis, LedgerError, MoveRecord, Question, mechanism_signature,
@@ -36,7 +36,7 @@ from hae.epistemic.genes import crossover_epistemic_policy, mutate_epistemic_pol
 from hae.genome.schema import EpistemicPolicyGene
 
 __all__ = [
-    "CERTIFIED", "FALSIFIED", "SUPPORTED", "UNVERIFIED",
+    "CERTIFIED", "FALSIFIED", "SUPPORTED", "UNTESTABLE", "UNVERIFIED",
     "Q_CERTIFIED", "Q_EXHAUSTED", "Q_OPEN", "Q_RESOLVED",
     "CertifiedFact", "EpistemicState", "Evidence", "FalsifiedBelief", "GatekeeperAuthority",
     "Hypothesis", "LedgerError", "MoveRecord", "Question", "mechanism_signature",

@@ -9,7 +9,7 @@ from hae.epistemic.gatekeeper import (
     INCONCLUSIVE, EvidenceGatekeeper, failure_key, failure_summary,
 )
 from hae.epistemic.ledger import (
-    CERTIFIED, FALSIFIED, Q_CERTIFIED, Q_EXHAUSTED, Q_OPEN, Q_RESOLVED, SUPPORTED, UNVERIFIED,
+    CERTIFIED, FALSIFIED, Q_CERTIFIED, Q_EXHAUSTED, Q_OPEN, Q_RESOLVED, SUPPORTED, UNTESTABLE, UNVERIFIED,
     EpistemicState,
 )
 from hae.runtime.workspace import AgentWorkspace
@@ -119,7 +119,11 @@ class ProbeHygieneTests(GatekeeperFixture):
         ev = self.gk.run_experiment(self.state, h)
         self.assertEqual(ev.kind, "probe_rejected", code)
         self.assertEqual(self.gk.apply(self.state, h, ev), 0.0)
-        self.assertEqual(h.status, UNVERIFIED)
+        # Parked, not judged: no verdict, no ruled_out entry, probe repairable.
+        self.assertEqual(h.status, UNTESTABLE)
+        self.assertFalse(h.tested)
+        self.assertEqual(h.probe_rejections, 1)
+        self.assertNotIn(h.hypothesis_id, {b.hypothesis_id for b in self.state.ruled_out})
         return ev
 
     def test_reference_tree_paths_are_rejected(self):
