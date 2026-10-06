@@ -125,11 +125,22 @@ The pilot took three passes because the first two surfaced defects that only a l
 
 What the pilot does **not** show: a statistically meaningful lift. `n = 1` per firm per pass and the unchanged `V5` first pass varies wildly (`elite_1` drew 47, 48 and 7/50 in three passes). Proposer priors were badly calibrated on these bugs (Brier `0.12–0.42`, `low_prior_wins = 4` for the converging firm), which is the empirical case for the `V7` value head.
 
-#### 3.3.2 The cohort — *pending ≥ 3 seeds per genome; finding #6 fixed, finding #5 (targeted-edit synthesis) in progress*
+#### 3.3.2 The cohort (`October 6, 2026`) — *launched 17:07 UTC; results in [`results/hae_gen16_v6_cohort/`](../../results/hae_gen16_v6_cohort/README.md) when harvested*
 
-- **Benchmark A (regression):** `full_stack_hae` (`50` held-out tests) — target: break the `46–49/50` plateau on the 8 non-converged lineages **without** increasing full-company passes.
-- **Benchmark B (new, oracle-free):** a multi-file debugging task where **no benchmark traceback is handed to the company** — firms must author their own probes to localise the fault. This is the benchmark `V5` cannot attempt at all.
-- **Telemetry harvested for the learned value head:** every `(E_t features, move, ΔU, terminal outcome)` tuple across all firms — already recorded per move in `MoveRecord.features` / `value_before` / `value_after` inside each `_epistemic_tree.json`.
+**Design** ([`configs/generations/gen16_cohort.json`](../../configs/generations/gen16_cohort.json) → [`scripts/make_gen16_cohort_population.py`](../../scripts/make_gen16_cohort_population.py) → [`configs/generation_16_population.json`](../../configs/generation_16_population.json); invariants in [`tests/test_gen16_cohort.py`](../../tests/test_gen16_cohort.py)). The cohort is **not a bred generation**: breeding would confound topology with the gene. It re-runs the Gen 14 genomes that plateaued under `V5` in Gen 15 — same task file, verifier, budgets, `max_iterations = 5`, model — with exactly three fields changed: `epistemic_policy.enabled = true`, `search_budget_moves = 60`, `frontier_size = 3`.
+
+| arm | lineages | seeds | firm-runs | reads |
+|---|---|---|---|---|
+| non-converged (Benchmark A) | `crossover_2`, `elite_1`, `crossover_1`, `mutant_2`, `mutant_1`, `crossover_3`, `pareto_2`, `elite_2` (Gen 15 held-out `46–49/50`) | 3 | 24 | does the evidence-gated repair move a plateaued lineage, and how noisy is that across seeds? |
+| converged controls | `mutant_3` (`[48, 50]`), `pareto_1` (`[50]`) | 1 | 2 | does enabling the gene *cost* a lineage that already converged? |
+
+Replicas are named `<lineage>__s<k>` and ordered seed-major, so Job indices `0–9` are one draw of every lineage. Every replica is byte-identical to its source genome except `company_id`, `epistemic_policy` and one appended `mutation_history` line (tested). Image `v6-gen16-cohort` = `main @ b80f543`: the three pilot fixes plus the question frontier (finding #6) and synthesis-as-anchored-change (finding #5). Benchmark B (oracle-free debugging) is deferred to a later cohort.
+
+**Infra** ([`k8s/cluster-setup.sh`](../../k8s/cluster-setup.sh), [`k8s/gen16-cohort-serving.yaml`](../../k8s/gen16-cohort-serving.yaml), [`k8s/hae-gen16-v6-cohort-job.yaml`](../../k8s/hae-gen16-v6-cohort-job.yaml), [`k8s/teardown.sh`](../../k8s/teardown.sh)): a throw-away GKE cluster, 4 × vLLM replicas (Qwen3.8-Flash-Next NVFP4, TP=2) on spot `g4-standard-96` nodes behind the prefix-affinity gateway, and the 26 firm pods on an **on-demand** CPU pool — two spot nodes were preempted within fifteen minutes of launch and `us-central1-b` then reported `ZONE_RESOURCE_POOL_EXHAUSTED` for replacements, so the firms must not live on spot; a replica loss costs them an LLM retry, not the run. Results are harvested from the pod logs (`scripts/harvest_gen16_pilot.py --job-label app=hae-gen16-v6-cohort`) and summarised per lineage by [`scripts/summarize_gen16_cohort.py`](../../scripts/summarize_gen16_cohort.py).
+
+**Cost model, from the pilot** (pass 2, one replica shared by three firms): `94 k` / `250 k` / `458 k` tokens, `$0.03` / `$0.07` / `$0.07`, `9.5` / `37` / `48` min per firm-run, against `$0.03–0.21` per firm under `V5` in Gen 15. For 26 firm-runs that is `2.4–12 M` tokens and `$0.8–1.8` of model time at the vLLM rate card, dominated — as always — by the GPU: every hour of wall-clock is 4 (spot) `g4-standard-96` node-hours. The actual numbers (tokens, wall-clock, node-hours, preemptions) are in the cohort report.
+
+**What the cohort measures** — per lineage, the mean / min / max of the final held-out test count over seeds against the lineage's Gen 15 trajectory, how many seeds converged and at which iteration, and the first-pass draw of each seed (which is the unchanged `V5` pass and the main source of variance). Nets are reported but not compared across `V5` and `V6` (caveat 8). Mechanics per run: frontier admissions and deferrals, syntheses by plan vs. rewrite, no-op retries and recoveries, tabu and duplicate rejections, refused and repaired probes, forced low-prior picks and wins, Brier calibration — the telemetry that decides whether findings #5 and #6 are closed.
 
 ### 3.4 How to Enable `V6`, and What to Read in the Results
 
