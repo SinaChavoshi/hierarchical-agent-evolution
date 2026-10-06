@@ -191,7 +191,46 @@ def signature_similarity(a: str, b: str) -> float:
     return len(sa & sb) / float(len(sa | sb))
 
 
-TABU_SIMILARITY = 0.8
+def signature_overlap(a: str, b: str) -> float:
+    """Overlap coefficient |A∩B| / min(|A|,|B|): 1.0 when one signature is
+    contained in the other. Robust to one text being a longer elaboration of
+    the same mechanism, which Jaccard punishes."""
+    sa, sb = set(a.split()), set(b.split())
+    if not sa or not sb:
+        return 0.0
+    return len(sa & sb) / float(min(len(sa), len(sb)))
+
+
+TABU_SIMILARITY = 0.8        # Jaccard on the full (claim + mechanism) signature
+TABU_OVERLAP = 0.75          # containment of the shorter signature in the longer
+TABU_CLAIM_SIMILARITY = 0.8  # Jaccard on the claim alone
+TABU_MIN_TOKENS = 6          # containment needs a non-trivial shorter signature
+
+
+def same_mechanism(sig_a: str, sig_b: str, claim_a: str = "", claim_b: str = "") -> bool:
+    """Do two hypotheses name the same mechanism?
+
+    Three lexical tests, any of which suffices: near-identical full
+    signatures (Jaccard); one signature contained in the other (a proposer
+    restating a mechanism with a longer or shorter explanation); or
+    near-identical claims. Thresholds were set from the Gen 16 pilot ledgers,
+    where seven paraphrased re-proposals of already-falsified mechanisms had
+    Jaccard 0.46-0.71 (all slipped past the 0.8 tabu test) but claim-Jaccard
+    1.00 and overlap 0.83-0.88, while every genuinely distinct pair on the
+    same question scored <= 0.48 and <= 0.67.
+    """
+    if not sig_a or not sig_b:
+        return False
+    if sig_a == sig_b or signature_similarity(sig_a, sig_b) >= TABU_SIMILARITY:
+        return True
+    if (min(len(sig_a.split()), len(sig_b.split())) >= TABU_MIN_TOKENS
+            and signature_overlap(sig_a, sig_b) >= TABU_OVERLAP):
+        return True
+    if claim_a and claim_b:
+        ca, cb = mechanism_signature(claim_a), mechanism_signature(claim_b)
+        if ca and cb and signature_similarity(ca, cb) >= TABU_CLAIM_SIMILARITY:
+            return True
+    return False
 
 
 def _now() -> float:
@@ -523,26 +562,26 @@ class EpistemicState:
                 return e
         return None
 
-    def tabu_match(self, signature: str, question_id: Optional[str] = None) -> Optional[FalsifiedBelief]:
+    def tabu_match(self, signature: str, question_id: Optional[str] = None,
+                   claim: str = "") -> Optional[FalsifiedBelief]:
         """The ruled-out belief this signature collides with, if any.
 
         Scoped to the question by default: the same mechanism may be a live
         hypothesis for a different failure. Pass `question_id=None` to match
-        across the whole ledger.
+        across the whole ledger. Pass the proposal's `claim` as well so a
+        re-proposal that keeps the claim but rewords the mechanism is caught.
         """
         if not signature:
             return None
         for belief in self.ruled_out:
             if question_id is not None and belief.question_id != question_id:
                 continue
-            if belief.mechanism_signature == signature:
-                return belief
-            if signature_similarity(belief.mechanism_signature, signature) >= TABU_SIMILARITY:
+            if same_mechanism(belief.mechanism_signature, signature, belief.claim, claim):
                 return belief
         return None
 
-    def is_tabu(self, signature: str, question_id: Optional[str] = None) -> bool:
-        return self.tabu_match(signature, question_id) is not None
+    def is_tabu(self, signature: str, question_id: Optional[str] = None, claim: str = "") -> bool:
+        return self.tabu_match(signature, question_id, claim) is not None
 
     def total_uncertainty(self) -> float:
         return round(sum(q.uncertainty for q in self.questions.values()), 6)

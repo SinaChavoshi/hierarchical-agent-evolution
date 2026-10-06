@@ -40,8 +40,9 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from hae.epistemic.gatekeeper import EvidenceGatekeeper
 from hae.epistemic.ledger import (
-    CERTIFIED, FALSIFIED, SUPPORTED, UNTESTABLE, UNVERIFIED, TABU_SIMILARITY,
-    EpistemicState, Hypothesis, LedgerError, MoveRecord, Question, signature_similarity,
+    CERTIFIED, FALSIFIED, SUPPORTED, UNTESTABLE, UNVERIFIED,
+    EpistemicState, Hypothesis, LedgerError, MoveRecord, Question, same_mechanism,
+    signature_similarity,
 )
 from hae.epistemic.moves import (
     MOVE_ASK_QUESTION, MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT, MOVE_SYNTHESIZE,
@@ -278,7 +279,7 @@ class EpistemicSearchLoop:
         existing = self.state.hypotheses_for(q.question_id)
         for prop in proposals[: int(self.policy.branching_k)]:
             sig = prop.signature
-            if self.state.is_tabu(sig, q.question_id):
+            if self.state.is_tabu(sig, q.question_id, claim=prop.claim):
                 tabu += 1
                 continue
             # A proposal that restates a mechanism whose probe the gatekeeper
@@ -287,7 +288,7 @@ class EpistemicSearchLoop:
             # kept, so calibration still scores the belief that was originally
             # declared. Re-submitting the identical broken probe is a duplicate.
             parked = [h for h in existing if h.status == UNTESTABLE
-                      and signature_similarity(sig, h.mechanism_signature) >= TABU_SIMILARITY]
+                      and same_mechanism(sig, h.mechanism_signature, prop.claim, h.claim)]
             if parked:
                 target = max(parked, key=lambda h: (signature_similarity(sig, h.mechanism_signature),
                                                     h.hypothesis_id))
@@ -301,7 +302,7 @@ class EpistemicSearchLoop:
                     continue
                 repaired += 1
                 continue
-            if any(signature_similarity(sig, h.mechanism_signature) >= TABU_SIMILARITY
+            if any(same_mechanism(sig, h.mechanism_signature, prop.claim, h.claim)
                    for h in existing if h.status != UNTESTABLE):
                 dup += 1
                 continue
@@ -353,17 +354,21 @@ class EpistemicSearchLoop:
         except Exception as exc:
             self.stats["proposer_errors"] += 1
             h.synthesis_failures += 1
-            self._record(MOVE_SYNTHESIZE, q.question_id, h.hypothesis_id,
-                         note=f"synthesis error: {type(exc).__name__}: {exc}",
+            note = f"synthesis error: {type(exc).__name__}: {exc}"
+            self._record(MOVE_SYNTHESIZE, q.question_id, h.hypothesis_id, note=note,
                          features_before=feats, value_before=v0, hash_before=h0)
+            self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} {note[:160]} "
+                        f"(failure {h.synthesis_failures}/{MAX_SYNTHESIS_FAILURES})")
             return
         path = str(result.get("path") or q.module or "")
         if not result.get("written", True) or not path:
             h.synthesis_failures += 1
             self.stats["syntheses_unwritten"] += 1
-            self._record(MOVE_SYNTHESIZE, q.question_id, h.hypothesis_id,
-                         note=f"synthesis wrote nothing: {str(result.get('summary', ''))[:160]}",
+            note = f"synthesis wrote nothing: {str(result.get('summary', ''))[:160]}"
+            self._record(MOVE_SYNTHESIZE, q.question_id, h.hypothesis_id, note=note,
                          features_before=feats, value_before=v0, hash_before=h0)
+            self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} {note[:200]} "
+                        f"(failure {h.synthesis_failures}/{MAX_SYNTHESIS_FAILURES})")
             return
         evidence = self.gatekeeper.verify_module(self.state, path, q.question_id, h.hypothesis_id)
         delta = self.gatekeeper.apply_synthesis(self.state, q, h, evidence)
