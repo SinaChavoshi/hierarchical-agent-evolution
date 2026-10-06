@@ -49,15 +49,15 @@ Gen 15 (`V5`, same lineages, `n = 1` each) for reference: of six plateau starts 
 | `mutant_3` (control) | `[48, 50]` | `[48]` | `[48]` | 48 | 0/1 |
 | `pareto_1` (control) | `[50]` | `[48]` | `[48]` | 48 | 0/1 |
 
-Per-run scorecards (net, gross, in-pod vs A3-recomputed integrity, tokens, cost, minutes) and the per-run mechanics table are in [`summary_tables.md`](summary_tables.md).
+Per-run scorecards (net, gross, in-pod vs A3-recomputed integrity, tokens, cost, minutes) and the per-run mechanics table are in [`summary_tables.md`](summary_tables.md). `elite_2` finals: `[48, 49, 50]`; `elite_2__s1` ended `[47, 48, 48, 48, 48]`.
 
-### 2.3 What the search did (pooled over the 25 scored runs)
+### 2.3 What the search did (pooled over the 23 runs that searched; 3 converged at iteration 1)
 
-`833` moves · `213` proposal rounds → `434` hypotheses accepted (`96` tabu, `7` duplicate, `93` probe repairs) · `504` experiments: **`102` supported / `219` falsified / `183` refused** (`36 %` of probes were `UNTESTABLE` — `__file__`, `importlib.util.find_spec`, paths) · `116` syntheses: `91` module-check-verified, `25` unwritten (`32` no-op retries, `7` recovered) · `109` forced low-prior picks, `17` of them supported · `168` frontier admissions, `156` questions deferred to the oracle.
+`874` moves · `223` proposal rounds → `453` hypotheses accepted (`96` tabu, `10` duplicate, `101` probe repairs) · `529` experiments: **`107` supported / `227` falsified / `195` refused** (`37 %` of probes were `UNTESTABLE` — `__file__`, `importlib.util.find_spec`, paths) · `122` syntheses: `95` module-check-verified, `27` unwritten (`35` no-op retries, `8` recovered) · `115` forced low-prior picks, `19` of them supported · `174` frontier admissions, `159` questions deferred to the oracle.
 
-**Calibration** ([`value_telemetry_summary.json`](value_telemetry_summary.json), 22 trees, `321` tested hypotheses): the hit rate (still `SUPPORTED`/`CERTIFIED` at the end of the tree) is **`7 %` and flat across prior bins** — `0.075` at prior 0–0.2, `0.089` at 0.2–0.4, `0.038` at 0.4–0.6, `0.027` at 0.6–0.8, `0.087` at 0.8–1.0. Brier `0.194` against `0.064` for always saying the base rate. The proposer's stated confidence carries no information about which mechanism will survive — the empirical case for the `V7` value head, now with `833` labelled moves instead of 95.
+**Calibration** ([`value_telemetry_summary.json`](value_telemetry_summary.json), 23 trees, `334` tested hypotheses): the hit rate (still `SUPPORTED`/`CERTIFIED` at the end of the tree) is **`7 %` and flat across prior bins** — `0.082` at prior 0–0.2, `0.094` at 0.2–0.4, `0.036` at 0.4–0.6, `0.025` at 0.6–0.8, `0.087` at 0.8–1.0. Brier `0.196` against `0.067` for always saying the base rate. The proposer's stated confidence carries no information about which mechanism will survive — the empirical case for the `V7` value head, now with `874` labelled moves instead of 95.
 
-Note also the gap between probe-time and end-of-tree verdicts: `102` hypotheses were `SUPPORTED` by their probe, but only `22` were still standing when the tree closed. A probe tests *a prediction of the mechanism*; the oracle tests *the fix*. Most "supported" mechanisms produced a synthesis the oracle rejected, and the next reconciliation reopened the question.
+Note also the gap between probe-time and end-of-tree verdicts: `107` hypotheses were `SUPPORTED` by their probe, but only `24` were still standing when the tree closed. A probe tests *a prediction of the mechanism*; the oracle tests *the fix*. Most "supported" mechanisms produced a synthesis the oracle rejected, and the next reconciliation reopened the question.
 
 ---
 
@@ -92,7 +92,7 @@ The controls are a `V6` cost signal, not a win: `mutant_3` went `48 → 50` in o
 | cluster | `chavoshi-v6-cohort`, `gemle-gke-dev`, `us-central1-b`; created 16:54 UTC |
 | GPU | `g4-pool`: 4 × spot `g4-standard-96`, inserted 16:55 UTC. Two preemptions in the first 15 min (`jl1z` 17:00 → back 17:03; `gbbt` 17:07 → back 17:17) and one `ZONE_RESOURCE_POOL_EXHAUSTED` window; a `g4-ondemand` pool (2 nodes) requested at 17:11 as a hedge **never provisioned** (repair loop → `ERROR`, 0 instances ever ran, deleted 17:51) |
 | CPU | `default-pool` 1 × `e2-standard-8` (gateway); `firm-pool` 4 × `e2-standard-32` on-demand from 17:04, resized to 8 at 17:54 so run 2 could overlap run 1 |
-| run 1 | launched 17:07:36 UTC, last worker exit ≈ 18:50; firm wall-clock mean `46` min, max `92` min; **`10.8 M` tokens, `$1.70` LLM cost** at the vLLM list price used by `opex` (`$0.02–0.12` and `57 k–918 k` tokens per firm) |
+| run 1 | launched 17:07:36 UTC, last worker exit 18:52; firm wall-clock mean `48` min, max `99` min; **`11.5 M` tokens, `$1.82` LLM cost** at the vLLM list price used by `opex` (`$0.02–0.12` and `57 k–918 k` tokens per firm) |
 | GPU node-hours | filled in at teardown from `gcloud compute operations` timestamps (4 spot nodes × wall-clock, minus the two preemption gaps) — see the teardown note at the end of this file |
 
 A vLLM pod that restarts after a partial model download crash-loops (`SafetensorError: incomplete metadata`); the fix is `kubectl delete pod` (fresh `emptyDir`). The LLM client retries 5× with backoff and the gateway re-discovers replicas every 5 s, so firm pods survived both preemptions without a failed iteration.
