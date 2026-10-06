@@ -110,6 +110,42 @@ def failure_summary(failure: str, limit: int = 220) -> str:
     return " ".join(tail.split())[:limit]
 
 
+_SIG_PATH_RE = re.compile(r"(?<![A-Za-z0-9_])/[^\s'\"():,]+")
+_SIG_QUOTED_RE = re.compile(r"'[^']*'|\"[^\"]*\"")
+_SIG_HEX_RE = re.compile(r"0x[0-9a-f]+")
+_SIG_NUMBER_RE = re.compile(r"\d+(?:\.\d+)?")
+_SIG_EXC_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_.]*)\s*:\s*(.*)$", re.S)
+
+
+def failure_signature(failure: str, limit: int = 80) -> str:
+    """A normalised `ExceptionClass: message` for grouping failures by likely cause.
+
+    Two oracle lines get the same signature when they differ only in numbers,
+    quoted literals, hex addresses or file paths -- `AssertionError: 0 != 4`
+    and `AssertionError: 7 != 12` are one signature, `TypeError: ...` on the
+    same module is another. Deliberately conservative: it never merges
+    different exception classes or differently-shaped messages, because the
+    search loop uses it to *defer* sibling questions once one of them is
+    resolved, and an over-merge costs those siblings a whole iteration.
+    Returns "" when the line carries no exception text at all.
+    """
+    failure = failure or ""
+    if "->" not in failure and _FAILURE_KEY_RE.match(failure):
+        return ""  # `[tag] FAIL: test_x` with no exception text: nothing to group on
+    summary = failure_summary(failure, limit=400)
+    if not summary:
+        return ""
+    m = _SIG_EXC_RE.match(summary)
+    exc, msg = (m.group(1), m.group(2)) if m else ("", summary)
+    msg = msg.lower()
+    msg = _SIG_PATH_RE.sub("/…", msg)
+    msg = _SIG_QUOTED_RE.sub("'?'", msg)
+    msg = _SIG_HEX_RE.sub("#", msg)
+    msg = _SIG_NUMBER_RE.sub("#", msg)
+    msg = " ".join(msg.split())[:limit]
+    return f"{exc}: {msg}".strip(": ") if exc else msg
+
+
 class EvidenceGatekeeper:
     """Runs probes, compares them to predictions, and writes verdicts."""
 

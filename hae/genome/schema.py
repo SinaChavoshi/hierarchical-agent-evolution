@@ -193,6 +193,7 @@ EPISTEMIC_POLICY_BOUNDS: Dict[str, tuple] = {
     "min_hypotheses_before_synthesis": (1, 6, True),
     "max_stagnant_moves": (2, 50, True),
     "max_hypothesis_rounds": (1, 5, True),
+    "frontier_size": (1, 8, True),
 }
 
 # The four System-1 move kinds a firm binds to departments, and the default
@@ -232,6 +233,12 @@ class EpistemicPolicyGene(_Model):
     min_hypotheses_before_synthesis: int = 2
     max_stagnant_moves: int = 8
     max_hypothesis_rounds: int = 2
+    # How many open questions the search works on at once (Gen 16 pilot
+    # finding #6: breadth-first proposal across 18 oracle-seeded questions
+    # burnt the whole move budget before a single experiment ran). Questions
+    # outside the frontier wait; siblings of a question resolved in this run
+    # are deferred to the oracle, which certifies them next iteration.
+    frontier_size: int = 3
     role_bindings: Dict[str, str] = field(
         default_factory=lambda: dict(DEFAULT_EPISTEMIC_ROLE_BINDINGS))
     extra: Dict[str, Any] = field(default_factory=dict)

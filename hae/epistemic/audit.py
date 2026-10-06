@@ -88,6 +88,8 @@ def build_epistemic_audit(state: EpistemicState, search_stats: Optional[Mapping[
         "hypotheses_untestable": counts.get("hypotheses_untestable", 0),
         "probes_refused": len(refused),
         "probe_repairs": int(stats.get("probe_repairs", 0)),
+        "frontier_admissions": int(stats.get("frontier_admissions", 0)),
+        "questions_deferred": int(stats.get("questions_deferred", 0)),
         "evidence": counts["evidence"],
         "settled_facts": counts["settled_facts"],
         "ruled_out": counts["ruled_out"],

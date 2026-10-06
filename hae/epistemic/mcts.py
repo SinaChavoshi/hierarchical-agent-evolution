@@ -12,7 +12,18 @@ have been tested that the survivor is not merely the first plausible story.
 
 Selection
 ---------
-  * Question: the open question with the most uncertainty.
+  * Frontier: at most `frontier_size` open questions are worked on at once,
+    and at most one per *cluster* (same module, same normalised oracle
+    failure signature). Inside the frontier the next move goes to the
+    question that is closest to paying off: one with a supported-but-
+    unsynthesised hypothesis first, then one with experiments still pending,
+    then the most uncertain. Gen 16 pilot finding #6 is why: with eighteen
+    oracle-seeded questions and a 40-move budget, most-uncertain-first spent
+    the whole budget proposing breadth-first and never ran an experiment,
+    while a supported hypothesis on a quieter question starved.
+  * Triage: once a question is resolved in this run, its cluster siblings
+    are deferred -- the oracle will certify (or reopen) them next iteration
+    for free, so spending moves on them now is waste.
   * Hypothesis: PUCT over the question's untested hypotheses,
         score = Q + c_puct * P * sqrt(N_parent) / (1 + N)
     where P is the proposer's prior normalised over siblings. The prior is a
@@ -38,9 +49,9 @@ import random
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from hae.epistemic.gatekeeper import EvidenceGatekeeper
+from hae.epistemic.gatekeeper import EvidenceGatekeeper, failure_signature
 from hae.epistemic.ledger import (
-    CERTIFIED, FALSIFIED, SUPPORTED, UNTESTABLE, UNVERIFIED,
+    CERTIFIED, FALSIFIED, Q_RESOLVED, SUPPORTED, UNTESTABLE, UNVERIFIED,
     EpistemicState, Hypothesis, LedgerError, MoveRecord, Question, same_mechanism,
     signature_similarity,
 )
@@ -62,6 +73,23 @@ STOP_TOKENS = "token_budget"
 STOP_STAGNATION = "stagnation"
 STOP_RESOLVED = "all_resolved"
 STOP_EXHAUSTED = "exhausted"
+# Every question still open with work left is a sibling of one resolved in
+# this run; the oracle settles them next iteration, so the loop stops early.
+STOP_DEFERRED = "deferred_to_oracle"
+
+
+def question_cluster(q: Question) -> str:
+    """The triage key: questions in one cluster most likely share a root cause.
+
+    Oracle-seeded questions cluster by (module, normalised failure signature),
+    see `failure_signature`. A question with no exception text -- including
+    every question the question-proposer asked -- is its own cluster, so the
+    frontier never defers it on another question's account.
+    """
+    sig = failure_signature(q.source_failure) if q.source_failure else ""
+    if not sig:
+        return f"q:{q.question_id}"
+    return f"{q.module}|{sig}"
 
 
 @dataclass
@@ -112,12 +140,17 @@ class EpistemicSearchLoop:
         self.question_rounds = 0
         self.trajectory: List[MoveRecord] = []
         self.synthesized_paths: List[str] = []
+        # Frontier/triage state (per run; see `_select_question`).
+        self.frontier: List[str] = []
+        self.deferred: Dict[str, str] = {}            # question_id -> resolved sibling's id
+        self.resolved_clusters: Dict[str, str] = {}   # cluster key -> question resolved this run
         self.stats: Dict[str, Any] = {
             "proposal_rounds": 0, "hypotheses_accepted": 0, "tabu_rejections": 0,
             "duplicate_rejections": 0, "probe_repairs": 0, "experiments": 0, "supported": 0,
             "falsified": 0, "inconclusive": 0, "rejected_probes": 0, "forced_low_prior_picks": 0,
             "forced_low_prior_wins": 0, "syntheses": 0, "syntheses_verified": 0,
             "syntheses_unwritten": 0, "questions_asked": 0, "proposer_errors": 0,
+            "frontier_admissions": 0, "questions_deferred": 0,
         }
 
     # ------------------------------------------------------------------ #
@@ -135,6 +168,12 @@ class EpistemicSearchLoop:
         # mechanisms, and that lives in the tabu list, not in this counter.
         for q in self.state.open_questions():
             q.hypothesis_rounds = 0
+        self.frontier, self.deferred, self.resolved_clusters = [], {}, {}
+        open_now = self.state.open_questions()
+        if open_now:
+            clusters = {question_cluster(q) for q in open_now}
+            self.logger(f"[epistemic] frontier size {int(self.policy.frontier_size)}: "
+                        f"{len(open_now)} open question(s) in {len(clusters)} cluster(s)")
         while True:
             if self.moves_used >= budget:
                 stop_reason = STOP_BUDGET
@@ -147,7 +186,11 @@ class EpistemicSearchLoop:
                 break
             question = self._select_question()
             if question is None:
-                if self.state.open_questions():
+                open_questions = self.state.open_questions()
+                if any(q.question_id in self.deferred and self._question_has_work(q) for q in open_questions):
+                    stop_reason = STOP_DEFERRED
+                    break
+                if open_questions:
                     stop_reason = STOP_EXHAUSTED
                     break
                 if self.propose_questions is not None and self.question_rounds < 1:
@@ -192,12 +235,61 @@ class EpistemicSearchLoop:
             return True
         return q.hypothesis_rounds < self.policy.max_hypothesis_rounds
 
+    def _has_ready_synthesis(self, q: Question) -> bool:
+        return any(h.status == SUPPORTED and not h.patch_applied and h.synthesis_failures < MAX_SYNTHESIS_FAILURES
+                   for h in self.state.hypotheses_for(q.question_id))
+
+    def _rank_key(self, q: Question) -> Tuple[int, int, float, int, str]:
+        """Smaller is more urgent: finish syntheses, then pending experiments,
+        then the most uncertain question, then the one with fewer hypotheses."""
+        return (0 if self._has_ready_synthesis(q) else 1,
+                0 if self.state.untested_hypotheses(q.question_id) else 1,
+                -q.uncertainty, len(q.hypothesis_ids), q.question_id)
+
     def _select_question(self) -> Optional[Question]:
-        candidates = [q for q in self.state.open_questions() if self._question_has_work(q)]
-        if not candidates:
+        """Frontier selection with cluster triage (Gen 16 pilot finding #6).
+
+        1. Siblings of a cluster resolved in this run are deferred: the oracle
+           will certify or reopen them next iteration without spending moves.
+        2. Frontier members that closed, ran out of work or were deferred leave.
+        3. Free slots admit the most urgent waiting questions, at most one open
+           question per cluster at a time, up to `policy.frontier_size`.
+        4. The most urgent frontier member gets the move.
+        """
+        workable = {q.question_id: q for q in self.state.open_questions() if self._question_has_work(q)}
+        for qid, q in workable.items():
+            if qid in self.deferred:
+                continue
+            cluster = question_cluster(q)
+            if cluster in self.resolved_clusters:
+                self.deferred[qid] = self.resolved_clusters[cluster]
+                self.stats["questions_deferred"] += 1
+                self.logger(f"[epistemic] {qid} deferred to the oracle: same cluster as resolved "
+                            f"{self.resolved_clusters[cluster]}")
+        self.frontier = [qid for qid in self.frontier if qid in workable and qid not in self.deferred]
+        size = max(1, int(self.policy.frontier_size))
+        represented = {question_cluster(workable[qid]) for qid in self.frontier}
+        waiting = sorted((q for qid, q in workable.items()
+                          if qid not in self.frontier and qid not in self.deferred), key=self._rank_key)
+        for q in waiting:
+            if len(self.frontier) >= size:
+                break
+            cluster = question_cluster(q)
+            if cluster in represented:
+                continue
+            self.frontier.append(q.question_id)
+            represented.add(cluster)
+            self.stats["frontier_admissions"] += 1
+            self.logger(f"[epistemic] frontier += {q.question_id} ({len(self.frontier)}/{size}; "
+                        f"u={q.uncertainty:.2f}; cluster {cluster[:70]!r})")
+        if not self.frontier:
             return None
-        candidates.sort(key=lambda q: (-q.uncertainty, len(q.hypothesis_ids), q.question_id))
-        return candidates[0]
+        return min((workable[qid] for qid in self.frontier), key=self._rank_key)
+
+    def _note_resolution(self, q: Question) -> None:
+        """Remember the cluster of a question resolved in this run for triage."""
+        if q.status == Q_RESOLVED:
+            self.resolved_clusters.setdefault(question_cluster(q), q.question_id)
 
     def _choose_action(self, q: Question) -> Tuple[str, Optional[Hypothesis], bool]:
         hyps = self.state.hypotheses_for(q.question_id)
@@ -372,6 +464,7 @@ class EpistemicSearchLoop:
             return
         evidence = self.gatekeeper.verify_module(self.state, path, q.question_id, h.hypothesis_id)
         delta = self.gatekeeper.apply_synthesis(self.state, q, h, evidence)
+        self._note_resolution(q)
         if evidence.matched_prediction:
             self.stats["syntheses_verified"] += 1
             if path not in self.synthesized_paths:
