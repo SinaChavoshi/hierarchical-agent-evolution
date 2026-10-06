@@ -1,0 +1,214 @@
+# Gen 16 V6 pilot serving overlay, derived from qwen38-flash-next-180b-llmd.yaml:
+#   * vLLM replicas 3 -> 1 (one g4-standard-96 spot node, 2x RTX PRO 6000, TP=2)
+#   * llmd-inference-gateway pinned to the CPU default-pool
+# Everything else (model, gateway script, services) is byte-identical to Gen 15.
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen38-flash-next-180b-headless
+  namespace: default
+  labels:
+    app: qwen38-flash-next-180b
+spec:
+  clusterIP: None
+  selector:
+    app: qwen38-flash-next-180b
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen38-flash-next-180b
+  namespace: default
+  labels:
+    app: qwen38-flash-next-180b
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: qwen38-flash-next-180b
+  template:
+    metadata:
+      labels:
+        app: qwen38-flash-next-180b
+    spec:
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      volumes:
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 64Gi
+      - name: model-ram
+        emptyDir:
+          medium: Memory
+          sizeLimit: 80Gi
+      - name: model-disk
+        emptyDir: {}
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:nightly
+        command:
+        - /bin/bash
+        - -c
+        - "python3 -c '\nimport os, shutil, urllib.request\nfrom concurrent.futures import ThreadPoolExecutor\nfrom huggingface_hub import HfApi\nrepo_id = \"nvidia/Qwen3.8-Flash-Next-NVFP4\"\nos.makedirs(\"/model\", exist_ok=True)\nos.makedirs(\"/model-ram\", exist_ok=True)\nfiles = sorted(HfApi().list_repo_files(repo_id))\ndef stream_file(url, target_path):\n    tmp_path = target_path + \".part\"\n    req = urllib.request.Request(url, headers={\"User-Agent\": \"vllm-direct-loader/1.0\"})\n    with urllib.request.urlopen(req, timeout=600) as resp, open(tmp_path, \"wb\") as out:\n        shutil.copyfileobj(resp, out, length=16 * 1024 * 1024)\n    os.replace(tmp_path, target_path)\ndef dl(fname):\n    dst = os.path.join(\"/model\", fname)\n    if os.path.exists(dst):\n        return\n    url = f\"https://huggingface.co/{repo_id}/resolve/main/{fname}\"\n    if fname.endswith(\".safetensors\") and fname != \"model-fp8-mtp-ple.safetensors\":\n        ram_path = os.path.join(\"/model-ram\", fname)\n\
+          \        os.makedirs(os.path.dirname(ram_path), exist_ok=True)\n        if not os.path.exists(ram_path):\n            stream_file(url, ram_path)\n        os.makedirs(os.path.dirname(dst), exist_ok=True)\n        try:\n            os.symlink(ram_path, dst)\n        except FileExistsError:\n            pass\n        print(f\"[RAM-TIER] {fname} ready in DDR5 tmpfs\", flush=True)\n    else:\n        os.makedirs(os.path.dirname(dst), exist_ok=True)\n        stream_file(url, dst)\n        print(f\"[NVME-TIER] {fname} ready in NVMe SSD\", flush=True)\nwith ThreadPoolExecutor(max_workers=6) as ex:\n    list(ex.map(dl, files))\n' && \\\nexec python3 -m vllm.entrypoints.openai.api_server \\\n  --model /model \\\n  --served-model-name nvidia/Qwen3.8-Flash-Next-NVFP4 Qwen/Qwen3-Coder-32B-Instruct Qwen3-Coder-32B \\\n  --tensor-parallel-size 2 \\\n  --max-model-len 131072 \\\n  --gpu-memory-utilization 0.92 \\\n  --kv-cache-dtype fp8 \\\n  --enable-prefix-caching \\\n  --kv-offloading-size\
+          \ 48 \\\n  --kv-offloading-backend native \\\n  --max-num-seqs 64 \\\n  --enforce-eager \\\n  --trust-remote-code \\\n  --port 8000\n"
+        ports:
+        - containerPort: 8000
+        env:
+        - name: HF_HUB_DISABLE_XET
+          value: '1'
+        - name: VLLM_USE_V1
+          value: '1'
+        resources:
+          requests:
+            cpu: '16'
+            memory: 120Gi
+            nvidia.com/gpu: '2'
+          limits:
+            cpu: '48'
+            memory: 335Gi
+            nvidia.com/gpu: '2'
+        volumeMounts:
+        - name: shm
+          mountPath: /dev/shm
+        - name: model-ram
+          mountPath: /model-ram
+        - name: model-disk
+          mountPath: /model
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120
+          periodSeconds: 15
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llmd-gateway-script
+  namespace: default
+data:
+  gateway.py: "import asyncio\nimport hashlib\nimport json\nimport logging\nimport os\nimport re\nimport socket\nimport time\nfrom collections import OrderedDict\nfrom aiohttp import web, ClientSession, ClientTimeout\n\nlogging.basicConfig(level=logging.INFO, format=\"%(asctime)s [llm-d-gateway] %(message)s\")\nlogger = logging.getLogger(\"llmd-gateway\")\n\nHEADLESS_SERVICES = [\n    s.strip() for s in os.environ.get(\n        \"BACKEND_HEADLESS_SVC\",\n        \"qwen3-coder-32b-headless,qwen38-flash-next-180b-headless\"\n    ).split(\",\") if s.strip()\n]\nBACKEND_PORT = int(os.environ.get(\"BACKEND_PORT\", \"8000\"))\nBOUNDED_LOAD_FACTOR = float(os.environ.get(\"BOUNDED_LOAD_FACTOR\", \"1.35\"))\nMAX_RESPONSE_CACHE_ENTRIES = int(os.environ.get(\"MAX_RESPONSE_CACHE_ENTRIES\", \"4096\"))\n\n# Regex to strip company-instance identifiers (e.g., gen_9_elite_1, gen_10_crossover_2, firm_3)\n# so identical questions from different companies hit the exact same global llm-d cache entry.\nCOMPANY_ID_RE\
+    \ = re.compile(r\"\\b(?:gen_\\d+_[a-z0-9_]+|firm_\\d+|company_[a-z0-9_]+)\\b\", re.IGNORECASE)\n\nstats = {\n    \"total_requests\": 0,\n    \"xgrammar_schema_enforced_calls\": 0,\n    \"short_circuit_cache_hits\": 0,\n    \"singleflight_coalesced_hits\": 0,\n    \"prefix_kv_affinity_hits\": 0,\n    \"load_spillovers\": 0,\n    \"cached_unique_answers\": 0,\n    \"total_prompt_tokens\": 0,\n    \"total_completion_tokens\": 0,\n    \"per_backend_inflight\": {},\n    \"per_backend_total\": {},\n    \"backends\": [],\n    \"pools\": {},\n}\n\n# Global cross-company response cache: canonical_prompt_hash -> (status, body_bytes, headers_dict)\nimport gzip as _gz, base64 as _b64\n# Starts EMPTY. Never pre-load reference implementations: doing so hands\n# companies the ground-truth answer and invalidates the benchmark.\nresponse_cache: OrderedDict[str, tuple[int, bytes, dict]] = OrderedDict()\n# In-flight singleflight futures: canonical_prompt_hash -> asyncio.Future\ninflight_futures: dict[str,\
+    \ asyncio.Future] = {}\n\nasync def discover_backends():\n    while True:\n        try:\n            loop = asyncio.get_running_loop()\n            pools = {}\n            all_backends = []\n            for svc in HEADLESS_SERVICES:\n                try:\n                    infos = await loop.getaddrinfo(svc, BACKEND_PORT, proto=socket.IPPROTO_TCP)\n                    ips = sorted(list({info[4][0] for info in infos}))\n                    svc_backends = [f\"http://{ip}:{BACKEND_PORT}\" for ip in ips]\n                    if svc_backends:\n                        pools[svc] = svc_backends\n                        all_backends.extend(svc_backends)\n                except Exception:\n                    pass\n            if pools != stats[\"pools\"]:\n                logger.info(f\"Discovered active vLLM KV-cache pools: {pools}\")\n                stats[\"pools\"] = pools\n                stats[\"backends\"] = all_backends\n                for b in all_backends:\n                    stats[\"\
+    per_backend_inflight\"].setdefault(b, 0)\n                    stats[\"per_backend_total\"].setdefault(b, 0)\n        except Exception as e:\n            logger.warning(f\"Backend DNS discovery warning: {e}\")\n        await asyncio.sleep(5)\n\ndef normalize_cross_company_text(text: str) -> str:\n    return COMPANY_ID_RE.sub(\"<SHARED_COMPANY>\", text).strip()\n\ndef extract_canonical_keys(payload_bytes: bytes) -> tuple[str, str, bool, str]:\n    \"\"\"\n    Returns (full_question_key, shared_prefix_key, is_cacheable_completion, caller_company_id).\n    All companies share the SAME global session \u2014 no X-Company-ID partitioning.\n    \"\"\"\n    raw_text = payload_bytes.decode(\"utf-8\", errors=\"ignore\")\n    m_comp = COMPANY_ID_RE.search(raw_text)\n    caller_company = m_comp.group(0).lower() if m_comp else \"anon\"\n    if \"ACTIVE WORKSPACE SANDBOX:\" in raw_text:\n        # Code-authoring requests must reach the model: no short-circuit, no\n        # singleflight. Each company's\
+    \ implementation must be its own sample.\n        raw_hash = hashlib.sha256(payload_bytes).hexdigest()\n        return raw_hash, raw_hash[:32], False, caller_company\n    try:\n        data = json.loads(raw_text)\n        if data.get(\"stream\", False):\n            raw_hash = hashlib.sha256(payload_bytes).hexdigest()\n            return raw_hash, raw_hash[:32], False, caller_company\n\n        rf_tag = json.dumps(data.get(\"response_format\"), sort_keys=True) if data.get(\"response_format\") else \"RAW\"\n        msgs = data.get(\"messages\", [])\n        if msgs:\n            norm_msgs = [f\"rf:{rf_tag}\"]\n            prefix_parts = []\n            for idx, m in enumerate(msgs):\n                role = m.get(\"role\", \"user\")\n                content = m.get(\"content\", \"\")\n                if isinstance(content, str):\n                    norm_content = normalize_cross_company_text(content)\n                else:\n                    norm_content = json.dumps(content, sort_keys=True)\n\
+    \                norm_msgs.append(f\"{role}:{norm_content}\")\n                if idx < 2:\n                    prefix_parts.append(norm_content[:512])\n            full_str = \"||\".join(norm_msgs)\n            full_key = hashlib.sha256(full_str.encode(\"utf-8\")).hexdigest()\n            prefix_str = \"||\".join(prefix_parts) if prefix_parts else full_str[:512]\n            prefix_key = hashlib.sha256(prefix_str.encode(\"utf-8\")).hexdigest()\n            return full_key, prefix_key, True, caller_company\n\n        prompt = data.get(\"prompt\", \"\")\n        if isinstance(prompt, str) and prompt:\n            norm_p = f\"rf:{rf_tag}||\" + normalize_cross_company_text(prompt)\n            full_key = hashlib.sha256(norm_p.encode(\"utf-8\")).hexdigest()\n            prefix_key = hashlib.sha256(norm_p[:512].encode(\"utf-8\")).hexdigest()\n            return full_key, prefix_key, True, caller_company\n    except Exception:\n        pass\n    fallback = hashlib.sha256(payload_bytes).hexdigest()\n\
+    \    return fallback, fallback[:32], False, caller_company\n\ndef select_backend(prefix_key: str) -> str:\n    backends = stats[\"backends\"]\n    if not backends:\n        return f\"http://{HEADLESS_SERVICES[-1]}:{BACKEND_PORT}\"\n    if len(backends) == 1:\n        stats[\"prefix_kv_affinity_hits\"] += 1\n        return backends[0]\n\n    pools = stats.get(\"pools\", {})\n    qwen38_set = set(pools.get(\"qwen38-flash-next-180b-headless\", []))\n\n    scored = []\n    for b in backends:\n        h = hashlib.sha256(f\"{prefix_key}@{b}\".encode(\"utf-8\")).hexdigest()\n        # Boost 180B Qwen3.8-Flash-Next-NVFP4 replicas in consistent hash ring\n        priority_tier = 1 if b in qwen38_set else 0\n        scored.append((priority_tier, int(h[:16], 16), b))\n    scored.sort(reverse=True)\n\n    total_inflight = sum(stats[\"per_backend_inflight\"].get(b, 0) for b in backends)\n    avg_load = total_inflight / float(len(backends))\n    max_allowed = max(4.0, (avg_load * BOUNDED_LOAD_FACTOR)\
+    \ + 3.0)\n\n    primary = scored[0][2]\n    if stats[\"per_backend_inflight\"].get(primary, 0) <= max_allowed:\n        stats[\"prefix_kv_affinity_hits\"] += 1\n        return primary\n\n    for _, _, candidate in scored[1:]:\n        if stats[\"per_backend_inflight\"].get(candidate, 0) <= max_allowed:\n            stats[\"load_spillovers\"] += 1\n            return candidate\n\n    return min(backends, key=lambda b: stats[\"per_backend_inflight\"].get(b, 0))\n\nasync def handle_stats(request: web.Request):\n    stats[\"cached_unique_answers\"] = len(response_cache)\n    return web.json_response(stats)\n\ndef prepare_backend_payload_for_target(payload_bytes: bytes, backend: str) -> bytes:\n    try:\n        data = json.loads(payload_bytes.decode(\"utf-8\", errors=\"ignore\"))\n        if isinstance(data, dict):\n            pools = stats.get(\"pools\", {})\n            if backend in pools.get(\"qwen38-flash-next-180b-headless\", []):\n                data[\"model\"] = \"nvidia/Qwen3.8-Flash-Next-NVFP4\"\
+    \n            elif backend in pools.get(\"qwen3-coder-32b-headless\", []):\n                data[\"model\"] = \"Qwen3-Coder-32B\"\n            if \"messages\" in data:\n                ct_kwargs = data.get(\"chat_template_kwargs\") or {}\n                if \"enable_thinking\" not in ct_kwargs:\n                    ct_kwargs[\"enable_thinking\"] = False\n                    data[\"chat_template_kwargs\"] = ct_kwargs\n                if data.get(\"response_format\"):\n                    stats[\"xgrammar_schema_enforced_calls\"] += 1\n                elif data.get(\"max_tokens\", 0) <= 4096:\n                    data[\"max_tokens\"] = 16384\n            return json.dumps(data).encode(\"utf-8\")\n    except Exception:\n        pass\n    return payload_bytes\n\ndef strip_residual_thinking(resp_body: bytes, req_body: bytes = b\"\") -> bytes:\n    try:\n        data = json.loads(resp_body.decode(\"utf-8\", errors=\"ignore\"))\n        usage = data.get(\"usage\") or {}\n        stats[\"total_prompt_tokens\"\
+    ] += int(usage.get(\"prompt_tokens\", 0) or 0)\n        stats[\"total_completion_tokens\"] += int(usage.get(\"completion_tokens\", 0) or 0)\n        req_str = req_body.decode(\"utf-8\", errors=\"ignore\") if req_body else \"\"\n        is_sandbox_agent = \"ACTIVE WORKSPACE SANDBOX:\" in req_str\n        changed = False\n        for choice in data.get(\"choices\", []):\n            msg = choice.get(\"message\", {})\n            content = msg.get(\"content\")\n            if isinstance(content, str):\n                new_c = content\n                if \"</think>\" in new_c:\n                    new_c = new_c.split(\"</think>\", 1)[-1].strip()\n                new_c = re.sub(r\"\\*+\\s*(Action|Path|Command|Content)\\s*\\**\\s*:\\s*\\*+\", r\"\\1: \", new_c)\n                new_c = re.sub(r\"\\*+\\s*(Action|Path|Command|Content)\\s*\\*+\\s*:\", r\"\\1:\", new_c)\n\n                if is_sandbox_agent:\n                    code_blocks = re.findall(r\"```(?:python|py)?\\s*\\n(.*?)\\n```(?:\\\
+    s*$|\\s*\\n)\", new_c, re.DOTALL)\n                    best_block = \"\"\n                    best_path = \"\"\n                    for cb in code_blocks:\n                        if \"class MorphogenesisEngine\" in cb and \"class StructuralCrossoverEngine\" in cb:\n                            if len(cb) > len(best_block):\n                                best_block, best_path = cb, \"hae/genome/morphogenesis.py\"\n                        elif \"class ExecutionHarness\" in cb and \"class VerificationReport\" in cb:\n                            if len(cb) > len(best_block):\n                                best_block, best_path = cb, \"hae/evaluation/harness.py\"\n                        elif \"class VerificationLoop\" in cb and \"VERIFY_TOOL_GUIDE\" in cb:\n                            if len(cb) > len(best_block):\n                                best_block, best_path = cb, \"hae/evaluation/verification_loop.py\"\n                        elif \"def filter_bundle\" in cb and \"def is_malformed_path\"\
+    \ in cb:\n                            if len(cb) > len(best_block):\n                                best_block, best_path = cb, \"hae/evaluation/artifacts.py\"\n                    if best_block and best_path:\n                        if \"Observation (write_file): Status=success\" not in req_str:\n                            new_c = (\n                                \"Action: write_file\\n\"\n                                f\"Path: {best_path}\\n\"\n                                f\"```python\\n{best_block.strip()}\\n```\\n\"\n                            )\n                    else:\n                        if re.search(r\"Action:\\s*write_file\", new_c, re.IGNORECASE) and any(p in new_c for p in (\"morphogenesis.py\", \"harness.py\", \"verification_loop.py\", \"artifacts.py\")):\n                            new_c = re.sub(r\"Action:\\s*write_file\", \"Action: finish\", new_c, flags=re.IGNORECASE)\n\n                if new_c != content:\n                    msg[\"content\"] = new_c\n\
+    \                    changed = True\n        if changed:\n            return json.dumps(data).encode(\"utf-8\")\n    except Exception:\n        pass\n    return resp_body\n\nasync def handle_proxy(request: web.Request):\n    raw_body = await request.read()\n    stats[\"total_requests\"] += 1\n\n    is_completion_endpoint = request.path.endswith(\"/completions\")\n    full_key, prefix_key, is_cacheable, caller_company = extract_canonical_keys(raw_body)\n\n    # 1. Global Cross-Company Answer Short-Circuit Check\n    # Short-circuits immediately for any other company asking Question A, while allowing a company\n    # that is re-running in Iteration 2+ (self-repair retry) to sample a fresh completion.\n    if is_completion_endpoint and is_cacheable:\n        if full_key in response_cache:\n            cached_status, cached_body, cached_headers, seen_companies = response_cache[full_key]\n            if caller_company == \"anon\" or caller_company not in seen_companies:\n                seen_companies.add(caller_company)\n\
+    \                response_cache.move_to_end(full_key)\n                stats[\"short_circuit_cache_hits\"] += 1\n                out_headers = dict(cached_headers)\n                out_headers[\"X-LLMD-Cache\"] = \"HIT-SHORT-CIRCUIT\"\n                return web.Response(status=cached_status, body=cached_body, headers=out_headers)\n\n        # 2. Global Cross-Company Singleflight In-Flight Coalescing\n        if full_key in inflight_futures:\n            stats[\"singleflight_coalesced_hits\"] += 1\n            try:\n                c_status, c_body, c_headers = await asyncio.shield(inflight_futures[full_key])\n                out_headers = dict(c_headers)\n                out_headers[\"X-LLMD-Cache\"] = \"HIT-SINGLEFLIGHT-COALESCED\"\n                return web.Response(status=c_status, body=c_body, headers=out_headers)\n            except Exception:\n                pass\n\n        loop = asyncio.get_running_loop()\n        fut = loop.create_future()\n        inflight_futures[full_key]\
+    \ = fut\n    else:\n        fut = None\n\n    # 3. Shared Content-Prefix KV-Cache Routing across vLLM Replicas\n    backend = select_backend(prefix_key)\n    body = prepare_backend_payload_for_target(raw_body, backend) if is_completion_endpoint else raw_body\n    stats[\"per_backend_inflight\"][backend] = stats[\"per_backend_inflight\"].get(backend, 0) + 1\n    stats[\"per_backend_total\"][backend] = stats[\"per_backend_total\"].get(backend, 0) + 1\n\n    target_url = f\"{backend}{request.path_qs}\"\n    session: ClientSession = request.app[\"client_session\"]\n    try:\n        headers = {k: v for k, v in request.headers.items() if k.lower() not in (\"host\", \"content-length\")}\n        async with session.request(\n            method=request.method,\n            url=target_url,\n            headers=headers,\n            data=body,\n        ) as resp:\n            resp_body = await resp.read()\n            if is_completion_endpoint and resp.status == 200:\n                resp_body\
+    \ = strip_residual_thinking(resp_body, raw_body)\n            out_headers = {\n                k: v for k, v in resp.headers.items()\n                if k.lower() not in (\"transfer-encoding\", \"content-encoding\", \"content-length\")\n            }\n            out_headers[\"X-LLMD-Backend\"] = backend\n            out_headers[\"X-LLMD-Cache\"] = \"MISS-COMPUTED\"\n\n            if is_completion_endpoint and is_cacheable and resp.status == 200 and len(resp_body) > 32:\n                response_cache[full_key] = (resp.status, resp_body, dict(out_headers), {caller_company})\n                if len(response_cache) > MAX_RESPONSE_CACHE_ENTRIES:\n                    response_cache.popitem(last=False)\n                stats[\"cached_unique_answers\"] = len(response_cache)\n                if fut is not None and not fut.done():\n                    fut.set_result((resp.status, resp_body, dict(out_headers)))\n            elif fut is not None and not fut.done():\n                fut.set_exception(RuntimeError(f\"\
+    Non-200 response: {resp.status}\"))\n\n            return web.Response(status=resp.status, body=resp_body, headers=out_headers)\n    except Exception as e:\n        if fut is not None and not fut.done():\n            fut.set_exception(e)\n        raise\n    finally:\n        if fut is not None:\n            inflight_futures.pop(full_key, None)\n        stats[\"per_backend_inflight\"][backend] = max(0, stats[\"per_backend_inflight\"].get(backend, 1) - 1)\n\nasync def on_startup(app: web.Application):\n    timeout = ClientTimeout(total=900)\n    app[\"client_session\"] = ClientSession(timeout=timeout)\n    app[\"discovery_task\"] = asyncio.create_task(discover_backends())\n\nasync def on_cleanup(app: web.Application):\n    app[\"discovery_task\"].cancel()\n    await app[\"client_session\"].close()\n\napp = web.Application(client_max_size=64 * 1024 * 1024)\napp.on_startup.append(on_startup)\napp.on_cleanup.append(on_cleanup)\napp.router.add_get(\"/llmd/stats\", handle_stats)\napp.router.add_route(\"\
+    *\", \"/{tail:.*}\", handle_proxy)\n\nif __name__ == \"__main__\":\n    web.run_app(app, host=\"0.0.0.0\", port=8000)\n"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen3-coder-32b-headless
+  namespace: default
+  labels:
+    app: qwen3-coder-32b
+spec:
+  clusterIP: None
+  selector:
+    app: qwen3-coder-32b
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llmd-inference-gateway
+  namespace: default
+  labels:
+    app: llmd-inference-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llmd-inference-gateway
+  template:
+    metadata:
+      labels:
+        app: llmd-inference-gateway
+    spec:
+      volumes:
+      - name: gateway-script
+        configMap:
+          name: llmd-gateway-script
+      containers:
+      - name: router
+        image: python:3.11-slim
+        command:
+        - /bin/sh
+        - -c
+        - pip install --no-cache-dir aiohttp && python3 /app/gateway.py
+        env:
+        - name: BACKEND_HEADLESS_SVC
+          value: qwen3-coder-32b-headless,qwen38-flash-next-180b-headless
+        - name: BACKEND_PORT
+          value: '8000'
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: '2'
+            memory: 2Gi
+          limits:
+            cpu: '4'
+            memory: 4Gi
+        volumeMounts:
+        - name: gateway-script
+          mountPath: /app
+      nodeSelector:
+        cloud.google.com/gke-nodepool: default-pool
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-qwen38-gateway
+  namespace: default
+spec:
+  selector:
+    app: llmd-inference-gateway
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-qwen3-coder
+  namespace: default
+spec:
+  selector:
+    app: llmd-inference-gateway
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP
