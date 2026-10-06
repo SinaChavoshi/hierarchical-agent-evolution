@@ -20,7 +20,7 @@ from hae.epistemic.ledger import EpistemicState, Hypothesis, Question
 from hae.epistemic.mcts import EpistemicSearchLoop
 from hae.epistemic.moves import (
     MOVE_ASK_QUESTION, MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT, MOVE_SYNTHESIZE,
-    V6_HYPOTHESIS_SCHEMA, HypothesisProposal, parse_hypothesis_packet,
+    V6_HYPOTHESIS_SCHEMA, HypothesisProposal, extract_json_object, parse_hypothesis_packet,
 )
 from hae.epistemic.value import EpistemicValueFunction
 
@@ -1086,10 +1086,11 @@ class HierarchicalCompanyRunner:
                 "2. Hypotheses must be mutually exclusive, and at least one must be a mechanism you consider UNLIKELY.\n"
                 "3. `prior` is your honest probability (0.05-0.95) that this mechanism is the actual cause. It is "
                 "recorded and later scored for calibration against the evidence, so do not inflate it.\n"
-                f"4. `probe_code` is a standalone Python script of at most {policy.max_probe_lines} lines that imports "
-                "the module FROM THE WORKSPACE (e.g. `from hae.evaluation.harness import ExecutionHarness`), "
-                "exercises exactly the suspected behaviour, and prints a short marker. It must not read files outside "
-                "the workspace, mutate sys.path, touch the network, or reference held-out tests.\n"
+                f"4. `probe_lines` is a standalone Python script of at most {policy.max_probe_lines} lines, given as a "
+                "JSON array with ONE SOURCE LINE PER ELEMENT (no embedded newlines). It imports the module FROM THE "
+                "WORKSPACE (e.g. `from hae.evaluation.harness import ExecutionHarness`), exercises exactly the "
+                "suspected behaviour, and prints a short marker. It must not read files outside the workspace, "
+                "mutate sys.path, touch the network, or reference held-out tests.\n"
                 "5. `prediction` states what the probe prints / exits with IF THE HYPOTHESIS IS TRUE of the current "
                 "code -- not what a fixed implementation would print. The Evidence Gatekeeper runs the probe and "
                 "falsifies any hypothesis whose prediction does not hold.\n"
@@ -1100,12 +1101,17 @@ class HierarchicalCompanyRunner:
                 f"{state.summary(question.question_id)}\n\n"
                 f"{self._epistemic_module_context(question.module, objective)}"
             )
+            # 3000 tokens: three hypotheses with 40-line probes run to ~2000
+            # tokens; the Gen 16 pilot's 1600 cut off even well-formed packets.
             raw = self._execute_agent(agent, prompt, context=context,
-                                      response_format=V6_HYPOTHESIS_SCHEMA, max_tokens=1600)
+                                      response_format=V6_HYPOTHESIS_SCHEMA, max_tokens=3000)
             proposals = parse_hypothesis_packet(raw, max_items=k)
             if not proposals:
+                data = extract_json_object(raw)
+                shape = ("no JSON object" if data is None else
+                         f"JSON with {len(data.get('hypotheses') or [])} items but none usable")
                 print(f"[epistemic] {self.genome.company_id} {agent.role}: no parseable hypotheses "
-                      f"(head: {raw[:160]!r})", flush=True)
+                      f"({shape}; {len(raw)} chars; head: {raw[:120]!r}; tail: {raw[-80:]!r})", flush=True)
             return proposals
 
         return propose

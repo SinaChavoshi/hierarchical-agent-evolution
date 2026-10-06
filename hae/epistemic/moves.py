@@ -91,6 +91,8 @@ _PREDICTION_SCHEMA: Dict[str, Any] = {
     "additionalProperties": False,
 }
 
+MAX_PROBE_LINES_SCHEMA = 60
+
 V6_HYPOTHESIS_SCHEMA: Dict[str, Any] = {
     "type": "json_schema",
     "json_schema": {
@@ -110,10 +112,22 @@ V6_HYPOTHESIS_SCHEMA: Dict[str, Any] = {
                             "claim": {"type": "string", "maxLength": 200},
                             "mechanism": {"type": "string", "maxLength": 260},
                             "prior": {"type": "number"},
-                            "probe_code": {"type": "string", "maxLength": 2400},
+                            # The probe is an ARRAY OF SOURCE LINES, not one string.
+                            # Gen 16 pilot (2026-10-06): with `probe_code` as a single
+                            # string the grammar forbids raw newlines inside it, and
+                            # Qwen3.8 degenerated into a repetition loop
+                            # (`import inspect, sys, ..., _base._base._base...`) until
+                            # max_tokens on 3 of 4 firms, starving the search of
+                            # hypotheses. A line array makes the newline a structural
+                            # separator the grammar allows.
+                            "probe_lines": {
+                                "type": "array",
+                                "maxItems": MAX_PROBE_LINES_SCHEMA,
+                                "items": {"type": "string", "maxLength": 200},
+                            },
                             "prediction": _PREDICTION_SCHEMA,
                         },
-                        "required": ["claim", "mechanism", "prior", "probe_code", "prediction"],
+                        "required": ["claim", "mechanism", "prior", "probe_lines", "prediction"],
                         "additionalProperties": False,
                     },
                 },
@@ -196,18 +210,61 @@ def normalise_prediction(pred: Any) -> Dict[str, Any]:
     return out
 
 
+def salvage_truncated_items(raw: str, key: str) -> List[Dict[str, Any]]:
+    """Recovers the complete objects of `"<key>": [ {...}, {...}, <cut>` from a
+    reply that was truncated by max_tokens (or ran into a degenerate loop).
+
+    A proposer that produced two whole hypotheses before the decoder was cut
+    off should not lose both; only the object that was still open is dropped.
+    """
+    if not raw:
+        return []
+    m = re.search(r'"%s"\s*:\s*\[' % re.escape(key), raw)
+    if not m:
+        return []
+    decoder = json.JSONDecoder()
+    pos = m.end()
+    items: List[Dict[str, Any]] = []
+    n = len(raw)
+    while True:
+        while pos < n and raw[pos] in " \t\r\n,":
+            pos += 1
+        if pos >= n or raw[pos] != "{":
+            break
+        try:
+            obj, end = decoder.raw_decode(raw, pos)
+        except ValueError:
+            break  # the object that was open when the stream was cut
+        if isinstance(obj, dict):
+            items.append(obj)
+        pos = end
+    return items
+
+
+def _probe_source(item: Mapping) -> str:
+    """Probe text from either the line-array form or the legacy string form."""
+    lines = item.get("probe_lines")
+    if isinstance(lines, list):
+        return "\n".join(str(ln) for ln in lines if ln is not None)
+    probe = str(item.get("probe_code", "") or "")
+    if "\n" not in probe and "\\n" in probe:
+        probe = probe.replace("\\n", "\n")
+    return probe
+
+
 def parse_hypothesis_packet(raw: str, max_items: int = MAX_HYPOTHESES_PER_PACKET
                             ) -> List[HypothesisProposal]:
     """Parses a HYPOTHESIS_SET packet. Drops malformed or duplicate entries.
 
     Dropping is the right failure mode: a proposer that produced three good
-    hypotheses and one without a probe should not lose the three.
+    hypotheses and one without a probe should not lose the three. The same
+    holds for a packet the decoder cut off: whole items before the cut are kept.
     """
     data = extract_json_object(raw)
-    if not data:
-        return []
-    items = data.get("hypotheses")
+    items: Any = data.get("hypotheses") if data else None
     if not isinstance(items, list):
+        items = salvage_truncated_items(raw, "hypotheses")
+    if not items:
         return []
     out: List[HypothesisProposal] = []
     seen: set = set()
@@ -215,14 +272,14 @@ def parse_hypothesis_packet(raw: str, max_items: int = MAX_HYPOTHESES_PER_PACKET
         if not isinstance(item, Mapping):
             continue
         claim = " ".join(str(item.get("claim", "")).split())
-        probe = str(item.get("probe_code", "") or "")
+        probe = _probe_source(item)
         if not claim or not probe.strip():
             continue
         prop = HypothesisProposal(
             claim=claim,
             mechanism=" ".join(str(item.get("mechanism", "")).split()),
             prior=clamp_prior(item.get("prior", 0.5)),
-            probe_code=probe.replace("\\n", "\n") if "\n" not in probe and "\\n" in probe else probe,
+            probe_code=probe,
             prediction=normalise_prediction(item.get("prediction")),
         )
         if prop.signature in seen:
@@ -237,10 +294,10 @@ def parse_hypothesis_packet(raw: str, max_items: int = MAX_HYPOTHESES_PER_PACKET
 def parse_question_packet(raw: str, max_items: int = MAX_QUESTIONS_PER_PACKET
                           ) -> List[QuestionProposal]:
     data = extract_json_object(raw)
-    if not data:
-        return []
-    items = data.get("questions")
+    items: Any = data.get("questions") if data else None
     if not isinstance(items, list):
+        items = salvage_truncated_items(raw, "questions")
+    if not items:
         return []
     out: List[QuestionProposal] = []
     for item in items:
