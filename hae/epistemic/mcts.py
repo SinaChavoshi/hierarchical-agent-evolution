@@ -42,12 +42,45 @@ their output as proposals; an optional fourth, `revert_patch`, lets it undo
 a synthesis whose module check failed. Every move records the ledger's
 feature vector before and after, so V7 can train a value head on certified
 trajectories.
+
+The organisation as search state (V8)
+-------------------------------------
+With an `OrgState` (hae/epistemic/org.py) the loop also decides *who*
+proposes and *who* synthesises, and keeps the evidence score of each role:
+
+  * Routing: before a PROPOSE move `org_state.pick_role("probe")` (UCB over
+    the active roles able to probe: mean credited dU + exploration bonus)
+    names the specialist, and the adapter is called with `role=`; the same
+    for SYNTHESIZE with `pick_role("synthesis")`. Hypotheses and move
+    records carry the `role_id`; `agent_role` shows the routed role's name.
+  * Credit: after RUN_EXPERIMENT the hypothesis' *proposer* is credited with
+    the move's dU and the verdict; after SYNTHESIZE the synthesising role is
+    credited with the dU and whether it wrote. PROPOSE itself earns nothing:
+    proposals are free until tested. This is end-of-move credit, not causal
+    credit (org.py, "Honesty notes").
+  * `MOVE_RECRUIT_SPECIALIST` (`_maybe_recruit`): evaluated once per step,
+    before the usual moves, only when the pressure is real -- the team has
+    stalled for `policy.stall_moves` credited moves or has surfaced modules
+    no active role's tags cover -- the cooldown allows it, and a draw
+    `rng.random() < org_state.recruit_prior()` passes. The prior is the
+    *probability of taking the move* on such a step, not a PUCT score: it
+    lets a firm's CEO policy gene tune how eagerly it hires. The callback
+    (the runner's CEO adapter) returns `(role, note)`; a role is appended to
+    the live team with an optimistic routing prior, a `None` is recorded as
+    a declined recruit and still starts the cooldown. Either way the move
+    counts against the budget.
+
+With `org_state=None` (every V5/V6 genome) none of this runs: the None branch
+executes the pre-V8 statements verbatim, draws nothing from the rng, and
+records the same fields -- `tests/test_recruit_move.py` pins that down by
+comparing full move logs.
 """
 
 from __future__ import annotations
 
 import math
 import random
+import re
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
@@ -58,18 +91,30 @@ from hae.epistemic.ledger import (
     signature_similarity,
 )
 from hae.epistemic.moves import (
-    MOVE_ASK_QUESTION, MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT, MOVE_SYNTHESIZE,
-    HypothesisProposal, QuestionProposal,
+    MOVE_ASK_QUESTION, MOVE_PROPOSE_HYPOTHESIS, MOVE_RECRUIT_SPECIALIST, MOVE_RUN_EXPERIMENT,
+    MOVE_SYNTHESIZE, HypothesisProposal, QuestionProposal,
 )
+from hae.epistemic.org import OrgState, RoleAllele
 from hae.epistemic.value import (
     EpistemicValueFunction, HypothesisPriorHead, LearnedValueHead, epistemic_features,
     hypothesis_features, rank_among,
 )
 from hae.genome.schema import EpistemicPolicyGene
 
+# The adapters' positional contract. With an `OrgState` the loop additionally
+# passes `role=<RoleAllele>` as a keyword to `propose_hypotheses` and
+# `synthesize_patch` when a role was routed; adapters that predate V8 are
+# never handed the keyword because the None branch calls them exactly as before.
 ProposeHypothesesFn = Callable[[Question, EpistemicState, int], Sequence[HypothesisProposal]]
 SynthesizeFn = Callable[[Question, Hypothesis, EpistemicState], Mapping[str, Any]]
 ProposeQuestionsFn = Callable[[EpistemicState], Sequence[QuestionProposal]]
+# V8: `(org_state, state, question, move_index) -> (role or None, note)`. The
+# role's `extra["source"]` says where it came from (`library` | `synthesized`);
+# the note explains a refusal and is written into the recruit move's record.
+RecruitSpecialistFn = Callable[[OrgState, EpistemicState, Question, int], Tuple[Optional[RoleAllele], str]]
+
+# Module paths visible in a question's text, oracle line or traceback location.
+_MODULE_PATH_RE = re.compile(r"[\w./-]+\.py\b")
 
 MAX_SYNTHESIS_FAILURES = 2
 
@@ -106,9 +151,12 @@ class SearchResult:
     stop_reason: str
     synthesized_paths: List[str] = field(default_factory=list)
     stats: Dict[str, Any] = field(default_factory=dict)
+    # V8: `OrgState.to_dict()` at the end of the search (active roles, per-role
+    # credit, recruit log). None when the loop ran without an organisation.
+    org: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        out = {
             "moves_used": self.moves_used,
             "delta_u_total": round(self.delta_u_total, 6),
             "stop_reason": self.stop_reason,
@@ -116,6 +164,9 @@ class SearchResult:
             "stats": dict(self.stats),
             "trajectory": [m.to_dict() for m in self.trajectory],
         }
+        if self.org is not None:
+            out["org"] = dict(self.org)
+        return out
 
 
 class EpistemicSearchLoop:
@@ -131,7 +182,9 @@ class EpistemicSearchLoop:
                  revert_patch: Optional[Callable[[str, str], Any]] = None,
                  prior_head: Optional[HypothesisPriorHead] = None,
                  prior_head_weight: float = 0.0,
-                 value_head: Optional[LearnedValueHead] = None) -> None:
+                 value_head: Optional[LearnedValueHead] = None,
+                 org_state: Optional[OrgState] = None,
+                 recruit_specialist: Optional[RecruitSpecialistFn] = None) -> None:
         self.state = state
         self.gatekeeper = gatekeeper
         self.value_fn = value_fn
@@ -156,6 +209,11 @@ class EpistemicSearchLoop:
         self.prior_head = prior_head
         self.prior_head_weight = max(0.0, min(1.0, float(prior_head_weight or 0.0)))
         self.value_head = value_head
+        # V8: the live organisation and the CEO's recruit adapter. Both None
+        # for a V5/V6 genome, and then no statement below that mentions them
+        # runs (module docstring, "The organisation as search state").
+        self.org_state = org_state
+        self.recruit_specialist = recruit_specialist
         self._last_selection: Dict[str, float] = {}
         self.moves_used = 0
         self.expansions = 0
@@ -177,6 +235,16 @@ class EpistemicSearchLoop:
             "prior_head_loaded": prior_head is not None, "value_head_loaded": value_head is not None,
             "prior_head_steered": 0,
         }
+        if org_state is not None:
+            # Only with an organisation, so a V6 tree's stats keep their exact key set.
+            self.stats.update({
+                "recruits": 0, "recruits_from_library": 0, "recruits_synthesized": 0, "recruit_declined": 0,
+                "moves_by_role": {}, "delta_u_by_role": {},
+                # True once at least one PROPOSE/SYNTHESIZE move was actually
+                # routed to a role (a team with no role able to probe falls
+                # back to the bound agent, and that is not routing).
+                "roles_routed": False,
+            })
 
     # ------------------------------------------------------------------ #
     # Main loop
@@ -223,6 +291,10 @@ class EpistemicSearchLoop:
                     continue
                 stop_reason = STOP_RESOLVED
                 break
+            # V8: the organisation gets one look per step, before the usual
+            # moves. A recruit (or a declined recruit) is a move of its own.
+            if self.org_state is not None and self._maybe_recruit(question):
+                continue
             action, hypothesis, forced = self._choose_action(question)
             if action == "synthesize":
                 self._do_synthesize(question, hypothesis)
@@ -238,7 +310,8 @@ class EpistemicSearchLoop:
             trajectory=list(self.trajectory), final_state=self.state, moves_used=self.moves_used,
             delta_u_total=round(sum(m.delta_u for m in self.trajectory), 6),
             stop_reason=stop_reason, synthesized_paths=list(self.synthesized_paths),
-            stats=dict(self.stats))
+            stats=dict(self.stats),
+            org=self.org_state.to_dict() if self.org_state is not None else None)
 
     # ------------------------------------------------------------------ #
     # Selection
@@ -307,9 +380,37 @@ class EpistemicSearchLoop:
             self.stats["frontier_admissions"] += 1
             self.logger(f"[epistemic] frontier += {q.question_id} ({len(self.frontier)}/{size}; "
                         f"u={q.uncertainty:.2f}; cluster {cluster[:70]!r})")
+            if self.org_state is not None:
+                self._observe_question_modules(q)
         if not self.frontier:
             return None
         return min((workable[qid] for qid in self.frontier), key=self._rank_key)
+
+    @staticmethod
+    def question_modules(q: Question) -> List[str]:
+        """Module paths a question makes visible: its module, the path part of
+        the oracle traceback location, and every `*.py` path in the oracle
+        line or the question text. Ordered, de-duplicated."""
+        out: List[str] = []
+        candidates: List[str] = [str(q.module or "")]
+        if q.location:
+            candidates.append(str(q.location).split(":")[0])
+        for text in (q.source_failure, q.text):
+            candidates.extend(_MODULE_PATH_RE.findall(str(text or "")))
+        for c in candidates:
+            c = c.strip().lstrip("./")
+            if c.endswith(".py") and c not in out:
+                out.append(c)
+        return out
+
+    def _observe_question_modules(self, q: Question) -> None:
+        """V8: tell the organisation which modules a question touches (it keeps
+        the ones no active role's tags cover as recruit pressure). The
+        frontier is rebuilt every run, so a question refreshed by the oracle
+        between iterations is observed again with its new traceback."""
+        new = self.org_state.observe_modules(self.question_modules(q))  # type: ignore[union-attr]
+        if new:
+            self.logger(f"[epistemic] {q.question_id}: module(s) no active role covers: {new}")
 
     def _note_resolution(self, q: Question) -> None:
         """Remember the cluster of a question resolved in this run for triage."""
@@ -417,7 +518,8 @@ class EpistemicSearchLoop:
                 delta_u: float = 0.0, note: str = "", forced: bool = False,
                 features_before: Optional[Dict[str, float]] = None,
                 value_before: float = 0.0, hash_before: str = "",
-                extra: Optional[Mapping[str, float]] = None) -> MoveRecord:
+                extra: Optional[Mapping[str, float]] = None,
+                role: Optional[RoleAllele] = None, role_id: str = "") -> MoveRecord:
         self.moves_used += 1
         shadow: Dict[str, float] = dict(extra or {})
         if self.value_head is not None:
@@ -427,10 +529,15 @@ class EpistemicSearchLoop:
                 shadow["head_v"] = round(float(self.value_head.predict(features_before or {})), 6)
             except Exception as exc:  # pragma: no cover - defensive, a head must not stop the search
                 self.logger(f"[epistemic] value head failed: {type(exc).__name__}: {exc}")
+        # V8: a move routed to a role shows the role's name as `agent_role` and
+        # carries its `role_id`; an experiment carries the *proposer's* role_id
+        # (`role_id=`) while `agent_role` stays the gatekeeper's static label.
+        # Without an organisation both are the pre-V8 values.
+        agent_role = role.name if role is not None else self.agent_roles.get(move_type, "")
         move = MoveRecord(
             move_index=len(self.state.move_log) + 1, move_type=move_type,
             question_id=question_id, hypothesis_id=hypothesis_id,
-            agent_role=self.agent_roles.get(move_type, ""),
+            agent_role=agent_role, role_id=role.role_id if role is not None else str(role_id or ""),
             delta_u=round(float(delta_u), 6),
             value_before=value_before, value_after=self.value_fn.value(self.state),
             features=dict(features_before or {}),
@@ -444,16 +551,109 @@ class EpistemicSearchLoop:
         feats = epistemic_features(self.state)
         return feats, self.value_fn.value_from_features(feats), self.state.state_hash()
 
+    # ------------------------------------------------------------------ #
+    # V8: organisation bookkeeping (only ever called with an OrgState)
+    # ------------------------------------------------------------------ #
+
+    def _attribute(self, role_id: str, delta: float) -> None:
+        """Per-role telemetry in `stats`: moves routed to or credited to a role and their dU."""
+        if not role_id:
+            return
+        by_moves: Dict[str, int] = self.stats["moves_by_role"]
+        by_du: Dict[str, float] = self.stats["delta_u_by_role"]
+        by_moves[role_id] = int(by_moves.get(role_id, 0)) + 1
+        by_du[role_id] = round(float(by_du.get(role_id, 0.0)) + float(delta), 6)
+
+    def _credit(self, role_id: str, delta: float, verdict: str = "", wrote: bool = False) -> None:
+        """Evidence credit to a role for the move about to be recorded (end-of-move credit)."""
+        if self.org_state is None or not role_id:
+            return
+        self.org_state.credit(role_id, delta, verdict=verdict, wrote=wrote,
+                              move_index=len(self.state.move_log) + 1)
+        self._attribute(role_id, delta)
+
+    def _maybe_recruit(self, q: Question) -> bool:
+        """The `MOVE_RECRUIT_SPECIALIST` move; True when a move was taken (recruited or declined).
+
+        Trigger: cooldown and headcount allow it (`OrgState.can_recruit`), the
+        previous move was not itself a recruit, the team is under pressure
+        (`stall_counter >= policy.stall_moves`, or some surfaced module no
+        active role covers), and a draw passes with probability
+        `OrgState.recruit_prior()`. Then the CEO adapter is asked for a role.
+        Both outcomes are recorded as a move and start the cooldown, so a
+        CEO that keeps declining cannot be asked every step.
+        """
+        org = self.org_state
+        if org is None or self.recruit_specialist is None:
+            return False
+        if self.trajectory and self.trajectory[-1].move_type == MOVE_RECRUIT_SPECIALIST:
+            return False
+        idx = len(self.state.move_log) + 1
+        if not org.can_recruit(idx):
+            return False
+        stall, unmatched = int(org.stall_counter), list(org.unmatched_modules)
+        if stall < int(org.policy.stall_moves) and not unmatched:
+            return False
+        p = org.recruit_prior()
+        if self.rng.random() >= p:
+            return False
+        feats, v0, h0 = self._snapshot()
+        pressure = f"stall={stall}, unmatched={len(unmatched)}"
+        extra = {"recruit_prior": round(p, 6), "stall_counter": float(stall),
+                 "unmatched_modules": float(len(unmatched))}
+        try:
+            role, note = self.recruit_specialist(org, self.state, q, idx)
+        except Exception as exc:  # the CEO adapter is an LLM call; it may fail
+            role, note = None, f"recruit failed: {type(exc).__name__}: {exc}"
+        note = str(note or "")
+        if role is not None and not isinstance(role, RoleAllele):
+            role, note = None, f"recruit returned {type(role).__name__}, not a RoleAllele"
+        if role is not None and org.role(role.role_id) is not None:
+            role, note = None, f"duplicate of active role {role.name}"
+        if role is None:
+            org.last_recruit_move = idx
+            self.stats["recruit_declined"] += 1
+            text = f"recruit declined ({pressure}): {note or 'no candidate'}"
+            self._record(MOVE_RECRUIT_SPECIALIST, q.question_id, note=text,
+                         features_before=feats, value_before=v0, hash_before=h0, extra=extra)
+            self.logger(f"[epistemic] {q.question_id}: {text[:220]}")
+            return True
+        source = str(role.extra.get("source") or "unknown")
+        org.recruit(role, idx, reason=pressure, source=source)
+        self.stats["recruits"] += 1
+        if source == "library":
+            self.stats["recruits_from_library"] += 1
+        elif source == "synthesized":
+            self.stats["recruits_synthesized"] += 1
+        text = f"recruited {role.name} [{source}] ({pressure}; tags: {', '.join(role.domain_tags[:6])})"
+        if note:
+            text += f": {note}"
+        self._record(MOVE_RECRUIT_SPECIALIST, q.question_id, note=text,
+                     features_before=feats, value_before=v0, hash_before=h0, extra=extra, role=role)
+        self.logger(f"[epistemic] {q.question_id}: {text[:220]} -> team of {len(org.active_roles)}")
+        return True
+
     def _do_propose(self, q: Question) -> None:
         feats, v0, h0 = self._snapshot()
         q.hypothesis_rounds += 1
         self.stats["proposal_rounds"] += 1
+        # V8 routing: which active role proposes. None without an organisation
+        # (or when no active role can probe), and then the adapter is called
+        # exactly as before, without the keyword.
+        role = self.org_state.pick_role("probe") if self.org_state is not None else None
         try:
-            proposals = list(self.propose_hypotheses(q, self.state, int(self.policy.branching_k)) or [])
+            if role is None:
+                proposals = list(self.propose_hypotheses(q, self.state, int(self.policy.branching_k)) or [])
+            else:
+                proposals = list(self.propose_hypotheses(q, self.state, int(self.policy.branching_k),
+                                                         role=role) or [])  # type: ignore[call-arg]
         except Exception as exc:  # the proposer is an LLM call; it may fail
             self.stats["proposer_errors"] += 1
             self._record(MOVE_PROPOSE_HYPOTHESIS, q.question_id, note=f"proposer error: {type(exc).__name__}: {exc}",
-                         features_before=feats, value_before=v0, hash_before=h0)
+                         features_before=feats, value_before=v0, hash_before=h0, role=role)
+            if role is not None:
+                self._attribute(role.role_id, 0.0)
+                self.stats["roles_routed"] = True
             return
         accepted = tabu = dup = repaired = 0
         existing = self.state.hypotheses_for(q.question_id)
@@ -490,9 +690,14 @@ class EpistemicSearchLoop:
                    and not (h.status == FALSIFIED and h.epoch != q.failure_epoch)):
                 dup += 1
                 continue
-            h = self.state.add_hypothesis(
-                q.question_id, prop.claim, prop.mechanism, prop.prior, prop.probe_code,
-                prop.prediction, proposed_by=self.agent_roles.get(MOVE_PROPOSE_HYPOTHESIS, ""))
+            if role is None:
+                h = self.state.add_hypothesis(
+                    q.question_id, prop.claim, prop.mechanism, prop.prior, prop.probe_code,
+                    prop.prediction, proposed_by=self.agent_roles.get(MOVE_PROPOSE_HYPOTHESIS, ""))
+            else:
+                h = self.state.add_hypothesis(
+                    q.question_id, prop.claim, prop.mechanism, prop.prior, prop.probe_code,
+                    prop.prediction, proposed_by=role.name, role_id=role.role_id)
             existing.append(h)
             accepted += 1
         self.stats["hypotheses_accepted"] += accepted
@@ -502,8 +707,13 @@ class EpistemicSearchLoop:
         summary = (f"{accepted} accepted, {repaired} repaired, {tabu} tabu, {dup} duplicate "
                    f"of {len(proposals)} proposed")
         self._record(MOVE_PROPOSE_HYPOTHESIS, q.question_id, note=summary,
-                     features_before=feats, value_before=v0, hash_before=h0)
-        self.logger(f"[epistemic] {q.question_id}: proposed {len(proposals)} -> {accepted} accepted, "
+                     features_before=feats, value_before=v0, hash_before=h0, role=role)
+        if role is not None:
+            # Proposals are free until tested: attribution only, no credit.
+            self._attribute(role.role_id, 0.0)
+            self.stats["roles_routed"] = True
+        who = f" by {role.name}" if role is not None else ""
+        self.logger(f"[epistemic] {q.question_id}: proposed {len(proposals)}{who} -> {accepted} accepted, "
                     f"{repaired} repaired, {tabu} tabu, {dup} duplicate")
 
     def _do_experiment(self, q: Question, h: Hypothesis, forced: bool) -> None:
@@ -525,9 +735,14 @@ class EpistemicSearchLoop:
             self.stats["falsified"] += 1
         else:
             self.stats["inconclusive"] += 1
+        # V8 credit: the verdict (and its dU) goes to the role that proposed
+        # the hypothesis. End-of-move credit; see org.py "Honesty notes".
+        if self.org_state is not None and h.role_id:
+            self._credit(h.role_id, delta, verdict=h.status)
         self._record(MOVE_RUN_EXPERIMENT, q.question_id, h.hypothesis_id, delta_u=delta,
                      note=f"{h.status}: {evidence.detail}", forced=forced,
-                     features_before=feats, value_before=v0, hash_before=h0, extra=shadow)
+                     features_before=feats, value_before=v0, hash_before=h0, extra=shadow,
+                     role_id=h.role_id if self.org_state is not None else "")
         head_note = f" head_p={shadow['head_p']:.2f}" if "head_p" in shadow else ""
         self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} prior={h.prior:.2f}{head_note} "
                     f"{'FORCED ' if forced else ''}-> {h.status} (dU={delta:.3f}) {evidence.detail[:120]}")
@@ -535,14 +750,20 @@ class EpistemicSearchLoop:
     def _do_synthesize(self, q: Question, h: Hypothesis) -> None:
         feats, v0, h0 = self._snapshot()
         self.stats["syntheses"] += 1
+        # V8 routing: which active role writes. None without an organisation.
+        role = self.org_state.pick_role("synthesis") if self.org_state is not None else None
         try:
-            result = dict(self.synthesize_patch(q, h, self.state) or {})
+            if role is None:
+                result = dict(self.synthesize_patch(q, h, self.state) or {})
+            else:
+                result = dict(self.synthesize_patch(q, h, self.state, role=role) or {})  # type: ignore[call-arg]
         except Exception as exc:
             self.stats["proposer_errors"] += 1
             h.synthesis_failures += 1
             note = f"synthesis error: {type(exc).__name__}: {exc}"
+            self._settle_synthesis(role, 0.0, wrote=False)
             self._record(MOVE_SYNTHESIZE, q.question_id, h.hypothesis_id, note=note,
-                         features_before=feats, value_before=v0, hash_before=h0)
+                         features_before=feats, value_before=v0, hash_before=h0, role=role)
             self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} {note[:160]} "
                         f"(failure {h.synthesis_failures}/{MAX_SYNTHESIS_FAILURES})")
             return
@@ -573,8 +794,9 @@ class EpistemicSearchLoop:
             h.synthesis_failures += 1
             self.stats["syntheses_unwritten"] += 1
             note = f"synthesis wrote nothing: {str(result.get('summary', ''))[:160]}"
+            self._settle_synthesis(role, 0.0, wrote=False)
             self._record(MOVE_SYNTHESIZE, q.question_id, h.hypothesis_id, note=note,
-                         features_before=feats, value_before=v0, hash_before=h0)
+                         features_before=feats, value_before=v0, hash_before=h0, role=role)
             self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} {note[:200]} "
                         f"(failure {h.synthesis_failures}/{MAX_SYNTHESIS_FAILURES})")
             return
@@ -594,10 +816,21 @@ class EpistemicSearchLoop:
         note = f"{path} [{mode or 'unknown'}]: {evidence.detail}"
         if reverted:
             note += "; reverted to pre-synthesis module"
+        # V8 credit: `wrote` means the module check passed -- a write that
+        # broke the module (reverted or not) is a stall for the role, not a patch.
+        self._settle_synthesis(role, delta, wrote=bool(evidence.matched_prediction))
         self._record(MOVE_SYNTHESIZE, q.question_id, h.hypothesis_id, delta_u=delta, note=note,
-                     features_before=feats, value_before=v0, hash_before=h0)
-        self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} synthesized {path} [{mode or 'unknown'}]: "
+                     features_before=feats, value_before=v0, hash_before=h0, role=role)
+        who = f" by {role.name}" if role is not None else ""
+        self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} synthesized {path} [{mode or 'unknown'}]{who}: "
                     f"{evidence.detail[:120]}{' (reverted)' if reverted else ''} (dU={delta:.3f})")
+
+    def _settle_synthesis(self, role: Optional[RoleAllele], delta: float, wrote: bool) -> None:
+        """V8: credit the synthesising role for the SYNTHESIZE move about to be recorded."""
+        if role is None:
+            return
+        self._credit(role.role_id, delta, verdict="", wrote=wrote)
+        self.stats["roles_routed"] = True
 
     def _revert(self, path: str, previous_source: str, q: Question, h: Hypothesis) -> bool:
         """Calls `revert_patch`; a refusal (error status) or exception is logged, never raised."""

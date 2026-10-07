@@ -364,6 +364,11 @@ class Hypothesis:
     value_sum: float = 0.0
     mechanism_signature: str = ""
     proposed_by: str = ""
+    # V8: the `RoleAllele.role_id` of the specialist the search loop routed the
+    # proposal to; "" when the firm runs with static bindings (V5/V6) or the
+    # tree predates V8 (`from_dict` tolerates the missing key). Evidence on
+    # this hypothesis is credited to that role (`OrgState.credit`).
+    role_id: str = ""
     patch_applied: bool = False
     synthesis_failures: int = 0
     probe_rejections: int = 0
@@ -449,6 +454,11 @@ class MoveRecord:
     question_id: str = ""
     hypothesis_id: str = ""
     agent_role: str = ""
+    # V8: the `RoleAllele.role_id` this move is attributed to -- the role a
+    # PROPOSE/SYNTHESIZE move was routed to, the proposer credited for a
+    # RUN_EXPERIMENT verdict, the role admitted by a RECRUIT_SPECIALIST move.
+    # "" under static bindings and in pre-V8 trees (`from_dict` tolerates it).
+    role_id: str = ""
     delta_u: float = 0.0
     value_before: float = 0.0
     value_after: float = 0.0
@@ -530,12 +540,13 @@ class EpistemicState:
     def add_hypothesis(self, question_id: str, claim: str, mechanism: str = "",
                        prior: float = 0.5, probe_code: str = "",
                        prediction: Optional[Mapping[str, Any]] = None,
-                       proposed_by: str = "") -> Hypothesis:
+                       proposed_by: str = "", role_id: str = "") -> Hypothesis:
         """Registers a hypothesis as UNVERIFIED. Always UNVERIFIED.
 
         There is deliberately no `status` or `posterior` argument. A proposer
         that is certain is still a proposer; its certainty is recorded as the
-        prior and scored for calibration later.
+        prior and scored for calibration later. `role_id` (V8) names the
+        specialist the proposal was routed to, so the verdict can be credited.
         """
         if question_id not in self.questions:
             raise LedgerError(f"Unknown question {question_id!r}")
@@ -553,6 +564,7 @@ class EpistemicState:
             probe_code=str(probe_code or ""),
             prediction=dict(prediction or {}),
             proposed_by=proposed_by,
+            role_id=str(role_id or ""),
             epoch=self.questions[question_id].failure_epoch,
         )
         self.hypotheses[h.hypothesis_id] = h
