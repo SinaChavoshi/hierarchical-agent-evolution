@@ -1,12 +1,15 @@
-"""Gen 16 pilot finding #5: synthesis is an anchored change, and a no-op is said out loud.
+"""Gen 16 pilot finding #5 / cohort A4: synthesis is a ladder of targeted edits, and a no-op is said out loud.
 
 `crossover_2` spent 7 of 9 synthesis moves re-emitting the module byte for
 byte because the synthesiser was asked for a complete rewrite. The adapter
-now (1) asks for a REPAIR_PLAN -- the exact lines to replace -- and applies it
-itself when the anchor is unique, (2) falls back to the rewrite with the plan
-as its anchor, and (3) re-prompts once, inside the same move, when the module
-hash did not move, telling the synthesiser that its previous attempt changed
-nothing. Everything below `call_llm` is real.
+now climbs a ladder, cheapest rung first: (1) a REPAIR_PLAN -- the exact
+lines to replace -- applied by the runner when the anchor is unique; (2) a
+FUNCTION_REWRITE -- one definition, replaced whole -- spliced in by the
+runner; (3) the whole-module rewrite, run at most ONCE and skipped entirely
+when rungs 1 and 2 were both no-ops (Gen 16 cohort run 2: the 28 moves that
+wrote nothing cost 17 min each, all of them a no-op plan or a missed anchor
+followed by an identical rewrite and an identical retry). Everything below
+`call_llm` is real.
 """
 
 import json
@@ -38,6 +41,33 @@ PLAN_BAD_ANCHOR = json.dumps({
     "packet": "REPAIR_PLAN", "hypothesis_id": "h1", "function": "add", "rationale": "x",
     "old_lines": ["    return a * b"], "new_lines": ["    return a + b"],
 })
+ADD_FIXED_LINES = [
+    "def add(a, b):",
+    '    """Return the sum of a and b. Repaired: the operator was `-`."""',
+    "    return a + b",
+]
+ADD_CURRENT_LINES = [
+    "def add(a, b):",
+    '    """Return the sum of a and b. (The implementation below is wrong on purpose:',
+    '    it subtracts, which is the mechanism the true hypothesis names.)"""',
+    "    return a - b",
+]
+FUNCTION_OK = json.dumps({
+    "packet": "FUNCTION_REWRITE", "hypothesis_id": "h1", "function": "add",
+    "rationale": "plus instead of minus", "new_source": ADD_FIXED_LINES, "add_imports": [],
+})
+FUNCTION_NOOP = json.dumps({
+    "packet": "FUNCTION_REWRITE", "hypothesis_id": "h1", "function": "add",
+    "rationale": "nothing to change", "new_source": ADD_CURRENT_LINES, "add_imports": [],
+})
+FUNCTION_UNKNOWN = json.dumps({
+    "packet": "FUNCTION_REWRITE", "hypothesis_id": "h1", "function": "plus",
+    "rationale": "x", "new_source": ["def plus(a, b):", "    return a + b"], "add_imports": [],
+})
+FUNCTION_BROKEN = json.dumps({
+    "packet": "FUNCTION_REWRITE", "hypothesis_id": "h1", "function": "add",
+    "rationale": "x", "new_source": ["def add(a, b)", "    return a + b"], "add_imports": [],
+})
 
 
 def write_action(content):
@@ -45,11 +75,12 @@ def write_action(content):
 
 
 class ScriptedLLM:
-    """Routes the adapter's three prompts to scripted replies and records them."""
+    """Routes the adapter's prompts (plan, function rewrite, rewrite, author retry) to scripted replies."""
 
-    def __init__(self, plan=None, rewrite=None, retry=None):
-        self.plan, self.rewrite, self.retry = plan, rewrite, retry
+    def __init__(self, plan=None, function=None, rewrite=None, retry=None):
+        self.plan, self.function, self.rewrite, self.retry = plan, function, rewrite, retry
         self.prompts = []
+        self.prompt_text = {}
         self.last_prompt = ""
         self.retry_prompt = ""
 
@@ -60,7 +91,14 @@ class ScriptedLLM:
         self.last_prompt = prompt
         if "REPAIR_PLAN packet" in prompt:
             self.prompts.append("plan")
+            self.prompt_text["plan"] = prompt
             return self.plan if self.plan is not None else "I cannot plan."
+        if "FUNCTION_REWRITE packet" in prompt:
+            self.prompts.append("function")
+            self.prompt_text["function"] = prompt
+            self.schema = response_format
+            self.function_max_tokens = max_tokens
+            return self.function if self.function is not None else "I cannot rewrite one function."
         if "SECOND ATTEMPT" in prompt:
             self.prompts.append("retry")
             self.retry_prompt = prompt
@@ -68,6 +106,7 @@ class ScriptedLLM:
             return self.retry if self.retry is not None else write_action(BUGGY)
         if "SYNTHESIZE" in prompt:
             self.prompts.append("rewrite")
+            self.prompt_text["rewrite"] = prompt
             return self.rewrite if self.rewrite is not None else write_action(BUGGY)
         self.prompts.append("other")
         return "{}"
@@ -115,45 +154,118 @@ class SynthesisAdapterTests(unittest.TestCase):
         self.assertEqual(res["mode"], "plan")
         self.assertFalse(res["retried"])
         self.assertIn("anchored edit in `add`", res["summary"])
-        self.assertEqual(llm.prompts, ["plan"])             # no tool-loop rewrite was needed
+        self.assertEqual(llm.prompts, ["plan"])             # no function rewrite, no tool-loop rewrite
         self.assertIn("return a + b", self.module())
         self.assertIn("def scale", self.module())             # the rest of the module is untouched
         self.assertNotIn("return a - b", self.module())
+        self.assertIsInstance(res["elapsed_s"], float)
+        self.assertEqual(res["previous_source"], BUGGY)
 
-    def test_unusable_plan_falls_back_to_the_anchored_rewrite(self):
-        llm = ScriptedLLM(plan=PLAN_BAD_ANCHOR, rewrite=write_action(FIXED))
+    def test_unusable_plan_and_unusable_function_fall_back_to_one_anchored_rewrite(self):
+        llm = ScriptedLLM(plan=PLAN_BAD_ANCHOR, function=None, rewrite=write_action(FIXED))
         res = self.synthesize(llm)
         self.assertTrue(res["written"])
         self.assertEqual(res["mode"], "rewrite")
-        self.assertEqual(llm.prompts, ["plan", "rewrite"])
-        self.assertTrue(any("plan not applicable: anchor not found" in n for n in res["notes"]))
+        self.assertEqual(llm.prompts, ["plan", "function", "rewrite"])   # the rungs, in order, once each
+        self.assertTrue(any(n.startswith("plan not applicable: anchor not found; closest is lines") for n in res["notes"]))
+        self.assertIn("no usable function rewrite", res["notes"])
         self.assertEqual(self.module(), FIXED.rstrip("\n"))
 
     def test_noop_plan_is_refused_before_it_costs_a_write(self):
-        llm = ScriptedLLM(plan=PLAN_NOOP, rewrite=write_action(FIXED))
+        llm = ScriptedLLM(plan=PLAN_NOOP, function=None, rewrite=write_action(FIXED))
         res = self.synthesize(llm)
-        self.assertEqual(res["mode"], "rewrite")
+        self.assertEqual(res["mode"], "rewrite")          # the function rung was unusable, not a no-op
         self.assertTrue(any("plan is a no-op" in n for n in res["notes"]))
 
-    def test_silent_noop_rewrite_is_reprompted_once_and_can_recover(self):
-        llm = ScriptedLLM(plan=None, rewrite=write_action(BUGGY), retry=write_action(FIXED))
-        res = self.synthesize(llm)
-        self.assertTrue(res["written"])
-        self.assertTrue(res["retried"])
-        self.assertTrue(res["noop_recovered"])
-        self.assertIn("no-op (re-prompted, then changed)", res["summary"])
-        self.assertEqual(llm.prompts, ["plan", "rewrite", "retry"])
-        self.assertEqual(self.module(), FIXED.rstrip("\n"))
-
-    def test_two_silent_noops_are_reported_as_a_failed_synthesis(self):
-        llm = ScriptedLLM(plan=None, rewrite=write_action(BUGGY), retry=write_action(BUGGY))
+    def test_double_noop_skips_the_whole_module_rewrite(self):
+        # Gen 16 cohort run 2: a no-op plan followed by an identical rewrite
+        # (and an identical retry) cost 17 min a move. Two cheap no-ops now
+        # end the move before the expensive one starts.
+        llm = ScriptedLLM(plan=PLAN_NOOP, function=FUNCTION_NOOP, rewrite=write_action(FIXED))
         res = self.synthesize(llm)
         self.assertFalse(res["written"])
-        self.assertTrue(res["retried"])
-        self.assertFalse(res["noop_recovered"])
-        self.assertIn("no-op (re-prompted, gave up)", res["summary"])
-        self.assertEqual(llm.prompts, ["plan", "rewrite", "retry"])   # exactly one retry, never more
+        self.assertEqual(res["mode"], "none")
+        self.assertTrue(res["rewrite_skipped"])
+        self.assertFalse(res["retried"])
+        self.assertEqual(res["summary"],
+                         "model sees no change to make (plan and function rewrite both no-ops); whole-module rewrite skipped")
+        self.assertEqual(llm.prompts, ["plan", "function"])          # no tool-loop call at all
+        self.assertTrue(any("plan not applicable: plan is a no-op" in n for n in res["notes"]))
+        self.assertTrue(any("function rewrite not applicable: new source identical" in n for n in res["notes"]))
+        self.assertIsInstance(res["elapsed_s"], float)
+        self.assertEqual(res["previous_source"], BUGGY)
         self.assertEqual(self.module(), BUGGY.rstrip("\n"))
+
+    def test_whitespace_only_plan_counts_as_a_noop_for_the_skip_rule(self):
+        # The workspace accepts the write but the whitespace-normalised
+        # fingerprint does not move: that is a no-op in substance.
+        plan_ws = json.dumps({
+            "packet": "REPAIR_PLAN", "hypothesis_id": "h1", "function": "add", "rationale": "x",
+            "old_lines": ["    return a - b"], "new_lines": ["    return a - b   "],
+        })
+        llm = ScriptedLLM(plan=plan_ws, function=FUNCTION_NOOP, rewrite=write_action(FIXED))
+        res = self.synthesize(llm)
+        self.assertFalse(res["written"])
+        self.assertTrue(res["rewrite_skipped"])
+        self.assertEqual(llm.prompts, ["plan", "function"])
+        self.assertIn("plan write changed nothing (whitespace-only edit)", res["notes"])
+        self.assertIn("could not be applied mechanically: plan write changed nothing", llm.prompt_text["function"])
+
+    def test_missed_anchor_then_function_rewrite_writes_the_function(self):
+        llm = ScriptedLLM(plan=PLAN_BAD_ANCHOR, function=FUNCTION_OK)
+        res = self.synthesize(llm)
+        self.assertTrue(res["written"])
+        self.assertEqual(res["mode"], "function")
+        self.assertEqual(llm.prompts, ["plan", "function"])          # no tool-loop rewrite was needed
+        self.assertIn("function rewrite of `add`", res["summary"])
+        self.assertIn("rewrote `add`", res["summary"])
+        self.assertIn("return a + b", self.module())
+        self.assertNotIn("return a - b", self.module())
+        self.assertIn("def scale", self.module())
+        # The function prompt told the model why the plan failed and where it
+        # was aiming, quoted the candidate definition, and the grammar was
+        # built from this module's definitions.
+        fn_prompt = llm.prompt_text["function"]
+        self.assertIn("could not be applied mechanically: anchor not found; closest is lines", fn_prompt)
+        self.assertIn("CURRENT SOURCE of the candidate definition(s)", fn_prompt)
+        self.assertIn("`add` (lines", fn_prompt)
+        self.assertIn("The module defines: add, scale", fn_prompt)
+        schema = llm.schema["json_schema"]["schema"]["properties"]["function"]
+        self.assertEqual(schema["enum"], ["add", "scale"])
+        self.assertEqual(llm.function_max_tokens, 4000)
+
+    def test_function_not_found_runs_exactly_one_rewrite_anchored_by_the_packet(self):
+        llm = ScriptedLLM(plan=None, function=FUNCTION_UNKNOWN, rewrite=write_action(FIXED))
+        res = self.synthesize(llm)
+        self.assertTrue(res["written"])
+        self.assertEqual(res["mode"], "rewrite")
+        self.assertEqual(llm.prompts, ["plan", "function", "rewrite"])
+        self.assertTrue(any("function not found: plus; module defines: add, scale" in n for n in res["notes"]))
+        self.assertIn("Your own rewrite of `plus`", llm.prompt_text["rewrite"])
+        self.assertIn("def plus(a, b):", llm.prompt_text["rewrite"])
+
+    def test_non_parsing_function_rewrite_is_refused_and_one_rewrite_follows(self):
+        llm = ScriptedLLM(plan=None, function=FUNCTION_BROKEN, rewrite=write_action(FIXED))
+        res = self.synthesize(llm)
+        self.assertEqual(res["mode"], "rewrite")
+        self.assertEqual(llm.prompts, ["plan", "function", "rewrite"])
+        self.assertTrue(any("replacement does not parse" in n for n in res["notes"]))
+
+    def test_noop_rewrite_gets_no_second_attempt(self):
+        # The retry recovered 5 of 33 no-ops in run 2 (8 of 35 in run 1) at
+        # 6-7 min a generation; it is gone for existing modules.
+        llm = ScriptedLLM(plan=None, function=None, rewrite=write_action(BUGGY), retry=write_action(FIXED))
+        res = self.synthesize(llm)
+        self.assertFalse(res["written"])
+        self.assertEqual(res["mode"], "none")
+        self.assertFalse(res["retried"])
+        self.assertFalse(res["noop_recovered"])
+        self.assertFalse(res.get("rewrite_skipped", False))
+        self.assertIn("rewrite re-emitted identical content; no second attempt", res["summary"])
+        self.assertIn("rewrite re-emitted identical content; no second attempt", res["notes"])
+        self.assertEqual(llm.prompts, ["plan", "function", "rewrite"])   # exactly one rewrite, never a retry
+        self.assertEqual(self.module(), BUGGY.rstrip("\n"))
+        self.assertEqual(res["previous_source"], BUGGY)
 
     def test_a_missing_module_is_authored_not_repaired(self):
         # Gen 16 cohort finding #7: a first pass that never wrote the module.

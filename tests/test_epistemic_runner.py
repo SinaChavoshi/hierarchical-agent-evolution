@@ -74,6 +74,8 @@ class FakeSystem1:
             kind = "hypothesis"
         elif "REPAIR_PLAN packet" in prompt:
             kind = "repair_plan"          # A2 step 1; declined here so the tool-loop path is exercised
+        elif "FUNCTION_REWRITE packet" in prompt:
+            kind = "function_rewrite"     # A4 rung 2; declined for the same reason
         elif "SYNTHESIZE a repair" in prompt:
             kind = "synthesis"
         self.calls.append({"kind": kind, "model": model_name,
@@ -104,7 +106,7 @@ class FakeSystem1:
                     },
                 ],
             })
-        if kind == "repair_plan":
+        if kind in ("repair_plan", "function_rewrite"):
             return "I would rather rewrite the module."
         if kind == "synthesis":
             return "Action: write_file\nPath: mypkg/calc.py\n```python\n" + FIXED + "```\n"

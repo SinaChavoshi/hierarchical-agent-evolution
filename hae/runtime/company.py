@@ -20,8 +20,9 @@ from hae.epistemic.ledger import EpistemicState, Hypothesis, Question
 from hae.epistemic.mcts import EpistemicSearchLoop
 from hae.epistemic.moves import (
     MOVE_ASK_QUESTION, MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT, MOVE_SYNTHESIZE,
-    V6_HYPOTHESIS_SCHEMA, V6_REPAIR_PLAN_SCHEMA, HypothesisProposal, apply_repair_plan,
-    extract_json_object, parse_hypothesis_packet, parse_repair_plan,
+    V6_HYPOTHESIS_SCHEMA, V6_REPAIR_PLAN_SCHEMA, HypothesisProposal, RepairPlan, apply_function_rewrite,
+    apply_repair_plan, extract_json_object, function_rewrite_schema, list_definitions,
+    parse_function_rewrite, parse_hypothesis_packet, parse_repair_plan,
 )
 from hae.epistemic.value import EpistemicValueFunction
 
@@ -1130,30 +1131,113 @@ class HierarchicalCompanyRunner:
 
         return propose
 
+    def _candidate_definitions(self, source: str, definitions: List[Tuple[str, int, int]],
+                               plan: Optional[RepairPlan], plan_note: str, max_lines: int = 150) -> str:
+        """Current source of the definition(s) the FUNCTION_REWRITE prompt should quote.
+
+        The plan's `function` when the module defines it, plus the innermost
+        definition enclosing the closest window named by a missed anchor
+        (`anchor not found; closest is lines N-M`). At most two blocks.
+        """
+        src_lines = source.split("\n")
+        picked: List[Tuple[str, int, int]] = []
+        if plan is not None and plan.function:
+            name = plan.function.strip()
+            for prefix in ("async def ", "def ", "class "):
+                if name.startswith(prefix):
+                    name = name[len(prefix):]
+            name = name.split("(")[0].strip()
+            exact = [d for d in definitions if d[0] == name]
+            suffix = [d for d in definitions if d[0].endswith("." + name)]
+            if len(exact) == 1:
+                picked.append(exact[0])
+            elif not exact and len(suffix) == 1:
+                picked.append(suffix[0])
+        m = re.search(r"closest is lines (\d+)-(\d+)", plan_note or "")
+        if m:
+            lo, hi = int(m.group(1)), int(m.group(2))
+            enclosing = [d for d in definitions if d[1] <= lo and d[2] >= hi]
+            if enclosing:
+                innermost = min(enclosing, key=lambda d: (d[2] - d[1], d[1]))
+                if innermost not in picked:
+                    picked.append(innermost)
+        blocks = []
+        for name, start, end in picked[:2]:
+            body = src_lines[start - 1:end]
+            if len(body) > max_lines:
+                body = body[:max_lines] + [f"# [... {len(body) - max_lines} more line(s) in the module context ...]"]
+            blocks.append(f"`{name}` (lines {start}-{end}):\n```python\n" + "\n".join(body) + "\n```")
+        return "\n".join(blocks)
+
     def _synthesize_patch_adapter(self, agent: AgentGenome, objective: str):
-        """System 1 adapter: turn a SUPPORTED hypothesis into an *anchored change* to its module.
+        """System 1 adapter: turn a SUPPORTED hypothesis into the *smallest change* to its module.
 
-        Gen 16 pilot finding #5: asked for a complete rewrite, the synthesiser
-        re-emitted the current module byte for byte on 7 of 9 moves. The move
-        now runs in up to three steps, each cheaper than the next:
+        History. Gen 16 pilot finding #5: asked for a complete rewrite, the
+        synthesiser re-emitted the current module byte for byte on 7 of 9
+        moves; the move became an anchored REPAIR_PLAN with the tool-loop
+        rewrite as its fallback and one "your previous attempt changed
+        nothing" re-prompt. Gen 16 cohort finding #7: a target module that
+        does not exist is *authored* rather than repaired (`mode = author`).
+        Gen 16 cohort run 2 (26 firms, 151 synthesis moves): 44 were written
+        by the plan, 5 authored, 102 fell through to the whole-module rewrite
+        (~10k tokens at 20-40 tok/s on a single stream). Written moves cost
+        5.3 min mean (10.8 h in total); the 28 moves that wrote nothing cost
+        17.0 min mean, 43.6 max (8.0 h) -- 27 of them were `plan not
+        applicable` (15 no-op plans, 12 anchors not found) followed by a
+        whole-module rewrite that re-emitted identical content and a retry
+        that did the same (the retry recovered 5 of 33 no-ops in run 2, 8 of
+        35 in run 1).
 
-          1. REPAIR_PLAN packet (grammar-constrained): which function, which
-             exact lines (`old_lines`, verbatim) become which lines
-             (`new_lines`). If the anchor matches exactly once, the runner
-             applies the edit itself -- no rewrite, no chance of a silent no-op.
-          2. Otherwise the tool-loop rewrite, with the plan as its anchor and
-             an explicit instruction that the output must differ.
-          3. If the module hash still did not move, one re-prompt inside the
-             same move: "your previous attempt changed nothing".
+        The synthesis ladder (A4), cheapest rung first; each rung returns as
+        soon as the module fingerprint moves:
 
-        The returned dict says which step wrote (`mode`) and whether a no-op
-        had to be re-prompted (`retried`, `noop_recovered`).
+          1. REPAIR_PLAN (grammar-constrained, ~3k tokens): the exact lines to
+             replace, applied by the runner when the anchor is unique --
+             exact, rstrip, dedent or fuzzy (ratio >= 0.92) match.
+             `mode = plan`.
+          2. FUNCTION_REWRITE (grammar-constrained, ~4k tokens): ONE
+             definition of the module -- `function` is an enum of what the
+             module defines -- and its complete replacement, spliced in by
+             `apply_function_rewrite`, which refuses a packet that does not
+             parse, renames the definition or changes nothing. The prompt
+             carries the plan's failure note (closest window) and the current
+             source of the candidate definition(s). `mode = function`.
+          3. Whole-module rewrite through the tool loop: the LAST resort, run
+             at most ONCE, anchored by whatever rungs 1-2 produced.
+             `mode = rewrite`. A rewrite whose fingerprint did not move is
+             reported as `written = False` at once -- no second attempt.
+
+        Fail fast: when rung 1 was a no-op plan AND rung 2 an identical
+        function, rung 3 is skipped (`mode = none`, `rewrite_skipped = True`).
+        Two cheap no-ops predicted the expensive one in every observed case;
+        a skipped rewrite costs 0 min instead of 14-26. A module that does
+        not exist still takes the `author` path unchanged (tool-loop
+        creation, one re-prompt allowed).
+
+        Every return dict carries `written`, `path`, `summary`, `mode` in
+        {plan, function, rewrite, author, none}, `notes` (one verdict per
+        rung), `elapsed_s`, `retried` / `noop_recovered` (now True only in
+        author mode) and -- when the module existed -- `previous_source`, so
+        the search loop can revert a write whose module check fails. The
+        ladder is untested on a live run until cohort run 3.
         """
 
         def synthesize(question: Question, hypothesis: Hypothesis, state: EpistemicState) -> Dict[str, Any]:
+            t0 = time.time()
+            notes: List[str] = []
+            source = ""
+
+            def result(**fields: Any) -> Dict[str, Any]:
+                out: Dict[str, Any] = {"retried": False, "noop_recovered": False, "notes": notes}
+                out.update(fields)
+                out["elapsed_s"] = round(time.time() - t0, 3)
+                if source:
+                    out["previous_source"] = source
+                return out
+
             target = (question.module or (self._required_modules[0] if self._required_modules else "")).lstrip("./")
             if not target:
-                return {"written": False, "path": "", "summary": "no target module for this question"}
+                return result(written=False, path="", mode="none", summary="no target module for this question")
             evidence_lines = []
             for eid in hypothesis.evidence_ids:
                 ev = state.evidence_by_id(eid)
@@ -1176,12 +1260,39 @@ class HierarchicalCompanyRunner:
             )
             current = self.workspace.read_file(target)
             source = current.get("content", "") if current.get("status") in ("ok", "success") else ""
+            # `read_file` caps at 200 kB; a capped read is not the module and
+            # must neither be edited in place nor offered as a revert target.
+            if len(source) >= 200000:
+                notes.append("module read was truncated; targeted edits and revert disabled")
+                source = ""
             before = self._module_fingerprint(target)
-            notes: List[str] = []
 
-            # Step 1: an anchored plan, applied by the runner.
-            plan = None
+            def commit(new_source: str, mode: str, summary: str) -> Tuple[Optional[Dict[str, Any]], bool]:
+                """Writes a rung's result. Returns `(result, no_op)`: the result dict when the
+                fingerprint moved; otherwise None with a note -- `no_op` when the workspace
+                accepted the write but the whitespace-normalised fingerprint did not change."""
+                w_res = self.workspace.write_file(target, new_source)
+                after = self._module_fingerprint(target)
+                if w_res.get("status") in ("ok", "success"):
+                    if after and after != before:
+                        with self._code_build_lock:
+                            self._code_written_this_run = True
+                            self._written_modules_this_run.add(target)
+                        print(f"[epistemic] {self.genome.company_id} {agent.role}: {summary[:220]}", flush=True)
+                        return result(written=True, path=target, summary=summary[:400], mode=mode), False
+                    notes.append(f"{mode} write changed nothing (whitespace-only edit)")
+                    return None, True
+                notes.append(f"{mode} write refused: {str(w_res.get('status'))[:60]} "
+                             f"{str(w_res.get('message') or w_res.get('error') or '')[:120]}".strip())
+                return None, False
+
+            plan: Optional[RepairPlan] = None
+            plan_note = ""        # why rung 1 did not apply, for rung 2's prompt and rung 3's anchor
+            plan_noop = False
+            rewrite = None
+            fn_noop = False
             if source:
+                # Rung 1: an anchored plan, applied by the runner.
                 plan_prompt = (
                     f"EPISTEMIC MOVE: SYNTHESIZE -- plan the smallest repair of `{target}` that fixes this mechanism.\n\n"
                     f"{finding}\n"
@@ -1196,7 +1307,7 @@ class HierarchicalCompanyRunner:
                 try:
                     raw_plan = self._execute_agent(agent, plan_prompt, context=context,
                                                    response_format=V6_REPAIR_PLAN_SCHEMA, max_tokens=3000)
-                except Exception as exc:  # the plan is an optimisation; the rewrite path still exists
+                except Exception as exc:  # the plan is an optimisation; the next rungs still exist
                     raw_plan = ""
                     notes.append(f"plan call failed: {type(exc).__name__}")
                 plan = parse_repair_plan(raw_plan) if raw_plan else None
@@ -1205,34 +1316,84 @@ class HierarchicalCompanyRunner:
                 else:
                     new_source, note = apply_repair_plan(source, plan)
                     if new_source is not None:
-                        w_res = self.workspace.write_file(target, new_source)
-                        after = self._module_fingerprint(target)
-                        if w_res.get("status") in ("ok", "success") and after and after != before:
-                            with self._code_build_lock:
-                                self._code_written_this_run = True
-                                self._written_modules_this_run.add(target)
-                            summary = f"anchored edit in `{plan.function or '?'}`: {note}; {plan.rationale}"
-                            print(f"[epistemic] {self.genome.company_id} {agent.role}: {summary[:220]}", flush=True)
-                            return {"written": True, "path": target, "summary": summary[:400],
-                                    "mode": "plan", "retried": False, "noop_recovered": False}
-                        notes.append(f"plan write refused: {str(w_res.get('status'))[:60]} "
-                                     f"{str(w_res.get('message') or w_res.get('error') or '')[:120]}".strip())
+                        done, plan_noop = commit(new_source, "plan",
+                                                 f"anchored edit in `{plan.function or '?'}`: {note}; {plan.rationale}")
+                        if done is not None:
+                            return done
+                        plan_note = notes[-1]
                     else:
+                        plan_note = note
+                        plan_noop = note.startswith("plan is a no-op") or note == "edit leaves the module unchanged"
                         notes.append(f"plan not applicable: {note}")
 
-            # Step 2: the rewrite, anchored by the plan when there is one -- or,
-            # when the module does not exist at all (a first pass that never
-            # wrote it; the oracle says `suite failed to import`), its creation.
-            # Gen 16 cohort finding #7: the search could diagnose a missing
-            # module but every synthesis landed on an existing one.
+                # Rung 2: one definition, rewritten whole and spliced in by the runner.
+                definitions = list_definitions(source)
+                names = [d[0] for d in definitions]
+                candidates = self._candidate_definitions(source, definitions, plan, plan_note)
+                fn_prompt = (
+                    f"EPISTEMIC MOVE: SYNTHESIZE -- rewrite ONE definition of `{target}` so that this mechanism is fixed.\n\n"
+                    f"{finding}\n"
+                    + (f"Your REPAIR_PLAN could not be applied mechanically: {plan_note}. " if plan_note else "")
+                    + (f"Its `function` was `{plan.function}`; its rationale: {plan.rationale}\n" if plan is not None else "\n")
+                    + (f"The module defines: {', '.join(names[:60])}{', ...' if len(names) > 60 else ''}\n" if names
+                       else "The module has no top-level definitions.\n")
+                    + (f"\nCURRENT SOURCE of the candidate definition(s):\n{candidates}\n" if candidates else "")
+                    + "\nReply with a FUNCTION_REWRITE packet: `function` (one of the definitions listed; `Class.method` "
+                      "for a method), `rationale` (one sentence), `new_source` (the COMPLETE replacement for that one "
+                      "definition -- its decorators, the `def`/`class` line with the SAME name, and the whole body -- as "
+                      "a JSON array with ONE SOURCE LINE PER ELEMENT) and `add_imports` (import statements the new code "
+                      "needs that the module lacks; usually empty). The runner splices the definition in place and "
+                      "REFUSES the packet if `new_source` does not parse, defines a different name, or is identical to "
+                      "the current definition: `new_source` MUST differ from the current source. Do not restate the "
+                      "module. Mechanisms under RULED OUT were falsified by evidence; do not address them. "
+                      f"Set `hypothesis_id` to \"{hypothesis.hypothesis_id}\"."
+                )
+                try:
+                    raw_fn = self._execute_agent(agent, fn_prompt, context=context,
+                                                 response_format=function_rewrite_schema(names), max_tokens=4000)
+                except Exception as exc:
+                    raw_fn = ""
+                    notes.append(f"function rewrite call failed: {type(exc).__name__}")
+                rewrite = parse_function_rewrite(raw_fn) if raw_fn else None
+                if rewrite is None:
+                    notes.append("no usable function rewrite")
+                else:
+                    new_source, note = apply_function_rewrite(source, rewrite)
+                    if new_source is not None:
+                        done, fn_noop = commit(new_source, "function",
+                                               f"function rewrite of `{rewrite.function}`: {note}; {rewrite.rationale}")
+                        if done is not None:
+                            return done
+                    else:
+                        fn_noop = (note.startswith("new source identical")
+                                   or note == "edit leaves the module unchanged")
+                        notes.append(f"function rewrite not applicable: {note}")
+
+                # Fail fast: two cheap no-ops predicted the expensive one every time.
+                if plan_noop and fn_noop:
+                    summary = ("model sees no change to make (plan and function rewrite both no-ops); "
+                               "whole-module rewrite skipped")
+                    print(f"[epistemic] {self.genome.company_id} {agent.role}: {summary}", flush=True)
+                    return result(written=False, path=target, mode="none", rewrite_skipped=True, summary=summary)
+
+            # Rung 3: the whole-module rewrite, anchored by whatever the model
+            # produced -- or, when the module does not exist at all (a first
+            # pass that never wrote it; the oracle says `suite failed to
+            # import`), its creation. Gen 16 cohort finding #7: the search
+            # could diagnose a missing module but every synthesis landed on an
+            # existing one.
             missing = not source
             anchor = ""
             if plan is not None:
-                anchor = (f"\nYour own repair plan, which could not be applied mechanically "
-                          f"({notes[-1] if notes else 'anchor mismatch'}):\n"
-                          f"  function: {plan.function}\n  rationale: {plan.rationale}\n"
-                          f"  replace:\n```python\n{plan.old_text}\n```\n  with:\n```python\n{plan.new_text}\n```\n"
-                          "Apply exactly that change in the full module you emit.\n")
+                anchor += (f"\nYour own repair plan, which could not be applied mechanically "
+                           f"({plan_note or 'anchor mismatch'}):\n"
+                           f"  function: {plan.function}\n  rationale: {plan.rationale}\n"
+                           f"  replace:\n```python\n{plan.old_text}\n```\n  with:\n```python\n{plan.new_text}\n```\n"
+                           "Apply exactly that change in the full module you emit.\n")
+            if rewrite is not None:
+                anchor += (f"\nYour own rewrite of `{rewrite.function}`, which could not be applied mechanically "
+                           f"({notes[-1] if notes else 'refused'}):\n```python\n{rewrite.new_text}\n```\n"
+                           "Apply that change in the full module you emit.\n")
             if missing:
                 notes.append("target module absent: authoring it")
                 rewrite_prompt = (
@@ -1255,36 +1416,30 @@ class HierarchicalCompanyRunner:
                                                      target_path=target)
             after = self._module_fingerprint(target)
             if after and after != before:
-                return {"written": True, "path": target, "summary": f"{mode}: {str(summary)[:300]}",
-                        "mode": mode, "retried": False, "noop_recovered": False, "notes": notes}
+                return result(written=True, path=target, summary=f"{mode}: {str(summary)[:300]}", mode=mode)
+            if not missing:
+                notes.append("rewrite re-emitted identical content; no second attempt")
+                return result(written=False, path=target, mode="none",
+                              summary=f"rewrite re-emitted identical content; no second attempt; "
+                                      f"{'; '.join(notes[:-1])[:200]}")
 
-            # Step 3: the no-op retry. Tell the synthesiser what just happened.
-            what_happened = (
-                f"Your previous attempt did not create `{target}`: no `Action: write_file` for that path reached the "
-                "workspace, so the suite still cannot import it."
-                if missing else
-                "Your previous attempt changed nothing: the module you wrote was byte-for-byte identical to the "
-                "current one (same SHA-256), so the oracle failure is still unanswered."
-            )
+            # Author mode only: one re-prompt. Tell the synthesiser what just happened.
             retry_prompt = (
-                f"EPISTEMIC MOVE: SYNTHESIZE {'`' + target + '`' if missing else 'a repair of `' + target + '`'} "
-                f"-- SECOND ATTEMPT.\n\n{what_happened}\n\n{finding}{anchor}\n"
-                + ("Emit `Action: write_file` with `Path: " + target + "` and the complete module. "
-                   if missing else
-                   "Name, to yourself, the single function where this mechanism lives, then emit `Action: write_file` "
-                   "with the complete module in which that function is actually changed. ")
-                + "Output identical to the current workspace will be recorded as a failed synthesis."
+                f"EPISTEMIC MOVE: SYNTHESIZE `{target}` -- SECOND ATTEMPT.\n\n"
+                f"Your previous attempt did not create `{target}`: no `Action: write_file` for that path reached the "
+                f"workspace, so the suite still cannot import it.\n\n{finding}\n"
+                f"Emit `Action: write_file` with `Path: {target}` and the complete module. "
+                "Output identical to the current workspace will be recorded as a failed synthesis."
             )
             summary2 = self._execute_agent_with_tools(agent, retry_prompt, context=context, max_turns=3,
                                                       target_path=target)
             after2 = self._module_fingerprint(target)
             if after2 and after2 != before:
-                return {"written": True, "path": target, "mode": mode, "retried": True, "noop_recovered": True,
-                        "summary": f"no-op (re-prompted, then changed): {str(summary2)[:260]}", "notes": notes}
-            return {"written": False, "path": target, "mode": "none", "retried": True, "noop_recovered": False,
-                    "summary": (f"no-op (re-prompted, gave up): synthesiser "
-                                f"{'did not create the file' if missing else 're-emitted identical content'} twice; "
-                                f"{'; '.join(notes)[:160]}"), "notes": notes}
+                return result(written=True, path=target, mode=mode, retried=True, noop_recovered=True,
+                              summary=f"no-op (re-prompted, then changed): {str(summary2)[:260]}")
+            return result(written=False, path=target, mode="none", retried=True, noop_recovered=False,
+                          summary=(f"no-op (re-prompted, gave up): synthesiser did not create the file twice; "
+                                   f"{'; '.join(notes)[:160]}"))
 
         return synthesize
 
@@ -1370,6 +1525,13 @@ class HierarchicalCompanyRunner:
             state, gatekeeper, EpistemicValueFunction(policy.value_alpha), policy,
             propose_hypotheses=self._propose_hypotheses_adapter(agents["hypothesis"], objective, policy),
             synthesize_patch=self._synthesize_patch_adapter(agents["synthesis"], objective),
+            # A synthesis whose module check fails is rolled back to the
+            # pre-synthesis text the adapter returned as `previous_source`.
+            # `workspace.write_file`'s Monotonic Verification Guard may refuse
+            # a revert that scores lower on the oracle than the broken write;
+            # that is acceptable (the guard is the stronger invariant) and the
+            # loop logs it as a failed revert instead of raising.
+            revert_patch=lambda path, src: self.workspace.write_file(path, src),
             may_continue=lambda: self._may_call("epistemic search move"),
             agent_roles={MOVE_PROPOSE_HYPOTHESIS: agents["hypothesis"].role,
                          MOVE_RUN_EXPERIMENT: "EvidenceGatekeeper",

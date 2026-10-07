@@ -38,8 +38,10 @@ Selection
 
 The loop never calls an LLM itself. It receives three adapters -- propose
 hypotheses, synthesise a patch, (optionally) ask questions -- and treats
-their output as proposals. Every move records the ledger's feature vector
-before and after, so V7 can train a value head on certified trajectories.
+their output as proposals; an optional fourth, `revert_patch`, lets it undo
+a synthesis whose module check failed. Every move records the ledger's
+feature vector before and after, so V7 can train a value head on certified
+trajectories.
 """
 
 from __future__ import annotations
@@ -122,7 +124,8 @@ class EpistemicSearchLoop:
                  propose_questions: Optional[ProposeQuestionsFn] = None,
                  may_continue: Optional[Callable[[], bool]] = None,
                  agent_roles: Optional[Mapping[str, str]] = None,
-                 rng_seed: int = 0, logger: Callable[[str], None] = print) -> None:
+                 rng_seed: int = 0, logger: Callable[[str], None] = print,
+                 revert_patch: Optional[Callable[[str, str], Any]] = None) -> None:
         self.state = state
         self.gatekeeper = gatekeeper
         self.value_fn = value_fn
@@ -134,6 +137,11 @@ class EpistemicSearchLoop:
         self.agent_roles = dict(agent_roles or {})
         self.rng = random.Random(rng_seed)
         self.logger = logger
+        # `revert_patch(path, previous_source)` undoes a synthesis whose module
+        # check failed, when the adapter returned the pre-write text as
+        # `previous_source`. Optional: without it a broken write stays in the
+        # workspace (the pre-A4 behaviour) and only the ledger records the failure.
+        self.revert_patch = revert_patch
         self.moves_used = 0
         self.expansions = 0
         self.forced_picks = 0
@@ -453,16 +461,28 @@ class EpistemicSearchLoop:
                         f"(failure {h.synthesis_failures}/{MAX_SYNTHESIS_FAILURES})")
             return
         path = str(result.get("path") or q.module or "")
-        # Optional telemetry from the runner's adapter (A2): how the patch was
-        # produced and whether a silent no-op had to be re-prompted.
-        if result.get("mode") == "plan":
+        # Optional telemetry from the runner's adapter (A2, A4): which rung of
+        # the synthesis ladder wrote, whether the whole-module rewrite was
+        # skipped on a double no-op, how long the move took, and whether a
+        # silent no-op had to be re-prompted (author mode only since A4).
+        mode = str(result.get("mode") or "")
+        if mode == "plan":
             self.stats["syntheses_by_plan"] = self.stats.get("syntheses_by_plan", 0) + 1
-        if result.get("mode") == "author":   # the target module did not exist; the move created it
+        if mode == "function":
+            self.stats["syntheses_by_function"] = self.stats.get("syntheses_by_function", 0) + 1
+        if mode == "author":   # the target module did not exist; the move created it
             self.stats["syntheses_authored"] = self.stats.get("syntheses_authored", 0) + 1
+        if result.get("rewrite_skipped"):
+            self.stats["synthesis_rewrites_skipped"] = self.stats.get("synthesis_rewrites_skipped", 0) + 1
         if result.get("retried"):
             self.stats["synthesis_noop_retries"] = self.stats.get("synthesis_noop_retries", 0) + 1
         if result.get("noop_recovered"):
             self.stats["synthesis_noop_recoveries"] = self.stats.get("synthesis_noop_recoveries", 0) + 1
+        try:
+            self.stats["synthesis_seconds"] = round(
+                float(self.stats.get("synthesis_seconds", 0.0)) + float(result.get("elapsed_s") or 0.0), 3)
+        except (TypeError, ValueError):
+            pass
         if not result.get("written", True) or not path:
             h.synthesis_failures += 1
             self.stats["syntheses_unwritten"] += 1
@@ -475,15 +495,40 @@ class EpistemicSearchLoop:
         evidence = self.gatekeeper.verify_module(self.state, path, q.question_id, h.hypothesis_id)
         delta = self.gatekeeper.apply_synthesis(self.state, q, h, evidence)
         self._note_resolution(q)
+        reverted = False
         if evidence.matched_prediction:
             self.stats["syntheses_verified"] += 1
             if path not in self.synthesized_paths:
                 self.synthesized_paths.append(path)
-        self._record(MOVE_SYNTHESIZE, q.question_id, h.hypothesis_id, delta_u=delta,
-                     note=f"{path}: {evidence.detail}",
+        elif self.revert_patch is not None and isinstance(result.get("previous_source"), str):
+            # The write broke the module (compile/import/firm tests): put the
+            # pre-synthesis text back so the next move -- and the oracle --
+            # see the last known state, not the failed experiment.
+            reverted = self._revert(path, result["previous_source"], q, h)
+        note = f"{path} [{mode or 'unknown'}]: {evidence.detail}"
+        if reverted:
+            note += "; reverted to pre-synthesis module"
+        self._record(MOVE_SYNTHESIZE, q.question_id, h.hypothesis_id, delta_u=delta, note=note,
                      features_before=feats, value_before=v0, hash_before=h0)
-        self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} synthesized {path}: "
-                    f"{evidence.detail[:120]} (dU={delta:.3f})")
+        self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} synthesized {path} [{mode or 'unknown'}]: "
+                    f"{evidence.detail[:120]}{' (reverted)' if reverted else ''} (dU={delta:.3f})")
+
+    def _revert(self, path: str, previous_source: str, q: Question, h: Hypothesis) -> bool:
+        """Calls `revert_patch`; a refusal (error status) or exception is logged, never raised."""
+        try:
+            outcome = self.revert_patch(path, previous_source)  # type: ignore[misc]
+        except Exception as exc:
+            self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} revert of {path} failed: "
+                        f"{type(exc).__name__}: {exc}")
+            return False
+        if isinstance(outcome, Mapping) and str(outcome.get("status", "ok")) not in ("ok", "success"):
+            self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} revert of {path} refused: "
+                        f"{str(outcome.get('error') or outcome.get('message') or outcome.get('status'))[:160]}")
+            return False
+        self.stats["syntheses_reverted"] = self.stats.get("syntheses_reverted", 0) + 1
+        self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} reverted {path} to its pre-synthesis "
+                    "content after a failed module check")
+        return True
 
     def _ask_questions(self) -> None:
         feats, v0, h0 = self._snapshot()
