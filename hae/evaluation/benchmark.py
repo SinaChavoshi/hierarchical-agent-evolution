@@ -51,7 +51,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -114,9 +114,13 @@ class BenchmarkResult:
     rejection_reason: str = ""
     failures: List[str] = field(default_factory=list)
     stderr_tail: str = ""
+    # Failure line -> where its traceback ended inside the firm's own code
+    # (`hae/evaluation/harness.py:212 in _run_pytest`). Only the V6 epistemic
+    # search reads it; the V5 prompts see `failures` alone and are unchanged.
+    failure_locations: Dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        out = {
             "task_id": self.task_id,
             "score": self.score,
             "tests_passed": self.tests_passed,
@@ -127,6 +131,11 @@ class BenchmarkResult:
             "rejection_reason": self.rejection_reason,
             "failures": self.failures[:20],
         }
+        # Only when present, so existing V5 outputs and fixtures stay byte-identical.
+        shown = {f: loc for f, loc in self.failure_locations.items() if loc and f in self.failures[:20]}
+        if shown:
+            out["failure_locations"] = shown
+        return out
 
 
 # Tasks are declared, not discovered, so that adding one is a deliberate act
@@ -226,16 +235,17 @@ def _first_exception(report: str) -> str:
     return "unknown import failure"
 
 
-def _extract_failures(report: str) -> List[str]:
-    """Extracts each FAIL/ERROR test header with its final exception summary.
+def _failure_blocks(report: str) -> List[Tuple[str, List[str]]]:
+    """Each FAIL/ERROR block of a unittest report as (failure line, raw lines).
 
-    Appends the final AssertionError/Exception message (including multi-line
-    unittest diffs up to 320 chars) without leaking any test source lines,
-    giving firms actionable ground-truth feedback for iterative self-repair.
+    The failure line is the string `_extract_failures` has always produced;
+    the raw block lines are kept alongside so the traceback frames can be read
+    (`_frame_location`) without that string changing.
     """
-    results: List[str] = []
+    results: List[Tuple[str, List[str]]] = []
     for block in report.split("=" * 70):
-        lines = [l.strip() for l in block.splitlines() if l.strip()]
+        raw = block.splitlines()
+        lines = [l.strip() for l in raw if l.strip()]
         if not lines:
             continue
         header = lines[0]
@@ -261,13 +271,78 @@ def _extract_failures(report: str) -> List[str]:
         if not exc_line and tail_lines:
             exc_line = tail_lines[-1][:250]
         if exc_line and not exc_line.startswith(("File ", "Traceback")):
-            results.append(f"{header} -> {exc_line}")
+            results.append((f"{header} -> {exc_line}", raw))
         else:
-            results.append(header)
+            results.append((header, raw))
+    return results
+
+
+def _extract_failures(report: str) -> List[str]:
+    """Extracts each FAIL/ERROR test header with its final exception summary.
+
+    Appends the final AssertionError/Exception message (including multi-line
+    unittest diffs up to 320 chars) without leaking any test source lines,
+    giving firms actionable ground-truth feedback for iterative self-repair.
+    """
+    results = [failure for failure, _ in _failure_blocks(report)]
     if not results:
         results = [l.strip() for l in report.splitlines()
                    if l.startswith(("FAIL:", "ERROR:"))]
     return results
+
+
+# One traceback frame line: `  File "/tmp/x/hae/evaluation/harness.py", line 212, in _run_pytest`
+_FRAME_RE = re.compile(r'^\s*File "(?P<path>[^"]+)", line (?P<line>\d+), in (?P<func>\S+)')
+
+
+def _frame_location(raw_lines: List[str], workdir: str) -> str:
+    """Where a failure's traceback last touched the firm's own code, or "".
+
+    Returns `hae/evaluation/harness.py:212 in _run_pytest` for the deepest
+    frame whose file lives inside `workdir` and outside any `tests/` directory.
+    The test-file frames above it only say which assertion noticed; the frame
+    returned here says which of the firm's functions raised. Standard-library
+    frames (absolute paths outside the sandbox) and `<string>` frames are
+    skipped. Paths are reported relative to the sandbox so nothing about the
+    grader's temporary directory leaks into the firm's notebook.
+    """
+    root = os.path.realpath(workdir) if workdir else ""
+    best = ""
+    for line in raw_lines:
+        match = _FRAME_RE.match(line)
+        if not match:
+            continue
+        path = match.group("path")
+        if not path.endswith(".py"):
+            continue
+        if os.path.isabs(path):
+            if not root:
+                continue
+            real = os.path.realpath(path)
+            if real != root and not real.startswith(root + os.sep):
+                continue
+            rel = os.path.relpath(real, root)
+        else:
+            rel = os.path.normpath(path)
+        rel = rel.replace(os.sep, "/")
+        if rel.startswith("../") or "tests" in rel.split("/")[:-1]:
+            continue
+        best = f"{rel}:{match.group('line')} in {match.group('func')}"
+    return best
+
+
+def _extract_failure_locations(report: str, workdir: str) -> Dict[str, str]:
+    """Failure line -> `_frame_location` of its traceback, for lines that have one.
+
+    Keyed by exactly the strings `_extract_failures` returns, so a consumer
+    can look a failure up without re-parsing anything.
+    """
+    out: Dict[str, str] = {}
+    for failure, raw in _failure_blocks(report):
+        location = _frame_location(raw, workdir)
+        if location and failure not in out:
+            out[failure] = location
+    return out
 
 
 def _read(path: str) -> str:
@@ -604,12 +679,14 @@ class SelfHostingBenchmark:
 
         passed = max(0, collected - failures - errors)
         named = _extract_failures(report)
+        locations = _extract_failure_locations(report, workdir) if named else {}
         if not named and (collected == 0 or proc.returncode != 0):
             named = ["suite failed to import: " + _first_exception(report)]
         return {
             "passed": passed,
             "collected": collected,
             "failures": named,
+            "failure_locations": locations,
             "stderr": report[-2000:],
             "returncode": proc.returncode,
         }
@@ -623,6 +700,7 @@ class SelfHostingBenchmark:
         total_passed = 0
         total_collected = 0
         all_failures: List[str] = []
+        all_locations: Dict[str, str] = {}
         stderr_chunks: List[str] = []
         any_failed_rc = 0
         for suite in suites:
@@ -632,6 +710,8 @@ class SelfHostingBenchmark:
             suite_tag = os.path.basename(suite).replace("test_", "").replace(".py", "")
             for f in res.get("failures", []):
                 all_failures.append(f"[{suite_tag}] {f}")
+            for f, location in res.get("failure_locations", {}).items():
+                all_locations[f"[{suite_tag}] {f}"] = location
             if res.get("stderr"):
                 stderr_chunks.append(f"--- {suite} ---\n{res['stderr'][-600:]}")
             if res.get("returncode", 0) != 0:
@@ -640,6 +720,7 @@ class SelfHostingBenchmark:
             "passed": total_passed,
             "collected": total_collected,
             "failures": all_failures,
+            "failure_locations": all_locations,
             "stderr": "\n".join(stderr_chunks)[-2000:],
             "returncode": any_failed_rc,
         }
@@ -698,4 +779,5 @@ class SelfHostingBenchmark:
             reference_total=reference_total,
             failures=run["failures"],
             stderr_tail=run["stderr"][-600:],
+            failure_locations=dict(run.get("failure_locations") or {}),
         )

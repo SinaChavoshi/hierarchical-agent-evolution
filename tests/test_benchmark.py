@@ -6,12 +6,18 @@ incorrect or dishonest one can score well anyway.
 """
 
 import os
+import shutil
+import tempfile
 import unittest
 
 from hae.evaluation.benchmark import (
     BenchmarkError,
+    BenchmarkResult,
     SelfHostingBenchmark,
     TASKS,
+    _extract_failure_locations,
+    _extract_failures,
+    _frame_location,
 )
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -165,6 +171,129 @@ class TestObjectiveContractSpecification(unittest.TestCase):
                      "count_source_files", "is_generated_path", "is_malformed_path"):
             self.assertIn(name, obj, f"API contract missing {name}")
         self.assertNotIn("tests/test_artifacts.py", obj)
+
+
+class TestFailureLocations(unittest.TestCase):
+    """V6 reads where each failure's traceback ended inside the firm's own code.
+
+    The failure strings themselves are the V5 contract and must not move.
+    """
+
+    def setUp(self):
+        self.workdir = tempfile.mkdtemp(prefix="hae_benchmark_")
+        self.addCleanup(shutil.rmtree, self.workdir, True)
+
+    def _report(self, workdir=None):
+        wd = workdir or self.workdir
+        return (
+            "test_x (tests.test_execution_harness.T.test_x) ... ERROR\n"
+            "test_y (tests.test_execution_harness.T.test_y) ... FAIL\n"
+            "test_z (tests.test_execution_harness.T.test_z) ... FAIL\n"
+            "\n" + "=" * 70 + "\n"
+            "ERROR: test_x (tests.test_execution_harness.T.test_x)\n"
+            + "-" * 70 + "\n"
+            "Traceback (most recent call last):\n"
+            f'  File "{wd}/tests/test_execution_harness.py", line 50, in test_x\n'
+            "    result = harness.run()\n"
+            f'  File "{wd}/hae/evaluation/harness.py", line 212, in _run_pytest\n'
+            "    return mnf_err\n"
+            '  File "<string>", line 1, in <module>\n'
+            '  File "/usr/lib/python3.13/subprocess.py", line 500, in run\n'
+            "    raise CalledProcessError\n"
+            "NameError: name 'mnf_err' is not defined\n"
+            "\n" + "=" * 70 + "\n"
+            "FAIL: test_y (tests.test_execution_harness.T.test_y)\n"
+            + "-" * 70 + "\n"
+            "Traceback (most recent call last):\n"
+            f'  File "{wd}/tests/test_execution_harness.py", line 60, in test_y\n'
+            "    self.assertEqual(0, 4)\n"
+            "AssertionError: 0 != 4\n"
+            "\n" + "=" * 70 + "\n"
+            "FAIL: test_z (tests.test_execution_harness.T.test_z)\n"
+            + "-" * 70 + "\n"
+            "Traceback (most recent call last):\n"
+            f'  File "{wd}/tests/test_execution_harness.py", line 70, in test_z\n'
+            "    self.assertTrue(harness.ok())\n"
+            f'  File "{wd}/hae/evaluation/harness.py", line 40, in ok\n'
+            "    return self._check()\n"
+            f'  File "{wd}/hae/evaluation/harness.py", line 88, in _check\n'
+            "    assert False\n"
+            "AssertionError\n"
+            "\n" + "-" * 70 + "\n"
+            "Ran 3 tests in 0.010s\n\nFAILED (failures=2, errors=1)\n"
+        )
+
+    def test_locations_are_keyed_by_the_exact_failure_strings(self):
+        report = self._report()
+        failures = _extract_failures(report)
+        self.assertEqual(failures, [
+            "ERROR: test_x (tests.test_execution_harness.T.test_x) -> NameError: name 'mnf_err' is not defined",
+            "FAIL: test_y (tests.test_execution_harness.T.test_y) -> AssertionError: 0 != 4",
+            "FAIL: test_z (tests.test_execution_harness.T.test_z) -> AssertionError",
+        ])
+        locations = _extract_failure_locations(report, self.workdir)
+        # Deepest in-sandbox frame outside tests/; stdlib and <string> frames do not count.
+        self.assertEqual(locations, {
+            failures[0]: "hae/evaluation/harness.py:212 in _run_pytest",
+            failures[2]: "hae/evaluation/harness.py:88 in _check",
+        })
+        self.assertNotIn(failures[1], locations)          # only a tests/ frame: nothing to point at
+        for location in locations.values():
+            self.assertNotIn(self.workdir, location)       # never leaks the sandbox path
+
+    def test_frames_outside_the_sandbox_are_ignored(self):
+        other = tempfile.mkdtemp(prefix="hae_other_")
+        self.addCleanup(shutil.rmtree, other, True)
+        self.assertEqual(_extract_failure_locations(self._report(workdir=other), self.workdir), {})
+        self.assertEqual(_frame_location(['  File "lib/mod.py", line 3, in f'], self.workdir),
+                         "lib/mod.py:3 in f")                                   # relative paths are accepted
+        self.assertEqual(_frame_location(['  File "../escape.py", line 3, in f'], self.workdir), "")
+        self.assertEqual(_frame_location(['  File "tests/helpers.py", line 3, in f'], self.workdir), "")
+
+    def test_result_dict_is_unchanged_when_there_are_no_locations(self):
+        result = BenchmarkResult(task_id="harness", score=0.0, tests_passed=0, tests_total=3,
+                                 collected=3, reference_total=3, failures=["FAIL: a", "FAIL: b"])
+        self.assertEqual(sorted(result.to_dict()), [
+            "collected", "failures", "reference_total", "rejected", "rejection_reason",
+            "score", "task_id", "tests_passed", "tests_total",
+        ])
+        result.failure_locations = {"FAIL: b": "hae/x.py:1 in f", "FAIL: gone": "hae/y.py:2 in g", "FAIL: a": ""}
+        self.assertEqual(result.to_dict()["failure_locations"], {"FAIL: b": "hae/x.py:1 in f"})
+
+    def test_multi_suite_runs_prefix_locations_like_failures(self):
+        bench = SelfHostingBenchmark()
+        calls = []
+
+        def fake_single(workdir, test_rel):
+            calls.append(test_rel)
+            tag = os.path.basename(test_rel)
+            return {"passed": 1, "collected": 2, "failures": [f"FAIL: t ({tag})"],
+                    "failure_locations": {f"FAIL: t ({tag})": f"hae/{tag}.py:1 in f"},
+                    "stderr": "", "returncode": 1}
+
+        bench._run_single_suite = fake_single
+        run = bench._run_tests("/nonexistent", "tests/test_a.py,tests/test_b.py")
+        self.assertEqual(calls, ["tests/test_a.py", "tests/test_b.py"])
+        self.assertEqual(run["failures"], ["[a] FAIL: t (test_a.py)", "[b] FAIL: t (test_b.py)"])
+        self.assertEqual(run["failure_locations"], {
+            "[a] FAIL: t (test_a.py)": "hae/test_a.py.py:1 in f",
+            "[b] FAIL: t (test_b.py)": "hae/test_b.py.py:1 in f",
+        })
+
+    def test_evaluate_reports_where_a_real_failure_was_raised(self):
+        bench = SelfHostingBenchmark()
+        reference = bench.reference_run(TASK)
+        with open(os.path.join(REPO_ROOT, TARGET), encoding="utf-8") as fh:
+            real = fh.read()
+        # sanitize_path raising inside the module: the location must be in artifacts.py.
+        broken = real + "\n\ndef sanitize_path(path):\n    raise RuntimeError('boom')\n"
+        result = bench.evaluate(TASK, {TARGET: broken}, reference=reference)
+        self.assertLess(result.score, 100.0)
+        self.assertTrue(result.failure_locations, result.failures[:3])
+        self.assertTrue(set(result.failure_locations) <= set(result.failures))
+        self.assertTrue(all(loc.startswith("hae/evaluation/artifacts.py:") and loc.endswith(" in sanitize_path")
+                            for loc in result.failure_locations.values()), result.failure_locations)
+        self.assertIn("failure_locations", result.to_dict())
 
 
 if __name__ == "__main__":

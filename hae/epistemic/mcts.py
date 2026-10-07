@@ -402,8 +402,12 @@ class EpistemicSearchLoop:
                     continue
                 repaired += 1
                 continue
+            # A mechanism falsified against a *previous* shape of this
+            # question's oracle failure is history (tabu released it above);
+            # the duplicate check must not re-block it on the same grounds.
             if any(same_mechanism(sig, h.mechanism_signature, prop.claim, h.claim)
-                   for h in existing if h.status != UNTESTABLE):
+                   for h in existing if h.status != UNTESTABLE
+                   and not (h.status == FALSIFIED and h.epoch != q.failure_epoch)):
                 dup += 1
                 continue
             h = self.state.add_hypothesis(
