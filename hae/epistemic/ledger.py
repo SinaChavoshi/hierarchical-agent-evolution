@@ -417,6 +417,11 @@ class MoveRecord:
     forced_low_prior: bool = False
     note: str = ""
     created_at: float = field(default_factory=_now)
+    # Shadow telemetry (V7): what a loaded head *would* have said, e.g.
+    # `head_p` / `head_rank` / `stated_rank` / `prior_head_weight` on an
+    # experiment move and `head_v` on every move. Empty when no head is
+    # loaded; absent from pre-V7 trees (`from_dict` tolerates that).
+    extra: Dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

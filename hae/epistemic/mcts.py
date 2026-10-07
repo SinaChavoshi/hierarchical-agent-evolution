@@ -59,7 +59,10 @@ from hae.epistemic.moves import (
     MOVE_ASK_QUESTION, MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT, MOVE_SYNTHESIZE,
     HypothesisProposal, QuestionProposal,
 )
-from hae.epistemic.value import EpistemicValueFunction, epistemic_features
+from hae.epistemic.value import (
+    EpistemicValueFunction, HypothesisPriorHead, LearnedValueHead, epistemic_features,
+    hypothesis_features, rank_among,
+)
 from hae.genome.schema import EpistemicPolicyGene
 
 ProposeHypothesesFn = Callable[[Question, EpistemicState, int], Sequence[HypothesisProposal]]
@@ -122,7 +125,10 @@ class EpistemicSearchLoop:
                  propose_questions: Optional[ProposeQuestionsFn] = None,
                  may_continue: Optional[Callable[[], bool]] = None,
                  agent_roles: Optional[Mapping[str, str]] = None,
-                 rng_seed: int = 0, logger: Callable[[str], None] = print) -> None:
+                 rng_seed: int = 0, logger: Callable[[str], None] = print,
+                 prior_head: Optional[HypothesisPriorHead] = None,
+                 prior_head_weight: float = 0.0,
+                 value_head: Optional[LearnedValueHead] = None) -> None:
         self.state = state
         self.gatekeeper = gatekeeper
         self.value_fn = value_fn
@@ -134,6 +140,15 @@ class EpistemicSearchLoop:
         self.agent_roles = dict(agent_roles or {})
         self.rng = random.Random(rng_seed)
         self.logger = logger
+        # V7 heads (shadow mode by default). `prior_head` scores every untested
+        # sibling at selection time; with `prior_head_weight == 0` the choice is
+        # the V6 computation verbatim and the scores are only recorded.
+        # `value_head` here is for *recording* `head_v`; whether the value
+        # function itself uses it is decided by whoever built `value_fn`.
+        self.prior_head = prior_head
+        self.prior_head_weight = max(0.0, min(1.0, float(prior_head_weight or 0.0)))
+        self.value_head = value_head
+        self._last_selection: Dict[str, float] = {}
         self.moves_used = 0
         self.expansions = 0
         self.forced_picks = 0
@@ -151,6 +166,8 @@ class EpistemicSearchLoop:
             "forced_low_prior_wins": 0, "syntheses": 0, "syntheses_verified": 0,
             "syntheses_unwritten": 0, "questions_asked": 0, "proposer_errors": 0,
             "frontier_admissions": 0, "questions_deferred": 0,
+            "prior_head_loaded": prior_head is not None, "value_head_loaded": value_head is not None,
+            "prior_head_steered": 0,
         }
 
     # ------------------------------------------------------------------ #
@@ -312,10 +329,17 @@ class EpistemicSearchLoop:
     def _select_hypothesis(self, siblings: Sequence[Hypothesis],
                            untested: Sequence[Hypothesis]) -> Tuple[Hypothesis, bool]:
         self.expansions += 1
+        self._last_selection = {}
+        # Shadow scoring: what the prior head says about every untested
+        # sibling, recorded on the move whether or not it is allowed to steer.
+        head_p: Dict[str, float] = {}
+        if self.prior_head is not None:
+            head_p = self._head_priors(siblings)
         quota = float(self.policy.low_prior_quota)
         if quota > 0.0 and len(untested) > 1 and (self.forced_picks + 1) / float(self.expansions) <= quota + 1e-9:
             self.forced_picks += 1
             chosen = min(untested, key=lambda h: (h.prior, h.hypothesis_id))
+            self._note_selection(chosen, untested, head_p)
             return chosen, True
         n_parent = sum(h.visits for h in siblings) + 1
         prior_mass = sum(h.prior for h in siblings) or 1.0
@@ -327,8 +351,55 @@ class EpistemicSearchLoop:
 
         best_score = max(score(h) for h in untested)
         top = [h for h in untested if abs(score(h) - best_score) < 1e-12]
-        chosen = top[0] if len(top) == 1 else self.rng.choice(sorted(top, key=lambda h: h.hypothesis_id))
+        w = self.prior_head_weight if head_p else 0.0
+        if w <= 0.0:
+            # V6 computation, verbatim: a loaded head with weight 0 changes nothing.
+            chosen = top[0] if len(top) == 1 else self.rng.choice(sorted(top, key=lambda h: h.hypothesis_id))
+            self._note_selection(chosen, untested, head_p)
+            return chosen, False
+        # PUCT prior = (1 - w) * stated prior + w * head, normalised over siblings.
+        mixed = {h.hypothesis_id: (1.0 - w) * h.prior + w * head_p.get(h.hypothesis_id, h.prior) for h in siblings}
+        mixed_mass = sum(mixed.values()) or 1.0
+
+        def mixed_score(h: Hypothesis) -> float:
+            p = mixed[h.hypothesis_id] / mixed_mass
+            return h.q_value + c * p * math.sqrt(n_parent) / (1.0 + h.visits)
+
+        best_mixed = max(mixed_score(h) for h in untested)
+        top_mixed = [h for h in untested if abs(mixed_score(h) - best_mixed) < 1e-12]
+        chosen = top_mixed[0] if len(top_mixed) == 1 else self.rng.choice(sorted(top_mixed, key=lambda h: h.hypothesis_id))
+        if all(chosen.hypothesis_id != h.hypothesis_id for h in top):
+            self.stats["prior_head_steered"] += 1
+        self._note_selection(chosen, untested, head_p)
         return chosen, False
+
+    def _head_priors(self, siblings: Sequence[Hypothesis]) -> Dict[str, float]:
+        """`HypothesisPriorHead` scores for every sibling of one question; {} on any failure."""
+        if self.prior_head is None or not siblings:
+            return {}
+        q = self.state.questions.get(siblings[0].question_id)
+        if q is None:
+            return {}
+        try:
+            state_feats = epistemic_features(self.state)
+            return {h.hypothesis_id: float(self.prior_head.predict(hypothesis_features(q, h, siblings, state_feats)))
+                    for h in siblings}
+        except Exception as exc:  # a head must never be able to stop the search
+            self.logger(f"[epistemic] prior head failed on {q.question_id}: {type(exc).__name__}: {exc}")
+            return {}
+
+    def _note_selection(self, chosen: Hypothesis, untested: Sequence[Hypothesis],
+                        head_p: Mapping[str, float]) -> None:
+        """Stash the shadow telemetry `_do_experiment` writes into `MoveRecord.extra`."""
+        if not head_p or chosen.hypothesis_id not in head_p:
+            return
+        others = [h for h in untested if h.hypothesis_id != chosen.hypothesis_id]
+        self._last_selection = {
+            "head_p": round(head_p[chosen.hypothesis_id], 6),
+            "head_rank": round(rank_among(head_p[chosen.hypothesis_id], [head_p.get(h.hypothesis_id, 0.0) for h in others]), 6),
+            "stated_rank": round(rank_among(chosen.prior, [h.prior for h in others]), 6),
+            "prior_head_weight": round(self.prior_head_weight, 6),
+        }
 
     # ------------------------------------------------------------------ #
     # Moves
@@ -337,8 +408,17 @@ class EpistemicSearchLoop:
     def _record(self, move_type: str, question_id: str = "", hypothesis_id: str = "",
                 delta_u: float = 0.0, note: str = "", forced: bool = False,
                 features_before: Optional[Dict[str, float]] = None,
-                value_before: float = 0.0, hash_before: str = "") -> MoveRecord:
+                value_before: float = 0.0, hash_before: str = "",
+                extra: Optional[Mapping[str, float]] = None) -> MoveRecord:
         self.moves_used += 1
+        shadow: Dict[str, float] = dict(extra or {})
+        if self.value_head is not None:
+            # Shadow value head: recorded next to the live value, never in it
+            # (unless the caller also handed the head to `value_fn`).
+            try:
+                shadow["head_v"] = round(float(self.value_head.predict(features_before or {})), 6)
+            except Exception as exc:  # pragma: no cover - defensive, a head must not stop the search
+                self.logger(f"[epistemic] value head failed: {type(exc).__name__}: {exc}")
         move = MoveRecord(
             move_index=len(self.state.move_log) + 1, move_type=move_type,
             question_id=question_id, hypothesis_id=hypothesis_id,
@@ -347,7 +427,7 @@ class EpistemicSearchLoop:
             value_before=value_before, value_after=self.value_fn.value(self.state),
             features=dict(features_before or {}),
             state_hash_before=hash_before, state_hash_after=self.state.state_hash(),
-            forced_low_prior=forced, note=note[:300])
+            forced_low_prior=forced, note=note[:300], extra=shadow)
         self.state.record_move(move)
         self.trajectory.append(move)
         return move
@@ -416,6 +496,7 @@ class EpistemicSearchLoop:
 
     def _do_experiment(self, q: Question, h: Hypothesis, forced: bool) -> None:
         feats, v0, h0 = self._snapshot()
+        shadow, self._last_selection = dict(self._last_selection), {}
         evidence = self.gatekeeper.run_experiment(self.state, h)
         delta = self.gatekeeper.apply(self.state, h, evidence)
         self.state.mark_visit(h.hypothesis_id, delta)
@@ -434,8 +515,9 @@ class EpistemicSearchLoop:
             self.stats["inconclusive"] += 1
         self._record(MOVE_RUN_EXPERIMENT, q.question_id, h.hypothesis_id, delta_u=delta,
                      note=f"{h.status}: {evidence.detail}", forced=forced,
-                     features_before=feats, value_before=v0, hash_before=h0)
-        self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} prior={h.prior:.2f} "
+                     features_before=feats, value_before=v0, hash_before=h0, extra=shadow)
+        head_note = f" head_p={shadow['head_p']:.2f}" if "head_p" in shadow else ""
+        self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} prior={h.prior:.2f}{head_note} "
                     f"{'FORCED ' if forced else ''}-> {h.status} (dU={delta:.3f}) {evidence.detail[:120]}")
 
     def _do_synthesize(self, q: Question, h: Hypothesis) -> None:
