@@ -24,6 +24,12 @@ Two honesty notes baked into the output:
     current `hae.evaluation.judge` (A3: refused/repaired probes charged) from
     the same audit, so both are shown.
 
+V8 (organisation as search state): when a tree's `searches[*]` carry an
+`org` block (`OrgState.to_dict()` at the end of the search) the run entry
+gains an `org` summary (turn-0 team, final team, recruits, per-role credit)
+and a fourth table, "V8 organisation", is printed. Trees without `org` --
+every Gen 16 tree -- produce byte-identical JSON and tables as before.
+
 Usage:
     python3 scripts/summarize_gen16_cohort.py [--root results/hae_gen16_v6_cohort]
         [--population configs/generation_16_population.json] [--gpu-node-hours H]
@@ -55,6 +61,8 @@ SEARCH_STAT_KEYS = (
     # rewrites, reverts after a failed module check, and wall-clock spent synthesising.
     "syntheses_by_function", "synthesis_rewrites_skipped", "syntheses_reverted", "synthesis_seconds",
     "frontier_admissions", "questions_deferred", "questions_asked", "proposer_errors",
+    # V8 organisation (only present in the stats of a search run with an OrgState).
+    "recruits", "recruits_from_library", "recruits_synthesized", "recruit_declined",
 )
 # Stats that are durations, pooled as floats; everything else is a count.
 FLOAT_STAT_KEYS = ("synthesis_seconds",)
@@ -116,6 +124,40 @@ def pooled_search_stats(searches: List[Dict[str, Any]]) -> Dict[str, Any]:
     return pooled
 
 
+def org_summary(searches: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """V8: the organisation at the end of the last search that carried one; None for pre-V8 trees.
+
+    `team0` counts roles with `recruited_at_move == -1` (the turn-0 team),
+    `recruited` the roles hired during the searches; per-role `visits` and
+    `cumulative_delta_u` are the loop's end-of-move credit (org.py "Honesty
+    notes": not causal credit).
+    """
+    orgs = [s.get("org") for s in searches or [] if isinstance(s.get("org"), dict)]
+    if not orgs:
+        return None
+    last = orgs[-1]
+    stats = last.get("stats") or {}
+    names = {r.get("role_id"): r.get("name") for r in last.get("active_roles") or [] if isinstance(r, dict)}
+    roles = []
+    for rid, st in stats.items():
+        st = st or {}
+        roles.append({"role_id": rid, "name": names.get(rid, rid), "visits": int(st.get("visits", 0) or 0),
+                      "cumulative_delta_u": round(float(st.get("cumulative_delta_u", 0.0) or 0.0), 4),
+                      "supported": int(st.get("supported", 0) or 0), "falsified": int(st.get("falsified", 0) or 0),
+                      "syntheses_written": int(st.get("syntheses_written", 0) or 0),
+                      "recruited_at_move": int(st.get("recruited_at_move", -1))})
+    return {
+        "team0": sum(1 for r in roles if r["recruited_at_move"] == -1),
+        "team_final": len(last.get("active_roles") or []),
+        "recruited": sum(1 for r in roles if r["recruited_at_move"] >= 0),
+        "roles_routed": any(bool((s.get("stats") or {}).get("roles_routed")) for s in searches or []),
+        "unmatched_modules": list(last.get("unmatched_modules") or []),
+        "recruit_log": [{"move_index": e.get("move_index"), "name": e.get("name"), "source": e.get("source")}
+                        for e in last.get("recruit_log") or []],
+        "roles": roles,
+    }
+
+
 def load_run(root: str, cid: str, index: int) -> Dict[str, Any]:
     rp = os.path.join(root, "outputs", cid, "generation_16", f"{cid}_result.json")
     tp = os.path.join(root, "outputs", cid, "generation_16", f"{cid}_epistemic_tree.json")
@@ -153,6 +195,9 @@ def load_run(root: str, cid: str, index: int) -> Dict[str, Any]:
         entry["searches"] = [{"iteration": s.get("iteration"), "moves": s.get("moves_used"), "stop": s.get("stop_reason"),
                               "dU": s.get("delta_u_total"), "synthesized": s.get("synthesized_paths")}
                              for s in t.get("searches") or []]
+        org = org_summary(t.get("searches") or [])
+        if org is not None:   # V8 only; a pre-V8 tree's entry keeps its exact key set
+            entry["org"] = org
         a3 = epistemic_integrity_score(audit)
         entry["integrity_a3"] = a3
         if a3 is not None and entry.get("execution_integrity") is not None:
@@ -306,6 +351,25 @@ def main():
               f"{float(s.get('synthesis_seconds', 0.0)) / 60.0:.0f} | "
               f"{s.get('forced_low_prior_picks', 0)} ({s.get('forced_low_prior_wins', 0)}) | "
               f"{fmt(a.get('calibration_brier'), 3)} ({fmt(a.get('calibration_tested'))}) |")
+
+    if any(r.get("org") for r in runs.values()):
+        # V8 only: never printed for a cohort without organisation data.
+        print("\n### V8 organisation (final team of the last search; per-role credit is end-of-move, not causal)")
+        print("| run | team at turn 0 | final team | recruits: library / synthesized / declined | routed | "
+              "uncovered modules | roles: visits (dU, S/F, written) |")
+        print("|---|---|---|---|---|---|---|")
+        for cid, r in runs.items():
+            o = r.get("org")
+            if not o:
+                continue
+            s = r.get("search_stats") or {}
+            roles = ", ".join(f"`{x['name']}`{'*' if x['recruited_at_move'] >= 0 else ''} {x['visits']} "
+                              f"({x['cumulative_delta_u']:+.2f}, {x['supported']}/{x['falsified']}, {x['syntheses_written']})"
+                              for x in o["roles"])
+            print(f"| `{cid}` | {o['team0']} | {o['team_final']} | {s.get('recruits', 0)}: {s.get('recruits_from_library', 0)} / "
+                  f"{s.get('recruits_synthesized', 0)} / {s.get('recruit_declined', 0)} | {'yes' if o['roles_routed'] else 'no'} | "
+                  f"{len(o['unmatched_modules'])} | {roles} |")
+        print("\n`*` = recruited during the search.")
 
     print("\n### Outcome by first-pass class (iteration 1 is the unchanged V5 pass; the class is luck, what follows is V6)")
     print("| first pass | runs | reached 50 later | final mean | mean gain (final − first) | trajectories |")

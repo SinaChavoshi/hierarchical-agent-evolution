@@ -20,10 +20,11 @@ from hae.epistemic.ledger import EpistemicState, Hypothesis, Question
 from hae.epistemic.mcts import EpistemicSearchLoop
 from hae.epistemic.moves import (
     MOVE_ASK_QUESTION, MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT, MOVE_SYNTHESIZE,
-    V6_HYPOTHESIS_SCHEMA, V6_REPAIR_PLAN_SCHEMA, HypothesisProposal, RepairPlan, apply_function_rewrite,
-    apply_repair_plan, extract_json_object, function_rewrite_schema, list_definitions,
-    parse_function_rewrite, parse_hypothesis_packet, parse_repair_plan,
+    V6_HYPOTHESIS_SCHEMA, V6_REPAIR_PLAN_SCHEMA, V8_RECRUIT_SCHEMA, HypothesisProposal, RepairPlan,
+    apply_function_rewrite, apply_repair_plan, extract_json_object, function_rewrite_schema, list_definitions,
+    parse_function_rewrite, parse_hypothesis_packet, parse_recruit_packet, parse_repair_plan,
 )
+from hae.epistemic.org import OrgState, RoleAllele, TaskFeatures, normalise_tags, stable_role_id, tag_overlap
 from hae.epistemic.value import EpistemicValueFunction, load_policy_heads
 
 # V5 TypeSafe AI Hardware-Enforced JSON Schemas (vLLM xgrammar Constrained Decoding)
@@ -1085,14 +1086,26 @@ class HierarchicalCompanyRunner:
         return ctx
 
     def _propose_hypotheses_adapter(self, agent: AgentGenome, objective: str, policy: EpistemicPolicyGene):
-        """System 1 adapter: ask a department for k falsifiable hypotheses as a HYPOTHESIS_SET packet."""
+        """System 1 adapter: ask a department for k falsifiable hypotheses as a HYPOTHESIS_SET packet.
 
-        def propose(question: Question, state: EpistemicState, k: int) -> List[HypothesisProposal]:
+        V8: with `role=` (a `RoleAllele` routed by the loop's `OrgState`) the
+        specialist executes the call instead of the bound `agent`; its persona
+        reaches the system prompt through `RoleAllele.to_agent_genome()`.
+        """
+
+        def propose(question: Question, state: EpistemicState, k: int,
+                    role: Optional[RoleAllele] = None) -> List[HypothesisProposal]:
             k = max(2, int(k))
+            executor = role.to_agent_genome() if role is not None else agent
+            specialist = ""
+            if role is not None:
+                specialist = (f"YOU ARE THE FIRM'S {role.name.upper()} (domain: "
+                              f"{', '.join(role.domain_tags[:8]) or 'general'}). Propose from that expertise.\n")
             prompt = (
                 f"EPISTEMIC MOVE: PROPOSE {k} MUTUALLY-EXCLUSIVE HYPOTHESES for question {question.question_id}.\n"
                 f"QUESTION: {question.text}\n"
-                f"MODULE UNDER INVESTIGATION: `{question.module or 'see specification'}`\n\n"
+                f"MODULE UNDER INVESTIGATION: `{question.module or 'see specification'}`\n"
+                f"{specialist}\n"
                 "Rules of the ledger:\n"
                 "1. Each hypothesis names ONE concrete mechanism in the CURRENT implementation that would cause this failure.\n"
                 "2. Hypotheses must be mutually exclusive, and at least one must be a mechanism you consider UNLIKELY.\n"
@@ -1118,14 +1131,14 @@ class HierarchicalCompanyRunner:
             )
             # 3000 tokens: three hypotheses with 40-line probes run to ~2000
             # tokens; the Gen 16 pilot's 1600 cut off even well-formed packets.
-            raw = self._execute_agent(agent, prompt, context=context,
+            raw = self._execute_agent(executor, prompt, context=context,
                                       response_format=V6_HYPOTHESIS_SCHEMA, max_tokens=3000)
             proposals = parse_hypothesis_packet(raw, max_items=k)
             if not proposals:
                 data = extract_json_object(raw)
                 shape = ("no JSON object" if data is None else
                          f"JSON with {len(data.get('hypotheses') or [])} items but none usable")
-                print(f"[epistemic] {self.genome.company_id} {agent.role}: no parseable hypotheses "
+                print(f"[epistemic] {self.genome.company_id} {executor.role}: no parseable hypotheses "
                       f"({shape}; {len(raw)} chars; head: {raw[:120]!r}; tail: {raw[-80:]!r})", flush=True)
             return proposals
 
@@ -1222,8 +1235,11 @@ class HierarchicalCompanyRunner:
         ladder is untested on a live run until cohort run 3.
         """
 
-        def synthesize(question: Question, hypothesis: Hypothesis, state: EpistemicState) -> Dict[str, Any]:
+        def synthesize(question: Question, hypothesis: Hypothesis, state: EpistemicState,
+                       role: Optional[RoleAllele] = None) -> Dict[str, Any]:
             t0 = time.time()
+            # V8: the routed specialist writes; without `role` the bound agent does.
+            executor = role.to_agent_genome() if role is not None else agent
             notes: List[str] = []
             source = ""
 
@@ -1278,7 +1294,7 @@ class HierarchicalCompanyRunner:
                         with self._code_build_lock:
                             self._code_written_this_run = True
                             self._written_modules_this_run.add(target)
-                        print(f"[epistemic] {self.genome.company_id} {agent.role}: {summary[:220]}", flush=True)
+                        print(f"[epistemic] {self.genome.company_id} {executor.role}: {summary[:220]}", flush=True)
                         return result(written=True, path=target, summary=summary[:400], mode=mode), False
                     notes.append(f"{mode} write changed nothing (whitespace-only edit)")
                     return None, True
@@ -1305,7 +1321,7 @@ class HierarchicalCompanyRunner:
                     f"do not address them. Set `hypothesis_id` to \"{hypothesis.hypothesis_id}\"."
                 )
                 try:
-                    raw_plan = self._execute_agent(agent, plan_prompt, context=context,
+                    raw_plan = self._execute_agent(executor, plan_prompt, context=context,
                                                    response_format=V6_REPAIR_PLAN_SCHEMA, max_tokens=3000)
                 except Exception as exc:  # the plan is an optimisation; the next rungs still exist
                     raw_plan = ""
@@ -1349,7 +1365,7 @@ class HierarchicalCompanyRunner:
                       f"Set `hypothesis_id` to \"{hypothesis.hypothesis_id}\"."
                 )
                 try:
-                    raw_fn = self._execute_agent(agent, fn_prompt, context=context,
+                    raw_fn = self._execute_agent(executor, fn_prompt, context=context,
                                                  response_format=function_rewrite_schema(names), max_tokens=4000)
                 except Exception as exc:
                     raw_fn = ""
@@ -1373,7 +1389,7 @@ class HierarchicalCompanyRunner:
                 if plan_noop and fn_noop:
                     summary = ("model sees no change to make (plan and function rewrite both no-ops); "
                                "whole-module rewrite skipped")
-                    print(f"[epistemic] {self.genome.company_id} {agent.role}: {summary}", flush=True)
+                    print(f"[epistemic] {self.genome.company_id} {executor.role}: {summary}", flush=True)
                     return result(written=False, path=target, mode="none", rewrite_skipped=True, summary=summary)
 
             # Rung 3: the whole-module rewrite, anchored by whatever the model
@@ -1412,7 +1428,7 @@ class HierarchicalCompanyRunner:
                     "Do not speculate about other causes: mechanisms under RULED OUT were falsified by evidence."
                 )
             mode = "author" if missing else "rewrite"
-            summary = self._execute_agent_with_tools(agent, rewrite_prompt, context=context, max_turns=3,
+            summary = self._execute_agent_with_tools(executor, rewrite_prompt, context=context, max_turns=3,
                                                      target_path=target)
             after = self._module_fingerprint(target)
             if after and after != before:
@@ -1431,7 +1447,7 @@ class HierarchicalCompanyRunner:
                 f"Emit `Action: write_file` with `Path: {target}` and the complete module. "
                 "Output identical to the current workspace will be recorded as a failed synthesis."
             )
-            summary2 = self._execute_agent_with_tools(agent, retry_prompt, context=context, max_turns=3,
+            summary2 = self._execute_agent_with_tools(executor, retry_prompt, context=context, max_turns=3,
                                                       target_path=target)
             after2 = self._module_fingerprint(target)
             if after2 and after2 != before:
@@ -1442,6 +1458,115 @@ class HierarchicalCompanyRunner:
                                    f"{'; '.join(notes)[:160]}"))
 
         return synthesize
+
+    def _recruit_specialist_adapter(self, objective: str, policy: EpistemicPolicyGene, org_state: OrgState):
+        """V8 CEO adapter for `MOVE_RECRUIT_SPECIALIST`: `(org, state, question, move_index) -> (role | None, note)`.
+
+        The loop (mcts.py `_maybe_recruit`) decides *whether* to hire; this
+        decides *whom*. Two sources, chosen by `org.policy.recruit_mode`:
+
+          * `library`: the best not-yet-active library role whose tags overlap
+            the current gaps -- the task's tokens plus the path parts of the
+            modules no active role covers -- in `OrgState.library_candidates`
+            order. No LLM call. Returned as a copy with `extra["source"] =
+            "library"` so the breeder can tell promotion from invention.
+          * `synthesize`: the CEO (executive tier) is asked for ONE specialist
+            as a grammar-constrained RECRUIT_SPECIALIST packet (name, goal,
+            backstory, 3-8 domain tags, kind); it becomes a worker-tier
+            `RoleAllele` with origin `recruited:<company>:g<gen>:m<move>` and
+            `extra["source"] = "synthesized"`.
+          * `both`: the library first, the CEO when nothing in it overlaps.
+
+        A packet whose name (or stable id) matches an active role is declined
+        here (the loop checks again); so is a call the budget refuses. Any
+        exception becomes a declined recruit with a note -- the move must
+        never be able to stop the search. `policy` and `org_state` are part of
+        the adapter's signature for symmetry with the other adapters (the
+        caller wires all three the same way); the closure reads the live
+        `OrgState` the loop passes on every call, never the one bound here.
+        """
+        company_id = self.genome.company_id
+        generation = int(getattr(self.genome, "generation", 0) or 0)
+
+        def task_tags(question: Question) -> List[str]:
+            text = f"{objective[:6000]}\n{question.text}\n{question.source_failure or ''}"
+            return normalise_tags(TaskFeatures._tokens(text))[:300]
+
+        def gap_tags(org: OrgState, question: Question) -> List[str]:
+            # The same gap definition `OrgState.library_candidates` ranks against.
+            tags = list(task_tags(question))
+            for m in org.unmatched_modules:
+                tags += [p for p in re.split(r"[/.]", m) if p and p != "py"]
+            return normalise_tags(tags)
+
+        def from_library(org: OrgState, question: Question) -> Tuple[Optional[RoleAllele], str]:
+            gaps = gap_tags(org, question)
+            candidates = org.library_candidates(task_tags(question))
+            for score, cand in candidates:
+                if tag_overlap(cand.domain_tags, gaps) <= 0.0:
+                    continue
+                role = cand.copy()
+                role.extra = dict(role.extra or {})
+                role.extra["source"] = "library"
+                return role, f"library pick (score {score:.2f}, {len(candidates)} candidate(s))"
+            return None, f"no library role overlaps the gaps ({len(candidates)} candidate(s))"
+
+        def synthesise(org: OrgState, state: EpistemicState, question: Question,
+                       move_index: int) -> Tuple[Optional[RoleAllele], str]:
+            if not self._may_call("recruit specialist"):
+                return None, "budget exhausted"
+            team = "; ".join(f"{r.name} [{r.kind}; {', '.join(r.domain_tags[:6]) or 'no tags'}]"
+                             for r in org.active_roles) or "nobody yet"
+            unmatched = ", ".join(org.unmatched_modules[:8]) or "none"
+            prompt = (
+                "EPISTEMIC MOVE: RECRUIT ONE SPECIALIST the current team lacks.\n"
+                f"The team has stalled for {org.stall_counter} consecutive move(s) without resolving uncertainty, "
+                f"and these modules are covered by nobody's expertise: {unmatched}.\n"
+                f"CURRENT TEAM: {team}\n"
+                f"OPEN QUESTION BEING WORKED: {question.text}\n"
+                f"ORACLE FAILURE: {question.source_failure or '(none recorded)'}\n\n"
+                "Reply with a RECRUIT_SPECIALIST packet: `name` (a job title, distinct from every current team "
+                "member), `goal` (one sentence: what this specialist is accountable for), `backstory` (2-3 sentences "
+                "of concrete professional experience relevant to THIS failure), `domain_tags` (3-8 lower-case tokens "
+                "the role should be matched against: module or package stems from the paths above, exception "
+                "classes, techniques), `kind` (`probe` to propose and test hypotheses, `synthesis` to write "
+                "repairs, `both`) and `rationale` (why the current team cannot resolve this). Do not restate the "
+                "code; name the expertise that is missing."
+            )
+            context = f"{objective[:3000]}\n\n{state.summary(question.question_id)}"
+            raw = self._execute_agent(self.genome.ceo, prompt, context=context,
+                                      response_format=V8_RECRUIT_SCHEMA, max_tokens=800)
+            packet = parse_recruit_packet(raw)
+            if packet is None:
+                return None, f"CEO returned no usable RECRUIT_SPECIALIST packet ({len(raw)} chars; head: {raw[:80]!r})"
+            names = {r.name.strip().lower() for r in org.active_roles}
+            if packet.name.strip().lower() in names or stable_role_id(packet.name) in org.active_ids:
+                return None, f"duplicate of active role {packet.name}"
+            role = RoleAllele(
+                name=packet.name, goal=packet.goal, backstory=packet.backstory,
+                domain_tags=packet.domain_tags, kind=packet.kind, model_tier="worker", tools_enabled=True,
+                origin=f"recruited:{company_id}:g{generation}:m{move_index}", created_generation=generation,
+                extra={"source": "synthesized", "rationale": packet.rationale})
+            return role, f"synthesized by CEO: {packet.rationale[:140]}"
+
+        def recruit(org: OrgState, state: EpistemicState, question: Question,
+                    move_index: int) -> Tuple[Optional[RoleAllele], str]:
+            mode = str(getattr(org.policy, "recruit_mode", "both") or "both")
+            try:
+                library_note = ""
+                if mode in ("library", "both"):
+                    role, library_note = from_library(org, question)
+                    if role is not None or mode == "library":
+                        return role, library_note
+                role, note = synthesise(org, state, question, move_index)
+                if library_note:
+                    note = f"{library_note}; {note}"
+                return role, note
+            except Exception as exc:  # an LLM call or a malformed library role; the move is declined, not fatal
+                print(f"[epistemic] {company_id} recruit failed: {type(exc).__name__}: {exc}", flush=True)
+                return None, f"recruit failed: {type(exc).__name__}: {exc}"
+
+        return recruit
 
     def reconcile_epistemic_state(self, failures: List[str], iteration: int,
                                   locations: Optional[Dict[str, str]] = None) -> Dict[str, Any]:

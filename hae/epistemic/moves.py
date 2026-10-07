@@ -1,6 +1,6 @@
 """Typed moves: the only things a System 1 agent may say to the ledger.
 
-A proposer does not write beliefs; it emits one of five typed proposals,
+A proposer does not write beliefs; it emits one of six typed proposals,
 each of which the search loop turns into a ledger operation:
 
   * `QuestionProposal`    -> `EpistemicState.add_question`
@@ -8,6 +8,8 @@ each of which the search loop turns into a ledger operation:
   * `ExperimentProposal`  -> `EvidenceGatekeeper.run_experiment`
   * `CodeDiffProposal`    -> a workspace write, then `verify_module`
   * `SynthesisProposal`   -> the decision to turn a SUPPORTED hypothesis into code
+  * `RecruitProposal`     -> `OrgState.recruit` (V8: a new specialist joins the
+                             live team; `MOVE_RECRUIT_SPECIALIST` in mcts.py)
 
 The xgrammar schemas below are what the vLLM constrained decoder enforces
 when a proposer is asked for questions, hypotheses or a synthesis. Each
@@ -20,6 +22,11 @@ a `REPAIR_PLAN` (exact lines to replace; `apply_repair_plan`), then a
 `FUNCTION_REWRITE` (one definition, replaced whole; `apply_function_rewrite`),
 and only then the tool-loop rewrite of the whole module. Each applier refuses
 a packet that changes nothing, so a no-op is a verdict rather than a write.
+
+A recruit packet (`V8_RECRUIT_SCHEMA`, `parse_recruit_packet`) is the CEO's
+description of ONE missing specialist; like every other packet it is a
+proposal: the loop decides whether the role is admitted, and the role's
+record is only ever written by gatekeeper verdicts credited to it.
 """
 
 from __future__ import annotations
@@ -38,8 +45,12 @@ MOVE_PROPOSE_HYPOTHESIS = "propose_hypothesis"
 MOVE_RUN_EXPERIMENT = "run_experiment"
 MOVE_SYNTHESIZE = "synthesize"
 MOVE_RECONCILE = "reconcile_oracle"
+# V8: the organisation itself is search state. Appends a specialist to the
+# live team (`hae.epistemic.org.OrgState`); taken only when the team has
+# stalled or surfaced modules nobody covers. See `EpistemicSearchLoop._maybe_recruit`.
+MOVE_RECRUIT_SPECIALIST = "recruit_specialist"
 MOVE_TYPES = (MOVE_ASK_QUESTION, MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT,
-              MOVE_SYNTHESIZE, MOVE_RECONCILE)
+              MOVE_SYNTHESIZE, MOVE_RECONCILE, MOVE_RECRUIT_SPECIALIST)
 
 MAX_HYPOTHESES_PER_PACKET = 4
 MAX_QUESTIONS_PER_PACKET = 4
@@ -83,6 +94,24 @@ class CodeDiffProposal:
 class SynthesisProposal:
     question_id: str
     hypothesis_id: str
+
+
+@dataclass
+class RecruitProposal:
+    """The CEO's description of ONE specialist the live team lacks (V8).
+
+    Maps 1:1 onto the persona fields of `hae.epistemic.org.RoleAllele`;
+    `domain_tags` are the lower-case tokens the role is matched against
+    (module stems, exception classes, techniques), `kind` says which moves
+    the role may take (`probe`, `synthesis` or `both`).
+    """
+
+    name: str
+    goal: str = ""
+    backstory: str = ""
+    domain_tags: List[str] = field(default_factory=list)
+    kind: str = "both"
+    rationale: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -445,6 +474,46 @@ def function_rewrite_schema(definitions: List[str]) -> Dict[str, Any]:
 V6_FUNCTION_REWRITE_SCHEMA: Dict[str, Any] = function_rewrite_schema([])
 
 
+# ---------------------------------------------------------------------------
+# RECRUIT_SPECIALIST (V8). The CEO names ONE specialist the live team lacks.
+# Same envelope as the V6 packets: short strings with maxLength, arrays with
+# item caps, `kind` an enum. `domain_tags` is what the role is matched against
+# (`OrgState.observe_modules`, `library_candidates`), so the grammar asks for
+# 3-8 short tokens; the parser lower-cases and de-duplicates them regardless.
+# ---------------------------------------------------------------------------
+
+RECRUIT_KINDS = ("probe", "synthesis", "both")   # mirrors hae.epistemic.org.ROLE_KINDS
+MIN_RECRUIT_TAGS = 3
+MAX_RECRUIT_TAGS = 8
+
+V8_RECRUIT_SCHEMA: Dict[str, Any] = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "RecruitSpecialistPacket",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "packet": {"type": "string", "enum": ["RECRUIT_SPECIALIST"]},
+                "name": {"type": "string", "maxLength": 80},
+                "goal": {"type": "string", "maxLength": 300},
+                "backstory": {"type": "string", "maxLength": 600},
+                "domain_tags": {
+                    "type": "array",
+                    "minItems": MIN_RECRUIT_TAGS,
+                    "maxItems": MAX_RECRUIT_TAGS,
+                    "items": {"type": "string", "maxLength": 40},
+                },
+                "kind": {"type": "string", "enum": list(RECRUIT_KINDS)},
+                "rationale": {"type": "string", "maxLength": 300},
+            },
+            "required": ["packet", "name", "goal", "backstory", "domain_tags", "kind", "rationale"],
+            "additionalProperties": False,
+        },
+    },
+}
+
+
 @dataclass
 class FunctionRewrite:
     """A complete replacement for one definition (`function`, qualified `Class.method` for methods)."""
@@ -791,3 +860,55 @@ def parse_question_packet(raw: str, max_items: int = MAX_QUESTIONS_PER_PACKET
         if len(out) >= max_items:
             break
     return out
+
+
+_TAG_CLEAN_RE = re.compile(r"[^a-z0-9_]+")
+
+
+def normalise_recruit_tags(tags: Any) -> List[str]:
+    """Lower-cased `[a-z0-9_]` tokens, de-duplicated in order, at most `MAX_RECRUIT_TAGS`.
+
+    Accepts a list or a comma/whitespace separated string (a model that
+    ignored the array shape should not cost the firm the whole packet).
+    """
+    if isinstance(tags, str):
+        tags = re.split(r"[,\s]+", tags)
+    if not isinstance(tags, (list, tuple)):
+        return []
+    out: List[str] = []
+    for raw in tags:
+        if raw is None:
+            continue
+        tok = _TAG_CLEAN_RE.sub("_", str(raw).strip().lower()).strip("_")
+        if tok and tok not in out:
+            out.append(tok)
+        if len(out) >= MAX_RECRUIT_TAGS:
+            break
+    return out
+
+
+def parse_recruit_packet(raw: str) -> Optional[RecruitProposal]:
+    """Parses a RECRUIT_SPECIALIST packet; None when there is no usable name.
+
+    Tolerant like the other parsers: fences and prose around the JSON are
+    fine, every field but `name` has a default, an unknown `kind` becomes
+    `both`, and tags are normalised rather than rejected. Whether the role is
+    a duplicate of an active one is the adapter's decision, not the parser's.
+    """
+    data = extract_json_object(raw)
+    if not data:
+        return None
+    name = " ".join(str(data.get("name", "") or "").split())
+    if not name:
+        return None
+    kind = str(data.get("kind", "both") or "both").strip().lower()
+    if kind not in RECRUIT_KINDS:
+        kind = "both"
+    return RecruitProposal(
+        name=name[:80],
+        goal=" ".join(str(data.get("goal", "") or "").split()),
+        backstory=" ".join(str(data.get("backstory", "") or "").split()),
+        domain_tags=normalise_recruit_tags(data.get("domain_tags")),
+        kind=kind,
+        rationale=" ".join(str(data.get("rationale", "") or "").split()),
+    )

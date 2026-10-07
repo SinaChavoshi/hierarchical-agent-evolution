@@ -33,8 +33,14 @@ data so a schema change adds columns instead of dropping them), the
 hypothesis' stated prior, the terminal columns and -- only when some move
 carries `MoveRecord.extra` (V7 shadow-mode heads) -- one `x_<key>` column per
 extra key (`x_head_p`, `x_head_rank`, `x_stated_rank`, `x_prior_head_weight`,
-`x_head_v`; empty on moves without it). Pre-V7 trees produce the same CSV as
-before.
+`x_head_v`; empty on moves without it) and -- only when some move carries a
+non-empty `MoveRecord.role_id` (V8 organisation-routed searches) -- a trailing
+`role_id` column: on PROPOSE/SYNTHESIZE the role the move was routed to, on
+RUN_EXPERIMENT the role that *proposed* the hypothesis (the credited role), on
+RECRUIT_SPECIALIST the role hired. `recruit_specialist` moves are rows like
+any other (`delta_u` 0). Pre-V7 and non-organisation trees produce the same
+CSV as before. When the column is present the summary also carries
+`moves_by_role` (rows per role_id).
 
 `terminal_outcome` -- exactly how it is derived:
   * if the move names a hypothesis present in the final ledger: that
@@ -161,6 +167,11 @@ def flatten_tree(tree: Dict[str, Any], label: str, feature_names: List[str],
                 if name not in extra_names:
                     extra_names.append(name)
                 row[f"x_{name}"] = value
+        # V8: present on the row only when the move was routed to / credited
+        # to a role, so trees without an organisation keep their exact columns.
+        role_id = str(move.get("role_id") or "")
+        if role_id:
+            row["role_id"] = role_id
         rows.append(row)
     return rows
 
@@ -256,8 +267,9 @@ def main(argv: Optional[List[str]] = None) -> Dict[str, Any]:
         hypotheses.extend((tree.get("ledger") or {}).get("hypotheses") or [])
         rows.extend(flatten_tree(tree, label, feature_names, extra_names))
 
+    has_roles = any("role_id" in row for row in rows)
     columns = (list(HEAD_COLUMNS) + [f"f_{n}" for n in feature_names] + list(TAIL_COLUMNS)
-               + [f"x_{n}" for n in extra_names])
+               + [f"x_{n}" for n in extra_names] + (["role_id"] if has_roles else []))
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=columns, restval="")
@@ -276,11 +288,19 @@ def main(argv: Optional[List[str]] = None) -> Dict[str, Any]:
         "moves_iteration_unrecovered": sum(1 for r in rows if r["iteration"] == ""),
         "calibration": calibration(hypotheses),
     }
+    if has_roles:
+        by_role: Dict[str, int] = {}
+        for row in rows:
+            if row.get("role_id"):
+                by_role[row["role_id"]] = by_role.get(row["role_id"], 0) + 1
+        summary["moves_by_role"] = dict(sorted(by_role.items()))
     if args.json:
         os.makedirs(os.path.dirname(os.path.abspath(args.json)), exist_ok=True)
         with open(args.json, "w", encoding="utf-8") as fh:
             json.dump(summary, fh, indent=2)
     print(render_summary(summary))
+    if has_roles:
+        print("moves by role (V8): " + ", ".join(f"{k}={v}" for k, v in summary["moves_by_role"].items()))
     return summary
 
 
