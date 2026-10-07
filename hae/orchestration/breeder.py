@@ -17,6 +17,13 @@ execution at 30%. Under the legacy ranking, five of six V1 champions were the
 wrong firm, and Generation 9 bred forward the single worst firm in its cohort.
 Where gate data is missing this module refuses to rank rather than emitting a
 prose-only ordering that looks authoritative.
+
+V8 adds cross-company role distillation at the generation boundary
+(roadmap section 1.4): every breedable firm's `org` trajectory is read into
+per-role statistics (`distill_role_statistics`), and each child's
+`role_library` is then updated, pruned and extended with promoted recruits
+(`hae.genome.mutator.evolve_role_library`). Children of V5/V6 parents carry no
+library and a disabled `ceo_policy`, and nothing here touches them.
 """
 
 import copy
@@ -24,8 +31,9 @@ import glob
 import json
 import os
 import random
+import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
 from hae.epistemic.genes import crossover_epistemic_policy, mutate_epistemic_policy
 from hae.evaluation.judge import (
@@ -35,7 +43,18 @@ from hae.evaluation.judge import (
     resolve_execution_score,
 )
 from hae.genome.morphogenesis import MorphogenesisEngine, StructuralCrossoverEngine
-from hae.genome.schema import CompanyGenome, EpistemicPolicyGene, GenomeValidationError
+from hae.genome.mutator import (
+    RoleStatsSummary,
+    crossover_ceo_policy,
+    crossover_role_library,
+    evolve_role_library,
+    mutate_ceo_policy,
+    mutate_role_library,
+)
+from hae.genome.role_seeds import SEED_FLAVOURS, seed_role_library
+from hae.genome.schema import (
+    CEOPolicyGene, CompanyGenome, EpistemicPolicyGene, GenomeValidationError, normalise_tags,
+)
 from hae.runtime.overlay import get_overlay_class
 
 GENERATION_CONFIG_DIR = "configs/generations"
@@ -77,6 +96,13 @@ class GenerationSpec:
     # search on is a generation-level decision (it changes what fitness
     # measures), while the numeric fields keep evolving per lineage.
     epistemic_policy: Dict[str, Any] = field(default_factory=dict)
+    # V8: the same kind of cohort-level override for the CEO gene, e.g.
+    # {"enabled": true}. A child switched on this way that has no library yet
+    # is seeded from `role_library_seed` (a `hae.genome.role_seeds` flavour),
+    # because an enabled CEO with nothing to staff from would fall back to the
+    # legacy seeds silently at run time; the breeder makes that choice visible.
+    ceo_policy: Dict[str, Any] = field(default_factory=dict)
+    role_library_seed: str = ""
 
     @property
     def population_size(self) -> int:
@@ -105,6 +131,9 @@ class GenerationSpec:
                 f"{path} sets {declared}; pick exactly one. Two sources for "
                 f"the objective is two objectives, and only one of them ends "
                 f"up in front of the firms.")
+        if spec.role_library_seed and spec.role_library_seed not in SEED_FLAVOURS:
+            raise BreedingError(
+                f"{path} sets role_library_seed={spec.role_library_seed!r}; known flavours: {SEED_FLAVOURS}")
         return spec
 
 
@@ -120,6 +149,9 @@ class RankedFirm:
     legacy_net: float
     evaluation_failed: bool = False
     judged: Dict[str, float] = field(default_factory=dict)
+    # The scorecard itself. V8 distillation reads the firm's `org` trajectory
+    # from it; nothing about ranking looks at it.
+    record: Dict[str, Any] = field(default_factory=dict)
 
 
 def _gate_status(card: Dict[str, Any]) -> Optional[Dict[str, str]]:
@@ -258,6 +290,7 @@ def rank_scorecards(scorecard_dir: str) -> List[RankedFirm]:
                              else card.get("overall_score") or 0.0),
             evaluation_failed=bool(card.get("evaluation_failed", False)),
             judged=judged,
+            record=card,
         ))
 
     if ungated:
@@ -277,6 +310,171 @@ def rank_scorecards(scorecard_dir: str) -> List[RankedFirm]:
     return breedable
 
 
+# --------------------------------------------------------------------------- #
+# V8: cross-company role distillation
+# --------------------------------------------------------------------------- #
+#
+# A result record is the worker's scorecard: `run_output` is the last repair
+# iteration's output, which (for a V8 firm) carries `org` (the final
+# `OrgState.to_dict()`), `org_audit` (the turn-0 selection audit) and
+# `org_history` (one {iteration, org, audit} entry per epistemic iteration,
+# accumulated by the runner). Everything below tolerates any of these being
+# absent -- V5/V6 records contribute nothing -- and also accepts a bare
+# `run_output` dict, so the functions work on in-process results too.
+
+def _run_output(record: Mapping[str, Any]) -> Mapping[str, Any]:
+    ro = record.get("run_output")
+    return ro if isinstance(ro, Mapping) else record
+
+
+def _org_dicts(record: Mapping[str, Any]) -> List[Mapping[str, Any]]:
+    """Every `OrgState` dict a result record carries, one per epistemic iteration."""
+    ro = _run_output(record)
+    history = ro.get("org_history")
+    out: List[Mapping[str, Any]] = []
+    if isinstance(history, list):
+        for entry in history:
+            if not isinstance(entry, Mapping):
+                continue
+            org = entry.get("org") if isinstance(entry.get("org"), Mapping) else (
+                entry if "stats" in entry else None)
+            if org is not None:
+                out.append(org)
+    if out:
+        return out
+    org = ro.get("org") if isinstance(ro.get("org"), Mapping) else record.get("org")
+    return [org] if isinstance(org, Mapping) else []
+
+
+def _org_audits(record: Mapping[str, Any]) -> List[Mapping[str, Any]]:
+    ro = _run_output(record)
+    out: List[Mapping[str, Any]] = []
+    history = ro.get("org_history")
+    if isinstance(history, list):
+        out += [e.get("audit") for e in history if isinstance(e, Mapping) and isinstance(e.get("audit"), Mapping)]
+    if not out and isinstance(ro.get("org_audit"), Mapping):
+        out.append(ro["org_audit"])
+    return out
+
+
+def _record_resolved(record: Mapping[str, Any]) -> bool:
+    """Whether the firm's final oracle verdict was a full pass."""
+    score = resolve_execution_score(record.get("verification"))
+    if score is None:
+        vo = record.get("verifier_outcome")
+        score = resolve_execution_score(vo) if isinstance(vo, Mapping) else None
+    if score is not None:
+        return score >= 100.0
+    ro = _run_output(record)
+    history = record.get("iterations_history") or ro.get("iterations_history") or []
+    return any(bool(h.get("passed")) for h in history if isinstance(h, Mapping))
+
+
+def _move_role_credits(record: Mapping[str, Any]) -> List[Tuple[str, float]]:
+    """(role_id, delta_u) per move, from the search trajectories, for records without an `org` dict."""
+    ro = _run_output(record)
+    searches = ro.get("epistemic_searches")
+    if not isinstance(searches, list):
+        searches = [ro["epistemic_search"]] if isinstance(ro.get("epistemic_search"), Mapping) else []
+    out: List[Tuple[str, float]] = []
+    for s in searches:
+        for m in (s.get("trajectory") or []) if isinstance(s, Mapping) else []:
+            if not isinstance(m, Mapping):
+                continue
+            rid = m.get("role_id") or (m.get("extra") or {}).get("role_id") if isinstance(m.get("extra"), Mapping) else m.get("role_id")
+            if rid:
+                try:
+                    out.append((str(rid), float(m.get("delta_u", 0.0) or 0.0)))
+                except (TypeError, ValueError):
+                    out.append((str(rid), 0.0))
+    return out
+
+
+def distill_role_statistics(results: Iterable[Mapping[str, Any]]) -> Dict[str, RoleStatsSummary]:
+    """Per-role evidence summed over a generation's result records.
+
+    Reads each record's `org` dicts (per-role `stats`, the `active_roles`
+    alleles and the `recruit_log`). A role counts as recruited in a record when
+    it appears in the recruit log, its stats say `recruited_at_move >= 0`, or
+    its allele's origin starts with `recruited:`. A role is credited with a
+    resolved task when the record passed the oracle and the role wrote a patch
+    or earned a SUPPORTED verdict in it. Records without any `org` dict fall
+    back to move-level `role_id`s in the search trajectories (visits and dU
+    only). All of it is end-of-move credit, not causal credit.
+    """
+    out: Dict[str, RoleStatsSummary] = {}
+    for rec in results:
+        if not isinstance(rec, Mapping):
+            continue
+        orgs = _org_dicts(rec)
+        resolved = _record_resolved(rec)
+        seen: Set[str] = set()
+        recruited: Set[str] = set()
+        credited_resolution: Set[str] = set()
+        for org in orgs:
+            alleles = {str(a.get("role_id")): a for a in (org.get("active_roles") or [])
+                       if isinstance(a, Mapping) and a.get("role_id")}
+            rec_ids = {str(e.get("role_id")) for e in (org.get("recruit_log") or []) if isinstance(e, Mapping)}
+            rec_ids |= {rid for rid, a in alleles.items() if str(a.get("origin") or "").startswith("recruited:")}
+            for rid, st in (org.get("stats") or {}).items():
+                if not isinstance(st, Mapping):
+                    continue
+                rid = str(rid)
+                s = out.setdefault(rid, RoleStatsSummary(role_id=rid))
+                visits = int(st.get("visits", 0) or 0)
+                s.uses += visits
+                s.cumulative_delta_u += float(st.get("cumulative_delta_u", 0.0) or 0.0)
+                s.supported += int(st.get("supported", 0) or 0)
+                s.falsified += int(st.get("falsified", 0) or 0)
+                s.untestable += int(st.get("untestable", 0) or 0)
+                s.syntheses_written += int(st.get("syntheses_written", 0) or 0)
+                if int(st.get("recruited_at_move", -1) or -1) >= 0:
+                    rec_ids.add(rid)
+                seen.add(rid)
+                if resolved and (int(st.get("syntheses_written", 0) or 0) > 0 or int(st.get("supported", 0) or 0) > 0):
+                    credited_resolution.add(rid)
+            for rid, a in alleles.items():
+                s = out.setdefault(rid, RoleStatsSummary(role_id=rid))
+                s.allele = dict(a)
+                s.name = str(a.get("name") or s.name)
+                seen.add(rid)
+            recruited |= rec_ids & set(out)
+        if not orgs:
+            for rid, du in _move_role_credits(rec):
+                s = out.setdefault(rid, RoleStatsSummary(role_id=rid))
+                s.uses += 1
+                s.cumulative_delta_u += du
+                seen.add(rid)
+        for rid in seen:
+            out[rid].firms += 1
+        for rid in recruited:
+            out[rid].recruited += 1
+        for rid in credited_resolution:
+            out[rid].tasks_resolved += 1
+    return out
+
+
+def distill_tag_pool(results: Iterable[Mapping[str, Any]]) -> List[str]:
+    """Tags the generation met that its teams did not cover, for the one-tag role mutation.
+
+    Unmatched modules (split into path stems) come first in importance but the
+    pool is returned sorted and de-duplicated so the mutation is reproducible.
+    Task tags from the turn-0 audits are included too.
+    """
+    pool: List[str] = []
+    for rec in results:
+        if not isinstance(rec, Mapping):
+            continue
+        for org in _org_dicts(rec):
+            for m in org.get("unmatched_modules") or []:
+                pool += [p for p in re.split(r"[/.]", str(m)) if p and p != "py"]
+        for audit in _org_audits(rec):
+            task = audit.get("task")
+            if isinstance(task, Mapping):
+                pool += [str(t) for t in (task.get("tags") or [])]
+    return sorted(set(normalise_tags(pool)))
+
+
 class Breeder:
     """Produces one generation's population from a spec."""
 
@@ -285,6 +483,12 @@ class Breeder:
         self.repo_root = repo_root
         self.morphogenesis = MorphogenesisEngine()
         self.crossover = StructuralCrossoverEngine()
+        # V8: filled by `survivors()` from every breedable firm's trajectory,
+        # not only the parents'. A role's evidence is cross-company (roadmap
+        # section 1.4): a specialist that paid off in a firm that did not make
+        # the cut is still a specialist that paid off.
+        self.role_stats: Dict[str, RoleStatsSummary] = {}
+        self.tag_pool: List[str] = []
 
     # ------------------------------------------------------------------ #
 
@@ -297,6 +501,8 @@ class Breeder:
                   if self.spec.parent_scorecards.startswith("gs://")
                   else os.path.join(self.repo_root, self.spec.parent_scorecards))
         ranked = rank_scorecards(target)
+        self.role_stats = distill_role_statistics(r.record for r in ranked)
+        self.tag_pool = distill_tag_pool(r.record for r in ranked)
         return ranked[: self.spec.survivors]
 
     def seed_population(self) -> List[CompanyGenome]:
@@ -377,11 +583,13 @@ class Breeder:
         # cannot be compared to its predecessor.
         for i in range(self.spec.elite):
             parent = parents[i % len(parents)]
-            population.append(self._with_mandate(
+            child = self._with_mandate(
                 parent.genome, f"gen_{gen}_elite_{i + 1}",
                 f"Elite clone of {parent.company_id} "
                 f"(rubric {parent.rubric_score:.2f}, "
-                f"exec {parent.execution_integrity:.1f})"))
+                f"exec {parent.execution_integrity:.1f})")
+            self._evolve_organisation(child, "elite", i + 1)
+            population.append(child)
 
         # Structural crossovers between the top parents, aligned by the
         # functional role of each department rather than by position.
@@ -416,18 +624,39 @@ class Breeder:
             child.epistemic_policy = crossover_epistemic_policy(
                 a.genome.epistemic_policy, b.genome.epistemic_policy,
                 random.Random(f"gen{gen}-crossover-{i + 1}"))
-            population.append(self._with_mandate(
+            # V8: the role library is the union of both parents' (de-duplicated
+            # by role id, the better-evidenced allele winning) and the CEO gene
+            # recombines uniformly. Only when at least one parent carries the
+            # genes: two V6 parents breed a V6 child, byte for byte.
+            if (a.genome.role_library or b.genome.role_library
+                    or a.genome.org_enabled or b.genome.org_enabled):
+                org_rng = random.Random(f"gen{gen}-crossover-{i + 1}-org")
+                child.ceo_policy = crossover_ceo_policy(
+                    a.genome.ceo_policy, b.genome.ceo_policy, org_rng)
+                child.role_library = crossover_role_library(
+                    a.genome.role_library, b.genome.role_library, org_rng,
+                    policy=child.ceo_policy)
+                child.mutation_history.append(
+                    f"Generation {gen} role library: union of {a.company_id} "
+                    f"({len(a.genome.role_library)} roles) and {b.company_id} "
+                    f"({len(b.genome.role_library)} roles) -> {len(child.role_library)} roles; "
+                    f"ceo_policy recombined uniformly")
+            child = self._with_mandate(
                 child, child.company_id,
-                f"Crossover of {a.company_id} and {b.company_id}"))
+                f"Crossover of {a.company_id} and {b.company_id}")
+            self._evolve_organisation(child, "crossover", i + 1)
+            population.append(child)
 
         # Pareto extremes: the per-dimension champions, which the aggregate
         # ranking hides. The best executor is often not the best overall.
         for i, dimension in enumerate(self._pareto_dimensions()[: self.spec.pareto]):
             champion = max(parents, key=lambda r: r.judged.get(
                 dimension, r.execution_integrity if dimension == "execution" else 0.0))
-            population.append(self._with_mandate(
+            child = self._with_mandate(
                 champion.genome, f"gen_{gen}_pareto_{i + 1}",
-                f"Pareto extreme on {dimension} (from {champion.company_id})"))
+                f"Pareto extreme on {dimension} (from {champion.company_id})")
+            self._evolve_organisation(child, "pareto", i + 1)
+            population.append(child)
 
         # Directed mutants: topology changes, which is the only operator that
         # can add or remove a department.
@@ -458,23 +687,65 @@ class Breeder:
             child.epistemic_policy = mutate_epistemic_policy(
                 parent.genome.epistemic_policy,
                 random.Random(f"gen{gen}-mutant-{i + 1}"))
-            population.append(self._with_mandate(
+            child = self._with_mandate(
                 child, child.company_id,
-                f"Morphogenesis from {parent.company_id}"))
+                f"Morphogenesis from {parent.company_id}")
+            # V8: mutants are the only children whose CEO gene is jittered and
+            # whose library gets the one-tag text mutation.
+            self._evolve_organisation(child, "mutant", i + 1, mutate=True)
+            population.append(child)
 
         self._apply_policy_overrides(population)
         self._assert_distinct(population)
         return population
 
+    # ------------------------------------------------------------------ #
+    # V8: organisation genes at the generation boundary
+    # ------------------------------------------------------------------ #
+
+    def _evolve_organisation(self, child: CompanyGenome, kind: str, slot: int,
+                             mutate: bool = False) -> None:
+        """Updates `child.role_library` (and, for mutants, `child.ceo_policy`) in place.
+
+        Statistics update -> prune -> promote -> cap, from the generation's
+        cross-company `role_stats` (`hae.genome.mutator.evolve_role_library`).
+        With `mutate`, the CEO gene is jittered within bounds and one role gets
+        a tag from the generation's unmatched-module pool. Both draw from an
+        rng seeded by generation, child kind and slot, so the same spec breeds
+        the same child. A child with no library and a disabled CEO gene is left
+        exactly as it was: V5/V6 lineages breed as they did before V8.
+        """
+        if not child.role_library and not child.org_enabled:
+            return
+        gen = self.spec.generation
+        rng = random.Random(f"gen{gen}-{kind}-{slot}-org")
+        library, notes = evolve_role_library(
+            child.role_library, self.role_stats, child.ceo_policy, gen,
+            summarise_updates=True)
+        if mutate:
+            child.ceo_policy, gene_notes = mutate_ceo_policy(child.ceo_policy, rng)
+            notes += gene_notes
+            library, tag_notes = mutate_role_library(library, rng, self.tag_pool, gen)
+            notes += tag_notes
+        child.role_library = library
+        if notes:
+            child.mutation_history.append(
+                f"Generation {gen} role library ({len(library)} roles): " + "; ".join(notes))
+
     def _apply_policy_overrides(self, population: List[CompanyGenome]) -> None:
-        """Stamps the spec's `epistemic_policy` overrides onto every child.
+        """Stamps the spec's `epistemic_policy` and `ceo_policy` overrides onto every child.
 
         Applied after inheritance so the cohort-level decision (is the search
-        on? what budget?) wins, while unlisted fields keep whatever the
-        operators bred. Unknown or out-of-range fields raise: a generation
-        config that says `enabled: true` and is silently ignored is a
-        generation that did not run the experiment it claims to have run.
+        on? what budget? is the CEO staffing the loop?) wins, while unlisted
+        fields keep whatever the operators bred. Unknown or out-of-range
+        fields raise: a generation config that says `enabled: true` and is
+        silently ignored is a generation that did not run the experiment it
+        claims to have run.
         """
+        self._apply_epistemic_overrides(population)
+        self._apply_ceo_overrides(population)
+
+    def _apply_epistemic_overrides(self, population: List[CompanyGenome]) -> None:
         overrides = dict(self.spec.epistemic_policy or {})
         if not overrides:
             return
@@ -496,6 +767,44 @@ class Breeder:
                 genome.mutation_history.append(
                     f"Generation {self.spec.generation}: V6 epistemic search enabled "
                     f"(budget={genome.epistemic_policy.search_budget_moves} moves)")
+
+    def _apply_ceo_overrides(self, population: List[CompanyGenome]) -> None:
+        """V8: the same cohort-level override for the CEO gene.
+
+        A child switched on here that carries no role library is seeded from
+        `spec.role_library_seed` (default `legacy`), and says so in its
+        history. The runtime would otherwise fall back to the legacy seeds on
+        its own, which is the right behaviour for a hand-edited genome and the
+        wrong one for a bred population, where the choice should be on record.
+        """
+        overrides = dict(self.spec.ceo_policy or {})
+        if not overrides:
+            return
+        unknown = set(overrides) - set(CEOPolicyGene().to_dict())
+        if unknown:
+            raise BreedingError(
+                f"Generation {self.spec.generation} sets unknown ceo_policy "
+                f"fields {sorted(unknown)}.")
+        flavour = self.spec.role_library_seed or "legacy"
+        for genome in population:
+            current = genome.ceo_policy.to_dict() if genome.ceo_policy else {}
+            current.update(overrides)
+            try:
+                genome.ceo_policy = CEOPolicyGene.from_dict(current)
+            except (GenomeValidationError, ValueError, TypeError) as exc:
+                raise BreedingError(
+                    f"Generation {self.spec.generation} ceo_policy override "
+                    f"{overrides} is invalid for {genome.company_id}: {exc}") from exc
+            if overrides.get("enabled"):
+                note = (f"Generation {self.spec.generation}: V8 CEO policy enabled "
+                        f"(initial team {genome.ceo_policy.min_initial_roles}-"
+                        f"{genome.ceo_policy.max_initial_roles}, "
+                        f"max active {genome.ceo_policy.max_active_roles}, "
+                        f"recruit_mode={genome.ceo_policy.recruit_mode})")
+                if not genome.role_library:
+                    genome.role_library = seed_role_library(flavour)
+                    note += f"; role library seeded from {flavour!r} ({len(genome.role_library)} roles)"
+                genome.mutation_history.append(note)
 
     def _pareto_dimensions(self) -> List[str]:
         # Execution first: it is the dimension the programme exists to improve
