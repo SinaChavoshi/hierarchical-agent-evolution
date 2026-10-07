@@ -4,11 +4,15 @@ import os
 import re
 import json
 import hashlib
+import random
 import time
 import threading
 import concurrent.futures
 from typing import Dict, Tuple, List, Any, Optional
-from hae.genome.schema import CompanyGenome, DepartmentGenome, AgentGenome, OpExBreakdown, EpistemicPolicyGene
+from hae.genome.schema import (
+    CompanyGenome, DepartmentGenome, AgentGenome, OpExBreakdown, EpistemicPolicyGene, RoleAllele,
+)
+from hae.genome.role_seeds import seed_role_library
 from hae.infra.llm import call_llm
 from hae.runtime.workspace import AgentWorkspace
 from hae.evaluation.artifacts import filter_bundle
@@ -24,7 +28,8 @@ from hae.epistemic.moves import (
     apply_function_rewrite, apply_repair_plan, extract_json_object, function_rewrite_schema, list_definitions,
     parse_function_rewrite, parse_hypothesis_packet, parse_recruit_packet, parse_repair_plan,
 )
-from hae.epistemic.org import OrgState, RoleAllele, TaskFeatures, normalise_tags, stable_role_id, tag_overlap
+from hae.epistemic.org import (OrgState, RoleAllele, TaskFeatures, normalise_tags, search_initial_organization,
+                               stable_role_id, tag_overlap)
 from hae.epistemic.value import EpistemicValueFunction, load_policy_heads
 
 # V5 TypeSafe AI Hardware-Enforced JSON Schemas (vLLM xgrammar Constrained Decoding)
@@ -1061,6 +1066,83 @@ class HierarchicalCompanyRunner:
             "synthesis": self._find_agent_for(policy.role_bindings.get("synthesis", "engineering"), needs_tools=True),
         }
 
+    # ------------------------------------------------------------------ #
+    # V8: turn-0 organisation selection (hae.epistemic.org)
+    # ------------------------------------------------------------------ #
+
+    def _bind_dynamic_organization(self, objective: str, failures: List[str],
+                                   locations: Optional[Dict[str, str]] = None,
+                                   iteration: int = 0) -> Optional[OrgState]:
+        """The CEO's turn-0 team for this iteration, or None when `ceo_policy` is off.
+
+        With the gene enabled the epistemic loop is staffed from the role
+        library instead of the static department bindings. The task is triaged
+        from the oracle failures without an LLM (`TaskFeatures.from_failures`)
+        and `search_initial_organization` picks the subset of roles maximising
+        V_org(O) = sum Q(r | task) - lambda * |O| within the gene's team-size
+        bounds, with at least one probe-capable and one synthesis-capable role.
+
+        The library is the genome's `role_library`; a genome switched on by hand
+        with no library gets the hand-written legacy seeds. Roles recruited in
+        an earlier iteration of this run are appended, so a specialist hired at
+        iteration 2 is a candidate at iteration 3's turn 0. The rng is seeded
+        from the same material as the search loop's (`company_id:iteration`),
+        so a firm's organisation is reproducible from its id. The audit dict is
+        kept on `self.org_audits`.
+        """
+        policy = self.genome.ceo_policy
+        if policy is None or not policy.enabled:
+            return None
+        if self.genome.role_library:
+            library: List[RoleAllele] = list(self.genome.role_library)
+            source = "genome"
+        else:
+            library = seed_role_library("legacy")
+            source = "seed:legacy"
+        known = {r.role_id for r in library}
+        recruited: Dict[str, RoleAllele] = getattr(self, "_recruited_roles", None) or {}
+        carried = [r for rid, r in recruited.items() if rid not in known]
+        if carried:
+            library = library + carried
+            source += f"+recruited:{len(carried)}"
+        features = TaskFeatures.from_failures(list(failures or []), locations, objective)
+        seed_material = f"{self.genome.company_id}:{iteration}".encode("utf-8")
+        rng = random.Random(int(hashlib.sha256(seed_material).hexdigest()[:8], 16))
+        team, audit = search_initial_organization(library, features, policy, rng)
+        audit = dict(audit)
+        audit.update(iteration=iteration, library_source=source, library_size=len(library),
+                     team=[r.role_id for r in team], team_names=[r.name for r in team])
+        print(f"[org] {self.genome.company_id}: turn-0 team={[r.name for r in team]} "
+              f"v_org={audit.get('v_org', 'n/a')} candidates={audit.get('candidates', 0)} "
+              f"complexity={features.complexity:.2f} library={source}({len(library)})", flush=True)
+        if getattr(self, "org_audits", None) is None:
+            self.org_audits: List[Dict[str, Any]] = []
+        self.org_audits.append(audit)
+        return OrgState(team, policy, library)
+
+    def _dynamic_org_bindings(self, org_state: OrgState,
+                              agents: Dict[str, AgentGenome]) -> Dict[str, AgentGenome]:
+        """`agents` with the move kinds the CEO's team covers re-bound to its roles.
+
+        `hypothesis` and `experiment` go to the team's best probe-capable role
+        and `synthesis` to its best synthesis-capable role (`OrgState.pick_role`:
+        UCB over the team, which at turn 0 is the role with the better library
+        statistics). `question` keeps its department binding: question
+        generation is the ledger's reconciliation step, not a specialist's
+        move. A kind the team cannot staff keeps its static binding too, which
+        `search_initial_organization` only allows when the library itself
+        lacks that capability.
+        """
+        out = dict(agents)
+        probe = org_state.pick_role("probe")
+        if probe is not None:
+            out["hypothesis"] = probe.to_agent_genome()
+            out["experiment"] = probe.to_agent_genome()
+        synthesis = org_state.pick_role("synthesis")
+        if synthesis is not None:
+            out["synthesis"] = synthesis.to_agent_genome()
+        return out
+
     def _module_fingerprint(self, path: str) -> str:
         """Whitespace-normalised hash of a module, used by the synthesis move to detect no-ops.
 
@@ -1648,6 +1730,11 @@ class HierarchicalCompanyRunner:
         assert state is not None
 
         agents = self._bind_epistemic_agents(policy)
+        # V8: with `ceo_policy.enabled` the loop is staffed from the role
+        # library; otherwise `org_state` is None and nothing below changes.
+        org_state = self._bind_dynamic_organization(objective, failures, locations, iteration=iteration)
+        if org_state is not None:
+            agents = self._dynamic_org_bindings(org_state, agents)
         print(f"[epistemic] {self.genome.company_id}: bindings hypothesis={agents['hypothesis'].role!r} "
               f"synthesis={agents['synthesis'].role!r} budget={policy.search_budget_moves} moves "
               f"k={policy.branching_k} c_puct={policy.c_puct} low_prior_quota={policy.low_prior_quota}", flush=True)
@@ -1656,6 +1743,11 @@ class HierarchicalCompanyRunner:
         seed_material = f"{self.genome.company_id}:{iteration}".encode("utf-8")
         # V7 heads, shadow mode unless `extra` says otherwise; a bad path is logged, never fatal.
         heads = load_policy_heads(policy.extra, logger=lambda m: print(f"[epistemic] {self.genome.company_id} {m}", flush=True))
+        loop_kwargs: Dict[str, Any] = {}
+        if org_state is not None:
+            loop_kwargs.update(
+                org_state=org_state,
+                recruit_specialist=self._recruit_specialist_adapter(objective, policy, org_state))
         loop = EpistemicSearchLoop(
             state, gatekeeper, EpistemicValueFunction(policy.value_alpha, head=heads.value_head if heads.value_head_live else None), policy,
             propose_hypotheses=self._propose_hypotheses_adapter(agents["hypothesis"], objective, policy),
@@ -1677,6 +1769,7 @@ class HierarchicalCompanyRunner:
                 f"[epistemic] {self.genome.company_id} "
                 f"{msg[len('[epistemic] '):] if msg.startswith('[epistemic] ') else msg}", flush=True),
             prior_head=heads.prior_head, prior_head_weight=heads.prior_head_weight, value_head=heads.value_head,
+            **loop_kwargs,
         )
         result = loop.run(policy.search_budget_moves)
         search = result.to_dict()
@@ -1686,6 +1779,29 @@ class HierarchicalCompanyRunner:
         print(f"[epistemic] {self.genome.company_id} iteration {iteration}: {result.moves_used} moves, "
               f"dU={result.delta_u_total:.3f}, stop={result.stop_reason}, "
               f"synthesized={result.synthesized_paths}, counts={state.counts()}", flush=True)
+
+        extra: Dict[str, Any] = {"epistemic_ledger": state.to_dict(), "epistemic_search": search,
+                                 "epistemic_iteration": iteration}
+        if org_state is not None:
+            # The organisation trajectory is what the breeder distils at the
+            # generation boundary: per-role credit, the recruit log and the
+            # turn-0 audit, one entry per iteration. Roles hired this
+            # iteration stay available to the next iteration's turn 0.
+            org_dict = org_state.to_dict()
+            audit = self.org_audits[-1] if getattr(self, "org_audits", None) else {}
+            if getattr(self, "_recruited_roles", None) is None:
+                self._recruited_roles: Dict[str, RoleAllele] = {}
+            for role in org_state.active_roles:
+                stats = org_state.stats.get(role.role_id)
+                if stats is not None and stats.recruited_at_move >= 0:
+                    self._recruited_roles.setdefault(role.role_id, role)
+            if getattr(self, "org_runs", None) is None:
+                self.org_runs: List[Dict[str, Any]] = []
+            self.org_runs.append({"iteration": iteration, "org": org_dict, "audit": audit})
+            extra.update(org=org_dict, org_audit=audit, org_history=list(self.org_runs))
+            print(f"[org] {self.genome.company_id} iteration {iteration}: team={org_state.active_ids} "
+                  f"recruits={len(org_state.recruit_log)} stall={org_state.stall_counter} "
+                  f"unmatched={org_state.unmatched_modules}", flush=True)
 
         final_deliverable = self._epistemic_deliverable(state, search, iteration)
         departmental_briefs = {
@@ -1697,5 +1813,4 @@ class HierarchicalCompanyRunner:
         final_deliverable, workspace_bundle = self._append_workspace_files(final_deliverable)
         return self._finalize_run_output(
             start_time, final_deliverable, departmental_briefs, workspace_bundle,
-            extra={"epistemic_ledger": state.to_dict(), "epistemic_search": search,
-                   "epistemic_iteration": iteration})
+            extra=extra)

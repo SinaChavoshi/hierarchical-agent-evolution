@@ -26,8 +26,9 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 from dataclasses import dataclass, field, fields, is_dataclass
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple
 
 MODEL_TIERS = ("worker", "executive")
 
@@ -274,6 +275,185 @@ class EpistemicPolicyGene(_Model):
             self.role_bindings = merged
 
 
+# --------------------------------------------------------------------------- #
+# V8 genes: the role library and the CEO policy
+# --------------------------------------------------------------------------- #
+#
+# Declared here, not in `hae.epistemic.org`, for the same reason
+# `EpistemicPolicyGene` is: a `CompanyGenome` embeds them, and the genome layer
+# must not import the search layer (the architecture test counts every import
+# statement, lazy or not, as an edge). `hae.epistemic.org` re-exports every
+# name below, so `from hae.epistemic.org import RoleAllele` keeps working.
+
+ROLE_KINDS = ("probe", "synthesis", "both")
+RECRUIT_MODES = ("library", "synthesize", "both")
+# dU of a single move that counts as "fully productive" when turning a role's
+# mean dU into a [0, 1] quality estimate. A SUPPORTED verdict lowers a
+# question's uncertainty by roughly this much under the V6 gatekeeper.
+DELTA_U_SCALE = 0.30
+
+# Hard cap on a firm's role library. The breeder keeps the best-scoring roles
+# when a crossover union or a round of promotions would exceed it.
+MAX_ROLE_LIBRARY = 24
+
+
+def normalise_tags(tags: Iterable[str]) -> List[str]:
+    """Lower-cased, de-duplicated, order-preserving tag list."""
+    out: List[str] = []
+    seen: Set[str] = set()
+    for t in tags or []:
+        s = str(t).strip().lower()
+        if s and s not in seen:
+            seen.add(s)
+            out.append(s)
+    return out
+
+
+def stable_role_id(name: str, salt: str = "") -> str:
+    base = re.sub(r"[^a-z0-9]+", "_", str(name).lower()).strip("_")[:40] or "role"
+    if salt:
+        base = f"{base}_{re.sub(r'[^a-z0-9]+', '', str(salt).lower())[:8]}"
+    return f"r_{base}"
+
+
+@dataclass
+class RoleAllele(_Model):
+    """One specialist definition in a company's (or the cross-company) role library.
+
+    The persona fields map 1:1 onto `AgentGenome` so a role can be executed by
+    the existing `_execute_agent` adapters. The statistics are written only by
+    the breeder from completed trajectories; a running firm reads them.
+    """
+
+    role_id: str = ""
+    name: str = ""
+    goal: str = ""
+    backstory: str = ""
+    domain_tags: List[str] = field(default_factory=list)
+    kind: str = "both"
+    model_tier: str = "worker"
+    temperature: float = 0.7
+    tools_enabled: bool = True
+    cost_per_move: float = 1.0
+    uses: int = 0
+    mean_delta_u: float = 0.0
+    support_rate: float = 0.0
+    tasks_resolved: int = 0
+    origin: str = "seed"
+    created_generation: int = 0
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if not str(self.name).strip():
+            raise GenomeValidationError("RoleAllele.name must be non-empty")
+        if not str(self.role_id).strip():
+            self.role_id = stable_role_id(self.name)
+        if self.kind not in ROLE_KINDS:
+            raise GenomeValidationError(f"RoleAllele.kind must be one of {ROLE_KINDS}, got {self.kind!r}")
+        if self.model_tier not in MODEL_TIERS:
+            raise GenomeValidationError(f"RoleAllele.model_tier must be one of {MODEL_TIERS}, got {self.model_tier!r}")
+        self.domain_tags = normalise_tags(self.domain_tags)
+        self.temperature = float(self.temperature)
+        self.tools_enabled = bool(self.tools_enabled)
+        self.cost_per_move = max(0.0, float(self.cost_per_move))
+        self.uses = max(0, int(self.uses))
+        self.mean_delta_u = float(self.mean_delta_u)
+        self.support_rate = min(1.0, max(0.0, float(self.support_rate)))
+        self.tasks_resolved = max(0, int(self.tasks_resolved))
+
+    def can(self, kind: str) -> bool:
+        """Whether the role may take `probe` (propose/experiment) or `synthesis` moves."""
+        return self.kind == "both" or self.kind == kind
+
+    def to_agent_genome(self) -> AgentGenome:
+        return AgentGenome(role=self.name, goal=self.goal, backstory=self.backstory,
+                           temperature=self.temperature, model_tier=self.model_tier,
+                           tools_enabled=self.tools_enabled,
+                           extra={"role_id": self.role_id, "domain_tags": list(self.domain_tags)})
+
+    def quality(self, optimistic_prior: float) -> float:
+        """[0, 1] estimate of how productive one move by this role has been.
+
+        Never-used roles get the CEO's optimistic prior so a library can grow
+        without new roles being starved by the roles that already have data.
+        """
+        if self.uses <= 0:
+            return min(1.0, max(0.0, optimistic_prior))
+        return min(1.0, max(0.0, self.mean_delta_u / DELTA_U_SCALE))
+
+
+CEO_POLICY_BOUNDS: Dict[str, Tuple[float, float, bool]] = {
+    "min_initial_roles": (1, 8, True),
+    "max_initial_roles": (1, 8, True),
+    "max_active_roles": (1, 12, True),
+    "headcount_lambda": (0.0, 1.0, False),
+    "exploration_c": (0.0, 2.0, False),
+    "optimistic_prior": (0.0, 1.0, False),
+    "stall_delta_u": (0.0, 0.5, False),
+    "stall_moves": (1, 20, True),
+    "recruit_w_stall": (0.0, 3.0, False),
+    "recruit_w_unmatched": (0.0, 3.0, False),
+    "recruit_w_headcount": (0.0, 3.0, False),
+    "recruit_bias": (-8.0, 2.0, False),
+    "recruit_cooldown_moves": (0, 20, True),
+    "temperature": (0.0, 2.0, False),
+}
+
+
+@dataclass
+class CEOPolicyGene(_Model):
+    """How a firm sizes and grows its team (V8). Evolvable; LLM-free.
+
+    `enabled` defaults to False: every V5/V6 genome keeps its static bindings.
+    The recruit prior is
+        P(recruit | E_t) = sigmoid(recruit_bias + w_stall * stall_counter
+                                   + w_unmatched * |unmatched_modules|
+                                   - w_headcount * |active_roles|)
+    and the turn-0 objective is V_org(O) = sum_r Q(r | task) - headcount_lambda * |O|.
+    """
+
+    enabled: bool = False
+    min_initial_roles: int = 2
+    max_initial_roles: int = 4
+    max_active_roles: int = 6
+    headcount_lambda: float = 0.15
+    exploration_c: float = 0.5
+    optimistic_prior: float = 0.3
+    stall_delta_u: float = 0.05
+    stall_moves: int = 4
+    recruit_w_stall: float = 0.5
+    recruit_w_unmatched: float = 0.8
+    recruit_w_headcount: float = 0.4
+    recruit_bias: float = -2.0
+    recruit_cooldown_moves: int = 3
+    recruit_mode: str = "both"
+    temperature: float = 0.0
+    extra: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        self.enabled = bool(self.enabled)
+        for name, (lo, hi, is_int) in CEO_POLICY_BOUNDS.items():
+            raw = getattr(self, name)
+            try:
+                value = int(round(float(raw))) if is_int else float(raw)
+            except (TypeError, ValueError):
+                raise GenomeValidationError(f"CEOPolicyGene.{name} must be numeric, got {raw!r}")
+            if not lo <= value <= hi:
+                raise GenomeValidationError(f"CEOPolicyGene.{name} must be within [{lo}, {hi}], got {value}")
+            setattr(self, name, value)
+        if self.max_initial_roles < self.min_initial_roles:
+            raise GenomeValidationError("CEOPolicyGene.max_initial_roles must be >= min_initial_roles")
+        if self.max_active_roles < self.max_initial_roles:
+            raise GenomeValidationError("CEOPolicyGene.max_active_roles must be >= max_initial_roles")
+        if self.recruit_mode not in RECRUIT_MODES:
+            raise GenomeValidationError(f"CEOPolicyGene.recruit_mode must be one of {RECRUIT_MODES}, got {self.recruit_mode!r}")
+
+
+# Serialised form of the default (disabled) CEO gene: what every pre-V8 genome
+# implicitly carries, and therefore what `CompanyGenome.to_dict` leaves out.
+_DEFAULT_CEO_POLICY_DICT = CEOPolicyGene().to_dict()
+
+
 @dataclass
 class CompanyGenome(_Model):
     """A whole firm: a CEO, its departments, and its operating budget."""
@@ -292,6 +472,15 @@ class CompanyGenome(_Model):
     # every pre-Gen-16 genome; defaults to a disabled policy so archived
     # genomes load and run exactly as they did.
     epistemic_policy: Optional[EpistemicPolicyGene] = None
+    # V8: the library of specialist role alleles the CEO staffs the epistemic
+    # loop from, and the policy that sizes and grows that team. `departments`
+    # stays mandatory: the V5 first pass still runs on it, and the V8 genes
+    # only change who the epistemic loop routes to. Both default to "off"
+    # (empty library, disabled gene) and are omitted from `to_dict()` in that
+    # state, so every pre-V8 genome and population file round-trips
+    # byte-identically (precedent: `BenchmarkResult.failure_locations`).
+    role_library: List[RoleAllele] = field(default_factory=list)
+    ceo_policy: Optional[CEOPolicyGene] = None
     extra: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -334,6 +523,61 @@ class CompanyGenome(_Model):
             raise GenomeValidationError(
                 "CompanyGenome.epistemic_policy must be a mapping or "
                 f"EpistemicPolicyGene, got {type(self.epistemic_policy).__name__}")
+
+        # V8 genes. Validation lives in the types themselves; here we coerce
+        # mappings, reject anything else, and insist a library is a set.
+        if self.role_library is None:
+            self.role_library = []
+        elif not isinstance(self.role_library, (list, tuple)):
+            raise GenomeValidationError(
+                f"CompanyGenome.role_library must be a list, got {type(self.role_library).__name__}")
+        library: List[Any] = []
+        for entry in self.role_library:
+            if isinstance(entry, Mapping):
+                entry = RoleAllele.from_dict(entry)
+            elif not isinstance(entry, RoleAllele):
+                raise GenomeValidationError(
+                    "CompanyGenome.role_library entries must be mappings or RoleAllele, "
+                    f"got {type(entry).__name__}")
+            library.append(entry)
+        ids = [r.role_id for r in library]
+        duplicates = sorted({i for i in ids if ids.count(i) > 1})
+        if duplicates:
+            raise GenomeValidationError(
+                f"CompanyGenome {self.company_id!r} role_library has duplicate role ids {duplicates}")
+        if len(library) > MAX_ROLE_LIBRARY:
+            raise GenomeValidationError(
+                f"CompanyGenome {self.company_id!r} role_library has {len(library)} roles; "
+                f"the cap is {MAX_ROLE_LIBRARY}")
+        self.role_library = library
+        if self.ceo_policy is None:
+            self.ceo_policy = CEOPolicyGene()
+        elif isinstance(self.ceo_policy, Mapping):
+            self.ceo_policy = CEOPolicyGene.from_dict(self.ceo_policy)
+        elif not isinstance(self.ceo_policy, CEOPolicyGene):
+            raise GenomeValidationError(
+                "CompanyGenome.ceo_policy must be a mapping or CEOPolicyGene, "
+                f"got {type(self.ceo_policy).__name__}")
+
+    def to_dict(self) -> Dict[str, Any]:
+        """`_Model.to_dict`, minus the V8 genes while they carry no information.
+
+        An empty `role_library` and a `ceo_policy` equal to the default
+        (disabled) gene are what every pre-V8 genome implicitly has; writing
+        them out would change the bytes of every archived population file
+        without changing a single behaviour.
+        """
+        out = super().to_dict()
+        if not self.role_library:
+            out.pop("role_library", None)
+        if self.ceo_policy is None or self.ceo_policy.to_dict() == _DEFAULT_CEO_POLICY_DICT:
+            out.pop("ceo_policy", None)
+        return out
+
+    @property
+    def org_enabled(self) -> bool:
+        """Whether the epistemic loop is staffed from the role library (V8)."""
+        return bool(self.ceo_policy is not None and self.ceo_policy.enabled)
 
     @property
     def total_agent_count(self) -> int:
