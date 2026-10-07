@@ -1288,16 +1288,23 @@ class HierarchicalCompanyRunner:
 
         return synthesize
 
-    def reconcile_epistemic_state(self, failures: List[str], iteration: int) -> Dict[str, Any]:
-        """Lets the oracle's latest verdict certify / reopen questions. Creates the ledger if needed."""
+    def reconcile_epistemic_state(self, failures: List[str], iteration: int,
+                                  locations: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+        """Lets the oracle's latest verdict certify / reopen / refresh questions. Creates the ledger if needed.
+
+        `locations` (oracle failure line -> `path:line in func`, from the
+        benchmark's `failure_locations`) tells the proposer where the oracle's
+        traceback ended inside the firm's own code.
+        """
         if self.epistemic_state is None:
             self.epistemic_state = EpistemicState(self.genome.company_id)
         gatekeeper = self._make_gatekeeper()
         default_module = self._required_modules[0] if len(self._required_modules) == 1 else ""
         rec = gatekeeper.reconcile_with_oracle(self.epistemic_state, failures, iteration=iteration,
-                                               default_module=default_module)
+                                               default_module=default_module, locations=locations)
         print(f"[epistemic] {self.genome.company_id} iteration {iteration}: oracle reconciliation -> "
-              f"certified={len(rec['certified'])} reopened={len(rec['reopened'])} seeded={len(rec['seeded'])} "
+              f"certified={len(rec['certified'])} reopened={len(rec['reopened'])} "
+              f"refreshed={len(rec.get('refreshed', []))} seeded={len(rec['seeded'])} "
               f"open={len(self.epistemic_state.open_questions())} "
               f"uncertainty={self.epistemic_state.total_uncertainty():.2f}", flush=True)
         return rec
@@ -1342,7 +1349,8 @@ class HierarchicalCompanyRunner:
         merged["iterations"] = merged.get("iterations", 0) + 1
 
     def run_epistemic_search(self, objective: str, failures: List[str],
-                             iteration: int = 2, max_iterations: int = 1) -> Dict[str, Any]:
+                             iteration: int = 2, max_iterations: int = 1,
+                             locations: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """One repair iteration as an epistemic tree-search instead of a linear rewrite.
 
         The oracle's failures seed or update the ledger; System 1 agents
@@ -1355,7 +1363,7 @@ class HierarchicalCompanyRunner:
         if not hasattr(self.genome.ceo, "model_tier") or not self.genome.ceo.model_tier:
             self.genome.ceo.model_tier = "executive"
         self._init_required_modules_for_objective(objective)
-        self.reconcile_epistemic_state(list(failures or []), iteration=iteration)
+        self.reconcile_epistemic_state(list(failures or []), iteration=iteration, locations=locations)
         state = self.epistemic_state
         assert state is not None
 

@@ -161,6 +161,7 @@ def evaluate_single_firm(
     run_output: Dict[str, Any] = {}
     outcome = None
     failures_list: List[str] = []
+    failure_locations: Dict[str, str] = {}
 
     for it in range(1, max_iters + 1):
         if it == 1:
@@ -171,6 +172,10 @@ def evaluate_single_firm(
             runner.verification_loop.used = 0
             failures_list = list(best_outcome.evidence.get("failures", [])
                                  if best_outcome and best_outcome.evidence else [])
+            # V6 only: where each failure's traceback ended inside the firm's
+            # own code. The V5 feedback block below does not show it.
+            failure_locations = dict(best_outcome.evidence.get("failure_locations") or {}
+                                     if best_outcome and best_outcome.evidence else {})
             failures_text = (
                 "\n".join(f"  - {f}" for f in failures_list)
                 if failures_list else f"  - {best_outcome.detail if best_outcome else 'verification failed'}"
@@ -197,7 +202,8 @@ def evaluate_single_firm(
             # but the repair is an epistemic search over oracle failures rather
             # than a linear rewrite.
             run_output = runner.run_epistemic_search(
-                current_objective, failures_list, iteration=it, max_iterations=max_iters)
+                current_objective, failures_list, iteration=it, max_iterations=max_iters,
+                locations=failure_locations)
         else:
             run_output = runner.run(current_objective)
         total_elapsed += run_output.get("elapsed_seconds", 0.0)
@@ -267,7 +273,10 @@ def evaluate_single_firm(
         try:
             final_failures = list(outcome.evidence.get("failures", [])
                                   if outcome and outcome.evidence else [])
-            runner.reconcile_epistemic_state(final_failures, iteration=len(iterations_history) + 1)
+            final_locations = dict(outcome.evidence.get("failure_locations") or {}
+                                   if outcome and outcome.evidence else {})
+            runner.reconcile_epistemic_state(final_failures, iteration=len(iterations_history) + 1,
+                                             locations=final_locations)
             epistemic_audit = runner.epistemic_audit(token_usage=int(run_output.get("token_usage", 0) or 0))
             run_output["epistemic_ledger"] = runner.epistemic_state.to_dict()
             run_output["epistemic_searches"] = list(runner.epistemic_searches)

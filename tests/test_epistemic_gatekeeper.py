@@ -7,7 +7,7 @@ import unittest
 
 from hae.epistemic.gatekeeper import (
     failure_signature,
-    INCONCLUSIVE, EvidenceGatekeeper, failure_key, failure_summary,
+    INCONCLUSIVE, STATIC_CHECK_EXIT, EvidenceGatekeeper, failure_key, failure_summary,
 )
 from hae.epistemic.ledger import (
     CERTIFIED, FALSIFIED, Q_CERTIFIED, Q_EXHAUSTED, Q_OPEN, Q_RESOLVED, SUPPORTED, UNTESTABLE, UNVERIFIED,
@@ -280,6 +280,198 @@ class OracleReconciliationTests(GatekeeperFixture):
         self.assertEqual(rec["reopened"], [])
         self.assertEqual(self.q.status, Q_OPEN)
         self.assertEqual(self.q.source_failure, self.FAIL)
+
+
+class StaticCheckGateTests(GatekeeperFixture):
+    """Finding #8: a module can compile and import and still raise NameError on first call."""
+
+    def test_verify_module_fails_at_static_check_for_an_undefined_name(self):
+        self.ws.write_file("mypkg/calc.py", "def add(a, b):\n    return a + b\n\ndef f():\n    return oops\n")
+        ev = self.gk.verify_module(self.state, "mypkg/calc.py", self.q.question_id)
+        self.assertFalse(ev.matched_prediction)
+        self.assertEqual(ev.exit_code, STATIC_CHECK_EXIT)
+        self.assertEqual(ev.detail, "module check failed at static_check: undefined name 'oops' at line 5 in f")
+        self.assertIn("[static_check] undefined name 'oops' at line 5 in f", ev.stderr)
+        # py_compile and import both passed first; the gate runs after them.
+        self.assertIn("IMPORT_OK", ev.stdout)
+
+    def test_verify_module_catches_the_except_leak_and_the_fstring_name(self):
+        # The two shapes from the Gen 16 cohort: `e` after its handler, and a
+        # name that only exists in the script the f-string was generating.
+        self.ws.write_file("mypkg/calc.py",
+                           "def add(a, b):\n    return a + b\n\n"
+                           "def gate(script):\n"
+                           "    try:\n        compile(script, 'x', 'exec')\n"
+                           "    except SyntaxError as e:\n        failed = True\n"
+                           "    return f'FAILED {e}' if failed else f'{mnf_err}'\n")
+        ev = self.gk.verify_module(self.state, "mypkg/calc.py")
+        self.assertFalse(ev.matched_prediction)
+        self.assertIn("module check failed at static_check: name 'e' is unbound at line 9 in gate", ev.detail)
+        self.assertIn("(+1 more)", ev.detail)
+        self.assertIn("undefined name 'mnf_err' at line 9 in gate", ev.stderr)
+
+    def test_static_check_passes_a_clean_module_and_names_the_step(self):
+        ev = self.gk.verify_module(self.state, "mypkg/calc.py")
+        self.assertTrue(ev.matched_prediction, ev.stderr)
+        self.assertEqual(ev.detail, "module check passed: py_compile, import, static_check")
+        self.assertIn("[static_check] no undefined names", ev.stdout)
+
+    def test_static_check_runs_before_firm_tests(self):
+        self.ws.write_file("tests/__init__.py", "")
+        self.ws.write_file("tests/test_calc.py",
+                           "import unittest\nfrom mypkg.calc import add\n"
+                           "class T(unittest.TestCase):\n    def test_add(self):\n        self.assertEqual(add(2, 2), 4)\n")
+        self.ws.write_file("mypkg/calc.py", FIXED + "\ndef f():\n    return oops\n")
+        ev = self.gk.verify_module(self.state, "mypkg/calc.py")
+        self.assertIn("static_check", ev.detail)
+        self.assertNotIn("firm_tests", ev.stdout)
+
+    def test_static_check_method_is_best_effort(self):
+        code, lines, note = self.gk.static_check("def f():\n    return 1\n", "m.py")
+        self.assertEqual((code, lines), (0, []))
+        self.assertIn("no undefined names", note)
+        code, lines, note = self.gk.static_check("def f():\n    return oops\n", "m.py")
+        self.assertEqual(code, STATIC_CHECK_EXIT)
+        self.assertEqual(lines, ["undefined name 'oops' at line 2 in f"])
+        # A source the checker cannot parse never blocks (py_compile would have caught it first).
+        code, lines, note = self.gk.static_check("def f(:\n", "m.py")
+        self.assertEqual((code, lines), (0, []))
+        self.assertIn("checker error", note)
+
+    def test_failed_synthesis_evidence_is_attached_to_the_hypothesis(self):
+        h = self._hyp("add subtracts", 0.3, {"expect_stdout_contains": "ADD 0"})
+        self.gk.apply(self.state, h, self.gk.run_experiment(self.state, h))
+        self.ws.write_file("mypkg/calc.py", FIXED + "\ndef f():\n    return oops\n")
+        # Built without the hypothesis id, as the search does for a synthesis check.
+        bad = self.gk.verify_module(self.state, "mypkg/calc.py", self.q.question_id)
+        self.assertEqual(self.gk.apply_synthesis(self.state, self.q, h, bad), 0.0)
+        self.assertIn(bad.evidence_id, h.evidence_ids)
+        self.assertEqual(h.synthesis_failures, 1)
+        self.assertEqual(self.q.status, Q_OPEN)
+
+
+class OracleRefreshTests(GatekeeperFixture):
+    """Finding #8: the oracle failure behind a question changes shape between iterations."""
+
+    OLD = ("[calc] ERROR: test_add (tests.test_calc.T.test_add) -> "
+           "UnboundLocalError: cannot access local variable 'e' where it is not associated with a value")
+    NEW = "[calc] ERROR: test_add (tests.test_calc.T.test_add) -> NameError: name 'mnf_err' is not defined"
+    SAME_SHAPE = "[calc] FAIL: test_add (tests.test_calc.T.test_add) -> AssertionError: 1 != 4"
+    FAIL = OracleReconciliationTests.FAIL
+
+    def test_failure_changed_distinguishes_shape_from_literals(self):
+        changed = EvidenceGatekeeper.failure_changed
+        self.assertEqual(changed("", self.NEW), (False, False))
+        self.assertEqual(changed(self.OLD, self.OLD), (False, False))
+        self.assertEqual(changed(self.OLD, self.NEW), (True, True))
+        self.assertEqual(changed(self.FAIL, self.SAME_SHAPE), (False, True))
+        suite_a = "[calc] suite failed to import: ModuleNotFoundError: No module named 'mypkg.calc'"
+        suite_b = "[calc] suite failed to import: SyntaxError: invalid syntax"
+        self.assertEqual(changed(suite_a, suite_a), (False, False))
+        self.assertEqual(changed(suite_a, suite_b), (True, True))
+
+    def _falsify_one(self, claim="the except handler leaks e"):
+        h = self._hyp(claim, 0.8, {"expect_exit_code": 0, "expect_stdout_contains": "ADD 4"})
+        self.gk.apply(self.state, h, self.gk.run_experiment(self.state, h))
+        self.assertEqual(h.status, FALSIFIED)
+        return h
+
+    def test_shape_change_refreshes_the_question(self):
+        self.gk.reconcile_with_oracle(self.state, [self.OLD], iteration=2,
+                                      locations={self.OLD: "mypkg/calc.py:9 in gate"})
+        self.assertEqual(self.q.source_failure, self.OLD)
+        self.assertEqual(self.q.location, "mypkg/calc.py:9 in gate")
+        h = self._falsify_one()
+        self.assertEqual(self.q.status, Q_EXHAUSTED)
+        old_text = self.q.text
+        rec = self.gk.reconcile_with_oracle(self.state, [self.NEW], iteration=3,
+                                            locations={self.NEW: "mypkg/calc.py:12 in gate"})
+        self.assertEqual(rec["refreshed"], [self.q.question_id])
+        self.assertEqual(rec["reworded"], [])
+        self.assertEqual(rec["seeded"], [])
+        self.assertEqual(self.q.failure_epoch, 1)
+        self.assertEqual(self.q.failure_history, [self.OLD])
+        self.assertEqual(self.q.source_failure, self.NEW)
+        self.assertNotEqual(self.q.text, old_text)
+        self.assertIn("NameError: name 'mnf_err' is not defined", self.q.text)
+        self.assertNotIn("UnboundLocalError", self.q.text)
+        self.assertNotIn("[calc]", self.q.text)
+        self.assertEqual(self.q.location, "mypkg/calc.py:12 in gate")
+        self.assertEqual(self.q.status, Q_OPEN)
+        self.assertGreaterEqual(self.q.uncertainty, 0.75)
+        self.assertEqual(self.q.hypothesis_rounds, 0)
+        # The mechanism falsified against the old symptom is no longer tabu...
+        self.assertFalse(self.state.is_tabu(h.mechanism_signature, self.q.question_id))
+        # ...and the proposer is told what changed.
+        text = self.state.summary(self.q.question_id)
+        self.assertIn("ORACLE FAILURE CHANGED 1 time(s)", text)
+        self.assertIn("CURRENT ORACLE FAILURE: " + self.NEW, text)
+        self.assertIn("Oracle traceback ends at: mypkg/calc.py:12 in gate", text)
+
+    def test_shape_change_without_a_location_clears_the_stale_one(self):
+        self.gk.reconcile_with_oracle(self.state, [self.OLD], iteration=2,
+                                      locations={self.OLD: "mypkg/calc.py:9 in gate"})
+        self.gk.reconcile_with_oracle(self.state, [self.NEW], iteration=3)
+        self.assertEqual(self.q.failure_epoch, 1)
+        self.assertEqual(self.q.location, "")
+
+    def test_literal_only_change_rewords_without_a_new_epoch(self):
+        self.gk.reconcile_with_oracle(self.state, [self.FAIL], iteration=2)
+        h = self._falsify_one("add subtracts instead of adding")
+        rec = self.gk.reconcile_with_oracle(self.state, [self.SAME_SHAPE], iteration=3,
+                                            locations={self.SAME_SHAPE: "mypkg/calc.py:2 in add"})
+        self.assertEqual(rec["refreshed"], [])
+        self.assertEqual(rec["reworded"], [self.q.question_id])
+        self.assertEqual(self.q.failure_epoch, 0)
+        self.assertEqual(self.q.source_failure, self.SAME_SHAPE)
+        self.assertIn("1 != 4", self.q.text)
+        self.assertEqual(self.q.location, "mypkg/calc.py:2 in add")
+        self.assertEqual(self.q.status, Q_EXHAUSTED)          # nothing learnt is thrown away
+        self.assertTrue(self.state.is_tabu(h.mechanism_signature, self.q.question_id))
+
+    def test_unchanged_failure_is_neither_refreshed_nor_reworded(self):
+        self.gk.reconcile_with_oracle(self.state, [self.FAIL], iteration=2)
+        text = self.q.text
+        rec = self.gk.reconcile_with_oracle(self.state, [self.FAIL], iteration=3)
+        self.assertEqual((rec["refreshed"], rec["reworded"]), ([], []))
+        self.assertEqual(self.q.text, text)
+        self.assertEqual(self.q.failure_epoch, 0)
+
+    def test_persisting_resolved_question_whose_shape_changed_is_reopened_then_refreshed(self):
+        self.gk.reconcile_with_oracle(self.state, [self.OLD], iteration=2)
+        h = self._hyp("add subtracts", 0.3, {"expect_stdout_contains": "ADD 0"})
+        self.gk.apply(self.state, h, self.gk.run_experiment(self.state, h))
+        good = self.gk.verify_module(self.state, "mypkg/calc.py", self.q.question_id, h.hypothesis_id)
+        self.gk.apply_synthesis(self.state, self.q, h, good)
+        self.assertEqual(self.q.status, Q_RESOLVED)
+        rec = self.gk.reconcile_with_oracle(self.state, [self.NEW], iteration=3)
+        self.assertEqual(rec["reopened"], [self.q.question_id])
+        self.assertEqual(rec["refreshed"], [self.q.question_id])
+        self.assertEqual(h.status, FALSIFIED)
+        # The patch was falsified against the old symptom (epoch 0), so it is history now.
+        self.assertEqual(h.epoch, 0)
+        self.assertEqual(self.q.failure_epoch, 1)
+        self.assertFalse(self.state.is_tabu(h.mechanism_signature, self.q.question_id))
+        self.assertEqual(self.q.status, Q_OPEN)
+
+    def test_seeded_questions_carry_their_traceback_location(self):
+        other = OracleReconciliationTests.FAIL2          # a different failure key
+        state = EpistemicState("f")
+        gk = EvidenceGatekeeper(self.ws, isolate=False, stage_reference=False,
+                                module_for_tag={"calc": "mypkg/calc.py"})
+        rec = gk.reconcile_with_oracle(state, [self.NEW, other], iteration=1,
+                                       locations={self.NEW: "mypkg/calc.py:12 in gate"})
+        self.assertEqual(len(rec["seeded"]), 2)
+        q_new, q_other = (state.questions[qid] for qid in rec["seeded"])
+        self.assertEqual(q_new.location, "mypkg/calc.py:12 in gate")
+        self.assertEqual(q_other.location, "")
+        self.assertIn("Oracle traceback ends at: mypkg/calc.py:12 in gate", state.summary())
+        # A location arriving later for an unchanged failure is attached without a refresh.
+        rec2 = gk.reconcile_with_oracle(state, [self.NEW, other], iteration=2,
+                                        locations={other: "mypkg/calc.py:2 in sub"})
+        self.assertEqual(rec2["refreshed"], [])
+        self.assertEqual(q_other.location, "mypkg/calc.py:2 in sub")
+        self.assertEqual(q_new.location, "mypkg/calc.py:12 in gate")
 
 
 if __name__ == "__main__":

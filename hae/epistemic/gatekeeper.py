@@ -28,12 +28,19 @@ What counts as evidence
     to leave the stage) -> *no verdict*. Failure to test is not evidence.
   * A prediction that predicts nothing is vacuous and can support nothing.
   * The held-out oracle outranks every probe: `reconcile_with_oracle` can
-    certify a question the probes only supported, and reopen one the probes
-    wrongly settled.
+    certify a question the probes only supported, reopen one the probes
+    wrongly settled, and *refresh* one whose failure has changed shape since
+    the last run (new text, new epoch; what was falsified against the old
+    symptom stops being tabu).
+  * A synthesised module must compile, import, and pass a static
+    undefined-name check (`static_check`) before its question is RESOLVED:
+    `py_compile` and `import` never execute a function body, and the Gen 16
+    cohort lost three runs to a `NameError` that only the oracle saw.
 
 Oracle leakage, stated plainly: this gatekeeper never runs the held-out
 suites. Its only contact with the oracle is the list of failing test names
-the worker already shows the firm under V5.
+the worker already shows the firm under V5, plus -- for V6 only -- where each
+failure's traceback ended inside the firm's own code.
 """
 
 from __future__ import annotations
@@ -49,7 +56,9 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 from hae.epistemic.ledger import (
     CERTIFIED, FALSIFIED, Q_EXHAUSTED, Q_OPEN, Q_RESOLVED, SUPPORTED, UNVERIFIED,
     EpistemicState, Evidence, GatekeeperAuthority, Hypothesis, Question,
+    failure_summary,
 )
+from hae.epistemic.static_check import describe_findings, undefined_names
 
 # How strongly one matching probe moves a posterior toward 1. A single
 # experiment is strong evidence but not certification; only the oracle
@@ -64,6 +73,9 @@ SUPPORTED_FLOOR = 0.05
 RESOLVED_FLOOR = 0.02
 # Where an oracle-reopened question lands: most of the way back to unknown.
 REOPEN_FRACTION = 0.75
+# Exit code reported for the in-process static check (the subprocess steps
+# report their own; 1 and 2 are taken by unittest and py_compile).
+STATIC_CHECK_EXIT = 3
 
 INCONCLUSIVE = "inconclusive"
 PROBE_DIR = "_probe"
@@ -112,13 +124,28 @@ def failure_key(failure: str) -> Tuple[str, str, str]:
     return (f"raw:{norm}", "", "")
 
 
-def failure_summary(failure: str, limit: int = 220) -> str:
-    """The exception part of an oracle line, for a question's text."""
-    if "->" in failure:
-        tail = failure.split("->", 1)[1].strip()
-    else:
-        tail = failure.strip()
-    return " ".join(tail.split())[:limit]
+def question_text(failure: str, module: str = "") -> str:
+    """The text of an oracle-seeded question, rebuilt whenever the oracle line changes.
+
+    One builder for seeding *and* refresh (Gen 16 cohort run 2, finding #8:
+    the refresh path used to update `source_failure` only, so a question read
+    `Oracle: UnboundLocalError ...` for three iterations after the oracle had
+    moved on to `NameError: name 'mnf_err' is not defined`).
+    """
+    key, tag, name = failure_key(failure)
+    summary = failure_summary(failure)
+    if summary.startswith("[") and "]" in summary:
+        summary = summary.split("]", 1)[1].strip()
+    if name == SUITE_IMPORT_NAME:
+        # The suite could not import its module at all -- usually the file does
+        # not exist yet. The question must name the module so that the
+        # synthesis move creates *that* file.
+        return (f"Why can the `{tag}` suite not import"
+                + (f" `{module}`" if module else " its module")
+                + f"? Oracle: {summary}")
+    return (f"Why does `{name or key}` fail"
+            + (f" in `{module}`" if module else "")
+            + f"? Oracle: {summary}")
 
 
 _SIG_PATH_RE = re.compile(r"(?<![A-Za-z0-9_])/[^\s'\"():,]+")
@@ -397,16 +424,35 @@ class EvidenceGatekeeper:
     # Module checks after synthesis
     # ------------------------------------------------------------------ #
 
+    def static_check(self, source: str, filename: str = "<module>") -> Tuple[int, List[str], str]:
+        """The in-process undefined-name gate. Returns (exit_code, stderr_lines, note).
+
+        `py_compile` and `import` never execute a function body, so a name
+        that does not exist -- `mnf_err` in an f-string, `e` used after its
+        `except` handler -- passes both and only the oracle sees it (Gen 16
+        cohort run 2, finding #8). The checker is a reader, not a runner: no
+        subprocess, no sandbox. If the checker itself crashes the step passes
+        with a note; a broken gate must not block every synthesis.
+        """
+        try:
+            findings = undefined_names(source, filename=filename)
+        except Exception as exc:  # the gate is best-effort
+            return 0, [], f"checker error ({type(exc).__name__}: {str(exc)[:120]}); step skipped"
+        if not findings:
+            return 0, [], f"no undefined names ({len(source.splitlines())} lines)"
+        return STATIC_CHECK_EXIT, describe_findings(findings), ""
+
     def verify_module(self, state: EpistemicState, module_path: str,
                       question_id: str = "", hypothesis_id: str = "") -> Evidence:
-        """Compiles, imports and (if the firm wrote tests) tests a module in the stage."""
+        """Compiles, imports, statically checks and (if the firm wrote tests) tests a module in the stage."""
         eid = state.new_evidence_id()
         rel = module_path.replace("\\", "/").lstrip("./")
         dotted = rel[:-3].replace("/", ".") if rel.endswith(".py") else rel.replace("/", ".")
         stage = self._build_stage()
-        steps: List[Tuple[str, List[str]]] = [
+        steps: List[Tuple[str, Optional[List[str]]]] = [
             ("py_compile", [self.python, "-m", "py_compile", rel]),
             ("import", [self.python, "-c", f"import importlib; importlib.import_module({dotted!r}); print('IMPORT_OK')"]),
+            ("static_check", None),   # in-process, see `static_check`
         ]
         if os.path.isdir(os.path.join(stage, "tests")):
             steps.append(("firm_tests", [self.python, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"]))
@@ -414,6 +460,7 @@ class EvidenceGatekeeper:
         err_chunks: List[str] = []
         exit_code = 0
         failed_step = ""
+        failure_note = ""
         isolated: Optional[bool] = None
         try:
             if not os.path.exists(os.path.join(stage, rel)):
@@ -421,6 +468,18 @@ class EvidenceGatekeeper:
                 err_chunks.append(f"{rel} is not present in the workspace")
             else:
                 for name, argv in steps:
+                    if argv is None:
+                        with open(os.path.join(stage, rel), "r", encoding="utf-8", errors="replace") as fh:
+                            source = fh.read()
+                        code, err_lines, note = self.static_check(source, filename=rel)
+                        out_chunks.append(f"[{name}] {note}")
+                        if err_lines:
+                            err_chunks.append(f"[{name}] " + "\n".join(err_lines))
+                        if code != 0:
+                            exit_code, failed_step = code, name
+                            failure_note = err_lines[0] + (f" (+{len(err_lines) - 1} more)" if len(err_lines) > 1 else "")
+                            break
+                        continue
                     res = self._run_in_stage(stage, argv)
                     isolated = res.get("network_isolated")
                     out_chunks.append(f"[{name}] {res.get('stdout', '')[:800]}")
@@ -432,8 +491,12 @@ class EvidenceGatekeeper:
         finally:
             shutil.rmtree(stage, ignore_errors=True)
         passed = exit_code == 0
-        detail = ("module check passed: " + ", ".join(n for n, _ in steps)) if passed \
-            else f"module check failed at {failed_step} (exit {exit_code})"
+        if passed:
+            detail = "module check passed: " + ", ".join(n for n, _ in steps)
+        elif failure_note:
+            detail = f"module check failed at {failed_step}: {failure_note}"
+        else:
+            detail = f"module check failed at {failed_step} (exit {exit_code})"
         return Evidence(
             evidence_id=eid, kind="module_check", hypothesis_id=hypothesis_id,
             question_id=question_id, command=f"verify_module {rel}", exit_code=exit_code,
@@ -445,6 +508,11 @@ class EvidenceGatekeeper:
                         hypothesis: Hypothesis, evidence: Evidence) -> float:
         """Records a post-synthesis module check and moves the question to RESOLVED if it passed."""
         state.record_evidence(evidence, self.authority)
+        # The next synthesis attempt is prompted with the hypothesis' evidence;
+        # a failed module check must be in it even if the evidence was built
+        # without the hypothesis id.
+        if evidence.evidence_id not in hypothesis.evidence_ids:
+            hypothesis.evidence_ids.append(evidence.evidence_id)
         if not evidence.matched_prediction:
             hypothesis.synthesis_failures += 1
             return 0.0
@@ -456,10 +524,44 @@ class EvidenceGatekeeper:
     # Oracle reconciliation (the one source that outranks probes)
     # ------------------------------------------------------------------ #
 
+    @staticmethod
+    def failure_changed(old: str, new: str) -> Tuple[bool, bool]:
+        """(shape_changed, message_changed) between two oracle lines for one failure key.
+
+        The *shape* is `failure_signature` -- exception class and message with
+        numbers, quoted literals, paths and addresses normalised away. A new
+        shape means the firm is now looking at a different error (finding #8:
+        `UnboundLocalError: ... 'e'` became `NameError: name 'mnf_err' ...`)
+        and starts a new epoch. A message that differs only in a literal
+        (`0 != 4` -> `1 != 4`, a fresh temp path) is the same error with new
+        numbers: the question text is updated so the proposer reads the
+        current message, but nothing the firm learnt is thrown away --
+        otherwise a sandbox path in an assertion would reset the tabu list
+        every iteration. When neither line carries a signature (suite-import
+        lines) the summary decides.
+        """
+        if not old:
+            return False, False
+        old_sig, new_sig = failure_signature(old), failure_signature(new)
+        message_changed = failure_summary(old) != failure_summary(new)
+        if old_sig or new_sig:
+            return old_sig != new_sig, message_changed
+        return message_changed, message_changed
+
     def reconcile_with_oracle(self, state: EpistemicState, failures: Iterable[str],
-                              iteration: int = 0, default_module: str = "") -> Dict[str, Any]:
-        """Certifies questions whose failure vanished, reopens those that did not, seeds new ones."""
+                              iteration: int = 0, default_module: str = "",
+                              locations: Optional[Mapping[str, str]] = None) -> Dict[str, Any]:
+        """Certifies questions whose failure vanished, reopens those that did not, seeds new ones.
+
+        `locations` maps an oracle failure line to where its traceback ended
+        inside the firm's code (`hae/evaluation/harness.py:212 in _run_pytest`,
+        from `benchmark.failure_locations`); it is stored on the question at
+        seeding and refresh and shown to the proposer. A question whose
+        failure line changed *shape* since the last oracle run is refreshed
+        (`refreshed`): new text, new epoch, uncertainty back up, OPEN again.
+        """
         failures = [str(f) for f in (failures or []) if str(f).strip()]
+        locations = dict(locations or {})
         now: Dict[str, str] = {}
         for f in failures:
             key, _, _ = failure_key(f)
@@ -475,6 +577,8 @@ class EvidenceGatekeeper:
 
         certified: List[str] = []
         reopened: List[str] = []
+        refreshed: List[str] = []
+        reworded: List[str] = []
         seeded: List[str] = []
         for q in list(state.questions.values()):
             if not q.source_failure_key or q.status == "CERTIFIED":
@@ -490,7 +594,9 @@ class EvidenceGatekeeper:
                               [evidence.evidence_id], certified_by="oracle", authority=self.authority)
                 certified.append(q.question_id)
                 continue
-            q.source_failure = now[q.source_failure_key]
+            line = now[q.source_failure_key]
+            location = str(locations.get(line, "") or "")
+            shape_changed, message_changed = self.failure_changed(q.source_failure, line)
             if q.status == Q_RESOLVED:
                 # The patch landed and the module checks passed, yet the oracle
                 # still fails: whatever was supported was not the whole story.
@@ -501,28 +607,31 @@ class EvidenceGatekeeper:
                 state.reopen_question(q.question_id, q.initial_uncertainty * REOPEN_FRACTION,
                                       evidence.evidence_id, self.authority)
                 reopened.append(q.question_id)
+            if shape_changed:
+                # Finding #8: the error the firm is chasing is not the one in
+                # its question any more. New text, new epoch, back to open. A
+                # location from the old traceback is stale, so "" clears it.
+                state.refresh_question(q.question_id, question_text(line, q.module), line,
+                                       q.initial_uncertainty * REOPEN_FRACTION, evidence.evidence_id,
+                                       self.authority, location=location)
+                refreshed.append(q.question_id)
+                continue
+            if message_changed:
+                q.text = " ".join(question_text(line, q.module).split())
+                reworded.append(q.question_id)
+            q.source_failure = line
+            if location:
+                q.location = location
         known = {q.source_failure_key for q in state.questions.values() if q.source_failure_key}
         for key, line in now.items():
             if key in known:
                 continue
-            _, tag, name = failure_key(line)
+            _, tag, _ = failure_key(line)
             module = self.module_for_tag.get(tag, default_module) if tag else default_module
-            summary = failure_summary(line)
-            if summary.startswith("[") and "]" in summary:
-                summary = summary.split("]", 1)[1].strip()
-            if name == SUITE_IMPORT_NAME:
-                # The suite could not import its module at all -- usually the
-                # file does not exist yet. The question must name the module so
-                # that the synthesis move creates *that* file.
-                text = (f"Why can the `{tag}` suite not import"
-                        + (f" `{module}`" if module else " its module")
-                        + f"? Oracle: {summary}")
-            else:
-                text = (f"Why does `{name or key}` fail"
-                        + (f" in `{module}`" if module else "")
-                        + f"? Oracle: {summary}")
-            q = state.add_question(text=text, module=module, uncertainty=1.0,
-                                   source_failure_tag=tag, source_failure_key=key, source_failure=line)
+            q = state.add_question(text=question_text(line, module), module=module, uncertainty=1.0,
+                                   source_failure_tag=tag, source_failure_key=key, source_failure=line,
+                                   location=str(locations.get(line, "") or ""))
             seeded.append(q.question_id)
         return {"evidence_id": evidence.evidence_id, "certified": certified,
-                "reopened": reopened, "seeded": seeded, "failing_now": len(now)}
+                "reopened": reopened, "refreshed": refreshed, "reworded": reworded,
+                "seeded": seeded, "failing_now": len(now)}

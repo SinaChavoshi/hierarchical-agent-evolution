@@ -278,9 +278,27 @@ class Evidence:
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
+def failure_summary(failure: str, limit: int = 220) -> str:
+    """The exception part of an oracle line (`... -> ExcClass: message`), for display."""
+    failure = failure or ""
+    tail = failure.split("->", 1)[1].strip() if "->" in failure else failure.strip()
+    return " ".join(tail.split())[:limit]
+
+
 @dataclass
 class Question:
-    """Something the firm does not know, with how much it does not know it."""
+    """Something the firm does not know, with how much it does not know it.
+
+    `failure_epoch` counts how many times the oracle's failure behind this
+    question has *changed shape* (Gen 16 cohort run 2, finding #8: a synthesis
+    turned an `UnboundLocalError` into a `NameError`, the question kept its old
+    text, and the firm spent three iterations hypothesising about an error
+    that no longer existed). `failure_history` keeps the superseded oracle
+    lines, one per earlier epoch, so an auditor can read what each falsified
+    hypothesis was actually tested against. `location` is where the oracle's
+    traceback ended inside the firm's own code, when the benchmark could
+    tell: `hae/evaluation/harness.py:212 in _run_pytest`.
+    """
 
     question_id: str
     text: str
@@ -293,6 +311,9 @@ class Question:
     status: str = Q_OPEN
     hypothesis_ids: List[str] = field(default_factory=list)
     hypothesis_rounds: int = 0
+    failure_epoch: int = 0
+    failure_history: List[str] = field(default_factory=list)
+    location: str = ""
     created_at: float = field(default_factory=_now)
 
     def __post_init__(self) -> None:
@@ -300,10 +321,21 @@ class Question:
             raise LedgerError(f"Question.status must be one of {QUESTION_STATUSES}")
         self.uncertainty = max(0.0, min(1.0, float(self.uncertainty)))
         self.initial_uncertainty = max(0.0, min(1.0, float(self.initial_uncertainty)))
+        self.failure_epoch = max(0, int(self.failure_epoch or 0))
+        self.failure_history = [str(f) for f in (self.failure_history or [])]
+        self.location = str(self.location or "")
 
     @property
     def is_open(self) -> bool:
         return self.status in (Q_OPEN, Q_EXHAUSTED)
+
+    def failure_for_epoch(self, epoch: int) -> str:
+        """The oracle line this question carried during `epoch` ("" if unknown)."""
+        if epoch == self.failure_epoch:
+            return self.source_failure
+        if 0 <= epoch < len(self.failure_history):
+            return self.failure_history[epoch]
+        return ""
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -336,6 +368,11 @@ class Hypothesis:
     synthesis_failures: int = 0
     probe_rejections: int = 0
     last_rejection: str = ""
+    # The question's `failure_epoch` when this hypothesis was proposed. A
+    # falsification only rules the mechanism out for the oracle failure it was
+    # tested against; once that failure changes shape the mechanism is
+    # proposable again (see `EpistemicState.tabu_match`).
+    epoch: int = 0
     created_at: float = field(default_factory=_now)
 
     def __post_init__(self) -> None:
@@ -343,6 +380,7 @@ class Hypothesis:
             raise LedgerError(f"Hypothesis.status must be one of {HYPOTHESIS_STATUSES}")
         self.prior = clamp_prior(self.prior)
         self.posterior = max(0.0, min(1.0, float(self.posterior)))
+        self.epoch = max(0, int(self.epoch or 0))
         if not self.mechanism_signature:
             self.mechanism_signature = mechanism_signature(self.claim, self.mechanism)
 
@@ -389,6 +427,9 @@ class FalsifiedBelief:
     claim: str
     mechanism_signature: str
     killing_evidence_id: str
+    # Copied from the hypothesis: which of the question's oracle failures the
+    # mechanism was ruled out against. Tabu only for that epoch.
+    epoch: int = 0
     created_at: float = field(default_factory=_now)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -459,7 +500,7 @@ class EpistemicState:
 
     def add_question(self, text: str, module: str = "", uncertainty: float = 1.0,
                      source_failure_tag: str = "", source_failure_key: str = "",
-                     source_failure: str = "") -> Question:
+                     source_failure: str = "", location: str = "") -> Question:
         """Registers a question. Idempotent on (module, failure key | text)."""
         text = " ".join(str(text).split())
         if not text:
@@ -476,6 +517,7 @@ class EpistemicState:
             source_failure_tag=source_failure_tag,
             source_failure_key=source_failure_key,
             source_failure=source_failure,
+            location=str(location or ""),
         )
         self.questions[q.question_id] = q
         return q
@@ -506,6 +548,7 @@ class EpistemicState:
             probe_code=str(probe_code or ""),
             prediction=dict(prediction or {}),
             proposed_by=proposed_by,
+            epoch=self.questions[question_id].failure_epoch,
         )
         self.hypotheses[h.hypothesis_id] = h
         self.questions[question_id].hypothesis_ids.append(h.hypothesis_id)
@@ -562,6 +605,16 @@ class EpistemicState:
                 return e
         return None
 
+    def belief_is_current(self, belief: FalsifiedBelief) -> bool:
+        """Was this mechanism ruled out against the question's *current* oracle failure?
+
+        A belief whose question has since changed epoch (the oracle now fails
+        differently) is history, not tabu: the probe that killed it was run
+        against a symptom that no longer exists.
+        """
+        q = self.questions.get(belief.question_id)
+        return q is None or int(belief.epoch) == int(q.failure_epoch)
+
     def tabu_match(self, signature: str, question_id: Optional[str] = None,
                    claim: str = "") -> Optional[FalsifiedBelief]:
         """The ruled-out belief this signature collides with, if any.
@@ -570,11 +623,16 @@ class EpistemicState:
         hypothesis for a different failure. Pass `question_id=None` to match
         across the whole ledger. Pass the proposal's `claim` as well so a
         re-proposal that keeps the claim but rewords the mechanism is caught.
+        Only beliefs falsified against the question's current oracle failure
+        count (`belief_is_current`); earlier epochs stay in `ruled_out` as
+        history but no longer block a proposal.
         """
         if not signature:
             return None
         for belief in self.ruled_out:
             if question_id is not None and belief.question_id != question_id:
+                continue
+            if not self.belief_is_current(belief):
                 continue
             if same_mechanism(belief.mechanism_signature, signature, belief.claim, claim):
                 return belief
@@ -638,6 +696,7 @@ class EpistemicState:
                     claim=h.claim,
                     mechanism_signature=h.mechanism_signature,
                     killing_evidence_id=evidence_id,
+                    epoch=h.epoch,
                 ))
         return h
 
@@ -698,6 +757,41 @@ class EpistemicState:
         q = self.questions[question_id]
         q.status = Q_OPEN
         q.uncertainty = max(q.uncertainty, max(0.0, min(1.0, float(uncertainty))))
+        return q
+
+    def refresh_question(self, question_id: str, text: str, source_failure: str,
+                         uncertainty: float, evidence_id: str, authority: Any,
+                         location: Optional[str] = None) -> Question:
+        """The oracle's failure behind a question has changed shape: start a new epoch.
+
+        Gen 16 cohort run 2, finding #8. The question's text is rebuilt around
+        the new oracle line, the old line is archived in `failure_history`,
+        `failure_epoch` advances (so mechanisms falsified against the old
+        symptom stop being tabu and the summary files them as history),
+        uncertainty rises to at least `uncertainty` -- oracle evidence is the
+        one source allowed to raise it -- an EXHAUSTED or RESOLVED question is
+        OPEN again, and `hypothesis_rounds` resets so a proposer may propose.
+        Requires oracle evidence on the log, like `reopen_question`.
+        """
+        _require_authority(authority, "refresh_question")
+        ev = self.evidence_by_id(evidence_id)
+        if ev is None or ev.kind != "oracle":
+            raise LedgerError("Only oracle evidence may refresh a question")
+        q = self.questions[question_id]
+        if q.status == Q_CERTIFIED:
+            raise LedgerError(f"{question_id} is CERTIFIED; a certified question is not refreshed")
+        text = " ".join(str(text or "").split())
+        if not text:
+            raise LedgerError("A refreshed question needs text")
+        q.failure_history.append(q.source_failure)
+        q.failure_epoch += 1
+        q.source_failure = str(source_failure or "")
+        q.text = text
+        if location is not None:
+            q.location = str(location or "")
+        q.uncertainty = max(q.uncertainty, max(0.0, min(1.0, float(uncertainty))))
+        q.status = Q_OPEN
+        q.hypothesis_rounds = 0
         return q
 
     def certify(self, question_id: str, hypothesis_id: str, statement: str,
@@ -818,8 +912,12 @@ class EpistemicState:
         """A compact, human-readable ledger view for prompts and logs.
 
         This is what a System 1 proposer is shown: what is settled, what has
-        been ruled out (so it does not propose it again), what is open, and
-        which probes the gatekeeper refused to run (so it can repair them).
+        been ruled out (so it does not propose it again), what is open -- with
+        the oracle's *current* failure line and, when known, where its
+        traceback ended -- and which probes the gatekeeper refused to run (so
+        it can repair them). Mechanisms falsified against an earlier shape of
+        a question's oracle failure are history, not tabu, and are collapsed
+        into one line so the proposer is not told to avoid them.
         """
         lines: List[str] = [f"EPISTEMIC LEDGER for {self.company_id} "
                             f"(uncertainty {self.total_uncertainty():.2f}/{self.initial_uncertainty():.2f})"]
@@ -831,19 +929,43 @@ class EpistemicState:
                 lines.append(f"  + [{f.certified_by}] {f.statement}")
         ruled = [b for b in self.ruled_out
                  if question_id is None or b.question_id == question_id]
-        if ruled:
+        current = [b for b in ruled if self.belief_is_current(b)]
+        earlier = [b for b in ruled if not self.belief_is_current(b)]
+        if current:
             lines.append("RULED OUT (falsified; do NOT propose again):")
-            for b in ruled[-max_items:]:
+            for b in current[-max_items:]:
                 lines.append(f"  - {b.claim}")
+        if earlier:
+            old_summaries: List[str] = []
+            for b in earlier:
+                q_old = self.questions.get(b.question_id)
+                s = failure_summary(q_old.failure_for_epoch(b.epoch), limit=120) if q_old else ""
+                if s and s not in old_summaries:
+                    old_summaries.append(s)
+            lines.append(f"RULED OUT (history): {len(earlier)} earlier mechanism(s) were falsified against a "
+                         f"previous oracle failure ({' / '.join(old_summaries[:2]) or 'unknown'}) and are not "
+                         f"listed; they may be proposed again if they explain the CURRENT failure.")
         qs = [q for q in self.questions.values()
               if (question_id is None and q.is_open) or q.question_id == question_id]
         if qs:
             lines.append("OPEN QUESTIONS:")
             for q in qs[:max_items]:
                 lines.append(f"  ? {q.question_id} [{q.module}] u={q.uncertainty:.2f} {q.text}")
+                if q.source_failure:
+                    lines.append(f"      CURRENT ORACLE FAILURE: {q.source_failure[:400]}")
+                if q.location:
+                    lines.append(f"      Oracle traceback ends at: {q.location}")
+                if q.failure_epoch > 0:
+                    prev = failure_summary(q.failure_for_epoch(q.failure_epoch - 1), limit=160) or "unknown"
+                    lines.append(f"      ORACLE FAILURE CHANGED {q.failure_epoch} time(s) (epoch {q.failure_epoch}); "
+                                 f"it previously read: {prev}. Reason about the CURRENT failure above.")
                 for h in self.hypotheses_for(q.question_id)[-max_items:]:
+                    superseded = h.epoch != q.failure_epoch
+                    if superseded and h.status == FALSIFIED:
+                        continue  # counted in the RULED OUT history line
                     lines.append(f"      {h.hypothesis_id} {h.status:<10} prior={h.prior:.2f} "
-                                 f"post={h.posterior:.2f} {h.claim}")
+                                 f"post={h.posterior:.2f} {h.claim}"
+                                 + (" (proposed against the previous oracle failure)" if superseded else ""))
                     if h.status == UNTESTABLE and h.last_rejection:
                         lines.append(f"          PROBE REFUSED ({h.last_rejection}). Re-propose this mechanism "
                                      f"with a corrected probe_lines array if you still believe it.")

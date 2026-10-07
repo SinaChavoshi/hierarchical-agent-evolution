@@ -55,6 +55,7 @@ class _FakeRunner:
     """Records which entry point each iteration used."""
 
     log = []
+    locations_seen = []
 
     def __init__(self, genome, **kw):
         self.genome = genome
@@ -82,8 +83,10 @@ class _FakeRunner:
         _FakeRunner.log.append(("run", None))
         return self._record()
 
-    def run_epistemic_search(self, objective, failures, iteration=2, max_iterations=1):
+    def run_epistemic_search(self, objective, failures, iteration=2, max_iterations=1,
+                             locations=None):
         _FakeRunner.log.append(("search", list(failures)))
+        _FakeRunner.locations_seen.append(dict(locations or {}))
         assert "GROUND-TRUTH VERIFIER FEEDBACK" in objective
         if self.epistemic_state is None:
             self.epistemic_state = _FakeLedger()
@@ -92,11 +95,12 @@ class _FakeRunner:
         out["epistemic_ledger"] = self.epistemic_state.to_dict()
         return out
 
-    def reconcile_epistemic_state(self, failures, iteration):
+    def reconcile_epistemic_state(self, failures, iteration, locations=None):
         if self.epistemic_state is None:
             self.epistemic_state = _FakeLedger()
         self.epistemic_state.reconciled.append((iteration, list(failures)))
-        return {"certified": [], "reopened": [], "seeded": []}
+        _FakeRunner.locations_seen.append(dict(locations or {}))
+        return {"certified": [], "reopened": [], "refreshed": [], "seeded": []}
 
     def epistemic_audit(self, token_usage=0):
         return {"questions": 1, "questions_certified": 1, "hypotheses_tested": 2,
@@ -123,8 +127,12 @@ class _FakeVerifier:
         score = self.scores[min(self.n, len(self.scores) - 1)]
         self.n += 1
         failures = [] if score >= 100.0 else [f"[artifact_hygiene] FAIL: test_{self.n} -> AssertionError"]
+        evidence = {"failures": failures}
+        if failures:
+            # What BenchmarkResult.to_dict() emits when a traceback ended in the firm's code.
+            evidence["failure_locations"] = {failures[0]: "hae/evaluation/artifacts.py:12 in sanitize_path"}
         return VerificationOutcome(evaluable=True, score=score, verifier=self.name,
-                                   detail=f"{score}", evidence={"failures": failures})
+                                   detail=f"{score}", evidence=evidence)
 
 
 class _FakeJudge:
@@ -162,6 +170,7 @@ class WorkerDispatchTest(unittest.TestCase):
         self.tmp = tempfile.mkdtemp(prefix="hae_epi_worker_")
         self.addCleanup(shutil.rmtree, self.tmp, True)
         _FakeRunner.log = []
+        _FakeRunner.locations_seen = []
         _FakeJudge.seen = []
         self._real = (w.HierarchicalCompanyRunner, w.StrategicFitnessEvaluator)
         w.HierarchicalCompanyRunner = _FakeRunner
@@ -188,6 +197,10 @@ class WorkerDispatchTest(unittest.TestCase):
         # The search is fed the oracle's failures from the best iteration so far.
         self.assertTrue(all(f for _, f in _FakeRunner.log[1:]))
         self.assertIn("[artifact_hygiene]", _FakeRunner.log[1][1][0])
+        # ...together with where each failure's traceback ended, keyed by that failure.
+        first_failure = _FakeRunner.log[1][1][0]
+        self.assertEqual(_FakeRunner.locations_seen[0],
+                         {first_failure: "hae/evaluation/artifacts.py:12 in sanitize_path"})
         # The audit reached the evaluator and the scorecard.
         self.assertIsNotNone(_FakeJudge.seen[-1]["epistemic_audit"])
         self.assertEqual(res["epistemic_audit"]["questions_certified"], 1)
