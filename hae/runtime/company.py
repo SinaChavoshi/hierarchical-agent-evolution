@@ -24,7 +24,7 @@ from hae.epistemic.moves import (
     apply_repair_plan, extract_json_object, function_rewrite_schema, list_definitions,
     parse_function_rewrite, parse_hypothesis_packet, parse_repair_plan,
 )
-from hae.epistemic.value import EpistemicValueFunction
+from hae.epistemic.value import EpistemicValueFunction, load_policy_heads
 
 # V5 TypeSafe AI Hardware-Enforced JSON Schemas (vLLM xgrammar Constrained Decoding)
 V5_CEO_DIRECTIVE_SCHEMA: Dict[str, Any] = {
@@ -1529,8 +1529,10 @@ class HierarchicalCompanyRunner:
 
         gatekeeper = self._make_gatekeeper(policy)
         seed_material = f"{self.genome.company_id}:{iteration}".encode("utf-8")
+        # V7 heads, shadow mode unless `extra` says otherwise; a bad path is logged, never fatal.
+        heads = load_policy_heads(policy.extra, logger=lambda m: print(f"[epistemic] {self.genome.company_id} {m}", flush=True))
         loop = EpistemicSearchLoop(
-            state, gatekeeper, EpistemicValueFunction(policy.value_alpha), policy,
+            state, gatekeeper, EpistemicValueFunction(policy.value_alpha, head=heads.value_head if heads.value_head_live else None), policy,
             propose_hypotheses=self._propose_hypotheses_adapter(agents["hypothesis"], objective, policy),
             synthesize_patch=self._synthesize_patch_adapter(agents["synthesis"], objective),
             # A synthesis whose module check fails is rolled back to the
@@ -1549,6 +1551,7 @@ class HierarchicalCompanyRunner:
             logger=lambda msg: print(
                 f"[epistemic] {self.genome.company_id} "
                 f"{msg[len('[epistemic] '):] if msg.startswith('[epistemic] ') else msg}", flush=True),
+            prior_head=heads.prior_head, prior_head_weight=heads.prior_head_weight, value_head=heads.value_head,
         )
         result = loop.run(policy.search_budget_moves)
         search = result.to_dict()

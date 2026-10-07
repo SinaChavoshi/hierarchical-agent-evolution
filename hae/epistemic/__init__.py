@@ -29,8 +29,9 @@ from hae.epistemic.moves import (
     parse_hypothesis_packet, parse_question_packet,
 )
 from hae.epistemic.value import (
-    FEATURE_NAMES, EpistemicValueFunction, LearnedValueHead,
-    brier_score, calibration_report, epistemic_features,
+    FEATURE_NAMES, HYPOTHESIS_FEATURE_NAMES, EpistemicValueFunction, HypothesisPriorHead,
+    LearnedValueHead, LogisticHead, PolicyHeads, brier_score, calibration_report,
+    epistemic_features, hypothesis_features, load_policy_heads,
 )
 from hae.epistemic.genes import crossover_epistemic_policy, mutate_epistemic_policy
 from hae.genome.schema import EpistemicPolicyGene
@@ -44,8 +45,9 @@ __all__ = [
     "EpistemicSearchLoop", "SearchResult",
     "V6_HYPOTHESIS_SCHEMA", "V6_QUESTION_SCHEMA", "HypothesisProposal", "QuestionProposal",
     "parse_hypothesis_packet", "parse_question_packet",
-    "FEATURE_NAMES", "EpistemicValueFunction", "LearnedValueHead",
-    "brier_score", "calibration_report", "epistemic_features",
+    "FEATURE_NAMES", "HYPOTHESIS_FEATURE_NAMES", "EpistemicValueFunction", "HypothesisPriorHead",
+    "LearnedValueHead", "LogisticHead", "PolicyHeads", "brier_score", "calibration_report",
+    "epistemic_features", "hypothesis_features", "load_policy_heads",
     "EpistemicPolicyGene", "crossover_epistemic_policy", "mutate_epistemic_policy",
     "build_epistemic_audit",
 ]

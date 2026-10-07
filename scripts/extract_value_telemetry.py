@@ -30,7 +30,11 @@ move_index, move_type, agent_role, question_id, hypothesis_id,
 forced_low_prior (1/0), delta_u, value_before, value_after, one `f_<name>`
 column per feature (`hae.epistemic.value.FEATURE_NAMES`, discovered from the
 data so a schema change adds columns instead of dropping them), the
-hypothesis' stated prior, and the terminal columns.
+hypothesis' stated prior, the terminal columns and -- only when some move
+carries `MoveRecord.extra` (V7 shadow-mode heads) -- one `x_<key>` column per
+extra key (`x_head_p`, `x_head_rank`, `x_stated_rank`, `x_prior_head_weight`,
+`x_head_v`; empty on moves without it). Pre-V7 trees produce the same CSV as
+before.
 
 `terminal_outcome` -- exactly how it is derived:
   * if the move names a hypothesis present in the final ledger: that
@@ -114,8 +118,15 @@ def iter_moves(tree: Dict[str, Any]) -> Iterator[Tuple[Dict[str, Any], Optional[
             yield move, search.get("iteration")
 
 
-def flatten_tree(tree: Dict[str, Any], label: str, feature_names: List[str]) -> List[Dict[str, Any]]:
-    """One row per move. Extends `feature_names` in place with any new feature."""
+def flatten_tree(tree: Dict[str, Any], label: str, feature_names: List[str],
+                 extra_names: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    """One row per move. Extends `feature_names` (and `extra_names`) in place with any new key.
+
+    `extra_names` collects the keys of `MoveRecord.extra` (V7 shadow telemetry:
+    `head_p`, `head_rank`, `stated_rank`, `prior_head_weight`, `head_v`),
+    emitted as `x_<key>` columns. Pre-V7 trees have no `extra`, so nothing is
+    discovered and their CSV is unchanged.
+    """
     ledger = tree.get("ledger") or {}
     hyps = {h.get("hypothesis_id"): h for h in ledger.get("hypotheses") or []}
     questions = {q.get("question_id"): q for q in ledger.get("questions") or []}
@@ -144,6 +155,12 @@ def flatten_tree(tree: Dict[str, Any], label: str, feature_names: List[str]) -> 
             if name not in feature_names:
                 feature_names.append(name)
             row[f"f_{name}"] = value
+        extra = move.get("extra") or {}
+        if extra_names is not None and isinstance(extra, dict):
+            for name, value in extra.items():
+                if name not in extra_names:
+                    extra_names.append(name)
+                row[f"x_{name}"] = value
         rows.append(row)
     return rows
 
@@ -220,6 +237,7 @@ def main(argv: Optional[List[str]] = None) -> Dict[str, Any]:
 
     rows: List[Dict[str, Any]] = []
     feature_names: List[str] = []
+    extra_names: List[str] = []
     hypotheses: List[Dict[str, Any]] = []
     trees = without_ledger = unreadable = 0
     for label, path in find_trees(roots):
@@ -236,9 +254,10 @@ def main(argv: Optional[List[str]] = None) -> Dict[str, Any]:
         if not tree.get("ledger"):
             without_ledger += 1
         hypotheses.extend((tree.get("ledger") or {}).get("hypotheses") or [])
-        rows.extend(flatten_tree(tree, label, feature_names))
+        rows.extend(flatten_tree(tree, label, feature_names, extra_names))
 
-    columns = list(HEAD_COLUMNS) + [f"f_{n}" for n in feature_names] + list(TAIL_COLUMNS)
+    columns = (list(HEAD_COLUMNS) + [f"f_{n}" for n in feature_names] + list(TAIL_COLUMNS)
+               + [f"x_{n}" for n in extra_names])
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, "w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=columns, restval="")
