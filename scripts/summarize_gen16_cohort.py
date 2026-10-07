@@ -51,8 +51,20 @@ SEARCH_STAT_KEYS = (
     "experiments", "supported", "falsified", "inconclusive", "rejected_probes", "probe_repairs",
     "forced_low_prior_picks", "forced_low_prior_wins", "syntheses", "syntheses_verified", "syntheses_unwritten",
     "syntheses_by_plan", "syntheses_authored", "synthesis_noop_retries", "synthesis_noop_recoveries",
+    # day-2 synthesis ladder (run 3+): function-level rewrites, skipped whole-module
+    # rewrites, reverts after a failed module check, and wall-clock spent synthesising.
+    "syntheses_by_function", "synthesis_rewrites_skipped", "syntheses_reverted", "synthesis_seconds",
     "frontier_admissions", "questions_deferred", "questions_asked", "proposer_errors",
 )
+# Stats that are durations, pooled as floats; everything else is a count.
+FLOAT_STAT_KEYS = ("synthesis_seconds",)
+
+
+def _pool_stat(pooled: Dict[str, Any], key: str, value: Any) -> None:
+    if key in FLOAT_STAT_KEYS:
+        pooled[key] = round(pooled.get(key, 0.0) + float(value), 3)
+    else:
+        pooled[key] = pooled.get(key, 0) + int(value)
 AUDIT_KEYS = (
     "questions", "questions_open", "questions_resolved", "questions_certified", "questions_exhausted",
     "questions_deferred", "frontier_admissions", "hypotheses", "hypotheses_tested", "hypotheses_supported",
@@ -95,12 +107,12 @@ def write_trace(log_path: Optional[str], trace_path: str) -> Optional[str]:
     return trace_path
 
 
-def pooled_search_stats(searches: List[Dict[str, Any]]) -> Dict[str, int]:
-    pooled: Dict[str, int] = {}
+def pooled_search_stats(searches: List[Dict[str, Any]]) -> Dict[str, Any]:
+    pooled: Dict[str, Any] = {}
     for s in searches or []:
         for k, v in (s.get("stats") or {}).items():
-            if k in SEARCH_STAT_KEYS and isinstance(v, (int, float)):
-                pooled[k] = pooled.get(k, 0) + int(v)
+            if k in SEARCH_STAT_KEYS and isinstance(v, (int, float)) and not isinstance(v, bool):
+                _pool_stat(pooled, k, v)
     return pooled
 
 
@@ -166,10 +178,10 @@ def summarise_lineage(name: str, design: Dict[str, Any], runs: List[Dict[str, An
     done = [r for r in runs if r.get("trajectory")]
     finals = [r["final_tests"] for r in done if r.get("final_tests") is not None]
     g15 = design.get("gen15_trajectory") or []
-    pooled: Dict[str, int] = {}
+    pooled: Dict[str, Any] = {}
     for r in done:
         for k, v in (r.get("search_stats") or {}).items():
-            pooled[k] = pooled.get(k, 0) + int(v)
+            _pool_stat(pooled, k, v)
     return {
         "lineage": name, "role": design.get("role"), "seeds_planned": design.get("seeds"),
         "runs_with_results": len(done), "runs_total": len(runs),
@@ -239,10 +251,10 @@ def main():
         "gpu_node_hours": args.gpu_node_hours,
         "converged_runs": sum(1 for r in done if r.get("converged_at")),
     }
-    pooled_all: Dict[str, int] = {}
+    pooled_all: Dict[str, Any] = {}
     for r in done:
         for k, v in (r.get("search_stats") or {}).items():
-            pooled_all[k] = pooled_all.get(k, 0) + int(v)
+            _pool_stat(pooled_all, k, v)
     totals["pooled_search_stats"] = pooled_all
 
     summary = {"generation": 16, "experiment": "V6 epistemic-search cohort", "root": args.root,
@@ -275,8 +287,9 @@ def main():
 
     print("\n### V6 mechanics (pooled over the search iterations of each run)")
     print("| run | moves | frontier adm. / deferred | hyps acc. (tabu, dup) | exp. (S/F) | refused / repaired | "
-          "syntheses: plan / authored / total (verified) | no-op retries (recovered) | forced low-prior (wins) | Brier (n) |")
-    print("|---|---|---|---|---|---|---|---|---|---|")
+          "syntheses: plan / function / authored / total (verified) | no-op retries (recovered) | "
+          "rewrites skipped / reverted / synth min | forced low-prior (wins) | Brier (n) |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|")
     for cid, r in runs.items():
         s = r.get("search_stats")
         if not s:
@@ -286,8 +299,11 @@ def main():
               f"{s.get('hypotheses_accepted', 0)} ({s.get('tabu_rejections', 0)}, {s.get('duplicate_rejections', 0)}) | "
               f"{s.get('experiments', 0)} ({s.get('supported', 0)}/{s.get('falsified', 0)}) | "
               f"{s.get('rejected_probes', 0)} / {s.get('probe_repairs', 0)} | "
-              f"{s.get('syntheses_by_plan', 0)} / {s.get('syntheses_authored', 0)} / {s.get('syntheses', 0)} ({s.get('syntheses_verified', 0)}) | "
+              f"{s.get('syntheses_by_plan', 0)} / {s.get('syntheses_by_function', 0)} / {s.get('syntheses_authored', 0)} / "
+              f"{s.get('syntheses', 0)} ({s.get('syntheses_verified', 0)}) | "
               f"{s.get('synthesis_noop_retries', 0)} ({s.get('synthesis_noop_recoveries', 0)}) | "
+              f"{s.get('synthesis_rewrites_skipped', 0)} / {s.get('syntheses_reverted', 0)} / "
+              f"{float(s.get('synthesis_seconds', 0.0)) / 60.0:.0f} | "
               f"{s.get('forced_low_prior_picks', 0)} ({s.get('forced_low_prior_wins', 0)}) | "
               f"{fmt(a.get('calibration_brier'), 3)} ({fmt(a.get('calibration_tested'))}) |")
 
