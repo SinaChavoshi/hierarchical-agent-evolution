@@ -1,0 +1,81 @@
+# Track C — SWE-bench adapters (v8)
+
+Status: code + tests on `v8c-swebench`; **no container run executed yet** (no
+Docker/kubectl where this was written). Docker steps below are verified only
+through argv construction and the upstream docs cited at the end.
+
+## 1. Executor boundary
+
+The firm never touches a task repository directly. `hae/swebench/executor.py`
+defines `CommandExecutor` (`run`, `read_file`, `write_file`, `list_files`,
+`diff`, `changed_files`) with `LocalExecutor` (a directory; used by tests),
+`DockerExecutor` (`docker exec -w /testbed <container>`) and `KubectlExecutor`
+(`kubectl exec`). Why: the prebuilt instance images carry the exact Python env
+(`/opt/miniconda3/envs/testbed/bin/python`), the firm's image has no project
+deps, and the prediction must be a diff of *that* checkout — `export_prediction`
+is `git diff` after `git add -N`, excluding `.hae/` scratch and bytecode.
+Timeouts run inside the container (`timeout -k 5 <n>` when present) plus a
+host-side grace.
+
+## 2. Gatekeeper in executor mode (`hae/epistemic/gatekeeper.py`)
+
+`EvidenceGatekeeper(executor=..., test_command=None)`; with `executor=None` the
+class is byte-for-byte v7. In executor mode a probe is written to
+`.hae/probe_<id>.py` and run in the repo; `verify_module` runs in-memory
+compile → import → static check (new findings vs `git show HEAD:`) →
+*proximity tests*: at most 3 tracked `test_*.py`/`*_test.py`/`tests.py` files
+under a `tests/`, `test/` or `testing/` directory whose name contains the edited
+module's stem, shortest first. It never reads `FAIL_TO_PASS`/`PASS_TO_PASS`;
+`tests/test_swebench_dataset.py::LeakageTests` AST-scans
+runner/task/export/gatekeeper/executor for those names. Repos without pytest
+(django) get "skipped-pass" — pass `--test-command` for those.
+
+## 3. Grading information
+
+`SweTask` (instance_id, repo, base_commit, version, problem_statement,
+created_at, environment_setup_commit; hints_text="" unless `--include-hints`)
+is all the firm sees. `GradingInfo` (patch, test_patch, FAIL_TO_PASS,
+PASS_TO_PASS) is loaded only by `load_grading_info`, which no runtime module
+imports. Hidden tests run only in the upstream harness on `preds.jsonl`.
+
+## 4. Issue-seeded search (`hae/swebench/task.py`)
+
+One root question "Reproduce the reported behaviour: …" (uncertainty 1.0, key
+`swebench:<instance_id>`, module = best path in the statement, else "") plus
+≤3 sub-questions for paths the issue names (uncertainty 0.8, empty
+`source_failure` so each is its own frontier cluster). `reconcile_with_oracle`
+is never called. 134/225 dev statements name no path, so the runner has a
+LOCATE step (one JSON call) before proposing.
+
+## 5. Self-oracle — definition and weakness
+
+After each iteration that changed files, `reconcile_with_reproduction` re-runs
+the root question's SUPPORTED/CERTIFIED probes unchanged (each matched its
+prediction *of the buggy behaviour* before the patch).
+`bug_no_longer_reproduces(h)` := re-run completed (no timeout/transport error)
+**and** prediction no longer matches **and** exit 0. Any such probe ⇒ root
+RESOLVED (floor uncertainty), run stops; a probe that now crashes proves
+nothing. Otherwise questions resolved this iteration are reopened and their
+`patch_applied` hypotheses falsified; no supported root probe ⇒ `inconclusive`.
+Weakness: a probe can only disprove the behaviour it encoded — no regressions
+seen, satisfiable by an unrelated change. A stopping rule, not a grade.
+Non-fixing patches are still exported (an empty prediction scores 0 anyway).
+
+## 6. Running (VM with Docker; unverified here)
+
+```sh
+python3 scripts/fetch_swebench.py --check-images && python3 scripts/check_swebench_splits.py
+IID=marshmallow-code__marshmallow-1810; IMG=swebench/sweb.eval.x86_64.marshmallow-code_1776_marshmallow-1810:latest
+docker pull $IMG && docker run -d --name hae_$IID $IMG sleep infinity
+python3 scripts/run_swebench_instance.py --instance-id $IID --dataset data/swebench/swebench_dev.jsonl \
+    --executor docker --container hae_$IID --genome <firm.json> --out-dir results/swebench/<run>/$IID/
+docker rm -f hae_$IID
+python3 scripts/swebench_docker_batch.py --run-id <run> --genome <firm.json> --n 10 --workers 2  # resumable; writes preds.jsonl
+swebench eval verified -p results/swebench/<run>/preds.jsonl --run-id <run>   # dev ids: point at the dev dataset
+```
+
+`python -m hae.cli --mode swebench …` dispatches to the same runner. Sources:
+image rule `https://raw.githubusercontent.com/SWE-bench/SWE-bench/main/swebench/image_builder/image_spec.py`;
+CLI `https://raw.githubusercontent.com/SWE-bench/SWE-bench/main/README.md`;
+rows `https://datasets-server.huggingface.co/rows` (dev 225, Lite dev 23,
+Verified 500; Docker Hub: 175 dev images published, 41 not, 9 unknown).

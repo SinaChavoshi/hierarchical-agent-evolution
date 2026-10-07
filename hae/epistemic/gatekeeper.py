@@ -41,6 +41,23 @@ Oracle leakage, stated plainly: this gatekeeper never runs the held-out
 suites. Its only contact with the oracle is the list of failing test names
 the worker already shows the firm under V5, plus -- for V6 only -- where each
 failure's traceback ended inside the firm's own code.
+
+Executor mode (SWE-bench)
+-------------------------
+Given an `executor` (`hae.swebench.executor.CommandExecutor`) the repository
+under test is not this one and not on this disk: it is a task repository in a
+container, reached only through `executor.run / read_file / write_file`. The
+container *is* the sandbox, so there is no staged copy -- probes are written
+to `<repo_root>/.hae/probe_<hid>.py` and run in place, and a synthesised
+module is edited in place (the runner keeps `previous_source` for the
+revert). `verify_module` then compiles, imports, statically checks, and runs
+a *proximity* selection of the repository's own tests (`_proximity_tests`:
+file-name similarity only). The hidden FAIL_TO_PASS / PASS_TO_PASS lists are
+never read here or anywhere on the firm's path. `reconcile_with_reproduction`
+is the self-oracle: it re-runs the reproduction probes after a patch and is
+weaker than the hidden tests by construction (a probe can only disprove the
+behaviour it encoded). With `executor=None` nothing in this section runs and
+behaviour is byte-identical to before it existed.
 """
 
 from __future__ import annotations
@@ -51,7 +68,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
 
 from hae.epistemic.ledger import (
     CERTIFIED, FALSIFIED, Q_EXHAUSTED, Q_OPEN, Q_RESOLVED, SUPPORTED, UNVERIFIED,
@@ -59,6 +76,7 @@ from hae.epistemic.ledger import (
     failure_summary,
 )
 from hae.epistemic.static_check import describe_findings, undefined_names
+from hae.swebench.executor import SCRATCH_DIR
 
 # How strongly one matching probe moves a posterior toward 1. A single
 # experiment is strong evidence but not certification; only the oracle
@@ -81,6 +99,52 @@ INCONCLUSIVE = "inconclusive"
 PROBE_DIR = "_probe"
 MAX_PROBE_CHARS = 6000
 OUTPUT_CAP = 4000
+
+# Executor mode: a task repository's own tests may be slow (and compile
+# extensions); the self-oracle command string is matched by tests and docs.
+REPO_TESTS_TIMEOUT_S = 300
+MODULE_CHECK_TIMEOUT_S = 180
+PROXIMITY_LIMIT = 3
+SELF_ORACLE_COMMAND = "self-oracle: reproduction probe re-run after patch (NOT the hidden tests)"
+_TEST_DIR_NAMES = ("tests", "test", "testing")
+_SRC_DIR_NAMES = ("src", "lib", "python")
+# Runs inside the task environment: the syntax gate of `py_compile` without
+# its side effect (a .pyc written into the task repository, which an
+# un-ignored `__pycache__/` would then drag into the prediction).
+_COMPILE_SNIPPET = (
+    "import sys\n"
+    "p = sys.argv[1]\n"
+    "with open(p, 'rb') as fh:\n"
+    "    compile(fh.read(), p, 'exec')\n"
+    "print('COMPILE_OK', p)\n"
+)
+# Runs inside the task environment: tries the dotted name of a path (with a
+# leading src/-style directory stripped first), skips instead of failing when
+# the path simply is not importable as a module, and fails on any other error.
+_IMPORT_SNIPPET = (
+    "import importlib, sys\n"
+    "rel = sys.argv[1]\n"
+    "base = rel[:-3] if rel.endswith('.py') else rel\n"
+    "parts = [p for p in base.split('/') if p]\n"
+    "if parts and parts[-1] == '__init__':\n"
+    "    parts = parts[:-1]\n"
+    "cands = []\n"
+    f"if len(parts) > 1 and parts[0] in {_SRC_DIR_NAMES!r}:\n"
+    "    cands.append('.'.join(parts[1:]))\n"
+    "if parts:\n"
+    "    cands.append('.'.join(parts))\n"
+    "for name in [c for c in cands if c]:\n"
+    "    try:\n"
+    "        importlib.import_module(name)\n"
+    "        print('IMPORT_OK', name)\n"
+    "        sys.exit(0)\n"
+    "    except ModuleNotFoundError as exc:\n"
+    "        missing = getattr(exc, 'name', '') or ''\n"
+    "        if missing and (missing == name or name.startswith(missing + '.') or missing == name.split('.')[0]):\n"
+    "            continue\n"
+    "        raise\n"
+    "print('IMPORT_SKIPPED: no importable dotted name for', rel)\n"
+)
 
 # Same escape surface as `hae.runtime.company._touches_reference_tree`,
 # duplicated rather than imported so this module never depends on the
@@ -185,7 +249,15 @@ def failure_signature(failure: str, limit: int = 80) -> str:
 
 
 class EvidenceGatekeeper:
-    """Runs probes, compares them to predictions, and writes verdicts."""
+    """Runs probes, compares them to predictions, and writes verdicts.
+
+    `executor` / `test_command` switch on executor mode (see the module
+    docstring): `executor` is a `hae.swebench.executor.CommandExecutor` whose
+    `root` and `python` become the defaults for `repo_root` and
+    `python_executable`; `test_command` (argv list, or a string run with
+    `sh -c`) replaces the proximity heuristic in `verify_module`'s
+    `repo_tests` step. Both default to None, which is the pre-existing path.
+    """
 
     def __init__(self, workspace: Any, timeout_s: int = 20, max_probe_lines: int = 40,
                  graded_modules: Optional[Iterable[str]] = None,
@@ -193,7 +265,9 @@ class EvidenceGatekeeper:
                  repo_root: Optional[str] = None,
                  python_executable: Optional[str] = None,
                  isolate: bool = True, stage_reference: bool = True,
-                 logger: Callable[[str], None] = print) -> None:
+                 logger: Callable[[str], None] = print,
+                 executor: Optional[Any] = None,
+                 test_command: Optional[Union[str, Sequence[str]]] = None) -> None:
         self.workspace = workspace
         self.timeout_s = max(1, int(timeout_s))
         self.max_probe_lines = max(1, int(max_probe_lines))
@@ -202,6 +276,11 @@ class EvidenceGatekeeper:
         self.stage_reference = stage_reference
         self.logger = logger
         self.authority = GatekeeperAuthority("EvidenceGatekeeper")
+        self.executor = executor
+        self.test_command = test_command
+        if executor is not None:
+            repo_root = repo_root or getattr(executor, "root", None)
+            python_executable = python_executable or getattr(executor, "python", None)
         if repo_root is None:
             from hae.evaluation.benchmark import REPO_ROOT
             repo_root = REPO_ROOT
@@ -365,15 +444,18 @@ class EvidenceGatekeeper:
                 hypothesis_id=hypothesis.hypothesis_id, question_id=hypothesis.question_id,
                 command="", exit_code=-2, prediction=dict(hypothesis.prediction),
                 matched_prediction=False, detail=f"rejected: {reason}")
-        stage = self._build_stage()
-        probe_rel = f"{PROBE_DIR}/{hypothesis.hypothesis_id}.py"
-        try:
-            os.makedirs(os.path.join(stage, PROBE_DIR), exist_ok=True)
-            with open(os.path.join(stage, probe_rel), "w", encoding="utf-8") as fh:
-                fh.write(hypothesis.probe_code)
-            result = self._run_in_stage(stage, [self.python, probe_rel])
-        finally:
-            shutil.rmtree(stage, ignore_errors=True)
+        if self.executor is not None:
+            probe_rel, result = self._run_probe_exec(hypothesis)
+        else:
+            stage = self._build_stage()
+            probe_rel = f"{PROBE_DIR}/{hypothesis.hypothesis_id}.py"
+            try:
+                os.makedirs(os.path.join(stage, PROBE_DIR), exist_ok=True)
+                with open(os.path.join(stage, probe_rel), "w", encoding="utf-8") as fh:
+                    fh.write(hypothesis.probe_code)
+                result = self._run_in_stage(stage, [self.python, probe_rel])
+            finally:
+                shutil.rmtree(stage, ignore_errors=True)
         self.probes_run += 1
         matched, detail = self.match_prediction(hypothesis.prediction, result)
         return Evidence(
@@ -444,7 +526,14 @@ class EvidenceGatekeeper:
 
     def verify_module(self, state: EpistemicState, module_path: str,
                       question_id: str = "", hypothesis_id: str = "") -> Evidence:
-        """Compiles, imports, statically checks and (if the firm wrote tests) tests a module in the stage."""
+        """Compiles, imports, statically checks and (if the firm wrote tests) tests a module in the stage.
+
+        In executor mode (see module docstring) the same gate runs in place in
+        the task repository, with the repository's own nearby tests instead of
+        the firm's `tests/`; see `_verify_module_exec`.
+        """
+        if self.executor is not None:
+            return self._verify_module_exec(state, module_path, question_id, hypothesis_id)
         eid = state.new_evidence_id()
         rel = module_path.replace("\\", "/").lstrip("./")
         dotted = rel[:-3].replace("/", ".") if rel.endswith(".py") else rel.replace("/", ".")
@@ -635,3 +724,333 @@ class EvidenceGatekeeper:
         return {"evidence_id": evidence.evidence_id, "certified": certified,
                 "reopened": reopened, "refreshed": refreshed, "reworded": reworded,
                 "seeded": seeded, "failing_now": len(now)}
+
+    # ------------------------------------------------------------------ #
+    # Executor mode (SWE-bench): the task repository is the sandbox
+    # ------------------------------------------------------------------ #
+
+    def _exec_env(self) -> Dict[str, str]:
+        # `python .hae/probe.py` puts `.hae/` -- not the repo root -- first on
+        # sys.path; PYTHONPATH makes `import <package>` resolve to the edited
+        # checkout even where the package is not installed in the environment.
+        return {"PYTHONPATH": self.repo_root}
+
+    def _run_exec(self, argv: Sequence[str], timeout: Optional[float] = None,
+                  env: Optional[Mapping[str, str]] = None) -> Dict[str, Any]:
+        """`executor.run` in the repository root, reported in `_run_in_stage`'s dict shape."""
+        limit = float(timeout or self.timeout_s)
+        merged = self._exec_env()
+        if env:
+            merged.update(env)
+        try:
+            res = self.executor.run(list(argv), cwd=self.repo_root, timeout_s=limit, env=merged)
+        except Exception as exc:  # transport failure, not a verdict
+            return {"status": "error", "exit_code": -1, "stdout": "",
+                    "stderr": f"{type(exc).__name__}: {exc}", "network_isolated": None}
+        if getattr(res, "timed_out", False):
+            return {"status": "timeout", "exit_code": -1, "stdout": res.stdout or "",
+                    "stderr": (res.stderr or "").strip() or f"timed out after {limit:.0f}s", "network_isolated": None}
+        rc = int(res.rc)
+        if rc == -1:
+            return {"status": "error", "exit_code": -1, "stdout": res.stdout or "",
+                    "stderr": res.stderr or "", "network_isolated": None}
+        return {"status": "ok" if rc == 0 else "failed", "exit_code": rc,
+                "stdout": res.stdout or "", "stderr": res.stderr or "", "network_isolated": None}
+
+    def _rel_path(self, module_path: str) -> str:
+        rel = str(module_path).replace("\\", "/")
+        root = (self.repo_root or "").rstrip("/")
+        if root and rel.startswith(root + "/"):
+            rel = rel[len(root) + 1:]
+        while rel.startswith("./"):
+            rel = rel[2:]
+        return rel.lstrip("/")
+
+    def _run_probe_exec(self, hypothesis: Hypothesis) -> Tuple[str, Dict[str, Any]]:
+        """Writes the probe under `.hae/` in the task repository and runs it there."""
+        probe_rel = f"{SCRATCH_DIR}/probe_{hypothesis.hypothesis_id}.py"
+        try:
+            self.executor.write_file(probe_rel, hypothesis.probe_code)
+        except Exception as exc:
+            return probe_rel, {"status": "error", "exit_code": -1, "stdout": "",
+                               "stderr": f"could not write probe: {type(exc).__name__}: {exc}",
+                               "network_isolated": None}
+        return probe_rel, self._run_exec([self.python, probe_rel])
+
+    def _static_check_exec(self, rel: str) -> Tuple[int, List[str], str]:
+        """`static_check` on the current source, failing only on findings not already at HEAD.
+
+        Real repositories trip the conservative checker on pre-existing
+        constructs (star imports, `exec`-populated globals); a synthesis must
+        not be blocked by names it did not touch.
+        """
+        try:
+            source = self.executor.read_file(rel)
+        except Exception as exc:
+            return 0, [], f"could not read {rel} ({type(exc).__name__}); step skipped"
+        code, err_lines, note = self.static_check(source, filename=rel)
+        if code == 0:
+            return code, err_lines, note
+        base = self._run_exec(["git", "show", f"HEAD:{rel}"], timeout=60)
+        if int(base.get("exit_code", -1)) != 0:
+            return code, err_lines, note  # new file: every finding is new
+        try:
+            baseline = {(f.name, f.scope, f.kind) for f in undefined_names(str(base.get("stdout", "")), filename=rel)}
+            current = undefined_names(source, filename=rel)
+        except Exception:
+            return code, err_lines, note
+        new = [f for f in current if (f.name, f.scope, f.kind) not in baseline]
+        if not new:
+            return 0, [], f"{len(current)} finding(s) already present at HEAD, none introduced"
+        return STATIC_CHECK_EXIT, describe_findings(new), ""
+
+    def _proximity_tests(self, rel: str, limit: int = PROXIMITY_LIMIT) -> List[str]:
+        """Up to `limit` of the repository's own test files chosen by FILE-NAME proximity.
+
+        Candidates are tracked `test_*.py` / `*_test.py` / `tests.py` files
+        under a `tests/`, `test/` or `testing/` directory whose name contains
+        the module's stem (`__init__.py` uses its package directory; `tests.py`
+        matches on its directory names); shortest paths first. This is a
+        regression smoke test, nothing more: it does NOT and MUST NOT consult
+        the instance's FAIL_TO_PASS / PASS_TO_PASS lists or `test_patch` --
+        those are grading information (`hae.swebench.dataset.GradingInfo`) and
+        reading them here would be oracle leakage.
+        """
+        parts = [p for p in rel.split("/") if p]
+        if not parts:
+            return []
+        stem = parts[-1][:-3] if parts[-1].endswith(".py") else parts[-1]
+        if stem == "__init__":
+            stem = parts[-2] if len(parts) > 1 else ""
+        stem_l = stem.lower()
+        if not stem_l:
+            return []
+        listing = self._run_exec(["git", "ls-files"], timeout=60)
+        if int(listing.get("exit_code", -1)) != 0:
+            return []
+        found: List[str] = []
+        for line in str(listing.get("stdout", "")).splitlines():
+            path = line.strip()
+            if not path.endswith(".py") or path == rel:
+                continue
+            ps = path.split("/")
+            name, dirs = ps[-1][:-3], ps[:-1]
+            if not any(d in _TEST_DIR_NAMES for d in dirs):
+                continue
+            if not (name.startswith("test") or name.endswith("_test") or name.endswith("_tests")):
+                continue
+            if name in ("tests", "test"):
+                hay = [d.lower() for d in dirs]
+                match = any(stem_l == d or stem_l in d.split("_") for d in hay)
+            else:
+                tokens = [t for t in name.lower().split("_") if t]
+                match = stem_l in tokens or (len(stem_l) >= 4 and stem_l in name.lower())
+            if match:
+                found.append(path)
+        found.sort(key=lambda p: (len(p), p))
+        return found[:limit]
+
+    def _repo_tests_argv(self, rel: str) -> Tuple[List[str], List[str], str]:
+        """(argv, files, mode) for the `repo_tests` step; mode is test_command | proximity | none."""
+        if self.test_command:
+            if isinstance(self.test_command, str):
+                return ["sh", "-c", self.test_command], [], "test_command"
+            return list(self.test_command), [], "test_command"
+        files = self._proximity_tests(rel)
+        if not files:
+            return [], [], "none"
+        return [self.python, "-m", "pytest", "-x", "-q", "--no-header", "-p", "no:cacheprovider", *files], files, "proximity"
+
+    def _run_repo_tests(self, rel: str) -> Tuple[Dict[str, Any], str]:
+        """Runs the repository's nearby tests. Returns (result with a pass/fail exit_code, note).
+
+        Only an actual test failure (pytest exit 1, or any non-zero exit of an
+        explicit `test_command`) fails the step. "Nothing collected",
+        pytest usage/internal errors, a missing pytest and a timeout are
+        recorded as notes and pass: an inconclusive gate must not block every
+        synthesis, and the self-oracle still has to be convinced afterwards.
+        """
+        argv, files, mode = self._repo_tests_argv(rel)
+        if mode == "none":
+            return ({"status": "ok", "exit_code": 0, "stdout": "", "stderr": "", "network_isolated": None},
+                    f"no test file near {rel} by the proximity heuristic; step skipped")
+        res = self._run_exec(argv, timeout=REPO_TESTS_TIMEOUT_S)
+        rc = int(res.get("exit_code", -1))
+        text = str(res.get("stdout", "")) + str(res.get("stderr", ""))
+        if mode == "proximity" and rc == 4 and "unrecognized arguments" in text:
+            argv = [a for a in argv if a not in ("--no-header",)]
+            res = self._run_exec(argv, timeout=REPO_TESTS_TIMEOUT_S)
+            rc = int(res.get("exit_code", -1))
+            text = str(res.get("stdout", "")) + str(res.get("stderr", ""))
+        label = " ".join(files) if files else (argv[-1] if mode == "test_command" and argv[:2] == ["sh", "-c"] else " ".join(argv))
+        passed = dict(res, exit_code=0)
+        if res.get("status") == "timeout":
+            return passed, f"{mode} tests timed out after {REPO_TESTS_TIMEOUT_S}s; inconclusive, step skipped"
+        if res.get("status") == "error":
+            return passed, f"{mode} tests could not run ({str(res.get('stderr', ''))[:120]}); step skipped"
+        if "No module named pytest" in text:
+            return passed, "pytest is not installed in the task environment; step skipped"
+        if rc == 0:
+            return passed, f"{mode} tests passed: {label}"
+        if mode == "proximity" and rc == 5:
+            return passed, f"no tests collected from {label}; step skipped"
+        if mode == "proximity" and rc in (3, 4):
+            return passed, f"pytest exited {rc} (internal/usage error) on {label}; inconclusive, step skipped"
+        tail = [l.strip() for l in str(res.get("stdout", "")).splitlines() if l.strip()]
+        summary = next((l for l in reversed(tail) if "failed" in l or "error" in l.lower()), tail[-1] if tail else "")
+        return dict(res, exit_code=rc or 1), f"{mode} tests failed (exit {rc}): {label}" + (f" -- {summary[:160]}" if summary else "")
+
+    def _verify_module_exec(self, state: EpistemicState, module_path: str,
+                            question_id: str = "", hypothesis_id: str = "") -> Evidence:
+        """The module gate, in place: py_compile, import, static_check (vs HEAD), repo_tests."""
+        eid = state.new_evidence_id()
+        rel = self._rel_path(module_path)
+        step_names = ["py_compile", "import", "static_check", "repo_tests"]
+        long_t = max(self.timeout_s, MODULE_CHECK_TIMEOUT_S)
+        out_chunks: List[str] = []
+        err_chunks: List[str] = []
+        exit_code, failed_step, failure_note = 0, "", ""
+        try:
+            present = self.executor.exists(rel)
+        except Exception as exc:
+            present, failure_note = False, f"{type(exc).__name__}: {exc}"
+        if not present:
+            exit_code, failed_step = 2, "missing"
+            err_chunks.append(f"{rel} is not present in the repository" + (f" ({failure_note})" if failure_note else ""))
+            failure_note = ""
+        else:
+            for name in step_names:
+                if name == "static_check":
+                    code, err_lines, note = self._static_check_exec(rel)
+                    out_chunks.append(f"[{name}] {note}")
+                    if err_lines:
+                        err_chunks.append(f"[{name}] " + "\n".join(err_lines))
+                    if code != 0:
+                        exit_code, failed_step = code, name
+                        failure_note = err_lines[0] + (f" (+{len(err_lines) - 1} more)" if len(err_lines) > 1 else "")
+                        break
+                    continue
+                if name == "repo_tests":
+                    res, note = self._run_repo_tests(rel)
+                    out_chunks.append(f"[{name}] {note}\n" + str(res.get("stdout", ""))[-800:])
+                    if res.get("stderr"):
+                        err_chunks.append(f"[{name}] " + str(res.get("stderr", ""))[-1200:])
+                    if int(res.get("exit_code", 0)) != 0:
+                        exit_code, failed_step, failure_note = int(res.get("exit_code", 1)), name, note
+                        break
+                    continue
+                argv = [self.python, "-c", _COMPILE_SNIPPET, rel] if name == "py_compile" \
+                    else [self.python, "-c", _IMPORT_SNIPPET, rel]
+                res = self._run_exec(argv, timeout=long_t)
+                out_chunks.append(f"[{name}] {str(res.get('stdout', ''))[:800]}")
+                if res.get("stderr"):
+                    err_chunks.append(f"[{name}] " + str(res.get("stderr", ""))[-1200:])
+                if int(res.get("exit_code", -1)) != 0:
+                    exit_code, failed_step = int(res.get("exit_code", -1)), name
+                    err_tail = [l.strip() for l in str(res.get("stderr", "")).splitlines() if l.strip()]
+                    failure_note = err_tail[-1][:200] if err_tail else ""
+                    break
+        passed = exit_code == 0
+        if passed:
+            detail = "module check passed: " + ", ".join(step_names)
+        elif failure_note:
+            detail = f"module check failed at {failed_step}: {failure_note}"
+        else:
+            detail = f"module check failed at {failed_step} (exit {exit_code})"
+        return Evidence(
+            evidence_id=eid, kind="module_check", hypothesis_id=hypothesis_id,
+            question_id=question_id, command=f"verify_module {rel} (in place via {self._executor_name()})",
+            exit_code=exit_code, stdout="\n".join(out_chunks)[:OUTPUT_CAP],
+            stderr="\n".join(err_chunks)[-OUTPUT_CAP:], prediction={"expect_exit_code": 0},
+            matched_prediction=passed, detail=detail, network_isolated=None)
+
+    def _executor_name(self) -> str:
+        describe = getattr(self.executor, "describe", None)
+        try:
+            return str(describe()) if callable(describe) else type(self.executor).__name__
+        except Exception:
+            return type(self.executor).__name__
+
+    def reconcile_with_reproduction(self, state: EpistemicState, root_question_id: str,
+                                    iteration: int = 0,
+                                    resolved_this_iteration: Iterable[str] = ()) -> Dict[str, Any]:
+        """The self-oracle: re-runs the root question's reproduction probes after a patch.
+
+        This is NOT the hidden test suite and is weaker than it. Each
+        SUPPORTED / CERTIFIED hypothesis of the root question is a probe that,
+        before the patch, matched its prediction *of the buggy behaviour*. The
+        probe is re-run unchanged (via `run_experiment`; the verdict is
+        recorded but `apply` is not called, so the hypothesis keeps its
+        status) and
+
+            bug_no_longer_reproduces(h) :=
+                the re-run completed (not rejected, no timeout, no transport error)
+                AND its prediction did NOT match any more
+                AND the probe exited 0.
+
+        A probe that now crashes (non-zero exit) proves nothing except that
+        something changed; a probe that still matches says the bug is still
+        there. If any root probe satisfies the definition the root question is
+        RESOLVED through the gatekeeper's authority; otherwise every question
+        in `resolved_this_iteration` (RESOLVED by a module check this
+        iteration) is reopened and its applied hypotheses falsified, exactly
+        as `reconcile_with_oracle` does when the held-out suite still fails.
+        With no supported root probe the verdict is `inconclusive` and nothing
+        moves. One summary `Evidence` of kind "oracle" (the only kind the
+        ledger lets reopen a question) carries `SELF_ORACLE_COMMAND` so it can
+        never be mistaken for a held-out result.
+        """
+        root = state.questions[root_question_id]
+        probes = [h for h in state.hypotheses_for(root_question_id) if h.status in (SUPPORTED, CERTIFIED)]
+        reruns: List[Dict[str, Any]] = []
+        gone: List[str] = []
+        for h in probes:
+            ev = self.run_experiment(state, h)
+            state.record_evidence(ev, self.authority)
+            completed = ev.kind == "probe" and not ev.detail.startswith(INCONCLUSIVE)
+            is_gone = bool(completed and not ev.matched_prediction and ev.exit_code == 0)
+            reruns.append({"hypothesis_id": h.hypothesis_id, "evidence_id": ev.evidence_id,
+                           "completed": completed, "matched_prediction": bool(ev.matched_prediction),
+                           "exit_code": int(ev.exit_code), "bug_no_longer_reproduces": is_gone,
+                           "detail": ev.detail})
+            if is_gone:
+                gone.append(h.hypothesis_id)
+        if not probes:
+            verdict = "inconclusive"
+        elif gone:
+            verdict = "resolved"
+        else:
+            verdict = "still_reproduces"
+        summary = Evidence(
+            evidence_id=state.new_evidence_id(), kind="oracle", question_id=root_question_id,
+            command=SELF_ORACLE_COMMAND, exit_code=0 if verdict == "resolved" else 1,
+            stdout="\n".join(
+                f"{r['hypothesis_id']}: completed={r['completed']} matched={r['matched_prediction']} "
+                f"exit={r['exit_code']} bug_no_longer_reproduces={r['bug_no_longer_reproduces']}"
+                for r in reruns)[:OUTPUT_CAP],
+            prediction={"expect_exit_code": 0}, matched_prediction=verdict == "resolved",
+            detail=(f"self-oracle, iteration {iteration}: {verdict} "
+                    f"({len(gone)}/{len(probes)} reproduction probe(s) no longer reproduce the bug)"))
+        state.record_evidence(summary, self.authority)
+        resolved: List[str] = []
+        reopened: List[str] = []
+        if verdict == "resolved":
+            if root.status != Q_RESOLVED:
+                state.set_question_status(root_question_id, Q_RESOLVED, self.authority)
+            state.lower_uncertainty(root_question_id, RESOLVED_FLOOR, self.authority)
+            resolved.append(root_question_id)
+        elif verdict == "still_reproduces":
+            for qid in resolved_this_iteration:
+                q = state.questions.get(qid)
+                if q is None or q.status != Q_RESOLVED:
+                    continue
+                for h in state.hypotheses_for(qid):
+                    if h.patch_applied and h.status == SUPPORTED:
+                        state.set_hypothesis_verdict(h.hypothesis_id, FALSIFIED, 0.0,
+                                                     summary.evidence_id, self.authority)
+                state.reopen_question(qid, q.initial_uncertainty * REOPEN_FRACTION,
+                                      summary.evidence_id, self.authority)
+                reopened.append(qid)
+        return {"verdict": verdict, "evidence_id": summary.evidence_id, "reruns": reruns,
+                "bug_gone_hypotheses": gone, "resolved": resolved, "reopened": reopened,
+                "probes_rerun": len(probes)}

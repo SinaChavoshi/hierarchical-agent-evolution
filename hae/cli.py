@@ -10,6 +10,8 @@ Four modes:
                  or print the objective for a benchmark task.
     preflight    Verify the environment can actually run a tournament before
                  one is launched, and optionally repair IAM first.
+    swebench     Run one firm against one SWE-bench instance inside a
+                 container (flags are parsed by hae.swebench.runner).
 """
 
 import os
@@ -39,10 +41,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Hierarchical Agent Evolution System")
     parser.add_argument("--mode",
                         choices=["tournament", "single-firm", "breed",
-                                 "benchmark", "preflight", "campaign"],
+                                 "benchmark", "preflight", "campaign", "swebench"],
                         default="tournament",
                         help="tournament | single-firm | breed | benchmark | "
-                             "preflight | campaign")
+                             "preflight | campaign | swebench (one SWE-bench "
+                             "instance; remaining flags go to hae.swebench.runner)")
     parser.add_argument("--specs", type=str, nargs="+", default=None,
                         help="(--mode campaign) Generation specs to run in "
                              "order, e.g. configs/generations/gen1.json ...")
@@ -220,7 +223,34 @@ def run_benchmark(args) -> int:
     return 0
 
 
+def swebench_argv(argv):
+    """`--mode swebench` is handled before the main parser: the SWE-bench runner
+    owns its own flags (--instance-id, --executor, ...), which argparse here
+    would reject. Returns the remaining argv when that mode is requested,
+    else None. Pure, so it can be tested without touching sys.argv."""
+    rest, mode = [], None
+    i = 0
+    while i < len(argv):
+        tok = argv[i]
+        if tok == "--mode" and i + 1 < len(argv):
+            mode = argv[i + 1]
+            i += 2
+            continue
+        if tok.startswith("--mode="):
+            mode = tok.split("=", 1)[1]
+            i += 1
+            continue
+        rest.append(tok)
+        i += 1
+    return rest if mode == "swebench" else None
+
+
 def main():
+    swe_args = swebench_argv(sys.argv[1:])
+    if swe_args is not None:
+        from hae.swebench.runner import main as swebench_main
+        return swebench_main(swe_args)
+
     args = parse_args()
 
     if args.mode == "preflight":
