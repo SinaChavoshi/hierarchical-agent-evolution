@@ -11,6 +11,14 @@ Two generations of operators live here:
   libraries, bounded jitter of the CEO gene, and a one-tag text mutation.
   Every one of them takes the breeder's `random.Random` so the same spec
   breeds the same child.
+* `mutate_role_text` wraps the text mutation behind a mode switch
+  (`GenerationSpec.role_text_mutation`): `tags` is the one-tag mutation
+  exactly as before, `llm` additionally rewrites the goal/backstory of the
+  worst-evidenced role through `hae.genome.role_mutation.revise_role`
+  (`select_roles_for_revision` picks it), `off` does nothing. The default is
+  `tags`, so every existing spec breeds byte-identically; `llm` is the one
+  operator here whose output is not reproducible from the seed (see the
+  `role_mutation` module docstring for why the population file is the record).
 """
 
 import copy
@@ -18,7 +26,8 @@ import json
 import random
 import re
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from hae.genome.role_mutation import RoleEvidence, revise_role
 from hae.genome.schema import (
     CEO_POLICY_BOUNDS, DELTA_U_SCALE, MAX_ROLE_LIBRARY, RECRUIT_MODES, CEOPolicyGene, CompanyGenome,
     DepartmentGenome, AgentGenome, EvaluationResult, RoleAllele, normalise_tags,
@@ -215,6 +224,24 @@ PROMOTE_MIN_DELTA_U = 0.20
 PRUNE_MIN_USES = 6
 PRUNE_MAX_MEAN_DELTA_U = 0.0
 CEO_NUMERIC_FIELDS = tuple(CEO_POLICY_BOUNDS.keys())
+
+# LLM text revision (`mutate_role_text`, mode `llm`): a role is a candidate
+# once it has been tried `REVISE_MIN_USES` times (lifetime, after this
+# generation's statistics are folded in) and its mean dU per move is at or
+# below `REVISE_MAX_MEAN_DELTA_U` or its support rate at or below
+# `REVISE_MAX_SUPPORT_RATE`. Looser than pruning on purpose: a role is
+# rewritten before it is dropped. With no candidate the operator still fires
+# on a uniformly chosen role with probability `REVISE_HEALTHY_PROBABILITY`,
+# so a healthy library keeps exploring persona space. A role that resolved a
+# task (lifetime or this generation) is never rewritten.
+REVISE_MIN_USES = 3
+REVISE_MAX_MEAN_DELTA_U = 0.05
+REVISE_MAX_SUPPORT_RATE = 0.10
+REVISE_HEALTHY_PROBABILITY = 0.25
+ROLE_TEXT_MUTATION_MODES = ("off", "tags", "llm")
+# Substring every "revised by LLM" note carries; the breeder gives such notes
+# their own `mutation_history` line.
+REVISION_NOTE_MARKER = " revised by LLM -> "
 
 
 @dataclass
@@ -521,3 +548,86 @@ def mutate_role_library(library: Sequence[RoleAllele], rng: random.Random, tag_p
         role.domain_tags = normalise_tags(list(role.domain_tags) + [new_tag])
         note = f"{role.role_id}: +tag {new_tag!r} ({source} pool)"
     return roles, [note]
+
+
+def select_roles_for_revision(library: Sequence[RoleAllele], stats: Mapping[str, RoleStatsSummary],
+                              rng: random.Random, max_roles: int = 1) -> List[RoleAllele]:
+    """The role(s) whose text the LLM is asked to rewrite, worst first.
+
+    Candidates: `uses >= REVISE_MIN_USES` and (`mean_delta_u <=
+    REVISE_MAX_MEAN_DELTA_U` or `support_rate <= REVISE_MAX_SUPPORT_RATE`),
+    on the allele's lifetime numbers (the breeder folds this generation in
+    before calling). Ordered by (mean dU, support rate, -uses, role_id): the
+    least productive first, the better-evidenced of two equals first, ties
+    broken by id so the pick is reproducible. Never a role that resolved a
+    task -- `RoleAllele.tasks_resolved` (lifetime) or
+    `RoleStatsSummary.tasks_resolved` (this generation). With no candidate,
+    one uniformly chosen eligible role with probability
+    `REVISE_HEALTHY_PROBABILITY` (one `rng.random()` draw, then one
+    `rng.choice`), so the operator is not silent on a healthy library.
+    """
+    def resolved(r: RoleAllele) -> bool:
+        s = stats.get(r.role_id) if stats else None
+        return r.tasks_resolved > 0 or (s is not None and s.tasks_resolved > 0)
+
+    eligible = [r for r in library if not resolved(r)]
+    if not eligible or max_roles <= 0:
+        return []
+    weak = [r for r in eligible
+            if r.uses >= REVISE_MIN_USES
+            and (r.mean_delta_u <= REVISE_MAX_MEAN_DELTA_U or r.support_rate <= REVISE_MAX_SUPPORT_RATE)]
+    if weak:
+        weak.sort(key=lambda r: (r.mean_delta_u, r.support_rate, -r.uses, r.role_id))
+        return weak[:max_roles]
+    if rng.random() < REVISE_HEALTHY_PROBABILITY:
+        return [rng.choice(sorted(eligible, key=lambda r: r.role_id))]
+    return []
+
+
+def mutate_role_text(library: Sequence[RoleAllele], stats: Mapping[str, RoleStatsSummary],
+                     evidence: Mapping[str, RoleEvidence], rng: random.Random, generation: int,
+                     mode: str = "tags", llm: Optional[Callable[..., str]] = None,
+                     tag_pool: Iterable[str] = (), max_roles: int = 1) -> Tuple[List[RoleAllele], List[str]]:
+    """The between-generation text mutation of a role library, by `mode`.
+
+    * `off`: copies, no notes.
+    * `tags`: exactly `mutate_role_library(library, rng, tag_pool, generation)`
+      -- the same rng draws in the same order, so children bred before this
+      switch existed are byte-identical.
+    * `llm`: the tag mutation first (same draws as `tags`), then
+      `select_roles_for_revision` picks up to `max_roles` roles and
+      `hae.genome.role_mutation.revise_role` rewrites each; a revision
+      REPLACES its parent allele in the returned library (the parent's id
+      survives in `extra["parent_role_id"]`). When the LLM declines, fails or
+      returns the parent unchanged the role is kept and a note says so: the
+      child then carries the tag mutation only.
+
+    Notes for the mutation history: tag notes as before, and per revision one
+    line `role <id> revised by LLM -> <new_id>: goal '<old>' -> '<new>'
+    (<rationale>)` (60/60/80 chars), recognisable by `REVISION_NOTE_MARKER`.
+    `llm` is forwarded to `revise_role` (None means `call_llm`).
+    """
+    if mode not in ROLE_TEXT_MUTATION_MODES:
+        raise ValueError(f"role_text_mutation must be one of {ROLE_TEXT_MUTATION_MODES}, got {mode!r}")
+    if mode == "off" or not library:
+        return [r.copy() for r in library], []
+    roles, notes = mutate_role_library(library, rng, tag_pool, generation)
+    if mode == "tags":
+        return roles, notes
+    selected = select_roles_for_revision(roles, stats or {}, rng, max_roles=max_roles)
+    if not selected:
+        notes.append("role text revision skipped: no role selected")
+        return roles, notes
+    ids = {r.role_id for r in roles}
+    for role in selected:
+        new, reason = revise_role(role, (stats or {}).get(role.role_id), (evidence or {}).get(role.role_id),
+                                  generation, rng, llm=llm, existing_ids=ids)
+        if new is None:
+            notes.append(f"role {role.role_id} kept, LLM revision declined ({reason[:120]}); tag mutation only")
+            continue
+        roles = [new if r.role_id == role.role_id else r for r in roles]
+        ids.add(new.role_id)
+        rationale = str(new.extra.get("revision_rationale") or "")[:80] or "no rationale given"
+        notes.append(f"role {role.role_id}{REVISION_NOTE_MARKER}{new.role_id}: goal {role.goal[:60]!r} -> "
+                     f"{new.goal[:60]!r} ({rationale})")
+    return roles, notes

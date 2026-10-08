@@ -16,7 +16,9 @@ Roadmap sections 1.1 (genome), 1.2 (turn-0 selection), 1.4 (distillation).
   `run_epistemic_search`.
 * **Operators** (`hae/genome/mutator.py`) and **breeder** (`hae/orchestration/breeder.py`): `distill_role_statistics`,
   `distill_tag_pool`, `evolve_role_library` (update → prune → promote → cap), `crossover_*`, `mutate_*`,
-  `Breeder._evolve_organisation`, `GenerationSpec.ceo_policy` / `.role_library_seed`.
+  `Breeder._evolve_organisation`, `GenerationSpec.ceo_policy` / `.role_library_seed`; later `distill_role_evidence`,
+  `select_roles_for_revision`, `mutate_role_text` + `hae/genome/role_mutation.py` and
+  `GenerationSpec.role_text_mutation` (section below).
 * **Smoke cohort**: `scripts/make_v8_population.py` → `configs/generation_v8_smoke_population.json` — 4 run-3
   lineages, CEO gene on (`headcount_lambda` 0.05/0.15/0.30/0.50), legacy seeds, run-3 `epistemic_policy` untouched.
 
@@ -65,9 +67,47 @@ one-tag text mutation. All rng seeds derive from the spec (`gen{N}-{kind}-{slot}
   `role_library_seed` (default `legacy`) and says so in `mutation_history`. Children with no library and a disabled
   gene are untouched, so V5/V6 lineages breed exactly as before (tested).
 
+## Between-generation role text mutation (`hae/genome/role_mutation.py`, roadmap 1.4 item 3)
+
+The one-tag mutation above never rewrote a role's `goal`/`backstory`; between generations a persona could only be
+born mid-run (`MOVE_RECRUIT_SPECIALIST`, `recruit_mode=synthesize`). `mutate_role_text` closes that gap behind a
+spec field, **`GenerationSpec.role_text_mutation`** = `tags` (default: exactly the one-tag mutation, byte-identical
+children for every existing spec) | `llm` | `off`.
+
+* **Selection** (`select_roles_for_revision`): a role is a candidate when, after this generation's statistics are
+  folded in, `uses >= 3` and (`mean_delta_u <= 0.05` or `support_rate <= 0.10`); ordered by (mean dU, support
+  rate, −uses, id), one role per mutant child. Never a role with `tasks_resolved > 0` (lifetime, or this
+  generation per `RoleStatsSummary`). With no candidate the operator still fires on a uniformly chosen role with
+  probability 0.25, so a healthy library keeps exploring persona space.
+* **Evidence in the prompt** (`Breeder.role_evidence` = `distill_role_evidence(records)`, next to `role_stats`): the
+  role as it is and its numbers; the claims of its FALSIFIED hypotheses (≤ 8, 200 chars each), the reasons its probes
+  were refused (≤ 5), up to 3 SUPPORTED claims (so the rewrite keeps what worked), the questions it was routed to
+  (≤ 5), the modules it met and the modules no active role covered, and how many of its syntheses were reverted. Read
+  from `run_output.epistemic_ledger` / `epistemic_searches` / `org_history`; a V6 record has no `role_id` anywhere
+  and yields nothing (tested on a real Gen-16 tree). The instruction: rewrite goal/backstory so the specialist would
+  NOT have proposed the falsified mechanisms and WOULD cover the unmatched modules; keep the name unless the expertise
+  changes. Reply grammar: `ROLE_REVISION_SCHEMA` (name ≤ 60, goal ≤ 400, backstory ≤ 600, 3–8 tags, kind enum,
+  rationale ≤ 300); parser tolerant of fences/prose/string tags, an unknown kind keeps the parent's, no goal → no
+  revision.
+* **The revision is a new allele that replaces its parent in the child's library:** `role_id = <parent>__g<gen>`
+  (plus a 6-char hash of the new goal on collision), `origin = mutated:<parent>:g<gen>`, `created_generation = gen`,
+  `uses`/`mean_delta_u`/`support_rate`/`tasks_resolved` reset to 0, `extra` = parent's + `parent_role_id`,
+  `revision_rationale`, `revision_source: "llm"`. The child's `mutation_history` gets one line per revision:
+  `Generation N: role <id> revised by LLM -> <new_id>: goal '<old 60>' -> '<new 60>' (<rationale 80>)`.
+* **Fallback:** an LLM error, an unparseable reply or a reply that leaves goal and backstory unchanged never raises;
+  the role is kept, the child carries the tag mutation only, and the role-library history line says
+  `role <id> kept, LLM revision declined (<reason>)`.
+* **Record, not seed:** the reply is not reproducible (temperature 0.7; `call_llm` has no seed parameter, one is
+  passed only to a callable that declares it), so for `llm` mode the population JSON is the record of what was bred.
+  The breed CLI takes no override: the mode is declared in the generation spec like every other cohort decision.
+* **Caveat:** unit-tested with a fake LLM only (`tests/test_role_mutation.py`); no revision has been produced by a live
+  model, and whether rewritten personas earn more dU than their parents is an open empirical question.
+
 ## Caveats
 
 * Credit is **end-of-move** credit (the role holding the move when the gatekeeper ruled), not causal credit.
 * Seeds are hand-written from the Gen-16 failure vocabulary; no role carries evidence until the smoke cohort runs.
 * Turn-0 selection enumerates subsets (bounded by `max_initial_roles <= 8`, library `<= 24`): fine here, not beyond.
 * Nothing has been validated live; `configs/generation_v8_smoke_population.json` is the first step.
+* A revised allele replaces its parent only in the child that bred it; a crossover with a lineage that still carries
+  the parent re-unites both alleles in one library (capped at 24 like everything else).
