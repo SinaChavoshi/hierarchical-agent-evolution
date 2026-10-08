@@ -98,6 +98,28 @@ swebench eval verified -p results/swebench/<run>/preds.jsonl --run-id <run>   # 
 #   --executor kubectl --pod swebench-testbed-marshmallow-1810 --container testbed
 ```
 
+## 8. Instance validity screen (do this before spending moves)
+
+Two of the first three dev-slice instances were not gradeable in their
+published `:latest` images (2026-10-08):
+
+* `pvlib__pvlib-python-1395`: the testbed env resolved NumPy 2.0.2 and
+  `import pvlib` fails in `pvlib/ivtools/sdm.py` (`np.Inf` was removed). Every
+  probe is falsified by the same ImportError; the gold patch cannot pass either.
+  `environment_preflight` (section 6 of the runner) now reports this on the
+  seed line as `env_import=FAILED`.
+* `pydicom__pydicom-938`: the testbed is Python 3.6.13 and the issue is a
+  Python 3.8 `float`/`int` subclass `__str__`/`__repr__` change, so the
+  FAIL_TO_PASS tests already pass at the base commit. A firm "resolves" it by
+  doing nothing.
+
+`scripts/grade_in_testbed.py` approximates the harness inside the live
+testbed container (reset, apply patch, apply `test_patch`, run FAIL_TO_PASS
+and PASS_TO_PASS by node id). Its two controls are the screen: `--gold` must
+resolve and `--none` must *not*. Run both before an instance counts, and keep
+the firm's prediction graded only on instances that pass the screen. The
+script imports `load_grading_info` and therefore lives outside `hae/`.
+
 `python -m hae.cli --mode swebench …` dispatches to the same runner. Sources:
 image rule `https://raw.githubusercontent.com/SWE-bench/SWE-bench/main/swebench/image_builder/image_spec.py`;
 CLI `https://raw.githubusercontent.com/SWE-bench/SWE-bench/main/README.md`;
