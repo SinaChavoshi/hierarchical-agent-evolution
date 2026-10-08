@@ -437,6 +437,7 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
         last_hash = self._diff_hash()
         last_search: Dict[str, Any] = {}
         last_recheck: Optional[Dict[str, Any]] = None
+        org_extra: Dict[str, Any] = {}
         stop = ""
         for iteration in range(1, max(1, int(max_iterations)) + 1):
             if remaining <= 0:
@@ -447,25 +448,40 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
                 break
             resolved_before = {qid for qid, q in state.questions.items() if q.status == Q_RESOLVED}
             seed_material = f"{self.genome.company_id}:{self.task.instance_id}:{iteration}".encode("utf-8")
+            # V8: with `ceo_policy.enabled` this iteration's loop is staffed from
+            # the role library (turn-0 team sized against the problem-statement
+            # triage, UCB routing, mid-run recruitment); otherwise `org_state` is
+            # None and the static department bindings below are used unchanged.
+            org_state = self._bind_dynamic_organization(
+                objective, [], {root.question_id: root.module} if root.module else None,
+                iteration=iteration, features=features)
+            iter_agents = self._dynamic_org_bindings(org_state, agents) if org_state is not None else agents
+            loop_kwargs: Dict[str, Any] = {}
+            if org_state is not None:
+                loop_kwargs.update(org_state=org_state,
+                                   recruit_specialist=self._recruit_specialist_adapter(objective, policy, org_state))
             loop = EpistemicSearchLoop(
                 state, gatekeeper,
                 EpistemicValueFunction(policy.value_alpha, head=heads.value_head if heads.value_head_live else None),
                 policy,
-                propose_hypotheses=self._propose_hypotheses_adapter(agents["hypothesis"], objective, policy),
-                synthesize_patch=self._synthesize_patch_adapter(agents["synthesis"], objective),
+                propose_hypotheses=self._propose_hypotheses_adapter(iter_agents["hypothesis"], objective, policy),
+                synthesize_patch=self._synthesize_patch_adapter(iter_agents["synthesis"], objective),
                 revert_patch=lambda path, src: self.workspace.write_file(path, src),
                 may_continue=lambda: self._may_call("epistemic search move"),
-                agent_roles={MOVE_PROPOSE_HYPOTHESIS: agents["hypothesis"].role,
+                agent_roles={MOVE_PROPOSE_HYPOTHESIS: iter_agents["hypothesis"].role,
                              MOVE_RUN_EXPERIMENT: "EvidenceGatekeeper",
-                             MOVE_SYNTHESIZE: agents["synthesis"].role,
-                             MOVE_ASK_QUESTION: agents["question"].role},
+                             MOVE_SYNTHESIZE: iter_agents["synthesis"].role,
+                             MOVE_ASK_QUESTION: iter_agents["question"].role},
                 rng_seed=int(hashlib.sha256(seed_material).hexdigest()[:8], 16),
                 logger=lambda msg: print(
                     f"[epistemic] {self.genome.company_id} "
                     f"{msg[len('[epistemic] '):] if msg.startswith('[epistemic] ') else msg}", flush=True),
                 prior_head=heads.prior_head, prior_head_weight=heads.prior_head_weight, value_head=heads.value_head,
+                **loop_kwargs,
             )
             result = loop.run(remaining)
+            if org_state is not None:
+                org_extra = self._record_org_iteration(org_state, iteration)
             remaining -= int(result.moves_used)
             search = result.to_dict()
             search["iteration"] = iteration
@@ -487,6 +503,9 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
                      "synthesized_paths": list(result.synthesized_paths), "patched": patched,
                      "resolved_this_iteration": resolved_now,
                      "recheck": None if recheck is None else {k: v for k, v in recheck.items() if k != "reruns"}}
+            if org_state is not None:
+                entry["org"] = {"team": list(org_state.active_ids), "recruits": len(org_state.recruit_log),
+                                "stall": org_state.stall_counter, "unmatched": list(org_state.unmatched_modules)}
             self.iteration_log.append(entry)
             print(f"[swebench] {self.genome.company_id} iteration {iteration}: {result.moves_used} moves, "
                   f"stop={result.stop_reason}, patched={patched}, "
@@ -525,11 +544,12 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
         briefs = {"swebench": json.dumps({"instance_id": self.task.instance_id, "resolved_by_self_oracle": resolved,
                                           "stop": stop, "moves_used": total_budget - remaining})}
         deliverable, bundle = self._append_workspace_files(deliverable)
-        return self._finalize_run_output(
-            start_time, deliverable, briefs, bundle,
-            extra={"epistemic_ledger": state.to_dict(), "epistemic_search": last_search,
-                   "epistemic_searches": list(self.epistemic_searches), "epistemic_iteration": len(self.iteration_log),
-                   "swebench": swe_block, "prediction": prediction})
+        extra: Dict[str, Any] = {"epistemic_ledger": state.to_dict(), "epistemic_search": last_search,
+                                 "epistemic_searches": list(self.epistemic_searches),
+                                 "epistemic_iteration": len(self.iteration_log),
+                                 "swebench": swe_block, "prediction": prediction}
+        extra.update(org_extra)
+        return self._finalize_run_output(start_time, deliverable, briefs, bundle, extra=extra)
 
 
 # --------------------------------------------------------------------------- #
@@ -625,6 +645,7 @@ def run_instance(instance_id: str, dataset_path: str, executor: CommandExecutor,
     if org_state is not None and hasattr(org_state, "to_dict"):
         try:
             record["org"] = org_state.to_dict()
+            record["org_history"] = list(getattr(runner, "org_runs", None) or [])
         except Exception:
             pass
     with open(os.path.join(out_dir, "record.json"), "w", encoding="utf-8") as fh:

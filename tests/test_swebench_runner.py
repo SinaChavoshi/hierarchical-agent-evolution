@@ -231,6 +231,93 @@ class EndToEndTests(RunnerFixture):
         self.assertGreaterEqual(gk.timeout_s, R.PROBE_TIMEOUT_MIN_S)
 
 
+class DynamicOrganizationTests(RunnerFixture):
+    """With `ceo_policy.enabled` the SWE-bench loop is staffed from the role library, not the departments."""
+
+    def org_genome(self):
+        from hae.genome.role_seeds import seed_role_library
+        from hae.genome.schema import CEOPolicyGene
+        g = genome()
+        g.company_id = "swe_org_firm"
+        g.ceo_policy = CEOPolicyGene(enabled=True, min_initial_roles=2, max_initial_roles=3, max_active_roles=5,
+                                     recruit_mode="library", stall_moves=1, recruit_bias=2.0)
+        g.role_library = seed_role_library("swebench")
+        return g
+
+    def test_loop_is_staffed_from_the_library_and_the_org_is_recorded(self):
+        fake = FakeSystem1()
+        runner = R.SweBenchCompanyRunner(self.org_genome(), task(), self.ex)
+        runner._execute_agent = fake.execute
+        runner._execute_agent_with_tools = fake.execute_with_tools
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            out = runner.run_swebench(budget_moves=12, max_iterations=3)
+        logs = buf.getvalue()
+        self.assertIn("[org] swe_org_firm: turn-0 team=", logs)
+        self.assertIn("[org] swe_org_firm iteration 1: team=", logs)
+        self.assertTrue(out["swebench"]["resolved_by_self_oracle"], out["swebench"])
+        for key in ("org", "org_audit", "org_history"):
+            self.assertIn(key, out)
+        team = [r["role_id"] for r in out["org"]["active_roles"]]
+        self.assertTrue(2 <= len(team) <= 5, team)
+        self.assertTrue(all(rid.endswith("_swebench") for rid in team), team)
+        self.assertEqual(out["org_audit"]["library_source"], "genome")
+        self.assertEqual(out["org_audit"]["library_size"], len(runner.genome.role_library))
+        # Moves were routed to (and credited against) library roles, not the department agents.
+        moves = out["epistemic_search"]["trajectory"]
+        routed = {m.get("role_id") for m in moves if m.get("role_id")}
+        self.assertTrue(routed, moves[:3])
+        self.assertTrue(routed <= set(team), (routed, team))
+        self.assertIn("org", out["epistemic_search"])
+        self.assertIn("org", out["swebench"]["iterations"][0])
+        first = [r["role_id"] for r in out["org_history"][0]["org"]["active_roles"]]
+        self.assertEqual(out["swebench"]["iterations"][0]["org"]["team"], first)
+        self.assertIsNotNone(runner.org_state)
+
+    def test_disabled_policy_keeps_static_bindings(self):
+        fake = FakeSystem1()
+        runner = R.SweBenchCompanyRunner(genome(), task(), self.ex)
+        runner._execute_agent = fake.execute
+        runner._execute_agent_with_tools = fake.execute_with_tools
+        out = runner.run_swebench(budget_moves=12, max_iterations=2)
+        self.assertNotIn("org", out)
+        self.assertNotIn("org", out["swebench"]["iterations"][0])
+        self.assertIsNone(getattr(runner, "org_state", None))
+
+    def test_run_instance_persists_the_org_trajectory(self):
+        ds_path = os.path.join(self.tmp.name, "dev.jsonl")
+        write_jsonl(ds_path, [{"instance_id": "demo__pkg-1", "repo": "demo/pkg", "base_commit": "deadbeef",
+                               "version": "1.0", "problem_statement": STATEMENT, "created_at": "", "patch": "GOLD",
+                               "test_patch": "GOLDTEST", "FAIL_TO_PASS": "[\"t\"]", "PASS_TO_PASS": "[]",
+                               "environment_setup_commit": "", "hints_text": ""}])
+        out_dir = os.path.join(self.tmp.name, "out")
+        fake = FakeSystem1()
+        orig_init = R.SweBenchCompanyRunner.__init__
+
+        def patched_init(inner, *a, **kw):
+            orig_init(inner, *a, **kw)
+            inner._execute_agent = fake.execute
+            inner._execute_agent_with_tools = fake.execute_with_tools
+
+        R.SweBenchCompanyRunner.__init__ = patched_init
+        try:
+            with open(os.devnull, "w") as sink:
+                import contextlib
+                with contextlib.redirect_stdout(sink):
+                    R.run_instance("demo__pkg-1", ds_path, self.ex, self.org_genome(), out_dir, budget_moves=12)
+        finally:
+            R.SweBenchCompanyRunner.__init__ = orig_init
+        with open(os.path.join(out_dir, "record.json")) as fh:
+            rec = json.load(fh)
+        self.assertIn("org", rec)
+        self.assertIn("org_history", rec)
+        self.assertEqual(len(rec["org_history"]), len(rec["swebench"]["iterations"]))
+        ids = lambda org: [r["role_id"] for r in org["active_roles"]]  # noqa: E731
+        self.assertEqual(ids(rec["org"]), ids(rec["org_history"][-1]["org"]))
+        self.assertTrue(ids(rec["org"]))
+
 class WorkspaceTests(RunnerFixture):
     def test_writes_go_through_executor_without_monotonic_guard(self):
         ws = R.ExecutorWorkspace(self.ex, lambda: ["pkg/mod.py"])

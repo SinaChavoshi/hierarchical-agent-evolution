@@ -1072,13 +1072,16 @@ class HierarchicalCompanyRunner:
 
     def _bind_dynamic_organization(self, objective: str, failures: List[str],
                                    locations: Optional[Dict[str, str]] = None,
-                                   iteration: int = 0) -> Optional[OrgState]:
+                                   iteration: int = 0,
+                                   features: Optional[TaskFeatures] = None) -> Optional[OrgState]:
         """The CEO's turn-0 team for this iteration, or None when `ceo_policy` is off.
 
         With the gene enabled the epistemic loop is staffed from the role
         library instead of the static department bindings. The task is triaged
         from the oracle failures without an LLM (`TaskFeatures.from_failures`)
-        and `search_initial_organization` picks the subset of roles maximising
+        unless the caller already triaged it (`features`; the SWE-bench runner
+        has no oracle failures and triages the problem statement instead), and
+        `search_initial_organization` picks the subset of roles maximising
         V_org(O) = sum Q(r | task) - lambda * |O| within the gene's team-size
         bounds, with at least one probe-capable and one synthesis-capable role.
 
@@ -1105,7 +1108,8 @@ class HierarchicalCompanyRunner:
         if carried:
             library = library + carried
             source += f"+recruited:{len(carried)}"
-        features = TaskFeatures.from_failures(list(failures or []), locations, objective)
+        if features is None:
+            features = TaskFeatures.from_failures(list(failures or []), locations, objective)
         seed_material = f"{self.genome.company_id}:{iteration}".encode("utf-8")
         rng = random.Random(int(hashlib.sha256(seed_material).hexdigest()[:8], 16))
         team, audit = search_initial_organization(library, features, policy, rng)
@@ -1541,6 +1545,34 @@ class HierarchicalCompanyRunner:
 
         return synthesize
 
+    def _record_org_iteration(self, org_state: OrgState, iteration: int) -> Dict[str, Any]:
+        """Bookkeeping after one search iteration staffed by `org_state`; returns the record's org keys.
+
+        The organisation trajectory is what the breeder distils at the
+        generation boundary: per-role credit, the recruit log and the turn-0
+        audit, one entry per iteration (`self.org_runs`). Roles hired this
+        iteration are kept on `self._recruited_roles` so the next iteration's
+        turn 0 can field them, and the latest state is exposed as
+        `self.org_state`. Shared by `run_epistemic_search` and the SWE-bench
+        runner so both record the same shape.
+        """
+        org_dict = org_state.to_dict()
+        audit = self.org_audits[-1] if getattr(self, "org_audits", None) else {}
+        if getattr(self, "_recruited_roles", None) is None:
+            self._recruited_roles: Dict[str, RoleAllele] = {}
+        for role in org_state.active_roles:
+            stats = org_state.stats.get(role.role_id)
+            if stats is not None and stats.recruited_at_move >= 0:
+                self._recruited_roles.setdefault(role.role_id, role)
+        if getattr(self, "org_runs", None) is None:
+            self.org_runs: List[Dict[str, Any]] = []
+        self.org_runs.append({"iteration": iteration, "org": org_dict, "audit": audit})
+        self.org_state = org_state
+        print(f"[org] {self.genome.company_id} iteration {iteration}: team={org_state.active_ids} "
+              f"recruits={len(org_state.recruit_log)} stall={org_state.stall_counter} "
+              f"unmatched={org_state.unmatched_modules}", flush=True)
+        return {"org": org_dict, "org_audit": audit, "org_history": list(self.org_runs)}
+
     def _recruit_specialist_adapter(self, objective: str, policy: EpistemicPolicyGene, org_state: OrgState):
         """V8 CEO adapter for `MOVE_RECRUIT_SPECIALIST`: `(org, state, question, move_index) -> (role | None, note)`.
 
@@ -1783,25 +1815,7 @@ class HierarchicalCompanyRunner:
         extra: Dict[str, Any] = {"epistemic_ledger": state.to_dict(), "epistemic_search": search,
                                  "epistemic_iteration": iteration}
         if org_state is not None:
-            # The organisation trajectory is what the breeder distils at the
-            # generation boundary: per-role credit, the recruit log and the
-            # turn-0 audit, one entry per iteration. Roles hired this
-            # iteration stay available to the next iteration's turn 0.
-            org_dict = org_state.to_dict()
-            audit = self.org_audits[-1] if getattr(self, "org_audits", None) else {}
-            if getattr(self, "_recruited_roles", None) is None:
-                self._recruited_roles: Dict[str, RoleAllele] = {}
-            for role in org_state.active_roles:
-                stats = org_state.stats.get(role.role_id)
-                if stats is not None and stats.recruited_at_move >= 0:
-                    self._recruited_roles.setdefault(role.role_id, role)
-            if getattr(self, "org_runs", None) is None:
-                self.org_runs: List[Dict[str, Any]] = []
-            self.org_runs.append({"iteration": iteration, "org": org_dict, "audit": audit})
-            extra.update(org=org_dict, org_audit=audit, org_history=list(self.org_runs))
-            print(f"[org] {self.genome.company_id} iteration {iteration}: team={org_state.active_ids} "
-                  f"recruits={len(org_state.recruit_log)} stall={org_state.stall_counter} "
-                  f"unmatched={org_state.unmatched_modules}", flush=True)
+            extra.update(self._record_org_iteration(org_state, iteration))
 
         final_deliverable = self._epistemic_deliverable(state, search, iteration)
         departmental_briefs = {

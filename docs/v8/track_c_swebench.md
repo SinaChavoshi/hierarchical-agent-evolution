@@ -1,8 +1,9 @@
 # Track C — SWE-bench adapters (v8)
 
-Status: code + tests on `v8c-swebench`; **no container run executed yet** (no
-Docker/kubectl where this was written). Docker steps below are verified only
-through argv construction and the upstream docs cited at the end.
+Status: merged on `main`. First live run on 2026-10-08 (`KubectlExecutor`
+against a SWE-bench instance image on GKE, self-hosted Qwen3.8 via vLLM); see
+`results/swebench/smoke_2026-10-08/`. The Docker path is verified only through
+argv construction and the upstream docs cited at the end.
 
 ## 1. Executor boundary
 
@@ -61,7 +62,28 @@ Weakness: a probe can only disprove the behaviour it encoded — no regressions
 seen, satisfiable by an unrelated change. A stopping rule, not a grade.
 Non-fixing patches are still exported (an empty prediction scores 0 anyway).
 
-## 6. Running (VM with Docker; unverified here)
+## 6. V8 organisation on the SWE-bench path (`hae/swebench/runner.py`)
+
+Until 2026-10-08 `run_swebench` built its `EpistemicSearchLoop` from the static
+department bindings only; the first live run showed no `[org]` line and
+`record.json` had no `org` key. The runner now calls
+`_bind_dynamic_organization(..., features=task_features(task, paths))` once per
+iteration when `ceo_policy.enabled`: the turn-0 team is sized against the
+problem-statement triage (`TaskFeatures.from_problem_statement`, not oracle
+failures, which SWE-bench does not have), `hypothesis`/`experiment`/`synthesis`
+are re-bound through `OrgState.pick_role`, and the loop receives `org_state` and
+the `MOVE_RECRUIT_SPECIALIST` adapter. Roles hired in iteration *n* are
+candidates at iteration *n+1*'s turn 0. Output and `record.json` carry `org`,
+`org_audit`, `org_history` (one entry per iteration, the Gen-16 shape) and each
+`swebench.iterations[i].org` has `team`, `recruits`, `stall`, `unmatched`. With
+the gene off nothing changes (`tests/test_swebench_runner.py::DynamicOrganizationTests`).
+For SWE-bench genomes use `seed_role_library("swebench")`; the legacy seeds are
+tagged for the Gen-16 corpus.
+
+## 7. Running
+
+Docker (VM) or kubectl (the testbed image as a pod on a CPU node pool; the
+firm runs on the host and `kubectl exec`s into it — used for the first live run):
 
 ```sh
 python3 scripts/fetch_swebench.py --check-images && python3 scripts/check_swebench_splits.py
@@ -72,6 +94,8 @@ python3 scripts/run_swebench_instance.py --instance-id $IID --dataset data/swebe
 docker rm -f hae_$IID
 python3 scripts/swebench_docker_batch.py --run-id <run> --genome <firm.json> --n 10 --workers 2  # resumable; writes preds.jsonl
 swebench eval verified -p results/swebench/<run>/preds.jsonl --run-id <run>   # dev ids: point at the dev dataset
+# kubectl variant: a Pod running `sleep infinity` on IMG, then
+#   --executor kubectl --pod swebench-testbed-marshmallow-1810 --container testbed
 ```
 
 `python -m hae.cli --mode swebench …` dispatches to the same runner. Sources:
