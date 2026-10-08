@@ -11,6 +11,12 @@ Four things are pinned down here:
      a golden fixture recorded from the code *before* AB-MCTS existed
      (tests/golden/puct_v8_trajectories.json). Regenerate only on purpose:
      HAE_UPDATE_GOLDEN=1 python3 -m unittest tests.test_ab_mcts.PuctIdentityTests
+     Regenerated once, 2026-10-08, for the post-synthesis effect check (a
+     gate change that applies to both policies): the only differences were
+     the SYNTHESIZE move's `note` suffix ("; effect: effective (1/1 ...)")
+     and two extra evidence ids (the re-run and its summary) on the
+     synthesised hypothesis; move sequence, dU, stats and statuses were
+     identical.
   2. Easy bug, width 1: GEN -> EXPERIMENT -> SYNTHESIZE in three moves.
   3. Hard bug: hypotheses keep being falsified; the loop widens past the
      V8 cap of max_hypothesis_rounds * branching_k = 6 without "exhausted".

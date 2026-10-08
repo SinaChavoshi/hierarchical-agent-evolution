@@ -6,6 +6,7 @@ gatekeeper's self-oracle re-run must then mark the root question RESOLVED and
 the exported prediction must apply cleanly to a fresh checkout.
 """
 
+import io
 import json
 import os
 import re
@@ -13,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 
 sys.path.insert(0, ".")
 
@@ -232,10 +234,29 @@ class EndToEndTests(RunnerFixture):
 
     def test_environment_preflight_reports_import_health(self):
         runner, _ = self.make_runner()
-        out = runner.run_swebench(budget_moves=2, max_iterations=1)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            out = runner.run_swebench(budget_moves=2, max_iterations=1)
         pre = out["swebench"]["preflight"]
         self.assertTrue(pre["ok"], pre)
         self.assertEqual(pre["package"], "pkg")        # root module's top-level package, tried first
+        # The module gate's `repo_tests` mode is calibrated here, before the first LLM call.
+        repo_tests = pre["repo_tests"]
+        has_pytest = subprocess.run([sys.executable, "-c", "import pytest"], capture_output=True).returncode == 0
+        if has_pytest:
+            self.assertEqual(repo_tests["mode"], "whole_suite", repo_tests)
+            self.assertEqual((repo_tests["target"], repo_tests["baseline_failures"]), ("tests", 0))
+            self.assertIn("repo_tests=whole_suite (tests/ in", buf.getvalue())
+        else:
+            self.assertEqual(repo_tests["mode"], "proximity", repo_tests)
+            self.assertIn("pytest is not installed", repo_tests["reason"])
+            self.assertIn("repo_tests=proximity", buf.getvalue())
+        self.assertEqual(repo_tests["budget_s"], R.WHOLE_SUITE_MAX_S)
+        # Budget 0 keeps the proximity selection regardless.
+        runner0 = R.SweBenchCompanyRunner(genome(), task(), self.ex, whole_suite_max_s=0)
+        runner0._execute_agent = FakeSystem1().execute
+        out0 = runner0.run_swebench(budget_moves=2, max_iterations=1)
+        self.assertEqual(out0["swebench"]["preflight"]["repo_tests"]["mode"], "proximity")
         # A package that exists but is broken is the finding; the search still runs and records it.
         _write(self.root, "pkg/__init__.py", "import numpy_does_not_exist_here  # noqa\n")
         runner2, _ = self.make_runner()
@@ -244,6 +265,8 @@ class EndToEndTests(RunnerFixture):
         self.assertFalse(pre2["ok"], pre2)
         self.assertEqual(pre2["tried"][0], "pkg")
         self.assertIn("numpy_does_not_exist_here", pre2["error"])
+        self.assertEqual(pre2["repo_tests"]["mode"], "proximity")
+        self.assertIn("does not import", pre2["repo_tests"]["reason"])
 
     def test_whole_module_rewrite_is_capped_on_large_modules(self):
         class MisanchoredFake(FakeSystem1):

@@ -26,16 +26,50 @@ host-side grace.
 class is byte-for-byte v7. In executor mode a probe is written to
 `.hae/probe_<id>.py` and run in the repo; `verify_module` runs in-memory
 compile → import → static check (new findings vs `git show HEAD:`) →
-*proximity tests*: at most 3 tracked `test_*.py`/`*_test.py`/`tests.py` files
-under a `tests/`, `test/` or `testing/` directory whose name contains the edited
-module's stem, shortest first. Only a test failure fails the step, plus one
-case added after the 2026-10-08 runs: pytest exiting 3/4 before collection
-(for instance `ImportError while loading conftest`) with a traceback frame in
-the edited module. Other start-up errors, "nothing collected" and timeouts
-stay inconclusive and pass. It never reads `FAIL_TO_PASS`/`PASS_TO_PASS`;
+`repo_tests`. That last step has three modes, chosen once per run:
+
+* an explicit `--test-command` (any non-zero exit fails);
+* *whole suite*, when `calibrate_whole_suite(budget_s)` (called by the runner
+  after the environment preflight; `--whole-suite-max-s`, default 60, 0
+  disables) finds that `pytest -q -rfE tests/` (or `test/`, `testing/`)
+  finishes within budget on the clean checkout. The ids that fail or error
+  at the base commit are the baseline; after a write the step fails only on
+  ids not in it, each re-run once alone first so a flaky test cannot revert
+  a synthesis; a run longer than 3x the calibrated time (at least 60 s) fails
+  as a possible hang. Marshmallow's 1073 tests take about 1.3 s, so it gets
+  this mode; the decision and reason are in `preflight.repo_tests` of
+  `record.json` and on the `[swebench]` seed line;
+* *proximity tests* otherwise: at most 3 tracked `test_*.py`/`*_test.py`/`tests.py`
+  files under a `tests/`, `test/` or `testing/` directory whose name contains
+  the edited module's stem, shortest first.
+
+Only a test failure fails the step, plus one case added after the 2026-10-08
+runs: pytest exiting 3/4 before collection (for instance `ImportError while
+loading conftest`) with a traceback frame in the edited module. Other
+start-up errors, "nothing collected" and (in proximity mode) timeouts stay
+inconclusive and pass. It never reads `FAIL_TO_PASS`/`PASS_TO_PASS`;
 `tests/test_swebench_dataset.py::LeakageTests` AST-scans
 runner/task/export/gatekeeper/executor for those names. Repos without pytest
 (django) get "skipped-pass" — pass `--test-command` for those.
+
+A passed module check is followed by the *effect check*
+(`check_synthesis_effect`, also added after the 2026-10-08 runs): the
+hypothesis' own probe, the other supported probes of its question and those
+of the root question (at most 6) are re-run unchanged. The write is
+`effective` if a probe that still reproduced the bug before the write no
+longer does (the self-oracle's `bug_no_longer_reproduces` rule, section 5);
+`ineffective` if every probe completed and either still matches its buggy
+prediction or had already stopped reproducing before this write (an earlier
+kept write flipped it, so it cannot vouch for this one); `inconclusive` when
+some probe now crashes or times out. An ineffective write is a synthesis
+failure: `apply_synthesis` leaves the question OPEN, the loop reverts the
+module, credits nothing (`delta_u` 0, AB-MCTS reward 0) and counts
+`syntheses_ineffective`; the re-runs and a summary row are attached to the
+hypothesis so the next synthesis prompt quotes the verdict. Inconclusive
+writes are kept (`syntheses_unconfirmed`) and left to the self-oracle. This
+is what stops a cosmetic function rewrite from entering the patch
+(`results/swebench/v9_ab_mcts_2026-10-08/README.md`, defect 3;
+`tests/test_synthesis_effect.py`).
 
 ## 3. Grading information
 

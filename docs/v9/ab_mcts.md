@@ -8,7 +8,9 @@ Specification: `docs/v8_role_evolution_and_swebench_roadmap.md`, section
 "Agent Implementation Specification for V9". Code: `hae/epistemic/ab_mcts.py`
 (the controller), `hae/epistemic/mcts.py` (`_ab_step`, the gate),
 `hae/genome/schema.py` (the gene fields), `hae/runtime/company.py` (the k=1
-proposer prompt). Tests: `tests/test_ab_mcts.py` (29 tests).
+proposer prompt). Tests: `tests/test_ab_mcts.py` (29 tests) and, for the
+synthesis reward under the post-synthesis effect check,
+`tests/test_synthesis_effect.py`.
 
 ## 1. What changes and what does not
 
@@ -52,11 +54,17 @@ Rewards are in [0, 1]:
 
 ```
 tested hypothesis   y = clamp(dU + 0.5 * [verdict is SUPPORTED], 0, 1)
-synthesis           y = clamp(dU + 0.5 * [module check passed],   0, 1)
+synthesis           y = clamp(dU + 0.5 * [write kept],            0, 1)
 ```
 
 `dU` is the move's `delta_u` from the ledger, the uncertainty the move
-actually resolved. An early falsification carries dU and is rewarded; a late
+actually resolved. "Write kept" means the module check passed and the
+post-synthesis effect check (`docs/v8/track_c_swebench.md`, section 2) did
+not find the write ineffective; a write that passes the module check but
+leaves every supported probe reproducing the bug is reverted, has `dU` 0 and
+scores 0, so a synthesize arm cannot be fed by cosmetic rewrites
+(`tests/test_synthesis_effect.py::LoopVerdictTests::test_ab_mcts_arm_earns_nothing_for_an_ineffective_write`).
+An early falsification carries dU and is rewarded; a late
 one that resolves nothing scores 0, and that is what makes a role's GEN arm
 sink until the CEO arm or another role's wins. A GEN draw itself is free
 (proposals earn nothing until tested) unless it added nothing, which scores 0
@@ -215,7 +223,14 @@ decay-driven recruit all happened as the tests describe. The `puct` rerun
 stopped `exhausted` at move 19 and its patch was broken by a later synthesis
 that the module gate should have failed. The same write-up records the two
 shared defects found (a pytest start-up failure passed the gate as
-inconclusive; cosmetic function rewrites pass the gate) and the V9-specific
-one (refused probes could not be repaired under the k=1 prompt); the first
-and third are fixed. One instance says nothing about rates; the V8-vs-V9
-comparison on the 50-task dev slice is the next measurement.
+inconclusive; cosmetic function rewrites passed the gate and could regress
+tests outside the graded files) and the V9-specific one (refused probes could
+not be repaired under the k=1 prompt); all three are fixed, the third by the
+post-synthesis effect check and the calibrated whole-suite `repo_tests` mode
+described in section 2 of `docs/v8/track_c_swebench.md`. On their recorded
+probes, the V9 run's two cosmetic syntheses (steps 7 and 24) would have
+failed that effect check and been reverted, leaving the `Field.root` hunk as
+the patch; what the search would have done with the moves instead is not
+something the record can say. One instance says
+nothing about rates; the V8-vs-V9 comparison on the 50-task dev slice is the
+next measurement.

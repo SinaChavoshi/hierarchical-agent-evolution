@@ -92,8 +92,17 @@ class ScriptedGatekeeper:
                         prediction={"expect_exit_code": 0}, matched_prediction=True,
                         detail="module check passed: scripted")
 
-    def apply_synthesis(self, state, q, h, evidence):
-        state.record_evidence(evidence, self.authority)
+    def check_synthesis_effect(self, state, q, h, root_question_id=None, module_evidence=None):
+        # The scripted synthesis is a fix: its probe would flip. Record the
+        # module evidence first, as the real gatekeeper does.
+        if module_evidence is not None and state.evidence_by_id(module_evidence.evidence_id) is None:
+            state.record_evidence(module_evidence, self.authority)
+        return {"verdict": "effective", "evidence_id": "", "detail": "scripted: effective",
+                "reruns": [], "bug_gone_hypotheses": [h.hypothesis_id], "probes_rerun": 1}
+
+    def apply_synthesis(self, state, q, h, evidence, effect=None):
+        if state.evidence_by_id(evidence.evidence_id) is None:
+            state.record_evidence(evidence, self.authority)
         h.patch_applied = True
         state.set_question_status(q.question_id, Q_RESOLVED, self.authority)
         return state.lower_uncertainty(q.question_id, 0.02, self.authority)

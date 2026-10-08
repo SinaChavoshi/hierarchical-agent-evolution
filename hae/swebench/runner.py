@@ -44,7 +44,7 @@ import sys
 import time
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
-from hae.epistemic.gatekeeper import EvidenceGatekeeper
+from hae.epistemic.gatekeeper import WHOLE_SUITE_MAX_S, EvidenceGatekeeper
 from hae.epistemic.ledger import Q_CERTIFIED, Q_RESOLVED, EpistemicState, Question
 from hae.epistemic.mcts import STOP_RESOLVED, EpistemicSearchLoop
 from hae.epistemic.moves import (
@@ -264,7 +264,7 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
     def __init__(self, genome: CompanyGenome, task: SweTask, executor: CommandExecutor,
                  budget: Optional[Budget] = None, include_hints: bool = False,
                  test_command: Optional[Any] = None, model_name: str = DEFAULT_MODEL_NAME,
-                 repo_map_cap: int = REPO_MAP_CAP) -> None:
+                 repo_map_cap: int = REPO_MAP_CAP, whole_suite_max_s: float = WHOLE_SUITE_MAX_S) -> None:
         super().__init__(genome, budget=budget)
         # The base class made a scratch AgentWorkspace under /tmp; this run never uses it.
         try:
@@ -277,6 +277,10 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
         self.test_command = test_command
         self.model_name = model_name
         self.repo_map_cap = repo_map_cap
+        # Budget for `EvidenceGatekeeper.calibrate_whole_suite` (seconds the
+        # clean checkout's suite must finish within for `repo_tests` to run
+        # the whole suite instead of the proximity selection); 0 disables.
+        self.whole_suite_max_s = float(whole_suite_max_s)
         self._py_files: Optional[List[str]] = None
         self._repo_map_cache: Optional[List[str]] = None
         self.seed_info: Dict[str, Any] = {}
@@ -491,6 +495,22 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
         if not preflight["ok"]:
             print(f"[swebench] {self.genome.company_id}: testbed cannot import the package under test "
                   f"(tried {preflight['tried']}): {preflight['error'][-300:]!r}", flush=True)
+        # Which `repo_tests` the module gate runs after a synthesis: the whole
+        # suite when the clean checkout finishes it within budget, else the
+        # proximity selection. Calibrated once, here, before the first write.
+        if preflight["ok"]:
+            repo_tests = gatekeeper.calibrate_whole_suite(self.whole_suite_max_s)
+        else:
+            repo_tests = {"mode": "proximity", "reason": "package does not import; suite not calibrated",
+                          "target": "", "duration_s": None, "baseline_failures": 0,
+                          "budget_s": self.whole_suite_max_s}
+        preflight["repo_tests"] = repo_tests
+        if repo_tests["mode"] == "whole_suite":
+            print(f"[swebench] {self.genome.company_id}: repo_tests=whole_suite ({repo_tests['target']}/ in "
+                  f"{repo_tests['duration_s']}s, {repo_tests['baseline_failures']} baseline failure(s), "
+                  f"gate timeout {repo_tests.get('timeout_s')}s; {repo_tests.get('summary', '')})", flush=True)
+        else:
+            print(f"[swebench] {self.genome.company_id}: repo_tests=proximity ({repo_tests['reason']})", flush=True)
 
         total_budget = int(budget_moves if budget_moves is not None else policy.search_budget_moves)
         remaining = total_budget
@@ -538,6 +558,7 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
                     f"[epistemic] {self.genome.company_id} "
                     f"{msg[len('[epistemic] '):] if msg.startswith('[epistemic] ') else msg}", flush=True),
                 prior_head=heads.prior_head, prior_head_weight=heads.prior_head_weight, value_head=heads.value_head,
+                root_question_id=root.question_id,
                 **loop_kwargs,
             )
             result = loop.run(remaining)
@@ -672,7 +693,8 @@ class _Tee:
 def run_instance(instance_id: str, dataset_path: str, executor: CommandExecutor, genome: CompanyGenome,
                  out_dir: str, budget_moves: Optional[int] = None, max_iterations: int = DEFAULT_MAX_ITERATIONS,
                  include_hints: bool = False, test_command: Optional[str] = None,
-                 model_name: str = DEFAULT_MODEL_NAME, budget_usd: Optional[float] = None) -> Dict[str, Any]:
+                 model_name: str = DEFAULT_MODEL_NAME, budget_usd: Optional[float] = None,
+                 whole_suite_max_s: float = WHOLE_SUITE_MAX_S) -> Dict[str, Any]:
     """Runs one instance end to end and writes prediction.json, record.json and firm.log into `out_dir`."""
     task = find_task(dataset_path, instance_id, include_hints=include_hints)
     os.makedirs(out_dir, exist_ok=True)
@@ -684,7 +706,8 @@ def run_instance(instance_id: str, dataset_path: str, executor: CommandExecutor,
         sys.stdout = _Tee(real_stdout, log_fh)
         try:
             runner = SweBenchCompanyRunner(genome, task, executor, budget=budget, include_hints=include_hints,
-                                           test_command=test_command, model_name=model_name)
+                                           test_command=test_command, model_name=model_name,
+                                           whole_suite_max_s=whole_suite_max_s)
             output = runner.run_swebench(budget_moves=budget_moves, max_iterations=max_iterations)
         finally:
             sys.stdout = real_stdout
@@ -738,6 +761,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--budget-usd", type=float, default=None)
     ap.add_argument("--include-hints", action="store_true")
     ap.add_argument("--test-command", default=None, help="shell command replacing the proximity test heuristic")
+    ap.add_argument("--whole-suite-max-s", type=float, default=WHOLE_SUITE_MAX_S,
+                    help="run the repository's whole suite in the module gate when the clean checkout finishes "
+                         "it within this many seconds (baseline failures are tolerated); 0 keeps the proximity "
+                         f"selection (default {WHOLE_SUITE_MAX_S:.0f})")
     ap.add_argument("--model-name", default=DEFAULT_MODEL_NAME)
     args = ap.parse_args(list(argv) if argv is not None else None)
     executor = make_executor(args.executor, container=args.container, pod=args.pod, namespace=args.namespace,
@@ -746,7 +773,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     record = run_instance(args.instance_id, args.dataset, executor, genome, args.out_dir,
                           budget_moves=args.budget_moves, max_iterations=args.max_iterations,
                           include_hints=args.include_hints, test_command=args.test_command,
-                          model_name=args.model_name, budget_usd=args.budget_usd)
+                          model_name=args.model_name, budget_usd=args.budget_usd,
+                          whole_suite_max_s=args.whole_suite_max_s)
     swe = record.get("swebench") or {}
     print(json.dumps({"instance_id": record["instance_id"], "resolved_by_self_oracle": swe.get("resolved_by_self_oracle"),
                       "stop": swe.get("stop"), "moves_used": swe.get("moves_used"),

@@ -39,9 +39,14 @@ Selection
 The loop never calls an LLM itself. It receives three adapters -- propose
 hypotheses, synthesise a patch, (optionally) ask questions -- and treats
 their output as proposals; an optional fourth, `revert_patch`, lets it undo
-a synthesis whose module check failed. Every move records the ledger's
-feature vector before and after, so V7 can train a value head on certified
-trajectories.
+a synthesis the gatekeeper rejected. A SYNTHESIZE move resolves its question
+only when the written module passes the gatekeeper's module check *and* its
+effect check (`check_synthesis_effect`: the supported probes, re-run, must
+stop reproducing the bug); a write that passes the first and fails the
+second is `ineffective` -- reverted, counted as a synthesis failure, worth
+nothing to the role or the AB-MCTS arm that produced it. Every move records
+the ledger's feature vector before and after, so V7 can train a value head
+on certified trajectories.
 
 The organisation as search state (V8)
 -------------------------------------
@@ -104,7 +109,9 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 from hae.epistemic.ab_mcts import (
     ARM_EXPERIMENT, ARM_GEN_HYPOTHESIS, ARM_SYNTHESIZE, AdaptiveBranchingController,
 )
-from hae.epistemic.gatekeeper import EvidenceGatekeeper, failure_signature
+from hae.epistemic.gatekeeper import (
+    EFFECT_INCONCLUSIVE, EFFECT_INEFFECTIVE, EvidenceGatekeeper, failure_signature,
+)
 from hae.epistemic.ledger import (
     CERTIFIED, FALSIFIED, Q_RESOLVED, SUPPORTED, UNTESTABLE, UNVERIFIED,
     EpistemicState, Hypothesis, LedgerError, MoveRecord, Question, same_mechanism,
@@ -209,7 +216,8 @@ class EpistemicSearchLoop:
                  prior_head_weight: float = 0.0,
                  value_head: Optional[LearnedValueHead] = None,
                  org_state: Optional[OrgState] = None,
-                 recruit_specialist: Optional[RecruitSpecialistFn] = None) -> None:
+                 recruit_specialist: Optional[RecruitSpecialistFn] = None,
+                 root_question_id: Optional[str] = None) -> None:
         self.state = state
         self.gatekeeper = gatekeeper
         self.value_fn = value_fn
@@ -226,6 +234,12 @@ class EpistemicSearchLoop:
         # `previous_source`. Optional: without it a broken write stays in the
         # workspace (the pre-A4 behaviour) and only the ledger records the failure.
         self.revert_patch = revert_patch
+        # The question whose SUPPORTED probes reproduce the task's reported
+        # behaviour (the SWE-bench runner's root question). After a synthesis
+        # on any question the gatekeeper re-runs those probes too, so a fix
+        # that flips the reproduction counts as effective wherever it landed.
+        # None (the self-hosting benchmark) re-runs the question's own probes only.
+        self.root_question_id = root_question_id
         # V7 heads (shadow mode by default). `prior_head` scores every untested
         # sibling at selection time; with `prior_head_weight == 0` the choice is
         # the V6 computation verbatim and the scores are only recorded.
@@ -927,29 +941,60 @@ class EpistemicSearchLoop:
                         f"(failure {h.synthesis_failures}/{MAX_SYNTHESIS_FAILURES})")
             return
         evidence = self.gatekeeper.verify_module(self.state, path, q.question_id, h.hypothesis_id)
-        delta = self.gatekeeper.apply_synthesis(self.state, q, h, evidence)
-        self._note_resolution(q)
-        reverted = False
+        # The module gate says the write is a valid module; the effect check
+        # says whether it is a fix: the supported probes are re-run and must
+        # stop reproducing the bug. A write that passes the gate but leaves
+        # every probe's buggy prediction in place is `ineffective` -- a
+        # cosmetic rewrite, the wrong function, a dead branch -- and is
+        # treated as a failed synthesis: reverted, no RESOLVED, no credit.
+        effect: Optional[Dict[str, Any]] = None
         if evidence.matched_prediction:
+            effect = self.gatekeeper.check_synthesis_effect(
+                self.state, q, h, root_question_id=self.root_question_id, module_evidence=evidence)
+        delta = self.gatekeeper.apply_synthesis(self.state, q, h, evidence, effect=effect)
+        self._note_resolution(q)
+        verdict = str(effect["verdict"]) if effect is not None else ""
+        ineffective = verdict == EFFECT_INEFFECTIVE
+        kept = bool(evidence.matched_prediction) and not ineffective
+        reverted = False
+        if kept:
             self.stats["syntheses_verified"] += 1
+            if verdict == EFFECT_INCONCLUSIVE:
+                self.stats["syntheses_unconfirmed"] = self.stats.get("syntheses_unconfirmed", 0) + 1
             if path not in self.synthesized_paths:
                 self.synthesized_paths.append(path)
         elif self.revert_patch is not None and isinstance(result.get("previous_source"), str):
-            # The write broke the module (compile/import/firm tests): put the
-            # pre-synthesis text back so the next move -- and the oracle --
-            # see the last known state, not the failed experiment.
-            reverted = self._revert(path, result["previous_source"], q, h)
+            # The write broke the module (compile/import/firm tests) or
+            # changed nothing a probe can see: put the pre-synthesis text back
+            # so the next move -- and the oracle -- see the last known state,
+            # not the failed experiment.
+            reverted = self._revert(path, result["previous_source"], q, h,
+                                    reason="an ineffective write" if ineffective else "a failed module check")
+        if ineffective:
+            self.stats["syntheses_ineffective"] = self.stats.get("syntheses_ineffective", 0) + 1
         note = f"{path} [{mode or 'unknown'}]: {evidence.detail}"
+        if effect is not None:
+            note += (f"; effect: {verdict} ({len(effect['bug_gone_hypotheses'])}/{effect['probes_rerun']} "
+                     "re-run probe(s) no longer reproduce the bug")
+            already = list(effect.get("already_gone_hypotheses") or [])
+            if already:
+                note += f", {len(already)} had already stopped before this write"
+            note += ")"
         if reverted:
             note += "; reverted to pre-synthesis module"
-        # V8 credit: `wrote` means the module check passed -- a write that
-        # broke the module (reverted or not) is a stall for the role, not a patch.
-        self._settle_synthesis(role, delta, wrote=bool(evidence.matched_prediction))
+        if ineffective:
+            note += f" (failure {h.synthesis_failures}/{MAX_SYNTHESIS_FAILURES})"
+        # V8 credit: `wrote` means the write stayed -- the module check passed
+        # and the effect check did not reject it. A write that broke the module
+        # or changed nothing observable (reverted or not) is a stall for the
+        # role, not a patch.
+        self._settle_synthesis(role, delta, wrote=kept)
         self._record(MOVE_SYNTHESIZE, q.question_id, h.hypothesis_id, delta_u=delta, note=note,
                      features_before=feats, value_before=v0, hash_before=h0, role=role)
         who = f" by {role.name}" if role is not None else ""
+        outcome = f"{evidence.detail[:120]}" + (f"; effect: {verdict}" if effect is not None else "")
         self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} synthesized {path} [{mode or 'unknown'}]{who}: "
-                    f"{evidence.detail[:120]}{' (reverted)' if reverted else ''} (dU={delta:.3f})")
+                    f"{outcome}{' (reverted)' if reverted else ''} (dU={delta:.3f})")
 
     def _settle_synthesis(self, role: Optional[RoleAllele], delta: float, wrote: bool) -> None:
         """V8: credit the synthesising role for the SYNTHESIZE move about to be recorded."""
@@ -958,7 +1003,8 @@ class EpistemicSearchLoop:
         self._credit(role.role_id, delta, verdict="", wrote=wrote)
         self.stats["roles_routed"] = True
 
-    def _revert(self, path: str, previous_source: str, q: Question, h: Hypothesis) -> bool:
+    def _revert(self, path: str, previous_source: str, q: Question, h: Hypothesis,
+                reason: str = "a failed module check") -> bool:
         """Calls `revert_patch`; a refusal (error status) or exception is logged, never raised."""
         try:
             outcome = self.revert_patch(path, previous_source)  # type: ignore[misc]
@@ -972,7 +1018,7 @@ class EpistemicSearchLoop:
             return False
         self.stats["syntheses_reverted"] = self.stats.get("syntheses_reverted", 0) + 1
         self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} reverted {path} to its pre-synthesis "
-                    "content after a failed module check")
+                    f"content after {reason}")
         return True
 
     def _ask_questions(self) -> None:

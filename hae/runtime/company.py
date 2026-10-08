@@ -1499,7 +1499,10 @@ class HierarchicalCompanyRunner:
                       "a JSON array with ONE SOURCE LINE PER ELEMENT) and `add_imports` (import statements the new code "
                       "needs that the module lacks; usually empty). The runner splices the definition in place and "
                       "REFUSES the packet if `new_source` does not parse, defines a different name, or is identical to "
-                      "the current definition: `new_source` MUST differ from the current source. Do not restate the "
+                      "the current definition: `new_source` MUST differ from the current source. Change only what the "
+                      "mechanism requires: keep docstrings, comments, messages and formatting as they are unless the "
+                      "fix needs them changed. After the write the gatekeeper re-runs the probe above; a rewrite that "
+                      "leaves its output unchanged is reverted as ineffective. Do not restate the "
                       "module. Mechanisms under RULED OUT were falsified by evidence; do not address them. "
                       f"Set `hypothesis_id` to \"{hypothesis.hypothesis_id}\"."
                 )

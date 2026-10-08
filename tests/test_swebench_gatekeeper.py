@@ -329,5 +329,127 @@ class ReproductionRecheckTests(ExecutorGatekeeperFixture):
         self.assertEqual(self.root_q.status, Q_OPEN)
 
 
+class WholeSuiteTests(ExecutorGatekeeperFixture):
+    """`calibrate_whole_suite` and the whole-suite `repo_tests` mode (defect 3, part 2).
+
+    The V9 run's cosmetic rewrite broke `tests/test_decorators.py` on
+    marshmallow while the gate ran only `tests/test_fields.py` (the
+    proximity selection for `fields.py`). When the clean checkout's suite is
+    cheap the gate runs all of it and compares against the base commit.
+    """
+
+    def setUp(self):
+        super().setUp()
+        if not self._has_pytest():
+            self.skipTest("pytest not installed")
+
+    def commit(self, msg="more"):
+        _git(self.root, "add", "-A")
+        _git(self.root, "commit", "-q", "-m", msg)
+
+    def test_calibration_switches_mode_and_tolerates_baseline_failures(self):
+        _write(self.root, "tests/test_other.py", "def test_pre_existing():\n    assert False, 'broken at base'\n")
+        self.commit()
+        info = self.gk.calibrate_whole_suite(60)
+        self.assertEqual(info["mode"], "whole_suite", info)
+        self.assertEqual(info["target"], "tests")
+        self.assertEqual(info["baseline_failures"], 1)
+        self.assertEqual(self.gk.whole_suite["baseline"], ["tests/test_other.py::test_pre_existing"])
+        self.assertGreaterEqual(self.gk.whole_suite["timeout_s"], 60.0)
+        argv, files, mode = self.gk._repo_tests_argv("pkg/mod.py")
+        self.assertEqual(mode, "whole_suite")
+        self.assertEqual(files, ["tests"])
+        self.assertNotIn("-x", argv)
+        self.assertIn("-rfE", argv)
+        ev = self.gk.verify_module(self.state, "pkg/mod.py")
+        self.assertTrue(ev.matched_prediction, ev.detail + "\n" + ev.stdout)
+        self.assertIn("whole suite: no new failure", ev.stdout)
+        self.assertIn("1 baseline failure(s)", ev.stdout)
+
+    def test_regression_outside_the_proximity_files_fails_the_check(self):
+        # Passes at the base commit (it pins the buggy value) and lives in a file
+        # the proximity heuristic for `mod.py` never selects.
+        _write(self.root, "tests/test_far_away.py", "from pkg.mod import f\n\ndef test_pins_value():\n    assert f(1) == 3\n")
+        self.commit()
+        self.assertEqual(self.gk._proximity_tests("pkg/mod.py"), ["tests/test_mod.py"])
+        info = self.gk.calibrate_whole_suite(60)
+        self.assertEqual(info["mode"], "whole_suite", info)
+        self.assertEqual(info["baseline_failures"], 0)
+        _write(self.root, "pkg/mod.py", FIXED)
+        ev = self.gk.verify_module(self.state, "pkg/mod.py")
+        self.assertFalse(ev.matched_prediction)
+        self.assertIn("failed at repo_tests", ev.detail)
+        self.assertIn("1 new failure(s) not present on the clean checkout", ev.detail)
+        self.assertIn("tests/test_far_away.py::test_pins_value", ev.detail)
+        # The same write passes the proximity gate: that is the gap being closed.
+        plain = EvidenceGatekeeper(workspace=None, timeout_s=30, executor=self.ex, isolate=False, stage_reference=False)
+        ev2 = plain.verify_module(self.state, "pkg/mod.py")
+        self.assertTrue(ev2.matched_prediction, ev2.detail)
+
+    def test_over_budget_keeps_the_proximity_selection(self):
+        _write(self.root, "tests/test_slow.py", "import time\n\ndef test_slow():\n    time.sleep(3)\n")
+        self.commit()
+        info = self.gk.calibrate_whole_suite(1)
+        self.assertEqual(info["mode"], "proximity", info)
+        self.assertIn("did not finish within 1s", info["reason"])
+        self.assertIsNone(self.gk.whole_suite)
+        self.assertEqual(self.gk._repo_tests_argv("pkg/mod.py")[2], "proximity")
+
+    def test_flaky_new_failure_is_rerun_alone_and_forgiven(self):
+        # Passes on the calibration run (count 0), fails on the gate run
+        # (count 1), passes again when re-run alone (count 2).
+        _write(self.root, "tests/test_flaky.py",
+               "import os\nP = os.path.join(os.path.dirname(__file__), 'flaky_count.txt')\n\n"
+               "def test_flaky():\n    n = int(open(P).read()) if os.path.exists(P) else 0\n"
+               "    open(P, 'w').write(str(n + 1))\n    assert n != 1\n")
+        self.commit()
+        info = self.gk.calibrate_whole_suite(60)
+        self.assertEqual(info["mode"], "whole_suite", info)
+        self.assertEqual(info["baseline_failures"], 0)
+        ev = self.gk.verify_module(self.state, "pkg/mod.py")
+        self.assertTrue(ev.matched_prediction, ev.detail + "\n" + ev.stdout)
+        self.assertIn("did not reproduce when re-run alone (flaky): tests/test_flaky.py::test_flaky", ev.stdout)
+
+    def test_suite_that_stops_finishing_fails_the_step(self):
+        _write(self.root, "tests/test_hang.py",
+               "import time\nfrom pkg.mod import f\n\ndef test_hangs_after_the_fix():\n    if f(1) == 2:\n        time.sleep(6)\n")
+        self.commit()
+        info = self.gk.calibrate_whole_suite(60)
+        self.assertEqual(info["mode"], "whole_suite", info)
+        self.gk.whole_suite["timeout_s"] = 1.5          # the floor is 60 s in production
+        _write(self.root, "pkg/mod.py", FIXED)
+        ev = self.gk.verify_module(self.state, "pkg/mod.py")
+        self.assertFalse(ev.matched_prediction)
+        self.assertIn("failed at repo_tests", ev.detail)
+        self.assertIn("did not finish within 2s", ev.detail)
+        self.assertIn("may have introduced a hang", ev.detail)
+
+    def test_explicit_test_command_and_zero_budget_disable_calibration(self):
+        gk = EvidenceGatekeeper(workspace=None, executor=self.ex, isolate=False, test_command="exit 0")
+        info = gk.calibrate_whole_suite(60)
+        self.assertEqual((info["mode"], info["reason"]), ("proximity", "explicit test_command"))
+        self.assertEqual(gk._repo_tests_argv("pkg/mod.py")[2], "test_command")
+        info0 = self.gk.calibrate_whole_suite(0)
+        self.assertEqual(info0["mode"], "proximity")
+        self.assertIn("disabled", info0["reason"])
+        staged = EvidenceGatekeeper(workspace=None, repo_root=self.root, python_executable=sys.executable,
+                                    isolate=False, stage_reference=False)
+        self.assertEqual(staged.calibrate_whole_suite(60)["mode"], "proximity")
+
+    def test_summary_parser(self):
+        text = ("tests/test_a.py ..F.                                                     [ 50%]\n"
+                "=========================== short test summary info ============================\n"
+                "FAILED tests/test_a.py::test_x - AssertionError: 1 != 2\n"
+                "FAILED tests/test_a.py::TestB::test_y[param a-b] - assert False\n"
+                "ERROR tests/test_c.py - ImportError: cannot import name 'g'\n"
+                "ERROR tests/test_d.py::test_z\n"
+                "FAILED tests/test_a.py::test_x - AssertionError: 1 != 2\n"
+                "3 failed, 1 passed, 2 errors in 0.12s\n")
+        self.assertEqual(EvidenceGatekeeper.failing_test_ids(text), [
+            "tests/test_a.py::test_x", "tests/test_a.py::TestB::test_y[param a-b]", "tests/test_c.py",
+            "tests/test_d.py::test_z"])
+        self.assertEqual(EvidenceGatekeeper.failing_test_ids("1 passed in 0.01s\n"), [])
+
+
 if __name__ == "__main__":
     unittest.main()

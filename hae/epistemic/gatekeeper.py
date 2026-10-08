@@ -36,6 +36,16 @@ What counts as evidence
     undefined-name check (`static_check`) before its question is RESOLVED:
     `py_compile` and `import` never execute a function body, and the Gen 16
     cohort lost three runs to a `NameError` that only the oracle saw.
+  * A synthesised module that passes that gate must also *change what the
+    supported probes observe* (`check_synthesis_effect`): the hypothesis'
+    own probe, its question's and the root question's other supported probes
+    are re-run, and when every one of them either still matches its
+    prediction of the buggy behaviour or had already stopped reproducing it
+    before this write (an earlier kept write flipped it, so it cannot vouch
+    for this one) the write is recorded as `ineffective` -- a synthesis
+    failure, not a RESOLVED question. The V9 run on marshmallow-1810 resolved
+    two questions with rewrites that only deleted docstrings and reworded
+    messages; one of them broke a test the proximity selection did not run.
 
 Oracle leakage, stated plainly: this gatekeeper never runs the held-out
 suites. Its only contact with the oracle is the list of failing test names
@@ -52,10 +62,13 @@ to `<repo_root>/.hae/probe_<hid>.py` and run in place, and a synthesised
 module is edited in place (the runner keeps `previous_source` for the
 revert). `verify_module` then compiles, imports, statically checks, and runs
 a *proximity* selection of the repository's own tests (`_proximity_tests`:
-file-name similarity only). The hidden FAIL_TO_PASS / PASS_TO_PASS lists are
-never read here or anywhere on the firm's path. `reconcile_with_reproduction`
-is the self-oracle: it re-runs the reproduction probes after a patch and is
-weaker than the hidden tests by construction (a probe can only disprove the
+file-name similarity only) -- or, when `calibrate_whole_suite` found on the
+clean checkout that the whole suite finishes within its budget, the whole
+suite, failing the step only on failures that were not already present at
+the base commit. The hidden FAIL_TO_PASS / PASS_TO_PASS lists are never read
+here or anywhere on the firm's path. `reconcile_with_reproduction` is the
+self-oracle: it re-runs the reproduction probes after a patch and is weaker
+than the hidden tests by construction (a probe can only disprove the
 behaviour it encoded). With `executor=None` nothing in this section runs and
 behaviour is byte-identical to before it existed.
 """
@@ -68,6 +81,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union
 
 from hae.epistemic.ledger import (
@@ -106,8 +120,27 @@ REPO_TESTS_TIMEOUT_S = 300
 MODULE_CHECK_TIMEOUT_S = 180
 PROXIMITY_LIMIT = 3
 SELF_ORACLE_COMMAND = "self-oracle: reproduction probe re-run after patch (NOT the hidden tests)"
+# Post-synthesis effect check (`check_synthesis_effect`): the command prefix of
+# every probe re-run it records, the command of its summary evidence, the cap
+# on probes re-run per synthesis and the three verdicts.
+POST_SYNTHESIS_RERUN = "post-synthesis re-run"
+EFFECT_CHECK_COMMAND = "post-synthesis effect check: supported probes re-run after the write (NOT the hidden tests)"
+EFFECT_CHECK_PROBE_LIMIT = 6
+EFFECT_EFFECTIVE = "effective"
+EFFECT_INEFFECTIVE = "ineffective"
+EFFECT_INCONCLUSIVE = "inconclusive"
+# Whole-suite `repo_tests` mode (`calibrate_whole_suite`): the default budget
+# the clean checkout's suite must finish within to qualify, the floor and the
+# baseline multiple of the per-synthesis timeout, and how many new failures
+# are re-run to filter flakiness.
+WHOLE_SUITE_MAX_S = 60.0
+WHOLE_SUITE_MIN_TIMEOUT_S = 60.0
+WHOLE_SUITE_TIMEOUT_FACTOR = 3.0
+WHOLE_SUITE_RERUN_LIMIT = 20
 _TEST_DIR_NAMES = ("tests", "test", "testing")
 _SRC_DIR_NAMES = ("src", "lib", "python")
+# pytest's `-rfE` short summary: `FAILED tests/t.py::test_x - AssertionError: ...`, `ERROR tests/t.py`.
+_SUMMARY_LINE_RE = re.compile(r"^(FAILED|ERROR)\s+(\S.*?)(?:\s+-\s.*)?$")
 # Runs inside the task environment: the syntax gate of `py_compile` without
 # its side effect (a .pyc written into the task repository, which an
 # un-ignored `__pycache__/` would then drag into the prediction).
@@ -294,6 +327,10 @@ class EvidenceGatekeeper:
             self.python = sys.executable
         self.probes_run = 0
         self.probes_rejected = 0
+        # Executor mode only: set by `calibrate_whole_suite` when the clean
+        # checkout's suite finishes within budget. None means the proximity
+        # selection (the pre-existing `repo_tests` behaviour).
+        self.whole_suite: Optional[Dict[str, Any]] = None
 
     # ------------------------------------------------------------------ #
     # Probe hygiene
@@ -433,8 +470,14 @@ class EvidenceGatekeeper:
     # Experiments
     # ------------------------------------------------------------------ #
 
-    def run_experiment(self, state: EpistemicState, hypothesis: Hypothesis) -> Evidence:
-        """Runs a hypothesis' probe. Returns evidence; writes nothing yet."""
+    def run_experiment(self, state: EpistemicState, hypothesis: Hypothesis,
+                       command_prefix: str = "") -> Evidence:
+        """Runs a hypothesis' probe. Returns evidence; writes nothing yet.
+
+        `command_prefix` labels the recorded command (the effect check's
+        re-runs carry `POST_SYNTHESIS_RERUN`) so a re-run after a write is
+        never read as the verdict run.
+        """
         eid = state.new_evidence_id()
         reason = self.validate_probe(hypothesis.probe_code)
         if reason:
@@ -458,14 +501,29 @@ class EvidenceGatekeeper:
                 shutil.rmtree(stage, ignore_errors=True)
         self.probes_run += 1
         matched, detail = self.match_prediction(hypothesis.prediction, result)
+        label = f"{command_prefix}: " if command_prefix else ""
         return Evidence(
             evidence_id=eid, kind="probe",
             hypothesis_id=hypothesis.hypothesis_id, question_id=hypothesis.question_id,
-            command=f"python {probe_rel}", exit_code=int(result.get("exit_code", -1)),
+            command=f"{label}python {probe_rel}", exit_code=int(result.get("exit_code", -1)),
             stdout=str(result.get("stdout", ""))[:OUTPUT_CAP],
             stderr=str(result.get("stderr", ""))[-OUTPUT_CAP:],
             prediction=dict(hypothesis.prediction), matched_prediction=matched,
             detail=detail, network_isolated=result.get("network_isolated"))
+
+    @staticmethod
+    def rerun_outcome(evidence: Evidence) -> Tuple[bool, bool]:
+        """(completed, bug_no_longer_reproduces) for a supported probe re-run after a write.
+
+        The one definition shared by the self-oracle and the effect check: the
+        re-run completed (not rejected, no timeout, no transport error) AND
+        its prediction of the buggy behaviour did NOT hold any more AND the
+        probe exited 0. A probe that now crashes proves only that something
+        changed; a probe that still matches says the bug is still there.
+        """
+        completed = evidence.kind == "probe" and not evidence.detail.startswith(INCONCLUSIVE)
+        gone = bool(completed and not evidence.matched_prediction and evidence.exit_code == 0)
+        return completed, gone
 
     def apply(self, state: EpistemicState, hypothesis: Hypothesis, evidence: Evidence) -> float:
         """Deterministic belief revision. Returns the uncertainty resolved (>= 0)."""
@@ -593,16 +651,156 @@ class EvidenceGatekeeper:
             prediction={"expect_exit_code": 0}, matched_prediction=passed,
             detail=detail, network_isolated=isolated)
 
+    @staticmethod
+    def last_probe_run(state: EpistemicState, hypothesis: Hypothesis) -> Optional[Evidence]:
+        """The most recent recorded run of the hypothesis' probe (first run, effect-check or self-oracle re-run)."""
+        for ev in reversed(state.evidence_log):
+            if ev.hypothesis_id == hypothesis.hypothesis_id and ev.kind == "probe":
+                return ev
+        return None
+
+    def probe_already_gone(self, state: EpistemicState, hypothesis: Hypothesis) -> bool:
+        """True when the probe's latest recorded run already no longer reproduced the bug.
+
+        Such a probe says nothing about the next write: an earlier kept write
+        flipped it. Counting it again would make every synthesis after the
+        first real fix look effective, which is how a cosmetic rewrite of an
+        unrelated function would re-enter the patch.
+        """
+        ev = self.last_probe_run(state, hypothesis)
+        return ev is not None and self.rerun_outcome(ev)[1]
+
+    def check_synthesis_effect(self, state: EpistemicState, question: Question, hypothesis: Hypothesis,
+                               root_question_id: Optional[str] = None,
+                               module_evidence: Optional[Evidence] = None) -> Dict[str, Any]:
+        """Did the write change what the supported probes observe? Run after a passed module check.
+
+        A SUPPORTED hypothesis is a probe that matched its prediction *of the
+        buggy behaviour*; a patch for its mechanism has to change that
+        outcome. The hypothesis' own probe, the other SUPPORTED / CERTIFIED
+        probes of its question and those of the root question (at most
+        `EFFECT_CHECK_PROBE_LIMIT`, own probe first, then by posterior) are
+        re-run unchanged and recorded; `apply` is not called, so no verdict
+        moves. A probe only vouches for THIS write if its latest recorded run
+        before the write still reproduced the bug (`probe_already_gone`);
+        one that an earlier kept write already flipped is re-run for the
+        record (a regression shows up as "matched again") but cannot make the
+        write effective. With `rerun_outcome`'s definition of "gone":
+
+            effective    -- at least one probe that still reproduced the bug
+                            before the write no longer does;
+            ineffective  -- every probe completed and either still matches its
+                            buggy prediction or had already stopped
+                            reproducing before the write: the write changed
+                            nothing a probe can see (a cosmetic rewrite, the
+                            wrong function, a dead branch, a mechanism an
+                            earlier write already fixed), so it is not a fix;
+            inconclusive -- nothing flipped, but some probe did not complete or
+                            now exits non-zero: something changed, and the
+                            iteration-end self-oracle decides.
+
+        One summary `Evidence` of kind "module_check" carrying
+        `EFFECT_CHECK_COMMAND` is recorded and attached to the hypothesis, so
+        the next synthesis prompt for it quotes the verdict. `module_evidence`,
+        when given, is recorded first (once) so the ledger reads module check,
+        re-runs, summary. `apply_synthesis` turns "ineffective" into a
+        synthesis failure instead of a RESOLVED question.
+        """
+        if module_evidence is not None and state.evidence_by_id(module_evidence.evidence_id) is None:
+            state.record_evidence(module_evidence, self.authority)
+
+        def supported(qid: str) -> List[Hypothesis]:
+            return sorted((h for h in state.hypotheses_for(qid)
+                           if h.status in (SUPPORTED, CERTIFIED) and h.hypothesis_id != hypothesis.hypothesis_id),
+                          key=lambda h: (-h.posterior, h.hypothesis_id))
+
+        probes: List[Hypothesis] = [hypothesis] + supported(question.question_id)
+        if root_question_id and root_question_id != question.question_id and root_question_id in state.questions:
+            seen = {h.hypothesis_id for h in probes}
+            probes.extend(h for h in supported(root_question_id) if h.hypothesis_id not in seen)
+        probes = probes[:EFFECT_CHECK_PROBE_LIMIT]
+        reruns: List[Dict[str, Any]] = []
+        gone: List[str] = []
+        already: List[str] = []
+        unsettled = 0
+        for h in probes:
+            was_gone = self.probe_already_gone(state, h)
+            ev = self.run_experiment(state, h, command_prefix=POST_SYNTHESIS_RERUN)
+            state.record_evidence(ev, self.authority)
+            completed, is_gone = self.rerun_outcome(ev)
+            reruns.append({"hypothesis_id": h.hypothesis_id, "question_id": h.question_id,
+                           "evidence_id": ev.evidence_id, "completed": completed,
+                           "matched_prediction": bool(ev.matched_prediction), "exit_code": int(ev.exit_code),
+                           "bug_no_longer_reproduces": is_gone, "already_gone_before_write": was_gone,
+                           "detail": ev.detail})
+            if is_gone and was_gone:
+                already.append(h.hypothesis_id)
+            elif is_gone:
+                gone.append(h.hypothesis_id)
+            elif not (completed and ev.matched_prediction):
+                unsettled += 1
+        if gone:
+            verdict = EFFECT_EFFECTIVE
+            detail = (f"post-synthesis effect check: effective -- {len(gone)}/{len(probes)} re-run probe(s) "
+                      f"no longer reproduce the bug ({', '.join(gone)})")
+        elif unsettled == 0:
+            verdict = EFFECT_INEFFECTIVE
+            still = len(probes) - len(already)
+            if not already:
+                detail = (f"post-synthesis effect check: ineffective -- all {len(probes)} re-run probe(s) still "
+                          "match their prediction of the buggy behaviour; the write changed nothing a probe can "
+                          "observe, so it is not a fix of this mechanism")
+            elif still == 0:
+                detail = (f"post-synthesis effect check: ineffective -- the bug the {len(already)} re-run probe(s) "
+                          f"describe had already stopped reproducing before this write ({', '.join(already)}); "
+                          "an earlier write fixed it and this one changes nothing a probe can observe")
+            else:
+                detail = (f"post-synthesis effect check: ineffective -- {still} re-run probe(s) still match their "
+                          f"prediction of the buggy behaviour and {len(already)} had already stopped reproducing "
+                          f"before this write ({', '.join(already)}); the write changed nothing a probe can observe")
+        else:
+            verdict = EFFECT_INCONCLUSIVE
+            detail = (f"post-synthesis effect check: inconclusive -- 0/{len(probes)} re-run probe(s) flipped, "
+                      f"{unsettled} did not complete or now exit non-zero")
+        summary = Evidence(
+            evidence_id=state.new_evidence_id(), kind="module_check",
+            hypothesis_id=hypothesis.hypothesis_id, question_id=question.question_id,
+            command=EFFECT_CHECK_COMMAND, exit_code=0 if verdict != EFFECT_INEFFECTIVE else 1,
+            stdout="\n".join(
+                f"{r['hypothesis_id']} ({r['question_id']}): completed={r['completed']} "
+                f"matched={r['matched_prediction']} exit={r['exit_code']} "
+                f"bug_no_longer_reproduces={r['bug_no_longer_reproduces']}"
+                + (" (already before this write)" if r["already_gone_before_write"] else "")
+                for r in reruns)[:OUTPUT_CAP],
+            prediction={"expect_exit_code": 0}, matched_prediction=verdict != EFFECT_INEFFECTIVE,
+            detail=detail)
+        state.record_evidence(summary, self.authority)  # attaches itself to the hypothesis
+        return {"verdict": verdict, "evidence_id": summary.evidence_id, "detail": detail,
+                "reruns": reruns, "bug_gone_hypotheses": gone, "already_gone_hypotheses": already,
+                "probes_rerun": len(probes)}
+
     def apply_synthesis(self, state: EpistemicState, question: Question,
-                        hypothesis: Hypothesis, evidence: Evidence) -> float:
-        """Records a post-synthesis module check and moves the question to RESOLVED if it passed."""
-        state.record_evidence(evidence, self.authority)
+                        hypothesis: Hypothesis, evidence: Evidence,
+                        effect: Optional[Mapping[str, Any]] = None) -> float:
+        """Records a post-synthesis module check and moves the question to RESOLVED if it passed.
+
+        `effect` is `check_synthesis_effect`'s result for the same write;
+        an `ineffective` verdict counts as a synthesis failure (the question
+        stays OPEN, `patch_applied` stays False) even though the module check
+        passed. Recording the module evidence is idempotent: the effect check
+        may already have put it on the log.
+        """
+        if state.evidence_by_id(evidence.evidence_id) is None:
+            state.record_evidence(evidence, self.authority)
         # The next synthesis attempt is prompted with the hypothesis' evidence;
         # a failed module check must be in it even if the evidence was built
         # without the hypothesis id.
         if evidence.evidence_id not in hypothesis.evidence_ids:
             hypothesis.evidence_ids.append(evidence.evidence_id)
         if not evidence.matched_prediction:
+            hypothesis.synthesis_failures += 1
+            return 0.0
+        if effect is not None and str(effect.get("verdict", "")) == EFFECT_INEFFECTIVE:
             hypothesis.synthesis_failures += 1
             return 0.0
         hypothesis.patch_applied = True
@@ -851,15 +1049,171 @@ class EvidenceGatekeeper:
         return found[:limit]
 
     def _repo_tests_argv(self, rel: str) -> Tuple[List[str], List[str], str]:
-        """(argv, files, mode) for the `repo_tests` step; mode is test_command | proximity | none."""
+        """(argv, files, mode) for the `repo_tests` step; mode is test_command | whole_suite | proximity | none."""
         if self.test_command:
             if isinstance(self.test_command, str):
                 return ["sh", "-c", self.test_command], [], "test_command"
             return list(self.test_command), [], "test_command"
+        if self.whole_suite:
+            return list(self.whole_suite["argv"]), [str(self.whole_suite["target"])], "whole_suite"
         files = self._proximity_tests(rel)
         if not files:
             return [], [], "none"
         return [self.python, "-m", "pytest", "-x", "-q", "--no-header", "-p", "no:cacheprovider", *files], files, "proximity"
+
+    @staticmethod
+    def failing_test_ids(text: str) -> List[str]:
+        """Test ids from pytest's `-rfE` short summary (`FAILED id - msg`, `ERROR id`), in order, de-duplicated."""
+        ids: List[str] = []
+        for line in text.splitlines():
+            m = _SUMMARY_LINE_RE.match(line.strip())
+            if m:
+                ident = m.group(2).strip()
+                if ident and ident not in ids:
+                    ids.append(ident)
+        return ids
+
+    def _whole_suite_argv(self, target: str) -> List[str]:
+        return [self.python, "-m", "pytest", "-q", "-rfE", "--no-header", "-p", "no:cacheprovider", target]
+
+    def calibrate_whole_suite(self, budget_s: float = WHOLE_SUITE_MAX_S) -> Dict[str, Any]:
+        """Decide whether `repo_tests` can run the repository's whole suite. Executor mode, LLM-free, once per run.
+
+        Runs `pytest -q -rfE <tests dir>` (the first of `tests/`, `test/`,
+        `testing/` that exists) on the clean checkout with `budget_s` as the
+        timeout. If it finishes within budget the gate enters whole-suite
+        mode: the ids that fail or error at the base commit are the baseline,
+        a later synthesis fails the `repo_tests` step only on failures that
+        are NOT in it, and its timeout is `WHOLE_SUITE_TIMEOUT_FACTOR` times
+        the measured duration (at least `WHOLE_SUITE_MIN_TIMEOUT_S`). Over
+        budget, no pytest, no tests directory, collection errors or a
+        start-up failure on the clean checkout keep the proximity selection.
+        An explicit `test_command` wins; `budget_s <= 0` disables. Returns a
+        record for the run file: `{mode, reason, target, duration_s,
+        baseline_failures, budget_s}`.
+
+        The suite at the base commit is what any developer runs before
+        opening a pull request; the instance's `test_patch` is not applied in
+        the testbed, so the hidden FAIL_TO_PASS tests are not part of it.
+        """
+        info: Dict[str, Any] = {"mode": "proximity", "reason": "", "target": "", "duration_s": None,
+                                "baseline_failures": 0, "budget_s": float(budget_s)}
+        self.whole_suite = None
+        if self.executor is None:
+            info["reason"] = "no executor (staged mode runs the firm's own tests)"
+            return info
+        if self.test_command:
+            info["reason"] = "explicit test_command"
+            return info
+        if float(budget_s) <= 0:
+            info["reason"] = "disabled (budget 0)"
+            return info
+        target = ""
+        for name in _TEST_DIR_NAMES:
+            try:
+                if self.executor.exists(name):
+                    target = name
+                    break
+            except Exception:
+                continue
+        if not target:
+            info["reason"] = "no tests/, test/ or testing/ directory"
+            return info
+        info["target"] = target
+        argv = self._whole_suite_argv(target)
+        t0 = time.monotonic()
+        res = self._run_exec(argv, timeout=float(budget_s))
+        text = str(res.get("stdout", "")) + str(res.get("stderr", ""))
+        if int(res.get("exit_code", -1)) == 4 and "unrecognized arguments" in text:
+            argv = [a for a in argv if a != "--no-header"]
+            t0 = time.monotonic()
+            res = self._run_exec(argv, timeout=float(budget_s))
+            text = str(res.get("stdout", "")) + str(res.get("stderr", ""))
+        duration = time.monotonic() - t0
+        info["duration_s"] = round(duration, 2)
+        rc = int(res.get("exit_code", -1))
+        if res.get("status") == "timeout":
+            info["reason"] = f"whole suite did not finish within {float(budget_s):.0f}s"
+            return info
+        if res.get("status") == "error":
+            info["reason"] = f"could not run pytest ({str(res.get('stderr', ''))[:120]})"
+            return info
+        if "No module named pytest" in text:
+            info["reason"] = "pytest is not installed in the task environment"
+            return info
+        if rc == 5:
+            info["reason"] = f"no tests collected from {target}/"
+            return info
+        if rc not in (0, 1):
+            info["reason"] = f"pytest exited {rc} on the clean checkout (collection or start-up errors)"
+            return info
+        baseline = self.failing_test_ids(text)
+        tail = [l.strip() for l in str(res.get("stdout", "")).splitlines() if l.strip()]
+        self.whole_suite = {
+            "argv": argv, "target": target, "baseline": baseline, "duration_s": round(duration, 2),
+            "timeout_s": max(WHOLE_SUITE_MIN_TIMEOUT_S, WHOLE_SUITE_TIMEOUT_FACTOR * duration),
+            "summary": tail[-1][:200] if tail else "",
+        }
+        info.update(mode="whole_suite", baseline_failures=len(baseline), summary=self.whole_suite["summary"],
+                    timeout_s=round(self.whole_suite["timeout_s"], 1))
+        return info
+
+    def _run_whole_suite(self, rel: str) -> Tuple[Dict[str, Any], str]:
+        """The `repo_tests` step in whole-suite mode: fail only on failures the clean checkout did not have.
+
+        A timeout at `timeout_s` (a multiple of the calibrated duration) FAILS
+        the step -- the write is the most likely reason the suite no longer
+        finishes. New failing ids are re-run once, alone, so a flaky test
+        cannot revert a synthesis; the ones that fail again are regressions.
+        Start-up failures use the same rule as the proximity mode.
+        """
+        ws = self.whole_suite or {}
+        argv = list(ws.get("argv") or [])
+        baseline = set(ws.get("baseline") or [])
+        timeout = float(ws.get("timeout_s") or WHOLE_SUITE_MIN_TIMEOUT_S)
+        label = f"{ws.get('target', 'tests')}/ (whole suite, {len(baseline)} baseline failure(s))"
+        res = self._run_exec(argv, timeout=timeout)
+        rc = int(res.get("exit_code", -1))
+        text = str(res.get("stdout", "")) + str(res.get("stderr", ""))
+        passed = dict(res, exit_code=0)
+        if res.get("status") == "timeout":
+            return (dict(res, exit_code=1),
+                    f"whole suite did not finish within {timeout:.0f}s (clean checkout: "
+                    f"{float(ws.get('duration_s') or 0):.1f}s); the write may have introduced a hang")
+        if res.get("status") == "error":
+            return passed, f"whole suite could not run ({str(res.get('stderr', ''))[:120]}); step skipped"
+        if rc == 0:
+            return passed, f"whole suite passed: {label}"
+        if rc == 5:
+            return passed, f"no tests collected from {label}; step skipped"
+        if rc in (3, 4):
+            frame = self._startup_failure_through(text, rel)
+            if frame:
+                error = next((l.strip() for l in text.splitlines() if l.strip().startswith("E ")), "")
+                return (dict(res, exit_code=rc),
+                        f"whole suite could not start (pytest exited {rc}) and the traceback runs through "
+                        f"{rel}: {frame}" + (f" -- {error[:160]}" if error else ""))
+            return passed, f"pytest exited {rc} (internal/usage error) on {label}; inconclusive, step skipped"
+        new = [i for i in self.failing_test_ids(text) if i not in baseline]
+        if not new:
+            if rc == 1:
+                return passed, f"whole suite: no new failure ({label})"
+            return passed, f"pytest exited {rc} on {label} without a parsable new failure; inconclusive, step skipped"
+        # Confirm: the new ids alone, once. Flaky tests must not revert a synthesis.
+        again = self._run_exec(argv[:-1] + new[:WHOLE_SUITE_RERUN_LIMIT], timeout=timeout)
+        rc2 = int(again.get("exit_code", -1))
+        if rc2 == 0:
+            return passed, (f"whole suite: {len(new)} new failure(s) did not reproduce when re-run alone "
+                            f"(flaky): {', '.join(new[:3])}")
+        if again.get("status") in ("ok", "failed") and rc2 in (1, 2):
+            text2 = str(again.get("stdout", "")) + str(again.get("stderr", ""))
+            still = [i for i in self.failing_test_ids(text2) if i in set(new)] or new
+        else:
+            still = new
+        more = f" (+{len(still) - 3} more)" if len(still) > 3 else ""
+        return (dict(res, exit_code=1),
+                f"whole suite: {len(still)} new failure(s) not present on the clean checkout: "
+                f"{', '.join(still[:3])}{more}")
 
     @staticmethod
     def _startup_failure_through(text: str, rel: str) -> str:
@@ -889,12 +1243,17 @@ class EvidenceGatekeeper:
         runs through `rel`, fails the step. "Nothing collected", other pytest
         usage/internal errors, a missing pytest and a timeout are recorded as
         notes and pass: an inconclusive gate must not block every synthesis,
-        and the self-oracle still has to be convinced afterwards.
+        and the self-oracle still has to be convinced afterwards. In
+        whole-suite mode (`calibrate_whole_suite`) see `_run_whole_suite`:
+        only failures absent from the clean checkout fail the step, and a
+        timeout does fail it.
         """
         argv, files, mode = self._repo_tests_argv(rel)
         if mode == "none":
             return ({"status": "ok", "exit_code": 0, "stdout": "", "stderr": "", "network_isolated": None},
                     f"no test file near {rel} by the proximity heuristic; step skipped")
+        if mode == "whole_suite":
+            return self._run_whole_suite(rel)
         res = self._run_exec(argv, timeout=REPO_TESTS_TIMEOUT_S)
         rc = int(res.get("exit_code", -1))
         text = str(res.get("stdout", "")) + str(res.get("stderr", ""))
@@ -1034,8 +1393,7 @@ class EvidenceGatekeeper:
         for h in probes:
             ev = self.run_experiment(state, h)
             state.record_evidence(ev, self.authority)
-            completed = ev.kind == "probe" and not ev.detail.startswith(INCONCLUSIVE)
-            is_gone = bool(completed and not ev.matched_prediction and ev.exit_code == 0)
+            completed, is_gone = self.rerun_outcome(ev)
             reruns.append({"hypothesis_id": h.hypothesis_id, "evidence_id": ev.evidence_id,
                            "completed": completed, "matched_prediction": bool(ev.matched_prediction),
                            "exit_code": int(ev.exit_code), "bug_no_longer_reproduces": is_gone,

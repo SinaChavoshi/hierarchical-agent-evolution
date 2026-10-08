@@ -66,8 +66,11 @@ takes the arm with the largest draw; ties fall to the smaller key.
 
 Rewards are in [0, 1]:
     tested hypothesis   y = clamp(dU + 0.5 * [verdict is SUPPORTED], 0, 1)
-    synthesis           y = clamp(dU + 0.5 * [module check passed], 0, 1)
-where dU is the move's `delta_u` from the ledger (uncertainty actually
+    synthesis           y = clamp(dU + 0.5 * [write kept], 0, 1)
+where "write kept" means the module check passed and the post-synthesis
+effect check did not find the write ineffective (a kept write also carries
+dU; an ineffective one is reverted and scores 0), and dU is the move's
+`delta_u` from the ledger (uncertainty actually
 resolved). A falsification early on carries real dU and is rewarded for it; a
 late one that resolves nothing scores 0, and that is what makes a role's GEN
 arm decay until the CEO arm, or another role's, wins.
@@ -121,7 +124,11 @@ def hypothesis_reward(delta_u: float, status: str) -> float:
 
 
 def synthesis_reward(delta_u: float, verified: bool) -> float:
-    """y = clamp(dU + 0.5 * [module check passed], 0, 1) for a synthesis attempt."""
+    """y = clamp(dU + 0.5 * [write kept], 0, 1) for a synthesis attempt.
+
+    `verified` is the loop's "kept": module check passed and the effect check
+    did not find the write ineffective. A reverted write has dU 0 and scores 0.
+    """
     return clamp01(float(delta_u) + (0.5 if verified else 0.0))
 
 

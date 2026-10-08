@@ -5,9 +5,10 @@ First live run of the V9 step policy (`epistemic_policy.search_algorithm = "ab_m
 same self-hosted model, container and grader as the V8 smoke run, plus a V8 (`puct`) rerun
 on the same code so the two step policies can be compared like for like.
 
-One instance, one seed per policy. Nothing here is a rate. The run found two defects in
-code shared by both policies (fixed in the same commit as this README) and one in the V9
-prompt; the comparison section says what remains after accounting for them.
+One instance, one seed per policy. Nothing here is a rate. The runs found two defects in
+code shared by both policies and one in the V9 prompt; all three are fixed (defects 1 and 2
+in the same commit as this README, defect 3 in a follow-up), and the comparison section
+says what remains after accounting for them.
 
 ## Setup
 
@@ -146,9 +147,51 @@ deletions and a `delattr` loop in the smoke run; the `Schema.__init__` rewrite i
    this, the V8 rerun's move 19 would have been reverted and its patch would have been the
    `fields.py` hunk alone, which grades resolved and passes the whole suite.
 3. **Cosmetic function rewrites pass the gate and can regress tests outside the graded
-   files** (both policies). Not fixed. Candidates: run the whole suite once before the patch
-   is exported when it is cheap (1.3 s for marshmallow; the preflight could time it), and
-   fail or revert a synthesis whose diff changes only strings, docstrings and comments.
+   files** (both policies). Fixed after these runs, in three parts:
+   - *Effect check* (`EvidenceGatekeeper.check_synthesis_effect`, called from
+     `EpistemicSearchLoop._do_synthesize` after a passed module check). The hypothesis'
+     own probe, the other supported probes of its question and those of the root question
+     (at most 6) are re-run unchanged. A write is `effective` if a probe that still
+     reproduced the bug before the write no longer does (the self-oracle's
+     `bug_no_longer_reproduces` rule); `ineffective` if every probe completed and either
+     still matches its buggy prediction or had already stopped reproducing before this
+     write; `inconclusive` otherwise (a probe now crashes; kept, the self-oracle decides).
+     An ineffective write is a synthesis failure: reverted, question stays OPEN, no
+     `patch_applied`, `delta_u` 0 and so AB-MCTS reward 0, `stats.syntheses_ineffective`.
+     The "already stopped before this write" clause matters: without it every synthesis
+     after the first real fix is vouched for by the flipped root probe, which is exactly
+     how change 3 above would have re-entered the patch after the `Field.root` fix at
+     step 12. The re-runs and a summary evidence row (`post-synthesis effect check: ...`)
+     are attached to the hypothesis, so the next synthesis prompt for it quotes the verdict.
+   - *Whole-suite `repo_tests` mode* (`calibrate_whole_suite`, run once per instance after
+     the environment preflight; `--whole-suite-max-s`, default 60, 0 disables). If
+     `pytest -q -rfE tests/` finishes within budget on the clean checkout (marshmallow:
+     1073 tests, about 1.3 s), the gate's `repo_tests` step runs the whole suite instead
+     of the proximity files and fails only on test ids that did not fail at the base
+     commit (new ids are re-run once alone so a flaky test cannot revert a write); a run
+     that exceeds 3x the calibrated time fails as a possible hang. Repos over budget,
+     without pytest or with start-up errors keep the proximity selection, with the reason
+     in `record.json["swebench"]["preflight"]["repo_tests"]` and on the seed line. The
+     `test_decorators.py` regression of change 3 is caught by this mode.
+   - *Prompt rule*: the function-rewrite prompt now says to change only what the mechanism
+     requires and that a rewrite leaving the probe's output unchanged is reverted.
+
+   Tests: `tests/test_synthesis_effect.py` (11; cosmetic rewrite reverted twice and the
+   question stays OPEN, next prompt carries the verdict, crashing write inconclusive and
+   kept, AB reward 0, the root-fixed-then-cosmetic-sub-question case, verdicts and
+   evidence) and `tests/test_swebench_gatekeeper.py::WholeSuiteTests` (7, need pytest in
+   the test interpreter; a regression outside the proximity files fails the step while the
+   proximity gate passes it, flaky forgiveness, hang detection, budget and opt-outs). On
+   the recorded probes, both cosmetic V9 changes would have been ineffective: h2's probe
+   prints `BUG:` and exits 0 whatever `_bind_field`'s messages say, so change 2 would have
+   been reverted at step 7; h8's probe only checks that a schema instantiates, which
+   change 3 does not alter, and the root probe h2 had already stopped reproducing at the
+   step-12 effect check of the `Field.root` write, so change 3 would have been reverted at
+   step 24 and the patch would have been the `Field.root` hunk alone. (The V8 rerun's
+   move 19 is the start-up failure of defect 2, caught there.) The golden PUCT fixture was
+   regenerated once for this change: the synthesize move's note gained the `effect:`
+   suffix and the synthesised hypothesis two evidence ids; move sequences, `delta_u`,
+   stats and statuses are unchanged (`tests/test_ab_mcts.py` docstring).
 
 ## Comparison
 
