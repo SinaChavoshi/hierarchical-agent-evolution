@@ -144,21 +144,46 @@ class TestV8Integration(unittest.TestCase):
 
         self.assertGreaterEqual(out2_syn["epistemic_search"]["stats"].get("recruits_synthesized", 0), 1)
 
-        # 4. Telemetry script execution
-        out1_path = os.path.join(self.tmp, "run_001.json")
-        with open(out1_path, "w") as f:
-            json.dump(out1, f)
-        
+        # 4. Telemetry scripts on the tree from the synthesize run, laid out
+        #    exactly as the worker writes it. Every output stays in self.tmp.
+        root = os.path.join(self.tmp, "cohort_root")
+        gen_dir = os.path.join(root, "outputs", "v8_firm", "generation_16")
+        os.makedirs(gen_dir)
+        with open(os.path.join(gen_dir, "v8_firm_epistemic_tree.json"), "w") as f:
+            json.dump({
+                "company_id": "v8_firm", "generation": 16,
+                "ledger": out2_syn["epistemic_ledger"],
+                "searches": [out2_syn["epistemic_search"]],
+                "audit": {}, "policy": None,
+            }, f, default=str)
+
         from scripts.extract_value_telemetry import main as ev_main
-        try:
-            val = ev_main(["--root", self.tmp])
-            self.assertIsNotNone(val)
-        except Exception as e:
-            self.fail(f"extract_value_telemetry failed: {e}")
-            
-        from scripts.summarize_gen16_cohort import main as sum_main
-        sys.argv = ["summarize_gen16_cohort.py", "--root", self.tmp]
-        try:
+        csv_path = os.path.join(self.tmp, "value_telemetry.csv")
+        summary = ev_main(["--root", root, "--out", csv_path])
+        self.assertGreater(summary["moves"], 0)
+        self.assertEqual(summary["columns"][-1], "role_id")
+        self.assertIn("recruit_specialist", summary["moves_by_type"])
+        self.assertTrue(summary.get("moves_by_role"))
+        with open(csv_path) as f:
+            self.assertIn("role_id", f.readline())
+
+        from scripts.summarize_gen16_cohort import load_run, main as sum_main
+        entry = load_run(root, "v8_firm", 0)
+        self.assertIn("org", entry)
+        self.assertGreaterEqual(entry["org"]["team0"], 1)
+        self.assertGreaterEqual(entry["org"]["recruited"], 1)
+        self.assertTrue(entry["org"]["roles_routed"])
+
+        pop_path = os.path.join(self.tmp, "population.json")
+        with open(pop_path, "w") as f:
+            json.dump({"cohort_design": {"lineages": {"v8": {"role": "smoke", "seeds": 1, "replicas": ["v8_firm"]}}},
+                       "population": [{"company_id": "v8_firm"}]}, f)
+        md_path = os.path.join(self.tmp, "summary_tables.md")
+        with mock.patch("sys.argv", ["summarize_gen16_cohort.py", "--root", root,
+                                     "--population", pop_path, "--markdown", md_path]), \
+                mock.patch("sys.stdout", new_callable=io.StringIO):
             sum_main()
-        except Exception as e:
-            pass
+        with open(md_path) as f:
+            tables = f.read()
+        self.assertIn("### V8 organisation", tables)
+        self.assertIn("`*` = recruited during the search.", tables)
