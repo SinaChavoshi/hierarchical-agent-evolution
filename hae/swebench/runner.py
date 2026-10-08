@@ -59,7 +59,7 @@ from hae.swebench.executor import (
 )
 from hae.swebench.export import DEFAULT_MODEL_NAME, export_prediction, write_prediction
 from hae.swebench.task import (
-    REPO_MAP_CAP, build_repo_map, focus_lines_for, module_view, resolve_paths, root_question,
+    REPO_MAP_CAP, build_repo_map, focus_lines_for, module_view, package_names, resolve_paths, root_question,
     seed_from_problem_statement, task_features,
 )
 from hae.task.budget import Budget
@@ -72,6 +72,12 @@ PROBE_TIMEOUT_MIN_S = 120
 # module that large must not be overwritten by a rewrite, so writes to it are
 # refused in this mode.
 MAX_EDITABLE_MODULE_CHARS = 200000
+# Rung 3 of the synthesis ladder re-emits the whole module. With an 8,192-token
+# output budget at ~3.5 chars/token that is ~28 kB of code before any
+# reasoning; on the first live run a 1,300-line `schema.py` cost 6.5 minutes
+# per attempt (20 tok/s single stream), was truncated and reverted at import.
+# Above this size the move ends after the anchored-edit and function rungs.
+MODULE_REWRITE_MAX_CHARS = 20000
 MAX_BUNDLE_FILES = 40
 STATEMENT_PROMPT_CHARS = 12000
 DEFAULT_MAX_ITERATIONS = 3
@@ -253,6 +259,8 @@ class _NoVerificationLoop:
 class SweBenchCompanyRunner(HierarchicalCompanyRunner):
     """`HierarchicalCompanyRunner` whose repository is a SWE-bench instance behind an executor."""
 
+    module_rewrite_max_chars = MODULE_REWRITE_MAX_CHARS
+
     def __init__(self, genome: CompanyGenome, task: SweTask, executor: CommandExecutor,
                  budget: Optional[Budget] = None, include_hints: bool = False,
                  test_command: Optional[Any] = None, model_name: str = DEFAULT_MODEL_NAME,
@@ -289,6 +297,54 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
             files = [l.strip() for l in res.stdout.splitlines() if l.strip().endswith(".py")] if res.rc == 0 else []
             self._py_files = sorted(set(files))
         return self._py_files
+
+    def environment_preflight(self, timeout_s: float = 120.0) -> Dict[str, Any]:
+        """Can the testbed interpreter import the package under test? (LLM-free, run once before the search.)
+
+        Some published instance images no longer import at all (pvlib-1395:
+        the testbed env resolved NumPy 2.0.2 and `pvlib/ivtools/sdm.py` uses
+        `np.Inf`); without this check that only shows up as every probe
+        "falsified" by the same ImportError. Tries `package_names(repo)` plus
+        the top-level package of the root module, stops at the first import
+        that succeeds, and returns `{ok, package, tried, error}`. Purely a
+        record: the search runs either way, and the batch runner / reports
+        decide what to do with a FAILED instance.
+        """
+        candidates = list(package_names(self.task.repo))
+        root_mod = ""
+        if self.epistemic_state is not None and self.seed_info.get("root_question_id"):
+            q = self.epistemic_state.questions.get(self.seed_info["root_question_id"])
+            root_mod = (q.module if q is not None else "") or ""
+        if root_mod:
+            top = root_mod.replace("\\", "/").split("/")[0]
+            if top.endswith(".py"):
+                top = top[:-3]
+            if top and top not in candidates and top not in ("src", "lib", "tests", "test"):
+                candidates.insert(0, top)
+            elif top == "src" and "/" in root_mod:
+                second = root_mod.split("/")[1]
+                second = second[:-3] if second.endswith(".py") else second
+                if second and second not in candidates:
+                    candidates.insert(0, second)
+        tried: List[str] = []
+        last_error = ""
+        for name in candidates:
+            if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name):
+                continue
+            tried.append(name)
+            try:
+                res = self.executor.run([self.executor.python, "-c", f"import importlib; importlib.import_module({name!r})"],
+                                        cwd=self.executor.root, timeout_s=timeout_s)
+            except Exception as exc:  # transport failure: report, never raise
+                last_error = f"{type(exc).__name__}: {exc}"
+                continue
+            if res.rc == 0:
+                return {"ok": True, "package": name, "tried": tried, "error": ""}
+            last_error = (res.stderr or res.stdout or f"exit {res.rc}").strip()
+            if f"No module named {name!r}" not in last_error and f'No module named "{name}"' not in last_error:
+                # The package exists but is broken (a dependency or its own code fails): that is the finding.
+                return {"ok": False, "package": name, "tried": tried, "error": last_error[-2000:]}
+        return {"ok": False, "package": "", "tried": tried, "error": last_error[-2000:]}
 
     def repo_map(self) -> List[str]:
         if self._repo_map_cache is None:
@@ -427,9 +483,14 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
             self.locate_module(root, agents["hypothesis"], objective)
         self._required_modules = [root.module] if root.module else []
         features = task_features(self.task, seed.get("paths", []))
+        preflight = self.environment_preflight()
         print(f"[swebench] {self.genome.company_id}: {self.task.instance_id} seeded root={root.question_id} "
               f"module={root.module or '(none)'} subs={seed['sub_question_ids']} "
-              f"paths={seed['paths'][:3]} complexity={features.complexity:.2f}", flush=True)
+              f"paths={seed['paths'][:3]} complexity={features.complexity:.2f} "
+              f"env_import={'ok' if preflight['ok'] else 'FAILED'}:{preflight['package'] or '?'}", flush=True)
+        if not preflight["ok"]:
+            print(f"[swebench] {self.genome.company_id}: testbed cannot import the package under test "
+                  f"(tried {preflight['tried']}): {preflight['error'][-300:]!r}", flush=True)
 
         total_budget = int(budget_moves if budget_moves is not None else policy.search_budget_moves)
         remaining = total_budget
@@ -536,7 +597,7 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
             "task_features": features.to_dict(), "reproduction": self.reproduction_log,
             "patch_chars": len(prediction["model_patch"]), "changed_files": self.executor.changed_files(),
             "workspace_writes": len(self.workspace.writes), "workspace_refusals": self.workspace.refused,
-            "hints_included": bool(self.task.hints_text),
+            "hints_included": bool(self.task.hints_text), "preflight": preflight,
         }
         deliverable = self._epistemic_deliverable(state, last_search, len(self.iteration_log))
         deliverable += (f"\n\n### SWE-bench {self.task.instance_id}\n```json\n"

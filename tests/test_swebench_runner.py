@@ -230,6 +230,55 @@ class EndToEndTests(RunnerFixture):
         self.assertEqual(gk.test_command, "exit 0")
         self.assertGreaterEqual(gk.timeout_s, R.PROBE_TIMEOUT_MIN_S)
 
+    def test_environment_preflight_reports_import_health(self):
+        runner, _ = self.make_runner()
+        out = runner.run_swebench(budget_moves=2, max_iterations=1)
+        pre = out["swebench"]["preflight"]
+        self.assertTrue(pre["ok"], pre)
+        self.assertEqual(pre["package"], "pkg")        # root module's top-level package, tried first
+        # A package that exists but is broken is the finding; the search still runs and records it.
+        _write(self.root, "pkg/__init__.py", "import numpy_does_not_exist_here  # noqa\n")
+        runner2, _ = self.make_runner()
+        out2 = runner2.run_swebench(budget_moves=2, max_iterations=1)
+        pre2 = out2["swebench"]["preflight"]
+        self.assertFalse(pre2["ok"], pre2)
+        self.assertEqual(pre2["tried"][0], "pkg")
+        self.assertIn("numpy_does_not_exist_here", pre2["error"])
+
+    def test_whole_module_rewrite_is_capped_on_large_modules(self):
+        class MisanchoredFake(FakeSystem1):
+            """Plan whose anchor does not exist; no function rewrite; rung 3 would be next."""
+
+            def execute(self, agent, prompt, context="", reserved=False, response_format=None, max_tokens=None):
+                schema = (response_format or {}).get("json_schema", {}).get("name")
+                if schema == "RepairPlanPacket":
+                    hid = re.search(r'Set `hypothesis_id` to "([^"]+)"', prompt).group(1)
+                    self.calls.append({"schema": schema})
+                    return json.dumps({"packet": "REPAIR_PLAN", "hypothesis_id": hid, "function": "f",
+                                       "rationale": "x", "old_lines": ["    return x + 99"], "new_lines": ["    return x + 1"]})
+                return super().execute(agent, prompt, context, reserved, response_format, max_tokens)
+
+        self.assertIsNone(R.HierarchicalCompanyRunner.module_rewrite_max_chars)
+        self.assertEqual(R.SweBenchCompanyRunner.module_rewrite_max_chars, R.MODULE_REWRITE_MAX_CHARS)
+        fake = MisanchoredFake()
+        runner, _ = self.make_runner(fake=fake)
+        runner.module_rewrite_max_chars = 10          # pkg/mod.py is 30 chars: above the cap
+        import contextlib
+        import io
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            out = runner.run_swebench(budget_moves=12, max_iterations=1)
+        self.assertIn("whole-module rewrite skipped", buf.getvalue())
+        self.assertFalse(any(c.get("schema") == "tools" for c in fake.calls), "rung 3 must not run above the cap")
+        self.assertEqual(out["prediction"]["model_patch"], "")
+        # Below the cap the ladder still reaches the whole-module rewrite (the fake's tools call).
+        fake2 = MisanchoredFake()
+        runner2, _ = self.make_runner(fake=fake2)
+        runner2.module_rewrite_max_chars = None
+        with contextlib.redirect_stdout(io.StringIO()):
+            runner2.run_swebench(budget_moves=12, max_iterations=1)
+        self.assertTrue(any(c.get("schema") == "tools" for c in fake2.calls))
+
 
 class DynamicOrganizationTests(RunnerFixture):
     """With `ceo_policy.enabled` the SWE-bench loop is staffed from the role library, not the departments."""

@@ -305,6 +305,12 @@ SUITE_TAG_TO_MODULE: Dict[str, str] = {
 class HierarchicalCompanyRunner:
     """Executes one virtual firm: CEO, department pods, workspace, and OpEx."""
 
+    # Rung 3 of the synthesis ladder re-emits the whole module in one response.
+    # None: always allowed (the Gen-16 corpus modules are small). A subclass
+    # whose modules are real repositories sets a cap in characters; above it
+    # the move ends after the anchored-edit and function-rewrite rungs.
+    module_rewrite_max_chars: Optional[int] = None
+
     def __init__(self, genome: CompanyGenome,
                  budget: Optional[Budget] = None,
                  seed_files: Optional[Dict[str, str]] = None):
@@ -1485,6 +1491,13 @@ class HierarchicalCompanyRunner:
             # could diagnose a missing module but every synthesis landed on an
             # existing one.
             missing = not source
+            cap = self.module_rewrite_max_chars
+            if not missing and cap is not None and len(source) > int(cap):
+                summary = (f"whole-module rewrite skipped: `{target}` is {len(source)} chars, above the "
+                           f"{int(cap)}-char cap for re-emitting a module in one response; "
+                           f"{'; '.join(notes)[:200]}")
+                print(f"[epistemic] {self.genome.company_id} {executor.role}: {summary}", flush=True)
+                return result(written=False, path=target, mode="none", rewrite_skipped=True, summary=summary)
             anchor = ""
             if plan is not None:
                 anchor += (f"\nYour own repair plan, which could not be applied mechanically "
