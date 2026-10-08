@@ -1,99 +1,73 @@
-# Phase 4 (`V4`): Multi-Instance `nvidia/Qwen3.8-Flash-Next-NVFP4` (`180B` MoE), Unified Global `llm-d` Session & Generation 10–11 Results
+# V4: Generations 10-11 on three Qwen3.8-Flash-Next-NVFP4 (180B) replicas behind a shared llm-d gateway
 
-> **Status:** Generation 10 **Complete (`10/10` firms)** | Generation 11 **Complete (`10/10` firms — `100.0%` `7/7` Unit Test Pass Rate on Iteration 1/10, `95.29 / 100` Peak Net Fitness)** on `chavoshi-g4-cluster` (`3x g4-standard-96`, `6x NVIDIA RTX PRO 6000 Blackwell 96GB GPUs`)
+Phase 4 (V4) of hierarchical-agent-evolution (HAE) ran Generations 10 and 11 on three self-hosted nodes serving `nvidia/Qwen3.8-Flash-Next-NVFP4` (a 180B-parameter mixture-of-experts model in NVIDIA's 4-bit NVFP4 format) behind one shared llm-d inference gateway, the request router between the agent worker pods and the vLLM replicas. Both generations ran after commit 71a7da4 fixed the seed-file leak that had copied a parent's passing `morphogenesis.py` into child workspaces (see the [V3 report](../v3_rsi/README.md)), so they are true zero-seed runs: no firm inherited the target module.
 
----
+Results: Gen 10, 10/10 firms finished, 6/10 passed 7/7 held-out tests, peak net fitness 78.92, mean 42.78. Gen 11, **10/10 firms passed 7/7 held-out tests on iteration 1 of 10** (mean iterations 1.00), peak 95.29, mean 91.08, subject to the independence caveat below. That is +40.0 points of pass rate (60% to 100%), +16.37 points of peak and +48.30 points of mean net fitness over Gen 10; under the pre-V4 setup, 90-agent firms had scored 0/7.
 
-## 1. Executive Summary: Why the Unified Global `llm-d` Session + `3x 180B NVFP4` Had a Massive Impact
+## What changed
 
-In **Phase 4 (`V4`)**, we migrated HAE from cloud-hosted proprietary APIs (`Gemini 2.5`) and small `32k`-context single-node open-source engines (`Qwen3-Coder-32B`) to a **3-node self-hosted `nvidia/Qwen3.8-Flash-Next-NVFP4` (`180B` MoE) cluster** (`6x NVIDIA RTX PRO 6000 Blackwell 96GB GPUs`, `576 GiB` total GDDR7 VRAM) fronted by a **Unified Global `llm-d` Inference Gateway** (`Deployment/llmd-inference-gateway`).
+Earlier phases used cloud APIs (Gemini 2.5) and a single-node open-source engine with a 32k context (Qwen3-Coder-32B). V4 serves one vLLM replica of the 180B model per `g4-standard-96` node of `chavoshi-g4-cluster` (6 GPUs, 576 GiB of GDDR7 VRAM in total) behind `Deployment/llmd-inference-gateway`, defined in [`k8s/qwen38-flash-next-180b-llmd.yaml`](../../k8s/qwen38-flash-next-180b-llmd.yaml). Three full runs were made (call counts in the gateway table below): Gen 10, a Gen 11 attempt with tools enabled for every agent that became an unplanned stress test, and the Gen 11 run reported here. The original summary counted 8,500+ calls; the per-run counts sum to 7,894.
 
-Across **three full-scale `V4` runs** (**`8,500+` multi-agent LLM calls** across `Gen 10`, `Gen 11 Tool-Stress Ablation (4,881 calls)`, and `Gen 11 Converged Run (724 calls)`), the **Unified Global `llm-d` Session** proved to be the single highest-leverage systems upgrade in the project:
+1. One gateway session for all companies. Instead of keying sessions by `X-Company-ID`, `canonicalize_prompt_for_global_session` rewrites company identifiers (`gen_9_elite_1`, `gen_10_crossover_2`, `firm_3`, ...) to `<SHARED_COMPANY>`, so identical prompts from different companies hash to one key. A prompt already answered for one company is returned to the next from the gateway cache (`X-LLMD-Cache: HIT-SHORT-CIRCUIT`) in 0.74 ms instead of the 880.5 ms of a 180B forward pass (1,190x, no GPU work); concurrent identical prompts from parallel worker pods are coalesced into one forward pass ("singleflight", `X-LLMD-Cache: HIT-SINGLEFLIGHT-COALESCED`). Before, every company ran its own forward passes (0.0% offload).
+2. Prefix-affinity routing. Bounded-load consistent hashing over the shared task/codebase prefix sends each request to the replica holding the warm fp8 key/value (KV) cache for that prefix, replacing round-robin (about 33.3% prefix hit rate over 3 nodes). The cache is tiered: 282.3 GiB of fp8 GDDR7 VRAM plus 144.0 GiB of CPU DRAM offload in `/dev/shm` across the nodes, 426.3 GiB in total against 46 GiB of VRAM on the previous single node (9.2x).
+3. No hard call ceiling; logarithmic token-efficiency scoring (commit 86c964c). Self-hosted inference has no marginal per-token API cost, so the legacy Vertex AI cutoff (`working_max_calls = 585`, `calls = 586`), which had truncated 60- to 90-agent companies mid-run, was removed (`max_calls: null`). Scoring now uses a smooth, unbounded curve over the shadow token cost (tokens priced at reference API rates against a $0.50 budget): $\text{Penalty} = 4.0 \ln(1 + \frac{\text{cost} - \text{budget}}{\text{budget}})$, $\text{Bonus} = \min(5.0,\ 5.0 \frac{\text{budget} - \text{cost}}{\text{budget}})$.
+4. Longer context, no thinking blocks, new parsing. Context went from 32,768 to 131,072 tokens (128k) and max output from 3,072-4,096 to 16,384 (4.0x each). Thinking is off (`enable_thinking: False`) and a `</think>` stripper in the gateway removes residual reasoning blocks, cutting per-turn response time from 6,980 ms to 880.5 ms (7.9x, about 5x fewer wasted output tokens). Native Qwen3.8 XML plus fenced-module parsing (commit f8beb16) and direct specification propagation (commit 86c964c) landed at the same time.
 
-### Four Transformative Gains from `llm-d` + `3x Qwen3.8-Flash-Next-NVFP4` (`180B` MoE)
+## Gateway measurements
 
-1. **Cross-Company Answer Short-Circuiting (`0.74 ms` vs. `880.5 ms` = `1,190x` Speedup) & Singleflight Coalescing Offloaded `37.4%` to `73.2%` of All Cluster Traffic with `0` GPU FLOPs:**
-   - Instead of isolating `llm-d` sessions by `X-Company-ID`, all competing companies in a generation share a **single global `llm-d` session** (`canonicalize_prompt_for_global_session` normalizes `gen_9_elite_1`, `gen_10_crossover_2`, `firm_3`, etc. to `<SHARED_COMPANY>`).
-   - When Question A is answered in Company A (`880.5 ms` on `180B` `NVFP4`), Company B asking Question A receives the cached answer in **`0.74 ms` (`1,190x` faster, `0` GPU compute)** (`X-LLMD-Cache: HIT-SHORT-CIRCUIT`), while concurrent identical queries across parallel worker pods coalesce into a single GPU forward pass (`X-LLMD-Cache: HIT-SINGLEFLIGHT-COALESCED`).
-   - **Measured Offload Across Runs:**
-     - **Gen 10 (`2,289` calls):** **`327` calls (`14.3%`)** offloaded with `0` GPU compute (`276` short-circuits + `51` coalesced).
-     - **Gen 11 High-Load Stress Test (`4,881` calls across `555` tool-enabled agents):** **`2,113` calls (`43.29%`)** offloaded with `0` GPU compute (`1,725` short-circuits + `388` coalesced) — absorbing nearly half of a `4,881`-call storm without a single pod restart or OOM!
-     - **Gen 11 Converged Run (`724` calls across `10` companies / `555` agents):** **`271` calls (`37.43%` full-run, peaking at `73.2%` (`71/97`) during parallel Wave-1 startup)** offloaded with `0` GPU compute (`106` short-circuits + `165` coalesced).
-2. **`99.7%` to `100.00%` Prefix KV-Cache Affinity Across `426.3 GiB` of Tiered GDDR7 VRAM + DDR5 DRAM KV Cache:**
-   - Bounded-load consistent hashing over the shared task/codebase prefix routed **`1,903 / 1,962` (`96.9%`)** in Gen 10, **`2,760 / 2,768` (`99.71%`)** in the 4,881-call stress test, and **`455 / 455` (`100.00%`, `0` load spillovers)** in the Gen 11 converged run to the exact `180B` replica holding the warm `fp8` KV cache (`282.3 GiB` GDDR7 VRAM + `144.0 GiB` CPU `/dev/shm` DRAM offload).
-3. **Removing the Hard `586` Call Ceiling + Adding Smooth Logarithmic Token-Efficiency Scoring (`commit 86c964c`):**
-   - Because self-hosted inference on `chavoshi-g4-cluster` has **`$0.00` marginal per-token API cost**, we removed the legacy Vertex AI hard call cutoff (`working_max_calls = 585` / `calls = 586`) that previously truncated `60–90` agent companies mid-run, and replaced it with a **smooth, unbounded Logarithmic Token-Efficiency Curve** ($\text{Penalty} = 4.0 \ln(1 + \frac{\text{cost} - \text{budget}}{\text{budget}})$, $\text{Bonus} = \min(5.0, 5.0 \frac{\text{budget} - \text{cost}}{\text{budget}})$).
-4. **100.0% First-Iteration Convergence Across All `10 / 10` Companies in Generation 11 (`95.29 / 100` Peak Net Fitness):**
-   - Combining `3x Qwen3.8-Flash-Next-180B-NVFP4` (`128k` context / `16k` output), native Qwen3.8 XML + fenced module parsing (`commit f8beb16`), and direct specification propagation (`commit 86c964c`) drove **all `10 / 10` (`100.0%`) Generation 11 companies (`33`, `60`, and `90` agents alike) to pass `7 / 7` (`100.0%`) held-out unit tests on Iteration 1/10 (`1.00` mean iterations) with `0 / 10` inherited target modules!**
+| Run | LLM calls | Served without GPU work (short-circuit / coalesced) | Routed to the replica with the warm prefix |
+| :-- | --: | --: | --: |
+| Gen 10 | 2,289 | 327 (14.3%; 276 / 51) | 1,903 / 1,962 (96.9%) |
+| Gen 11 stress run (tools on all 555 agents) | 4,881 | 2,113 (43.29%; 1,725 / 388) | 2,760 / 2,768 (99.71%) |
+| Gen 11 converged run (10 companies, 555 agents) | 724 | 271 (37.43%; 106 / 165) | 455 / 455 (100.00%, 0 load spillovers) |
 
----
+The offload rate peaked at 73.2% (71 of 97 requests) while the first wave of Gen 11 companies started in parallel. Serving 37.4%-43.3% of requests from the gateway corresponds to 1.60x-1.93x the effective throughput of the same six GPUs, and the prefix affinity is about 3.0x the round-robin hit rate. The 4,881-call stress run finished without a pod restart or out-of-memory event.
 
-## 2. Quantified Gains from Switching to `llm-d` + `3x Qwen3.8-Flash-Next-NVFP4` (`180B` MoE)
+## Generation 11 ledger
 
-| Architectural Dimension | Baseline (`vLLM` Without Global `llm-d` Session) | Upgraded (`3x Qwen3.8-180B-NVFP4` + Unified Global `llm-d`) | Measured Gain / Improvement |
-| :--- | :--- | :--- | :--- |
-| **Cross-Company Identical Query Latency** | `880.5 ms` (re-computed on GPU per company) | **`0.74 ms`** (`X-LLMD-Cache: HIT-SHORT-CIRCUIT`) | **`1,190x` latency speedup (`0` GPU compute)** |
-| **Zero-GPU Request Offload Rate** | `0.0%` (every company runs isolated forward passes) | **`37.4%` (`271 / 724` in Gen 11)** to **`43.3%` (`2,113 / 4,881` under stress; `73.2%` peak)** | **`1.60x – 1.93x` effective cluster throughput** with `0` extra GPUs |
-| **Prefix KV-Cache Routing Affinity** | Round-robin (`~33.3%` prefix hit rate across 3 nodes) | **`96.9%` (`Gen 10`) $\to$ `99.71%` (`Stress`) $\to$ `100.00%` (`455/455` in `Gen 11`)** | **`3.0x` higher KV-cache hit rate** (`0` load spillovers in Gen 11) |
-| **Per-Turn Reasoning Overhead** | `6,980 ms` (verbose `<think>` blocks enabled by default) | **`880.5 ms`** (`enable_thinking: False` + `</think>` stripper in `llm-d`) | **`7.9x` faster per-turn response time** (`~5x` fewer wasted output tokens) |
-| **Max Context & Output Token Headroom** | `32,768` context / `3,072–4,096` `max_tokens` | **`131,072` (`128k`) context / `16,384` `max_tokens`** | **`4.0x` context & `4.0x` output capacity** |
-| **Zero-Seed Held-Out Test Pass Rate (`7/7`)** | `0 / 7` on `90`-agent firms (`6/10` overall in Gen 10) | **`10 / 10` (`100.0%` of firms passed `7/7` tests on Iteration 1/10 in Gen 11)** | **`+40.0%` population pass rate (`60%` $\to$ `100%`) & `1.00` mean iterations** |
-| **Peak & Mean Net Fitness (`Zero-Seed`)** | `78.92` Peak / `42.78` Mean (`Gen 10`) | **`95.29 / 100` Peak (`gen_10_pareto_2`) / `91.08 / 100` Mean (`Gen 11`)** | **`+16.37` pts Peak Net Fitness / `+48.30` pts Mean Net Fitness** |
-| **Cluster KV-Cache Capacity** | `46 GiB` VRAM KV cache (1 node, no CPU offload) | **`282.3 GiB` GDDR7 `fp8` VRAM + `144 GiB` DDR5 CPU KV Offload (`426.3 GiB` total)** | **`9.2x` total cluster KV-cache memory** across 3 `G4` nodes |
+Job `job.batch/hae-gen11-qwen38-180b`. Task: zero-seed synthesis (`carry_artifacts=False`, 0/10 firms inherited the target module) of [`hae/genome/morphogenesis.py`](../../hae/genome/morphogenesis.py) (`MorphogenesisEngine` and `StructuralCrossoverEngine`), graded on the 7 held-out unit tests in [`tests/test_morphogenesis.py`](../../tests/test_morphogenesis.py), which the agents never see; no call limit; scoring as above. All ten firms passed 7/7 on iteration 1 of 10. Net fitness is the gross score plus the efficiency bonus; the overlay is the authored `morphogenesis.py`.
 
----
+| Rank | Company | Agents | Overlay (bytes) | Shadow cost | Bonus | Gross | Net |
+| :-- | :-- | --: | --: | --: | --: | --: | --: |
+| 1 | `gen_10_pareto_2` | 60 | 15,460 | $0.2411 | +2.59 | 92.70 | **95.29** |
+| 2 | `gen_10_pareto_1` | 33 | 16,352 | $0.1441 | +3.56 | 91.20 | 94.76 |
+| 3 | `gen_10_mutant_3` | 90 | 19,727 | $0.3331 | +1.67 | 92.70 | 94.37 |
+| 4 (tie) | `gen_10_elite_1` | 33 | 14,786 | $0.1356 | +3.64 | 90.70 | 94.34 |
+| 4 (tie) | `gen_10_crossover_3` | 33 | 14,786 | $0.1356 | +3.64 | 90.70 | 94.34 |
+| 6 | `gen_10_crossover_1` | 33 | 16,959 | $0.2041 | +2.96 | 90.70 | 93.66 |
+| 7 (tie) | `gen_10_elite_2` | 90 | 14,051 | $0.2851 | +2.15 | 90.70 | 92.85 |
+| 7 (tie) | `gen_10_crossover_2` | 90 | 14,051 | $0.2851 | +2.15 | 90.70 | 92.85 |
+| 9 | `gen_10_mutant_1` | 33 | 13,314 | $0.1801 | +3.20 | 78.60 | 81.80 |
+| 10 | `gen_10_mutant_2` | 60 | 20,868 | $0.4923 | +0.08 | 76.50 | 76.58 |
+| Mean (10 firms, 555 agents) | | 55.5 | 16,035 | $0.2436 | +2.56 | 88.52 | **91.08** |
 
-## 3. Generation 11 Final Ledger (`job.batch/hae-gen11-qwen38-180b` — `10/10` Completed at `100.0%` `7/7` Tests)
+Caveat on independence. Because all companies shared one gateway session, identical builder prompts from different companies were served the same model-generated answer instead of each company producing its own. The ledger shows it: `gen_10_elite_1` and `gen_10_crossover_3` have identical overlay size, cost and scores, as do `gen_10_elite_2` and `gen_10_crossover_2`. The result is zero-seed, but the ten firms are not ten independent samples. The current serving manifest ([`k8s/qwen38-flash-next-180b-llmd.yaml`](../../k8s/qwen38-flash-next-180b-llmd.yaml)) excludes code-authoring requests (those carrying `ACTIVE WORKSPACE SANDBOX:`) from both short-circuit and singleflight, so later generations did not share synthesis across companies.
 
-**Benchmark Task:** True Zero-Seed (`carry_artifacts=False`, `0/10` inherited target modules) synthesis of `hae/genome/morphogenesis.py` (`MorphogenesisEngine` & `StructuralCrossoverEngine`) graded against `7` held-out unit tests (`tests/test_morphogenesis.py`), with **no hard call limit (`max_calls: null`)** and **smooth logarithmic token-efficiency scoring**.
+Token efficiency. With the 586-call ceiling gone, all three 90-agent firms and both 60-agent firms finished on iteration 1 and passed 7/7, like the 33-agent firms. The curve still favoured leaner firms, from +3.64 for the 33-agent `gen_10_elite_1` ($0.1356) to +1.67 for the 90-agent `gen_10_mutant_3` ($0.3331); the +2.59 bonus is what put the 60-agent `gen_10_pareto_2` (92.70 gross, $0.2411) first.
 
-| Rank | Company ID | Agent Count | Held-Out Unit Tests (`morphogenesis.py`) | Iterations to Converge | Authored Overlay Size | Shadow Token Cost (vs. `$0.50` Ref) | Token Efficiency Bonus | Gross Score | **Final Net Fitness** |
-| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **1 (Champion)** | **`gen_10_pareto_2`** | **`60` agents** | **`7 / 7` (`100.0%`)** | **1 / 10** | `15,460 B` | `$0.2411` | **`+2.59 pts`** | `92.70` | **`95.29 / 100`** |
-| **2** | **`gen_10_pareto_1`** | `33` agents | **`7 / 7` (`100.0%`)** | **1 / 10** | `16,352 B` | `$0.1441` | **`+3.56 pts`** | `91.20` | **`94.76 / 100`** |
-| **3** | **`gen_10_mutant_3`** | **`90` agents** | **`7 / 7` (`100.0%`)** | **1 / 10** | `19,727 B` | `$0.3331` | **`+1.67 pts`** | `92.70` | **`94.37 / 100`** |
-| **4 (tie)** | **`gen_10_elite_1`** | `33` agents | **`7 / 7` (`100.0%`)** | **1 / 10** | `14,786 B` | `$0.1356` | **`+3.64 pts`** | `90.70` | **`94.34 / 100`** |
-| **4 (tie)** | **`gen_10_crossover_3`** | `33` agents | **`7 / 7` (`100.0%`)** | **1 / 10** | `14,786 B` | `$0.1356` | **`+3.64 pts`** | `90.70` | **`94.34 / 100`** |
-| **6** | **`gen_10_crossover_1`** | `33` agents | **`7 / 7` (`100.0%`)** | **1 / 10** | `16,959 B` | `$0.2041` | **`+2.96 pts`** | `90.70` | **`93.66 / 100`** |
-| **7 (tie)** | **`gen_10_elite_2`** | **`90` agents** | **`7 / 7` (`100.0%`)** | **1 / 10** | `14,051 B` | `$0.2851` | **`+2.15 pts`** | `90.70` | **`92.85 / 100`** |
-| **7 (tie)** | **`gen_10_crossover_2`** | **`90` agents** | **`7 / 7` (`100.0%`)** | **1 / 10** | `14,051 B` | `$0.2851` | **`+2.15 pts`** | `90.70` | **`92.85 / 100`** |
-| **9** | **`gen_10_mutant_1`** | `33` agents | **`7 / 7` (`100.0%`)** | **1 / 10** | `13,314 B` | `$0.1801` | **`+3.20 pts`** | `78.60` | **`81.80 / 100`** |
-| **10** | **`gen_10_mutant_2`** | **`60` agents** | **`7 / 7` (`100.0%`)** | **1 / 10** | `20,868 B` | `$0.4923` | **`+0.08 pts`** | `76.50` | **`76.58 / 100`** |
-| **Population Mean** | **`10 / 10` Firms (`555` Agents)** | `55.5` avg | **`10 / 10` at `7/7` (`100.0%`)** | **`1.00` iters** | `16,035 B` | `$0.2436` | **`+2.56 pts`** | `88.52` | **`91.08 / 100`** |
+Tool-proliferation ablation. The earlier Gen 11 attempt set `tools_enabled=True` for every agent instead of only the two `Autonomous Self-Repair Core Architect` engineers per firm. With workspace tools in the hands of all 27-84 business, strategy and finance agents, the run made 4,881 calls instead of 724 (6.7x) and scored 0/7 because non-coding agents overwrote the shared workspace. This is consistent with the design rule that tool-write permission belongs to one or two engineers while deliberating agents stay stateless.
 
-### Key Insights from Generation 11
-- **Soft Token-Efficiency Selection Without Hard Truncation Works as Designed:**
-  - Removing the artificial `586` call limit allowed all three **`90`-agent mega-hierarchies** (`gen_10_mutant_3` `94.37`, `gen_10_elite_2` `92.85`, `gen_10_crossover_2` `92.85`) and both **`60`-agent hierarchies** (`gen_10_pareto_2` **`95.29` Champion**, `gen_10_mutant_2` `76.58`) to complete cleanly on Iteration 1 and pass `7 / 7` (`100.0%`) unit tests.
-  - At the same time, the continuous token-efficiency curve rewarded leaner token usage (`+3.64 pts` for `33`-agent `gen_10_elite_1` at `$0.1356`, `+2.59 pts` for `60`-agent `gen_10_pareto_2` at `$0.2411`, vs. `+1.67 pts` for `90`-agent `gen_10_mutant_3` at `$0.3331`), allowing the `60`-agent Pareto firm **`gen_10_pareto_2` (`92.70` Gross + `2.59` Efficiency Bonus = `95.29 / 100`)** to capture **#1 Overall**.
-- **Accidental Tool-Proliferation Ablation (`4,881` Calls vs. `724` Calls):**
-  - Before restricting `tools_enabled=True` to the `2` `Autonomous Self-Repair Core Architect` engineers per firm, enabling workspace tools across all `27–84` business/strategy/finance agents caused a **`6.7x` call explosion (`4,881` calls vs. `724` calls)** and `0/7` test scores due to non-coding agents clobbering the shared workspace—empirically validating **Core Law #1** (concentrating tool-write permissions in 1–2 specialized engineers while keeping deliberation agents stateless).
+## Generation 10 ledger
 
----
+Job `job.batch/hae-gen10-qwen3-coder`, same task and tests. The parent-lineage column is reproduced as recorded.
 
-## 4. Generation 10 Final Ledger (`job.batch/hae-gen10-qwen3-coder` — `10/10` Completed)
+| Rank | Company | Parent lineage | Agents | Tests | Iterations | Gross | Net |
+| :-- | :-- | :-- | --: | :-- | :-- | --: | --: |
+| 1 | `gen_9_pareto_1` | `gen_8_pareto_2` | 33 | 7/7 | 1/10 | 78.9 | **78.92** |
+| 2 | `gen_9_crossover_2` | `gen_9_crossover_2` | 90 | 7/7 | 1/10 | 75.1 | 75.32 |
+| 3 | `gen_9_crossover_1` | `gen_9_crossover_1` | 60 | 7/7 | 1/10 | 74.2 | 75.15 |
+| 4 | `gen_9_elite_1` | `gen_8_pareto_2` | 33 | 7/7 | 1/10 | 67.0 | 68.34 |
+| 5 | `gen_9_elite_2` | `gen_8_elite_2` | 33 | 7/7 | 1/10 | 68.3 | 68.32 |
+| 6 | `gen_9_crossover_3` | `gen_9_crossover_3` | 90 | 6/7 (85.71%) | 2/10 | 76.71 | 61.71 |
+| 7 | `gen_9_mutant_3` | `gen_9_mutant_3` | 63 | partial | 9/10 | 59.7 | 44.70 |
+| 8 | `gen_9_pareto_2` | `gen_8_pareto_2` | 33 | 0/7 | 10/10 | 15.5 | 0.50 |
+| 9 | `gen_9_mutant_1` | `gen_9_mutant_1` | 27 | 0/7 | 10/10 | 7.0 | 0.00 |
+| 10 | `gen_9_mutant_2` | `gen_9_mutant_2` | 33 | 0/7 | 10/10 | 6.0 | 0.00 |
 
-| Rank | Company ID | Parent Lineage | Agent Count | Held-Out Tests (`morphogenesis.py`) | Iterations Used | Gross Score | Final Net Fitness |
-| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **1 (Champion)** | **`gen_9_pareto_1`** | `gen_8_pareto_2` | `33` agents | **`7 / 7` (`100.0%`)** | **1 / 10** | `78.9` | **`78.92 / 100`** |
-| **2** | **`gen_9_crossover_2`** | `gen_9_crossover_2` | **`90` agents** | **`7 / 7` (`100.0%`)** | **1 / 10** | `75.1` | **`75.32 / 100`** |
-| **3** | **`gen_9_crossover_1`** | `gen_9_crossover_1` | `60` agents | **`7 / 7` (`100.0%`)** | **1 / 10** | `74.2` | **`75.15 / 100`** |
-| **4** | **`gen_9_elite_1`** | `gen_8_pareto_2` | `33` agents | **`7 / 7` (`100.0%`)** | **1 / 10** | `67.0` | **`68.34 / 100`** |
-| **5** | **`gen_9_elite_2`** | `gen_8_elite_2` | `33` agents | **`7 / 7` (`100.0%`)** | **1 / 10** | `68.3` | **`68.32 / 100`** |
-| **6** | **`gen_9_crossover_3`** | `gen_9_crossover_3` | **`90` agents** | **`6 / 7` (`85.71%`)** | **2 / 10** | `76.71` | **`61.71 / 100`** |
-| **7** | **`gen_9_mutant_3`** | `gen_9_mutant_3` | `63` agents | Partial (`59.7` Gross) | 9 / 10 | `59.7` | **`44.70 / 100`** |
-| **8** | **`gen_9_pareto_2`** | `gen_8_pareto_2` | `33` agents | `0 / 7` (`0.0%`) | 10 / 10 | `15.5` | **`0.50 / 100`** |
-| **9** | **`gen_9_mutant_1`** | `gen_9_mutant_1` | `27` agents | `0 / 7` (`0.0%`) | 10 / 10 | `7.0` | **`0.00 / 100`** |
-| **10** | **`gen_9_mutant_2`** | `gen_9_mutant_2` | `33` agents | `0 / 7` (`0.0%`) | 10 / 10 | `6.0` | **`0.00 / 100`** |
+## Hardware and storage
 
----
+Each `g4-standard-96` node in `chavoshi-g4-cluster` (zone `us-east5-a`) has 2x NVIDIA RTX PRO 6000 Blackwell Server Edition 96 GB GPUs (192 GiB GDDR7), 96 vCPUs, 354 GiB of DDR5 RAM and a 242 GiB NVMe boot disk (`/dev/nvme0n1p1`).
 
-## 5. 3-Node `G4` Blackwell Hardware & Hybrid Storage Architecture (`k8s/qwen38-flash-next-180b-llmd.yaml`)
+Model loading: a 6-thread loader streams the weights over HTTP with `urllib.request` (16 MiB buffer), bypassing the 75 GiB root-filesystem chunk cache `hf_xet` would otherwise fill. Shards `model-00001-of-00010.safetensors` to `model-00010-of-00010.safetensors` (73.5 GiB) go to a 74 GiB DDR5 tmpfs at `/model-ram` (`emptyDir: { medium: Memory, sizeLimit: 80Gi }`, symlinked into `/model`); `model-fp8-mtp-ple.safetensors` (50.0 GiB) goes to `/model` on the NVMe SSD (50 GiB). This leaves 100-160 GiB (40%-65%) of the disk free, 4x the kubelet eviction threshold, and more than 140 GiB of free RAM per node.
 
-Each `g4-standard-96` node in `chavoshi-g4-cluster` (`us-east5-a`) provides **`2x NVIDIA RTX PRO 6000 Blackwell Server Edition 96GB GPUs` (`192 GiB` GDDR7 VRAM)**, **`96` vCPUs**, **`354 GiB` DDR5 Host RAM**, and a **`242 GiB` NVMe boot disk (`/dev/nvme0n1p1`)**.
-
-1. **Hybrid DDR5 `tmpfs` (`74 GiB` `/model-ram`) + NVMe SSD (`50 GiB` `/model`) 6-Thread Direct HTTP Streamer:**
-   - Streams `model-00001-of-00010.safetensors` .. `model-00010-of-00010.safetensors` (`73.5 GiB`) directly into `/model-ram` (`emptyDir: { medium: Memory, sizeLimit: 80Gi }`, symlinked into `/model`) and streams `model-fp8-mtp-ple.safetensors` (`50.0 GiB`) directly onto `/model` (NVMe SSD) using `urllib.request` (`16 MiB` buffer, bypassing `hf_xet`'s `75 GiB` rootfs chunk cache).
-   - Leaves **`100–160 GiB` (`40%–65%`) of free NVMe disk space** (`4x` above kubelet's eviction threshold) and **`>140 GiB` of free DDR5 RAM** on every node.
-2. **Tiered GDDR7 VRAM (`94.10 GiB` `fp8`) + `/dev/shm` (`64 GiB` for `48 GiB` Native CPU KV Offload):**
-   - `vLLM` V1 (`--tensor-parallel-size 2 --max-model-len 131072 --gpu-memory-utilization 0.92 --kv-cache-dtype fp8 --enable-prefix-caching --kv-offloading-size 48 --kv-offloading-backend native`) allocates `47.05 GiB` $\times$ `2` = **`94.10 GiB` of `fp8` GDDR7 VRAM KV cache** per node plus a **`49,116 MiB` (`48 GiB`) shared CPU KV-offload region** inside `/dev/shm` (`emptyDir: { medium: Memory, sizeLimit: 64Gi }`).
-
+KV cache: vLLM V1 runs with `--tensor-parallel-size 2 --max-model-len 131072 --gpu-memory-utilization 0.92 --kv-cache-dtype fp8 --enable-prefix-caching --kv-offloading-size 48 --kv-offloading-backend native`, giving 47.05 GiB x 2 = 94.10 GiB of fp8 KV cache in VRAM per node plus a 49,116 MiB (48 GiB) native CPU KV-offload region in `/dev/shm` (`emptyDir: { medium: Memory, sizeLimit: 64Gi }`); over three nodes, the 282.3 GiB plus 144 GiB (426.3 GiB) cited above.
