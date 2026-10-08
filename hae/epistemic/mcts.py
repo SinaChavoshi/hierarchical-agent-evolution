@@ -74,6 +74,23 @@ With `org_state=None` (every V5/V6 genome) none of this runs: the None branch
 executes the pre-V8 statements verbatim, draws nothing from the rng, and
 records the same fields -- `tests/test_recruit_move.py` pins that down by
 comparing full move logs.
+
+Adaptive branching (V9)
+-----------------------
+With `policy.search_algorithm == "ab_mcts"` the step above -- recruit check,
+`_choose_action`, one of the three moves -- is replaced by `_ab_step`: an
+`AdaptiveBranchingController` (hae/epistemic/ab_mcts.py, after
+arXiv:2503.04412) builds the question's arm set (test an untested hypothesis,
+synthesise from a supported one, ask a role for ONE new hypothesis, ask the
+CEO for a new specialist), draws a Thompson sample per arm and runs the
+winner through the very same `_do_experiment` / `_do_synthesize` /
+`_do_propose(k=1)` / `_do_recruit` methods, then feeds the move's `delta_u`
+back as the arm's reward. The waterfall, `branching_k`,
+`max_hypothesis_rounds`, `min_hypotheses_before_synthesis`, the Move-37
+quota and the recruit coin flip are not consulted. With the default
+`"puct"` the controller is never constructed and no statement of the V8 path
+changes; `tests/test_ab_mcts.py::PuctIdentityTests` compares three seeded
+searches against a fixture recorded before this section existed.
 """
 
 from __future__ import annotations
@@ -84,6 +101,9 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
+from hae.epistemic.ab_mcts import (
+    ARM_EXPERIMENT, ARM_GEN_HYPOTHESIS, ARM_SYNTHESIZE, AdaptiveBranchingController,
+)
 from hae.epistemic.gatekeeper import EvidenceGatekeeper, failure_signature
 from hae.epistemic.ledger import (
     CERTIFIED, FALSIFIED, Q_RESOLVED, SUPPORTED, UNTESTABLE, UNVERIFIED,
@@ -117,6 +137,11 @@ RecruitSpecialistFn = Callable[[OrgState, EpistemicState, Question, int], Tuple[
 _MODULE_PATH_RE = re.compile(r"[\w./-]+\.py\b")
 
 MAX_SYNTHESIS_FAILURES = 2
+
+# `_do_propose(q)` with this default routes the proposing role through the
+# organisation exactly as V8 does; the AB-MCTS path passes the role explicitly
+# (None meaning the bound proposer).
+_ROUTED = object()
 
 STOP_BUDGET = "budget_moves"
 STOP_TOKENS = "token_budget"
@@ -245,6 +270,12 @@ class EpistemicSearchLoop:
                 # back to the bound agent, and that is not routing).
                 "roles_routed": False,
             })
+        # V9: the adaptive-branching controller exists only when the gene asks
+        # for it. Under "puct" nothing below mentions it except the gates.
+        self.ab: Optional[AdaptiveBranchingController] = None
+        if str(getattr(policy, "search_algorithm", "puct")) == "ab_mcts":
+            self.ab = AdaptiveBranchingController(float(getattr(policy, "ab_prior_strength", 4.0)), self.rng)
+            self.stats["search_algorithm"] = "ab_mcts"
 
     # ------------------------------------------------------------------ #
     # Main loop
@@ -291,6 +322,11 @@ class EpistemicSearchLoop:
                     continue
                 stop_reason = STOP_RESOLVED
                 break
+            # V9: adaptive branching replaces the recruit check and the
+            # waterfall below with one Thompson-sampled step.
+            if self.ab is not None:
+                self._ab_step(question)
+                continue
             # V8: the organisation gets one look per step, before the usual
             # moves. A recruit (or a declined recruit) is a move of its own.
             if self.org_state is not None and self._maybe_recruit(question):
@@ -306,6 +342,8 @@ class EpistemicSearchLoop:
                 stop_reason = STOP_EXHAUSTED
                 break
         self.stats.update({"moves_used": self.moves_used, "budget_moves": budget, "stop_reason": stop_reason})
+        if self.ab is not None:
+            self.stats["ab_mcts"] = self.ab.to_dict()
         return SearchResult(
             trajectory=list(self.trajectory), final_state=self.state, moves_used=self.moves_used,
             delta_u_total=round(sum(m.delta_u for m in self.trajectory), 6),
@@ -326,6 +364,13 @@ class EpistemicSearchLoop:
         return depth
 
     def _question_has_work(self, q: Question) -> bool:
+        if self.ab is not None:
+            # V9: no round cap; work left means a deepen arm or a widen arm.
+            # With GEN exhausted the one widen arm left is a recruit, and in
+            # that position the cooldown is waived (see `_recruit_eligible`).
+            if self.state.untested_hypotheses(q.question_id) or self._has_ready_synthesis(q):
+                return True
+            return self.ab.can_widen(q, self._recruit_eligible(len(self.state.move_log) + 1, last_resort=True))
         if self.state.untested_hypotheses(q.question_id):
             return True
         if any(h.status == SUPPORTED and not h.patch_applied and h.synthesis_failures < MAX_SYNTHESIS_FAILURES
@@ -597,29 +642,36 @@ class EpistemicSearchLoop:
         p = org.recruit_prior()
         if self.rng.random() >= p:
             return False
+        self._do_recruit(q, idx, stall, unmatched, p)
+        return True
+
+    def _do_recruit(self, q: Question, idx: int, stall: int, unmatched: List[str],
+                    p: float) -> Optional[RoleAllele]:
+        """Ask the CEO adapter for a role and record the move; the hired role or None."""
+        org = self.org_state
         feats, v0, h0 = self._snapshot()
         pressure = f"stall={stall}, unmatched={len(unmatched)}"
         extra = {"recruit_prior": round(p, 6), "stall_counter": float(stall),
                  "unmatched_modules": float(len(unmatched))}
         try:
-            role, note = self.recruit_specialist(org, self.state, q, idx)
+            role, note = self.recruit_specialist(org, self.state, q, idx)  # type: ignore[misc]
         except Exception as exc:  # the CEO adapter is an LLM call; it may fail
             role, note = None, f"recruit failed: {type(exc).__name__}: {exc}"
         note = str(note or "")
         if role is not None and not isinstance(role, RoleAllele):
             role, note = None, f"recruit returned {type(role).__name__}, not a RoleAllele"
-        if role is not None and org.role(role.role_id) is not None:
+        if role is not None and org.role(role.role_id) is not None:  # type: ignore[union-attr]
             role, note = None, f"duplicate of active role {role.name}"
         if role is None:
-            org.last_recruit_move = idx
+            org.last_recruit_move = idx  # type: ignore[union-attr]
             self.stats["recruit_declined"] += 1
             text = f"recruit declined ({pressure}): {note or 'no candidate'}"
             self._record(MOVE_RECRUIT_SPECIALIST, q.question_id, note=text,
                          features_before=feats, value_before=v0, hash_before=h0, extra=extra)
             self.logger(f"[epistemic] {q.question_id}: {text[:220]}")
-            return True
+            return None
         source = str(role.extra.get("source") or "unknown")
-        org.recruit(role, idx, reason=pressure, source=source)
+        org.recruit(role, idx, reason=pressure, source=source)  # type: ignore[union-attr]
         self.stats["recruits"] += 1
         if source == "library":
             self.stats["recruits_from_library"] += 1
@@ -630,22 +682,95 @@ class EpistemicSearchLoop:
             text += f": {note}"
         self._record(MOVE_RECRUIT_SPECIALIST, q.question_id, note=text,
                      features_before=feats, value_before=v0, hash_before=h0, extra=extra, role=role)
-        self.logger(f"[epistemic] {q.question_id}: {text[:220]} -> team of {len(org.active_roles)}")
-        return True
+        self.logger(f"[epistemic] {q.question_id}: {text[:220]} -> team of {len(org.active_roles)}")  # type: ignore[union-attr]
+        return role
 
-    def _do_propose(self, q: Question) -> None:
+    # ------------------------------------------------------------------ #
+    # V9: adaptive branching (only ever called with `self.ab` set)
+    # ------------------------------------------------------------------ #
+
+    def _recruit_eligible(self, idx: int, last_resort: bool = False) -> bool:
+        """Whether a recruit move may be taken at move `idx`.
+
+        Callback present, headcount below the cap, the previous move not itself
+        a recruit, and the cooldown elapsed -- except with `last_resort`, when
+        the cooldown is waived: a question with no deepen arm and exhausted GEN
+        arms has one move left, and waiting out the cooldown would end the
+        search "exhausted" with a hire still available. The no-two-in-a-row
+        rule still holds, so a CEO that just declined is not asked again.
+        """
+        org = self.org_state
+        if org is None or self.recruit_specialist is None:
+            return False
+        if self.trajectory and self.trajectory[-1].move_type == MOVE_RECRUIT_SPECIALIST:
+            return False
+        if org.can_recruit(idx):
+            return True
+        return bool(last_resort) and len(org.active_roles) < int(org.policy.max_active_roles)
+
+    def _ab_step(self, q: Question) -> None:
+        """One AB-MCTS step on `q`: build the arms, Thompson-sample, run the move, feed back the reward.
+
+        Each branch runs exactly one of the loop's existing moves, so a step
+        always costs one move and the ledger, credit and telemetry are the
+        same records the PUCT path writes. The reward is the recorded move's
+        `delta_u` (plus the verdict/verification bonus, see ab_mcts.py).
+        """
+        ab = self.ab
+        assert ab is not None
+        org = self.org_state
+        idx = len(self.state.move_log) + 1
+        arms = ab.candidate_arms(q, self.state, org, recruit_eligible=self._recruit_eligible(idx))
+        if not arms and self._recruit_eligible(idx, last_resort=True):
+            arms = ab.candidate_arms(q, self.state, org, recruit_eligible=True)
+        chosen, draws = ab.select(arms)
+        before = len(self.trajectory)
+        if chosen.kind == ARM_EXPERIMENT:
+            h = self.state.hypotheses[chosen.ident]
+            self._do_experiment(q, h, False)
+            y = ab.observe_experiment(q, h, self.trajectory[-1].delta_u, org)
+        elif chosen.kind == ARM_SYNTHESIZE:
+            h = self.state.hypotheses[chosen.ident]
+            verified_before = int(self.stats["syntheses_verified"])
+            self._do_synthesize(q, h)
+            y = ab.observe_synthesis(q, h, self.trajectory[-1].delta_u,
+                                     verified=int(self.stats["syntheses_verified"]) > verified_before)
+        elif chosen.kind == ARM_GEN_HYPOTHESIS:
+            role = org.role(chosen.ident) if (org is not None and chosen.ident) else None
+            added = self._do_propose(q, role=role, k=1)
+            y = ab.observe_generation(q, chosen.ident, added,
+                                      width=len(self.state.hypotheses_for(q.question_id)))
+        else:  # ARM_GEN_SPECIALIST
+            assert org is not None
+            hired = self._do_recruit(q, idx, int(org.stall_counter), list(org.unmatched_modules), org.recruit_prior())
+            y = ab.observe_recruit(q, hired=hired is not None)
+        move = self.trajectory[-1] if len(self.trajectory) > before else None
+        fields = ab.note_step(q, chosen, draws, y, idx, extra=move.extra if move is not None else None)
+        self.logger(f"[ab-mcts] {q.question_id}: {chosen.kind}:{chosen.ident or '-'} "
+                    f"theta={fields['ab_theta']:.3f} mean={fields['ab_mean']:.3f} "
+                    f"of {len(arms)} arm(s) -> y={y:.3f}")
+
+    def _do_propose(self, q: Question, role: Any = _ROUTED, k: Optional[int] = None) -> int:
+        """The PROPOSE move; returns how many hypotheses it added or repaired.
+
+        Called as `_do_propose(q)` by the PUCT path: the role is routed by the
+        organisation (or None) and `k = policy.branching_k`, as before. The
+        AB-MCTS path names the role (the GEN arm that won) and asks for k = 1.
+        """
         feats, v0, h0 = self._snapshot()
         q.hypothesis_rounds += 1
         self.stats["proposal_rounds"] += 1
         # V8 routing: which active role proposes. None without an organisation
         # (or when no active role can probe), and then the adapter is called
         # exactly as before, without the keyword.
-        role = self.org_state.pick_role("probe") if self.org_state is not None else None
+        if role is _ROUTED:
+            role = self.org_state.pick_role("probe") if self.org_state is not None else None
+        k = int(self.policy.branching_k) if k is None else max(1, int(k))
         try:
             if role is None:
-                proposals = list(self.propose_hypotheses(q, self.state, int(self.policy.branching_k)) or [])
+                proposals = list(self.propose_hypotheses(q, self.state, k) or [])
             else:
-                proposals = list(self.propose_hypotheses(q, self.state, int(self.policy.branching_k),
+                proposals = list(self.propose_hypotheses(q, self.state, k,
                                                          role=role) or [])  # type: ignore[call-arg]
         except Exception as exc:  # the proposer is an LLM call; it may fail
             self.stats["proposer_errors"] += 1
@@ -654,10 +779,10 @@ class EpistemicSearchLoop:
             if role is not None:
                 self._attribute(role.role_id, 0.0)
                 self.stats["roles_routed"] = True
-            return
+            return 0
         accepted = tabu = dup = repaired = 0
         existing = self.state.hypotheses_for(q.question_id)
-        for prop in proposals[: int(self.policy.branching_k)]:
+        for prop in proposals[:k]:
             sig = prop.signature
             if self.state.is_tabu(sig, q.question_id, claim=prop.claim):
                 tabu += 1
@@ -715,6 +840,7 @@ class EpistemicSearchLoop:
         who = f" by {role.name}" if role is not None else ""
         self.logger(f"[epistemic] {q.question_id}: proposed {len(proposals)}{who} -> {accepted} accepted, "
                     f"{repaired} repaired, {tabu} tabu, {dup} duplicate")
+        return accepted + repaired
 
     def _do_experiment(self, q: Question, h: Hypothesis, forced: bool) -> None:
         feats, v0, h0 = self._snapshot()

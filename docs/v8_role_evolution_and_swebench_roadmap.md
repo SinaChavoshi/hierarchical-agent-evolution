@@ -76,6 +76,13 @@ flowchart TB
 
 ## Agent Implementation Specification for `V9` (`AB-MCTS`)
 
+> Status (2026-10-08): implemented on `main` as specified below, with the
+> dev-slice baseline still outstanding; the as-built design, the decisions
+> taken where this specification is silent (reward clamp, CEO-arm prior,
+> cooldown as last resort, GEN exhaustion in place of the round cap) and the
+> test inventory are in [docs/v9/ab_mcts.md](v9/ab_mcts.md). Tests:
+> `tests/test_ab_mcts.py`; V8 identity fixture: `tests/golden/puct_v8_trajectories.json`.
+
 Share the specification below directly with your executing agent after collecting the `V8` 50-task dev slice baseline:
 
 ### 1. New Module: `hae/epistemic/ab_mcts.py`

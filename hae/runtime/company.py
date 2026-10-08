@@ -1177,30 +1177,72 @@ class HierarchicalCompanyRunner:
             ctx = ctx[:cap] + "\n# [CONTEXT TRUNCATED FOR THE PROPOSER; THE SYNTHESISER SEES THE FULL MODULE]"
         return ctx
 
+    @staticmethod
+    def _probe_outcomes_block(state: EpistemicState, question_id: str, limit: int = 8) -> str:
+        """What each probe on `question_id` predicted and actually printed, for the k=1 proposer.
+
+        The ledger summary lists verdicts and claims; this adds the observed
+        output, so an incremental hypothesis can be consistent with every probe
+        that ran, not just avoid the claims that were ruled out.
+        """
+        rows = [e for e in state.evidence_log
+                if e.question_id == question_id and e.kind in ("probe", "probe_rejected")]
+        if not rows:
+            return ""
+        lines = ["PROBE OUTCOMES ON THIS QUESTION (a new mechanism must be consistent with all of them):"]
+        for e in rows[-limit:]:
+            h = state.hypotheses.get(e.hypothesis_id)
+            status = h.status if h is not None else "?"
+            claim = (h.claim if h is not None else "")[:100]
+            if e.kind == "probe_rejected":
+                lines.append(f"  {e.hypothesis_id} {status:<10} {claim} | probe refused: {e.detail[:120]}")
+                continue
+            predicted = ", ".join(f"{k}={v!r}" for k, v in (e.prediction or {}).items())[:120]
+            out = " ".join((e.stdout or "").split())[-160:]
+            if not out and e.stderr:
+                out = "stderr: " + " ".join(e.stderr.split())[-120:]
+            lines.append(f"  {e.hypothesis_id} {status:<10} {claim} | predicted: {predicted or '-'} "
+                         f"| observed: exit {e.exit_code}, {out or 'no output'}")
+        return "\n".join(lines)
+
     def _propose_hypotheses_adapter(self, agent: AgentGenome, objective: str, policy: EpistemicPolicyGene):
         """System 1 adapter: ask a department for k falsifiable hypotheses as a HYPOTHESIS_SET packet.
 
         V8: with `role=` (a `RoleAllele` routed by the loop's `OrgState`) the
         specialist executes the call instead of the bound `agent`; its persona
         reaches the system prompt through `RoleAllele.to_agent_genome()`.
+
+        V9: `k == 1` (AB-MCTS widens one hypothesis at a time) asks for a
+        single NEW mechanism and adds the observed output of every earlier
+        probe on the question to the context. For `k >= 2` the prompt and
+        context are the V6/V8 ones, unchanged.
         """
 
         def propose(question: Question, state: EpistemicState, k: int,
                     role: Optional[RoleAllele] = None) -> List[HypothesisProposal]:
-            k = max(2, int(k))
+            single = int(k) == 1          # only the AB-MCTS GEN arm asks for one; branching_k is >= 2
+            k = 1 if single else max(2, int(k))
             executor = role.to_agent_genome() if role is not None else agent
             specialist = ""
             if role is not None:
                 specialist = (f"YOU ARE THE FIRM'S {role.name.upper()} (domain: "
                               f"{', '.join(role.domain_tags[:8]) or 'general'}). Propose from that expertise.\n")
+            if single:
+                header = f"EPISTEMIC MOVE: PROPOSE 1 NEW FALSIFIABLE HYPOTHESIS for question {question.question_id}.\n"
+                rule_2 = ("2. The mechanism must be NEW: different from every hypothesis already listed for this question "
+                          "(tested or untested) and from everything under RULED OUT. Name the mechanism the probe "
+                          "outcomes point at that nobody has named yet; if none stands out, the most likely remaining one.\n")
+            else:
+                header = f"EPISTEMIC MOVE: PROPOSE {k} MUTUALLY-EXCLUSIVE HYPOTHESES for question {question.question_id}.\n"
+                rule_2 = "2. Hypotheses must be mutually exclusive, and at least one must be a mechanism you consider UNLIKELY.\n"
             prompt = (
-                f"EPISTEMIC MOVE: PROPOSE {k} MUTUALLY-EXCLUSIVE HYPOTHESES for question {question.question_id}.\n"
+                header +
                 f"QUESTION: {question.text}\n"
                 f"MODULE UNDER INVESTIGATION: `{question.module or 'see specification'}`\n"
                 f"{specialist}\n"
                 "Rules of the ledger:\n"
                 "1. Each hypothesis names ONE concrete mechanism in the CURRENT implementation that would cause this failure.\n"
-                "2. Hypotheses must be mutually exclusive, and at least one must be a mechanism you consider UNLIKELY.\n"
+                + rule_2 +
                 "3. `prior` is your honest probability (0.05-0.95) that this mechanism is the actual cause. It is "
                 "recorded and later scored for calibration against the evidence, so do not inflate it.\n"
                 f"4. `probe_lines` is a standalone Python script of at most {policy.max_probe_lines} lines, given as a "
@@ -1217,9 +1259,11 @@ class HierarchicalCompanyRunner:
                 "6. Never re-propose a mechanism listed under RULED OUT. It has already been falsified by evidence.\n"
                 f"Set `question_id` to \"{question.question_id}\"."
             )
+            probes = self._probe_outcomes_block(state, question.question_id) if single else ""
             context = (
                 f"{state.summary(question.question_id)}\n\n"
-                f"{self._epistemic_module_context(question.module, objective)}"
+                + (f"{probes}\n\n" if probes else "")
+                + f"{self._epistemic_module_context(question.module, objective)}"
             )
             # 3000 tokens: three hypotheses with 40-line probes run to ~2000
             # tokens; the Gen 16 pilot's 1600 cut off even well-formed packets.

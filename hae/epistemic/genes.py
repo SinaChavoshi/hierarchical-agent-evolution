@@ -42,7 +42,7 @@ def _clamp(name: str, value: float):
 def mutate_epistemic_policy(gene: Optional[EpistemicPolicyGene], rng: random.Random,
                             strength: float = 0.15, rebind_probability: float = 0.15
                             ) -> EpistemicPolicyGene:
-    """A perturbed copy. Always within bounds; never flips `enabled`."""
+    """A perturbed copy. Always within bounds; never flips `enabled` or `search_algorithm`."""
     base = gene if gene is not None else EpistemicPolicyGene()
     data = base.to_dict()
     n_fields = rng.randint(1, 3)
@@ -52,7 +52,8 @@ def mutate_epistemic_policy(gene: Optional[EpistemicPolicyGene], rng: random.Ran
         step = rng.gauss(0.0, strength * span)
         if is_int and abs(step) < 1.0:
             step = 1.0 if step >= 0 else -1.0
-        data[name] = _clamp(name, float(data[name]) + step)
+        # Read from the gene, not the dict: `to_dict` omits V9 fields at their defaults.
+        data[name] = _clamp(name, float(getattr(base, name)) + step)
     if rng.random() < rebind_probability:
         kind = rng.choice(EPISTEMIC_MOVE_KINDS)
         bindings: Dict[str, str] = dict(data.get("role_bindings") or DEFAULT_EPISTEMIC_ROLE_BINDINGS)
@@ -60,18 +61,19 @@ def mutate_epistemic_policy(gene: Optional[EpistemicPolicyGene], rng: random.Ran
         bindings[kind] = rng.choice(choices)
         data["role_bindings"] = bindings
     data["enabled"] = base.enabled
+    data["search_algorithm"] = base.search_algorithm
     return EpistemicPolicyGene.from_dict(data)
 
 
 def crossover_epistemic_policy(a: Optional[EpistemicPolicyGene], b: Optional[EpistemicPolicyGene],
                                rng: random.Random) -> EpistemicPolicyGene:
-    """Uniform crossover. `enabled` is inherited from parent `a`."""
+    """Uniform crossover. `enabled` and `search_algorithm` are inherited from parent `a`."""
     pa = a if a is not None else EpistemicPolicyGene()
     pb = b if b is not None else EpistemicPolicyGene()
     da, db = pa.to_dict(), pb.to_dict()
     child = {}
     for name in NUMERIC_FIELDS:
-        child[name] = da[name] if rng.random() < 0.5 else db[name]
+        child[name] = getattr(pa, name) if rng.random() < 0.5 else getattr(pb, name)
     bindings = {}
     for kind in EPISTEMIC_MOVE_KINDS:
         src = da if rng.random() < 0.5 else db
@@ -79,6 +81,9 @@ def crossover_epistemic_policy(a: Optional[EpistemicPolicyGene], b: Optional[Epi
             kind, DEFAULT_EPISTEMIC_ROLE_BINDINGS[kind])
     child["role_bindings"] = bindings
     child["enabled"] = pa.enabled
+    # V9: the search algorithm is a cohort-level control like `enabled`;
+    # inherited from parent `a`, never recombined.
+    child["search_algorithm"] = pa.search_algorithm
     return EpistemicPolicyGene.from_dict(child)
 
 

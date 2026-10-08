@@ -66,7 +66,7 @@ is the index.
 | V6 | 16 | Evidence-gated epistemic search for repair iterations; audit-based fitness | Pilot plus three cohort runs of 26 firm-runs. The search recovers catastrophic first passes once a module can be authored (6 of 9 in run 2 vs 1 of 7 in run 1); plateau starts barely move; the LLM's stated priors carry no information (flat hit rate across prior bins). | [experiments/v6_epistemic_search](experiments/v6_epistemic_search/README.md), [results](results/hae_gen16_v6_cohort_r2/README.md) |
 | V7 | - | Learned value and prior heads trained on the V6 ledgers | Shadow mode only. The state-value head beats the base rate out of fold (Brier 0.186 vs 0.202); the hypothesis-prior head does not. | [results/v7_value_heads](results/v7_value_heads/README.md) |
 | V8 | - | Role library and CEO-policy genes, turn-0 team sizing, mid-run `recruit_specialist` moves, evidence-conditioned role revision (`role_mutation.py`), and SWE-bench adapters | Implemented and unit-tested (133 tests) with an initial `kubectl` smoke run; 50-task dev-slice baseline next. | [docs/v8_role_evolution_and_swebench_roadmap.md](docs/v8_role_evolution_and_swebench_roadmap.md), [docs/v8/](docs/v8/) |
-| V9 | planned | Adaptive Branching MCTS ([AB-MCTS, arXiv:2503.04412](https://arxiv.org/abs/2503.04412)) replacing fixed-width PUCT and coin-flip recruitment with `GEN`-node Thompson Sampling | Planned (`hae/epistemic/ab_mcts.py`): unify epistemic widening (`GEN_HYPOTHESIS`), organisational widening (`GEN_SPECIALIST`), and deep refinement; compare head-to-head against V8 on the 50-task dev slice. | [docs/v8_role_evolution_and_swebench_roadmap.md](docs/v8_role_evolution_and_swebench_roadmap.md) |
+| V9 | - | Adaptive Branching MCTS ([AB-MCTS, arXiv:2503.04412](https://arxiv.org/abs/2503.04412)): Thompson sampling over Beta arms replaces the fixed-width PUCT waterfall and the coin-flip recruit; one hypothesis per proposal, conditioned on earlier probe output | Implemented behind `epistemic_policy.search_algorithm` (default `puct` is byte-identical to V8, pinned by a golden fixture); 28 tests. Not yet run on a live task; the V8-vs-V9 comparison on the 50-task dev slice is next. | [docs/v9/ab_mcts.md](docs/v9/ab_mcts.md) |
 | V10 | planned | Held-out evaluation on all 500 `SWE-bench Verified` tasks (`Kimi K3` backend) | Planned: run frozen V9 champion genome once through the upstream `swebench` harness against Moonshot AI's published `Kimi K3` baseline. | [docs/v8_role_evolution_and_swebench_roadmap.md](docs/v8_role_evolution_and_swebench_roadmap.md) |
 
 Numbers in the table are taken from the linked reports; the reports carry the
@@ -79,7 +79,7 @@ cache effects) that the one-line summaries omit.
 hae/
   genome/         CompanyGenome schema, mutation and crossover, role seeds, morphogenesis
   runtime/        HierarchicalCompanyRunner (first pass + epistemic repair), workspace, overlays
-  epistemic/      ledger, moves, gatekeeper, PUCT search, value/audit, organisation (V8), heads (V7)
+  epistemic/      ledger, moves, gatekeeper, PUCT search, AB-MCTS controller (V9), value/audit, organisation (V8), heads (V7)
   evaluation/     benchmark, execution harness, verification loop, fitness judge
   orchestration/  tournament engine, GKE worker, breeder
   swebench/       dataset access, container executor, SWE-bench runner and prediction export
@@ -91,7 +91,7 @@ k8s/              GKE cluster setup, vLLM / llm-d serving manifests, per-generat
 scripts/          population builders, harvesters, telemetry and summary scripts, head trainer
 experiments/      per-phase design notes, results and errata (V1-V6)
 results/          harvested scorecards, epistemic trees, traces and generated summary tables
-docs/             platform specification, V8 roadmap and track notes
+docs/             platform specification, V8-V10 roadmap, V8 track notes, V9 design note
 data/swebench/    SWE-bench dev-slice manifest (the fetched splits are git-ignored)
 tests/            unit and regression tests (stdlib unittest, no network)
 ```

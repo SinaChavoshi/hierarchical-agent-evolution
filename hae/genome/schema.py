@@ -195,7 +195,17 @@ EPISTEMIC_POLICY_BOUNDS: Dict[str, tuple] = {
     "max_stagnant_moves": (2, 50, True),
     "max_hypothesis_rounds": (1, 5, True),
     "frontier_size": (1, 8, True),
+    # V9 (AB-MCTS): pseudo-count tau of every Beta prior, Beta(1 + tau*p, 1 + tau*(1-p)).
+    "ab_prior_strength": (0.5, 32.0, False),
 }
+
+# V9: how the epistemic loop picks its next move. "puct" is the V6-V8 loop
+# (fixed branching, priority waterfall, coin-flip recruit); "ab_mcts" is
+# Thompson sampling over Beta arms (hae/epistemic/ab_mcts.py). Like `enabled`,
+# this is a cohort-level control: the operators in hae/epistemic/genes.py
+# never flip it.
+SEARCH_ALGORITHMS = ("puct", "ab_mcts")
+DEFAULT_AB_PRIOR_STRENGTH = 4.0
 
 # The four System-1 move kinds a firm binds to departments, and the default
 # department keyword each is routed to.
@@ -240,12 +250,37 @@ class EpistemicPolicyGene(_Model):
     # outside the frontier wait; siblings of a question resolved in this run
     # are deferred to the oracle, which certifies them next iteration.
     frontier_size: int = 3
+    # V9: "puct" (default; the V6-V8 loop, byte for byte) or "ab_mcts"
+    # (hae/epistemic/ab_mcts.py). `ab_prior_strength` is the pseudo-count of
+    # every Beta prior under AB-MCTS and is ignored under PUCT.
+    search_algorithm: str = "puct"
+    ab_prior_strength: float = DEFAULT_AB_PRIOR_STRENGTH
     role_bindings: Dict[str, str] = field(
         default_factory=lambda: dict(DEFAULT_EPISTEMIC_ROLE_BINDINGS))
     extra: Dict[str, Any] = field(default_factory=dict)
 
+    def to_dict(self) -> Dict[str, Any]:
+        """`_Model.to_dict`, minus the V9 fields while they carry no information.
+
+        A PUCT gene with the default prior strength is what every V5-V8 genome
+        implicitly has; writing the two fields out would change the bytes of
+        every archived population file without changing a behaviour. Under
+        `ab_mcts`, or with a tuned prior strength, both are written.
+        """
+        out = super().to_dict()
+        if self.search_algorithm == "puct":
+            out.pop("search_algorithm", None)
+            if abs(float(self.ab_prior_strength) - DEFAULT_AB_PRIOR_STRENGTH) < 1e-12:
+                out.pop("ab_prior_strength", None)
+        return out
+
     def __post_init__(self) -> None:
         self.enabled = bool(self.enabled)
+        self.search_algorithm = str(self.search_algorithm or "puct").strip().lower()
+        if self.search_algorithm not in SEARCH_ALGORITHMS:
+            raise GenomeValidationError(
+                f"EpistemicPolicyGene.search_algorithm must be one of {SEARCH_ALGORITHMS}, "
+                f"got {self.search_algorithm!r}")
         for name, (lo, hi, is_int) in EPISTEMIC_POLICY_BOUNDS.items():
             raw = getattr(self, name)
             try:

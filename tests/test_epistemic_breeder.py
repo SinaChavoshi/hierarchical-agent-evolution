@@ -123,8 +123,11 @@ class TestInheritance(_BreedingCase):
     def test_mutant_is_a_bounded_perturbation_of_its_parent(self):
         child = self._by_kind(Breeder(self.spec(), repo_root=self.root).breed())["mutant"]
         policy = child.epistemic_policy.to_dict()
+        # Read the bounds check off the gene: `to_dict` omits V9 fields that sit
+        # at their defaults so archived populations stay byte-identical.
         for name, (lo, hi, _is_int) in EPISTEMIC_POLICY_BOUNDS.items():
-            self.assertTrue(lo <= policy[name] <= hi, f"{name}={policy[name]} outside [{lo}, {hi}]")
+            value = getattr(child.epistemic_policy, name)
+            self.assertTrue(lo <= value <= hi, f"{name}={value} outside [{lo}, {hi}]")
         # The mutant descends from the top-ranked parent (pa). Its budget
         # should sit near 20, not near the 40 default or pb's 60.
         self.assertLess(abs(policy["search_budget_moves"] - PARENT_A["search_budget_moves"]), 12)
