@@ -24,6 +24,13 @@ per-role statistics (`distill_role_statistics`), and each child's
 `role_library` is then updated, pruned and extended with promoted recruits
 (`hae.genome.mutator.evolve_role_library`). Children of V5/V6 parents carry no
 library and a disabled `ceo_policy`, and nothing here touches them.
+
+The same records are distilled into per-role *evidence in words*
+(`distill_role_evidence`: falsified claims, refused probes, questions, modules
+nobody covered) for the LLM text mutation of underperforming roles
+(`hae.genome.mutator.mutate_role_text`, mode `llm`). The mode is a spec field,
+`role_text_mutation`, and defaults to `tags` -- the one-tag mutation every
+earlier V8 generation had -- so no existing spec breeds differently.
 """
 
 import copy
@@ -44,13 +51,16 @@ from hae.evaluation.judge import (
 )
 from hae.genome.morphogenesis import MorphogenesisEngine, StructuralCrossoverEngine
 from hae.genome.mutator import (
+    REVISION_NOTE_MARKER,
+    ROLE_TEXT_MUTATION_MODES,
     RoleStatsSummary,
     crossover_ceo_policy,
     crossover_role_library,
     evolve_role_library,
     mutate_ceo_policy,
-    mutate_role_library,
+    mutate_role_text,
 )
+from hae.genome.role_mutation import RoleEvidence
 from hae.genome.role_seeds import SEED_FLAVOURS, seed_role_library
 from hae.genome.schema import (
     CEOPolicyGene, CompanyGenome, EpistemicPolicyGene, GenomeValidationError, normalise_tags,
@@ -103,6 +113,15 @@ class GenerationSpec:
     # legacy seeds silently at run time; the breeder makes that choice visible.
     ceo_policy: Dict[str, Any] = field(default_factory=dict)
     role_library_seed: str = ""
+    # V8: how a mutant child's role library is text-mutated. `tags` (default)
+    # is the LLM-free one-tag mutation every V8 generation so far had; `llm`
+    # additionally has an LLM rewrite the goal/backstory of the
+    # worst-evidenced role from the generation's falsified claims and
+    # unmatched modules (`hae.genome.role_mutation`); `off` disables both.
+    # A generation-level decision like `ceo_policy`, because `llm` makes the
+    # population file the only record of what was bred (its output is not
+    # reproducible from the seed).
+    role_text_mutation: str = "tags"
 
     @property
     def population_size(self) -> int:
@@ -134,6 +153,10 @@ class GenerationSpec:
         if spec.role_library_seed and spec.role_library_seed not in SEED_FLAVOURS:
             raise BreedingError(
                 f"{path} sets role_library_seed={spec.role_library_seed!r}; known flavours: {SEED_FLAVOURS}")
+        if spec.role_text_mutation not in ROLE_TEXT_MUTATION_MODES:
+            raise BreedingError(
+                f"{path} sets role_text_mutation={spec.role_text_mutation!r}; "
+                f"known modes: {ROLE_TEXT_MUTATION_MODES}")
         return spec
 
 
@@ -475,6 +498,129 @@ def distill_tag_pool(results: Iterable[Mapping[str, Any]]) -> List[str]:
     return sorted(set(normalise_tags(pool)))
 
 
+def _ledger_dict(record: Mapping[str, Any]) -> Optional[Mapping[str, Any]]:
+    """The firm's final `EpistemicState.to_dict()`: `run_output.epistemic_ledger` on a scorecard,
+    `ledger` on an `*_epistemic_tree.json` sidecar, or either key on a bare run output."""
+    ro = _run_output(record)
+    for source in (ro, record):
+        for key in ("epistemic_ledger", "ledger"):
+            value = source.get(key)
+            if isinstance(value, Mapping):
+                return value
+    return None
+
+
+def _move_records(record: Mapping[str, Any], ledger: Optional[Mapping[str, Any]]) -> List[Mapping[str, Any]]:
+    """Move records with their `role_id`: the ledger's `move_log` (every iteration) when present,
+    otherwise the per-iteration search trajectories (`epistemic_searches` / `searches` / `epistemic_search`)."""
+    if ledger is not None and isinstance(ledger.get("move_log"), list):
+        return [m for m in ledger["move_log"] if isinstance(m, Mapping)]
+    ro = _run_output(record)
+    searches: Any = None
+    for source in (ro, record):
+        for key in ("epistemic_searches", "searches"):
+            if isinstance(source.get(key), list):
+                searches = source[key]
+                break
+        if searches is not None:
+            break
+    if searches is None:
+        searches = [ro["epistemic_search"]] if isinstance(ro.get("epistemic_search"), Mapping) else []
+    out: List[Mapping[str, Any]] = []
+    for s in searches:
+        if isinstance(s, Mapping):
+            out += [m for m in (s.get("trajectory") or []) if isinstance(m, Mapping)]
+    return out
+
+
+def distill_role_evidence(results: Iterable[Mapping[str, Any]]) -> Dict[str, RoleEvidence]:
+    """Per-role evidence in words, summed over a generation's result records.
+
+    From each record's ledger: the claims of FALSIFIED hypotheses a role
+    proposed (`falsified_claims`), SUPPORTED/CERTIFIED ones
+    (`supported_claims`), the rejection reason of UNTESTABLE ones -- the
+    hypothesis' `last_rejection`, else the `detail`/`summary` of its
+    `probe_rejected` evidence -- (`refused_probe_reasons`), and the text and
+    module of every question the role proposed on or was routed to
+    (`questions_seen`, `modules_seen`; routing read from the move records'
+    `role_id`). A SYNTHESIZE move whose note says the write was reverted
+    counts in `syntheses_reverted`. From each record's org dicts: the modules
+    no active role covered, credited to every role active at the time
+    (`unmatched_modules`). Everything is keyed by `role_id`; a V6 record has
+    none anywhere and contributes nothing. Lists are de-duplicated and capped
+    by `RoleEvidence`.
+    """
+    out: Dict[str, RoleEvidence] = {}
+
+    def ev_for(rid: Any) -> Optional[RoleEvidence]:
+        rid = str(rid or "").strip()
+        return out.setdefault(rid, RoleEvidence(role_id=rid)) if rid else None
+
+    for rec in results:
+        if not isinstance(rec, Mapping):
+            continue
+        ledger = _ledger_dict(rec)
+        questions: Dict[str, Mapping[str, Any]] = {}
+        evidence: Dict[str, Mapping[str, Any]] = {}
+        hypotheses: List[Mapping[str, Any]] = []
+        if ledger is not None:
+            questions = {str(q.get("question_id")): q for q in (ledger.get("questions") or [])
+                         if isinstance(q, Mapping)}
+            evidence = {str(e.get("evidence_id")): e for e in (ledger.get("evidence_log") or [])
+                        if isinstance(e, Mapping)}
+            hypotheses = [h for h in (ledger.get("hypotheses") or []) if isinstance(h, Mapping)]
+
+        def note_question(ev: RoleEvidence, question_id: Any) -> None:
+            q = questions.get(str(question_id or ""))
+            if q is None:
+                return
+            ev.add("questions_seen", q.get("text"))
+            module = str(q.get("module") or "").strip() or str(q.get("location") or "").split(":")[0].strip()
+            if module:
+                ev.add("modules_seen", module)
+
+        for h in hypotheses:
+            ev = ev_for(h.get("role_id"))
+            if ev is None:
+                continue
+            status = str(h.get("status") or "").upper()
+            if status == "FALSIFIED":
+                ev.add("falsified_claims", h.get("claim"))
+            elif status in ("SUPPORTED", "CERTIFIED"):
+                ev.add("supported_claims", h.get("claim"))
+            elif status == "UNTESTABLE":
+                reason = str(h.get("last_rejection") or "").strip()
+                if not reason:
+                    for eid in h.get("evidence_ids") or []:
+                        e = evidence.get(str(eid))
+                        if e is not None and str(e.get("kind") or "") == "probe_rejected":
+                            reason = str(e.get("detail") or e.get("summary") or "").strip()
+                            if reason:
+                                break
+                ev.add("refused_probe_reasons", reason or f"probe refused: {h.get('claim')}")
+            note_question(ev, h.get("question_id"))
+
+        for m in _move_records(rec, ledger):
+            ev = ev_for(m.get("role_id"))
+            if ev is None:
+                continue
+            note_question(ev, m.get("question_id"))
+            if str(m.get("move_type") or "") == "synthesize" and "reverted" in str(m.get("note") or ""):
+                ev.syntheses_reverted += 1
+
+        for org in _org_dicts(rec):
+            unmatched = [str(x) for x in (org.get("unmatched_modules") or []) if str(x).strip()]
+            if not unmatched:
+                continue
+            for a in org.get("active_roles") or []:
+                ev = ev_for(a.get("role_id")) if isinstance(a, Mapping) else None
+                if ev is None:
+                    continue
+                for module in unmatched:
+                    ev.add("unmatched_modules", module)
+    return out
+
+
 class Breeder:
     """Produces one generation's population from a spec."""
 
@@ -483,12 +629,19 @@ class Breeder:
         self.repo_root = repo_root
         self.morphogenesis = MorphogenesisEngine()
         self.crossover = StructuralCrossoverEngine()
+        if spec.role_text_mutation not in ROLE_TEXT_MUTATION_MODES:
+            raise BreedingError(
+                f"Generation {spec.generation} sets role_text_mutation={spec.role_text_mutation!r}; "
+                f"known modes: {ROLE_TEXT_MUTATION_MODES}")
         # V8: filled by `survivors()` from every breedable firm's trajectory,
         # not only the parents'. A role's evidence is cross-company (roadmap
         # section 1.4): a specialist that paid off in a firm that did not make
         # the cut is still a specialist that paid off.
         self.role_stats: Dict[str, RoleStatsSummary] = {}
         self.tag_pool: List[str] = []
+        # ... and the same evidence in words (falsified claims, unmatched
+        # modules, ...), read only by the `llm` text mutation.
+        self.role_evidence: Dict[str, RoleEvidence] = {}
 
     # ------------------------------------------------------------------ #
 
@@ -503,6 +656,7 @@ class Breeder:
         ranked = rank_scorecards(target)
         self.role_stats = distill_role_statistics(r.record for r in ranked)
         self.tag_pool = distill_tag_pool(r.record for r in ranked)
+        self.role_evidence = distill_role_evidence(r.record for r in ranked)
         return ranked[: self.spec.survivors]
 
     def seed_population(self) -> List[CompanyGenome]:
@@ -709,11 +863,17 @@ class Breeder:
 
         Statistics update -> prune -> promote -> cap, from the generation's
         cross-company `role_stats` (`hae.genome.mutator.evolve_role_library`).
-        With `mutate`, the CEO gene is jittered within bounds and one role gets
-        a tag from the generation's unmatched-module pool. Both draw from an
-        rng seeded by generation, child kind and slot, so the same spec breeds
-        the same child. A child with no library and a disabled CEO gene is left
-        exactly as it was: V5/V6 lineages breed as they did before V8.
+        With `mutate`, the CEO gene is jittered within bounds and the library
+        gets the spec's text mutation (`mutate_role_text`, mode
+        `spec.role_text_mutation`): one tag from the generation's
+        unmatched-module pool, and under `llm` an LLM rewrite of the
+        worst-evidenced role's goal/backstory conditioned on `role_evidence`.
+        Both draw from an rng seeded by generation, child kind and slot, so the
+        same spec breeds the same child -- except for the LLM reply itself,
+        which is why each revision is written to the child's
+        `mutation_history` as its own line (`role <id> revised by LLM -> ...`).
+        A child with no library and a disabled CEO gene is left exactly as it
+        was: V5/V6 lineages breed as they did before V8.
         """
         if not child.role_library and not child.org_enabled:
             return
@@ -722,15 +882,21 @@ class Breeder:
         library, notes = evolve_role_library(
             child.role_library, self.role_stats, child.ceo_policy, gen,
             summarise_updates=True)
+        revisions: List[str] = []
         if mutate:
             child.ceo_policy, gene_notes = mutate_ceo_policy(child.ceo_policy, rng)
             notes += gene_notes
-            library, tag_notes = mutate_role_library(library, rng, self.tag_pool, gen)
-            notes += tag_notes
+            library, text_notes = mutate_role_text(
+                library, self.role_stats, self.role_evidence, rng, gen,
+                mode=self.spec.role_text_mutation, tag_pool=self.tag_pool)
+            revisions = [n for n in text_notes if REVISION_NOTE_MARKER in n]
+            notes += [n for n in text_notes if REVISION_NOTE_MARKER not in n]
         child.role_library = library
         if notes:
             child.mutation_history.append(
                 f"Generation {gen} role library ({len(library)} roles): " + "; ".join(notes))
+        for note in revisions:
+            child.mutation_history.append(f"Generation {gen}: {note}")
 
     def _apply_policy_overrides(self, population: List[CompanyGenome]) -> None:
         """Stamps the spec's `epistemic_policy` and `ceo_policy` overrides onto every child.
