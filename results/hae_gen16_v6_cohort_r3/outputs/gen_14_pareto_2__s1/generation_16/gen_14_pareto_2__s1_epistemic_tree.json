@@ -1,0 +1,1199 @@
+{
+  "company_id": "gen_14_pareto_2__s1",
+  "generation": 16,
+  "ledger": {
+    "company_id": "gen_14_pareto_2__s1",
+    "questions": [
+      {
+        "question_id": "q1",
+        "text": "Why does `test_pytest_style_functions_are_collected` fail in `hae/evaluation/harness.py`? Oracle: AssertionError: 'failed' != 'passed' - failed + passed",
+        "module": "hae/evaluation/harness.py",
+        "uncertainty": 0.0,
+        "initial_uncertainty": 1.0,
+        "source_failure_tag": "execution_harness",
+        "source_failure_key": "execution_harness:test_pytest_style_functions_are_collected",
+        "source_failure": "[execution_harness] FAIL: test_pytest_style_functions_are_collected (tests.test_execution_harness.TestExecutionHarness.test_pytest_style_functions_are_collected) -> AssertionError: 'failed' != 'passed' - failed + passed",
+        "status": "CERTIFIED",
+        "hypothesis_ids": [
+          "h1",
+          "h2",
+          "h3"
+        ],
+        "hypothesis_rounds": 0,
+        "failure_epoch": 0,
+        "failure_history": [],
+        "location": "",
+        "created_at": 1791400030.962
+      },
+      {
+        "question_id": "q2",
+        "text": "Why does `test_unittest_style_classes_are_collected` fail in `hae/evaluation/harness.py`? Oracle: AssertionError: 'failed' != 'passed' - failed + passed",
+        "module": "hae/evaluation/harness.py",
+        "uncertainty": 0.0,
+        "initial_uncertainty": 1.0,
+        "source_failure_tag": "execution_harness",
+        "source_failure_key": "execution_harness:test_unittest_style_classes_are_collected",
+        "source_failure": "[execution_harness] FAIL: test_unittest_style_classes_are_collected (tests.test_execution_harness.TestExecutionHarness.test_unittest_style_classes_are_collected) -> AssertionError: 'failed' != 'passed' - failed + passed",
+        "status": "CERTIFIED",
+        "hypothesis_ids": [],
+        "hypothesis_rounds": 0,
+        "failure_epoch": 0,
+        "failure_history": [],
+        "location": "",
+        "created_at": 1791400030.962
+      }
+    ],
+    "hypotheses": [
+      {
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "claim": "The stdlib fallback test runner in `ExecutionHarness` fails to collect bare `def test_*()` functions because it incorrectly filters them out or fails to import the module containing them, resulting in",
+        "mechanism": "In the `tests` gate, when `pytest` is unavailable, the harness executes a stdlib fallback script. This script likely uses `unittest.TestLoader` which ignores bare functions, or a custom collector that fails to identify `test_*` functions defined at module top-",
+        "prior": 0.45,
+        "posterior": 0.0,
+        "status": "FALSIFIED",
+        "probe_code": "import sys\nimport os\nimport tempfile\nimport subprocess\nfrom hae.evaluation.harness import ExecutionHarness\n\ndef test_probe():\n    pass\n\nwith tempfile.TemporaryDirectory() as tmpdir:\n    test_file = os.path.join(tmpdir, 'test_probe.py')\n    with open(test_file, 'w') as f:\n        f.write('def test_probe(): pass')\n    harness = ExecutionHarness()\n    report = harness.verify_directory(tmpdir)\n    gate = report.gate('tests')\n    if gate:\n        print(f'Status: {gate.status}')\n        print(f'Detail: {gate.detail}')\n        print(f'Method: {gate.method}')\n    else:\n        print('No tests gate found')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "Status: failed"
+        },
+        "evidence_ids": [
+          "e2",
+          "e6",
+          "e7",
+          "e8",
+          "e9"
+        ],
+        "visits": 2,
+        "value_sum": 0.075,
+        "mechanism_signature": "bare collect collector contain custom def defin execut executionharness fallback filter function gate harness identify ignor import incorrect like out pytest result runner script stdlib test_ testloader them top unavailable unittest uses",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": true,
+        "synthesis_failures": 1,
+        "probe_rejections": 1,
+        "last_rejection": "rejected: probe reaches outside the stage ('inspect.getsource')",
+        "epoch": 0,
+        "created_at": 1791400136.577
+      },
+      {
+        "hypothesis_id": "h2",
+        "question_id": "q1",
+        "claim": "The `tests` gate returns `FAILED` because the subprocess environment lacks the necessary `PYTHONPATH` entries to import the test module itself, causing a `ModuleNotFoundError` that is misclassified as",
+        "mechanism": "The harness constructs a subprocess command to run tests. If the `PYTHONPATH` is not correctly set to include the workspace root and `src` directory, the test file cannot be imported by the runner. The harness might interpret this import failure as a test",
+        "prior": 0.35,
+        "posterior": 0.35,
+        "status": "UNVERIFIED",
+        "probe_code": "import sys\nimport os\nimport tempfile\nimport subprocess\nfrom hae.evaluation.harness import ExecutionHarness\n\nwith tempfile.TemporaryDirectory() as tmpdir:\n    test_file = os.path.join(tmpdir, 'test_probe.py')\n    with open(test_file, 'w') as f:\n        f.write('import nonexistent_module_xyz')\n    harness = ExecutionHarness()\n    report = harness.verify_directory(tmpdir)\n    gate = report.gate('tests')\n    if gate:\n        print(f'Status: {gate.status}')\n        print(f'Detail: {gate.detail}')\n        print(f'Method: {gate.method}')\n    else:\n        print('No tests gate found')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "Status: failed"
+        },
+        "evidence_ids": [
+          "e3"
+        ],
+        "visits": 1,
+        "value_sum": 0.0,
+        "mechanism_signature": "cannot caus command construct correct directory entry environment file gate harness import include interpret itself lack misclassifi modulenotfounderror necessary pythonpath root run runner set src subprocess workspace",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 1,
+        "last_rejection": "rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 12)",
+        "epoch": 0,
+        "created_at": 1791400136.578
+      },
+      {
+        "hypothesis_id": "h3",
+        "question_id": "q1",
+        "claim": "The `tests` gate fails because the harness incorrectly prioritizes `pytest` execution even when `pytest` is not installed, or the fallback script crashes due to a syntax error in the generated runner",
+        "mechanism": "The harness checks for `pytest` availability. If the check is flawed (e.g., checking `which pytest` in a different shell context) or if the fallback script has a bug (e.g., incorrect indentation in the generated Python code), the subprocess exits with a non-",
+        "prior": 0.2,
+        "posterior": 1.0,
+        "status": "CERTIFIED",
+        "probe_code": "import sys\nimport os\nimport tempfile\nimport subprocess\nfrom hae.evaluation.harness import ExecutionHarness\n\nwith tempfile.TemporaryDirectory() as tmpdir:\n    test_file = os.path.join(tmpdir, 'test_probe.py')\n    with open(test_file, 'w') as f:\n        f.write('def test_probe(): pass')\n    harness = ExecutionHarness(python_executable=sys.executable)\n    report = harness.verify_directory(tmpdir)\n    gate = report.gate('tests')\n    if gate:\n        print(f'Status: {gate.status}')\n        print(f'Detail: {gate.detail}')\n        print(f'Method: {gate.method}')\n    else:\n        print('No tests gate found')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "Status: failed"
+        },
+        "evidence_ids": [
+          "e4",
+          "e5",
+          "e10"
+        ],
+        "visits": 2,
+        "value_sum": 0.76,
+        "mechanism_signature": "availability bug check context crash different due even execution exit fallback flaw gate generat harness incorrect indentation install non prioritiz pytest python runner script shell subprocess syntax",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": true,
+        "synthesis_failures": 0,
+        "probe_rejections": 1,
+        "last_rejection": "rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 20)",
+        "epoch": 0,
+        "created_at": 1791400136.578
+      }
+    ],
+    "settled_knowledge": [
+      {
+        "fact_id": "f1",
+        "question_id": "q1",
+        "hypothesis_id": "h3",
+        "statement": "execution_harness:test_pytest_style_functions_are_collected now passes the held-out oracle (iteration 4) -- The `tests` gate fails because the harness incorrectly prioritizes `pytest` execution even when `pytest` is not installed, or the fallback script crashes due to a syntax error in the generated runner",
+        "evidence_ids": [
+          "e11"
+        ],
+        "certified_by": "oracle",
+        "created_at": 1791401507.387
+      },
+      {
+        "fact_id": "f2",
+        "question_id": "q2",
+        "hypothesis_id": "",
+        "statement": "execution_harness:test_unittest_style_classes_are_collected now passes the held-out oracle (iteration 4)",
+        "evidence_ids": [
+          "e11"
+        ],
+        "certified_by": "oracle",
+        "created_at": 1791401507.387
+      }
+    ],
+    "ruled_out": [
+      {
+        "belief_id": "ro1",
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "claim": "The stdlib fallback test runner in `ExecutionHarness` fails to collect bare `def test_*()` functions because it incorrectly filters them out or fails to import the module containing them, resulting in",
+        "mechanism_signature": "bare collect collector contain custom def defin execut executionharness fallback filter function gate harness identify ignor import incorrect like out pytest result runner script stdlib test_ testloader them top unavailable unittest uses",
+        "killing_evidence_id": "e9",
+        "epoch": 0,
+        "created_at": 1791401454.171
+      }
+    ],
+    "evidence_log": [
+      {
+        "evidence_id": "e1",
+        "kind": "oracle",
+        "hypothesis_id": "",
+        "question_id": "",
+        "command": "held-out oracle, iteration 2",
+        "exit_code": 1,
+        "stdout": "[execution_harness] FAIL: test_pytest_style_functions_are_collected (tests.test_execution_harness.TestExecutionHarness.test_pytest_style_functions_are_collected) -> AssertionError: 'failed' != 'passed' - failed + passed\n[execution_harness] FAIL: test_unittest_style_classes_are_collected (tests.test_execution_harness.TestExecutionHarness.test_unittest_style_classes_are_collected) -> AssertionError: 'failed' != 'passed' - failed + passed",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": false,
+        "detail": "2 failing check(s)",
+        "network_isolated": null,
+        "sha256": "5842484f65a7036b800504232899663a690a45207f21a6dc5b6ffec88f353d80",
+        "created_at": 1791400030.962
+      },
+      {
+        "evidence_id": "e2",
+        "kind": "probe_rejected",
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "command": "",
+        "exit_code": -2,
+        "stdout": "",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "FALLBACK_IGNORES_BARE"
+        },
+        "matched_prediction": false,
+        "detail": "rejected: probe reaches outside the stage ('inspect.getsource')",
+        "network_isolated": null,
+        "sha256": "015ed05addb6cd396a1d23a0f81cd06db2d96eb3f839afa64a4532d1e5e7d3a6",
+        "created_at": 1791400136.58
+      },
+      {
+        "evidence_id": "e3",
+        "kind": "probe_rejected",
+        "hypothesis_id": "h2",
+        "question_id": "q1",
+        "command": "",
+        "exit_code": -2,
+        "stdout": "",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "IMPORT_ERROR_DETECTED"
+        },
+        "matched_prediction": false,
+        "detail": "rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 12)",
+        "network_isolated": null,
+        "sha256": "d62eca6d62cf95b10d8698452c500a641fb00030586d44ece5e4c1cd1b01c69a",
+        "created_at": 1791400136.581
+      },
+      {
+        "evidence_id": "e4",
+        "kind": "probe_rejected",
+        "hypothesis_id": "h3",
+        "question_id": "q1",
+        "command": "",
+        "exit_code": -2,
+        "stdout": "",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "SYNTAX_ERROR_IN_RUNNER"
+        },
+        "matched_prediction": false,
+        "detail": "rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 20)",
+        "network_isolated": null,
+        "sha256": "afb2a213d929d4d4abd6ebbf46cfb238f8c3791b4ee24bf812a212149c9db889",
+        "created_at": 1791400136.583
+      },
+      {
+        "evidence_id": "e5",
+        "kind": "probe",
+        "hypothesis_id": "h3",
+        "question_id": "q1",
+        "command": "python _probe/h3.py",
+        "exit_code": 0,
+        "stdout": "Status: failed\nDetail: Tests failed: /tmp/hae_grader_venv/bin/python: No module named pytest\n\nMethod: pytest\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "Status: failed"
+        },
+        "matched_prediction": true,
+        "detail": "prediction held: exit_code==0; stdout contains 'Status: failed'",
+        "network_isolated": true,
+        "sha256": "120a2059e761378b8b14919974d3505c1fc76e4429182ed39238e23798b3dfa9",
+        "created_at": 1791400215.189
+      },
+      {
+        "evidence_id": "e6",
+        "kind": "probe",
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "command": "python _probe/h1.py",
+        "exit_code": 0,
+        "stdout": "Status: failed\nDetail: Tests failed: /tmp/hae_grader_venv/bin/python: No module named pytest\n\nMethod: pytest\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "Status: failed"
+        },
+        "matched_prediction": true,
+        "detail": "prediction held: exit_code==0; stdout contains 'Status: failed'",
+        "network_isolated": true,
+        "sha256": "9956703cf9e21006d5a4a5443f0c14a48be75ba710b0edf5b9fb72aca1e85804",
+        "created_at": 1791400215.631
+      },
+      {
+        "evidence_id": "e7",
+        "kind": "module_check",
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "command": "verify_module hae/evaluation/harness.py",
+        "exit_code": 3,
+        "stdout": "[py_compile] \n[import] IMPORT_OK\n\n[static_check] ",
+        "stderr": "[static_check] undefined name 'Iterable' at line 93 at module level",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": false,
+        "detail": "module check failed at static_check: undefined name 'Iterable' at line 93 at module level",
+        "network_isolated": true,
+        "sha256": "1638dccfb021f318f5c9cc72ebb4db9920d8a5055d8cad7db26a237e0acfaea2",
+        "created_at": 1791400805.882
+      },
+      {
+        "evidence_id": "e8",
+        "kind": "module_check",
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "command": "verify_module hae/evaluation/harness.py",
+        "exit_code": 0,
+        "stdout": "[py_compile] \n[import] IMPORT_OK\n\n[static_check] no undefined names (952 lines)",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "module check passed: py_compile, import, static_check",
+        "network_isolated": true,
+        "sha256": "74f1e3530be292b5f1ee68e1ac6861ee862dd099388752578c60bcad079cf044",
+        "created_at": 1791401408.09
+      },
+      {
+        "evidence_id": "e9",
+        "kind": "oracle",
+        "hypothesis_id": "",
+        "question_id": "",
+        "command": "held-out oracle, iteration 3",
+        "exit_code": 1,
+        "stdout": "[execution_harness] FAIL: test_pytest_style_functions_are_collected (tests.test_execution_harness.TestExecutionHarness.test_pytest_style_functions_are_collected) -> AssertionError: 'failed' != 'passed' - failed + passed\n[execution_harness] FAIL: test_unittest_style_classes_are_collected (tests.test_execution_harness.TestExecutionHarness.test_unittest_style_classes_are_collected) -> AssertionError: 'failed' != 'passed' - failed + passed",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": false,
+        "detail": "2 failing check(s)",
+        "network_isolated": null,
+        "sha256": "a343dafb664f3cacf731819f0cfd4deb3b453efef6056939515d3b247cb78f39",
+        "created_at": 1791401454.171
+      },
+      {
+        "evidence_id": "e10",
+        "kind": "module_check",
+        "hypothesis_id": "h3",
+        "question_id": "q1",
+        "command": "verify_module hae/evaluation/harness.py",
+        "exit_code": 0,
+        "stdout": "[py_compile] \n[import] IMPORT_OK\n\n[static_check] no undefined names (954 lines)",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "module check passed: py_compile, import, static_check",
+        "network_isolated": true,
+        "sha256": "f20b22445b53ccb04898ab6f2b8341e2f4656d87c8fcf80176f0bd3682824bc3",
+        "created_at": 1791401491.359
+      },
+      {
+        "evidence_id": "e11",
+        "kind": "oracle",
+        "hypothesis_id": "",
+        "question_id": "",
+        "command": "held-out oracle, iteration 4",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "0 failing check(s)",
+        "network_isolated": null,
+        "sha256": "d49bc033ce6d3137af338cab402a59720306c550a503ae5329a08b4a69bdf657",
+        "created_at": 1791401507.387
+      }
+    ],
+    "move_log": [
+      {
+        "move_index": 1,
+        "move_type": "propose_hypothesis",
+        "question_id": "q1",
+        "hypothesis_id": "",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.0,
+        "value_before": 0.06,
+        "value_after": 0.07,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.0,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 1.0,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "5a7d0f3363601be0de60bb3b8a6a44ba8dd82cddd8e49db7db5f3b54d21b3837",
+        "state_hash_after": "f1d5641d742eb631a548777d0ca0e77e9657801976aab3b5a9e8d047013cb624",
+        "forced_low_prior": false,
+        "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+        "created_at": 1791400136.578,
+        "extra": {
+          "head_v": 0.329196
+        }
+      },
+      {
+        "move_index": 2,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h1",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.0,
+        "value_before": 0.066,
+        "value_after": 0.066,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 1.0,
+          "evidence_density": 0.333333,
+          "stagnation": 0.1,
+          "open_without_options": 0.5,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "f1d5641d742eb631a548777d0ca0e77e9657801976aab3b5a9e8d047013cb624",
+        "state_hash_after": "d3642a30b9f407d2b2791209eed4fe09676ceee2ce1f406283ab0dcef25f9170",
+        "forced_low_prior": false,
+        "note": "UNTESTABLE: rejected: probe reaches outside the stage ('inspect.getsource')",
+        "created_at": 1791400136.58,
+        "extra": {
+          "head_p": 0.094008,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.431428
+        }
+      },
+      {
+        "move_index": 3,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h2",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.0,
+        "value_before": 0.062,
+        "value_after": 0.062,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.666667,
+          "evidence_density": 0.666667,
+          "stagnation": 0.2,
+          "open_without_options": 0.5,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "d3642a30b9f407d2b2791209eed4fe09676ceee2ce1f406283ab0dcef25f9170",
+        "state_hash_after": "a1ccdda5f5a89c98f3b8a3007450ca80a0e3ec32724fc24f1b911001db480132",
+        "forced_low_prior": false,
+        "note": "UNTESTABLE: rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 12)",
+        "created_at": 1791400136.582,
+        "extra": {
+          "head_p": 0.09576,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.354071
+        }
+      },
+      {
+        "move_index": 4,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h3",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.0,
+        "value_before": 0.058,
+        "value_after": 0.048,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.333333,
+          "evidence_density": 1.0,
+          "stagnation": 0.3,
+          "open_without_options": 0.5,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "a1ccdda5f5a89c98f3b8a3007450ca80a0e3ec32724fc24f1b911001db480132",
+        "state_hash_after": "bcecf5ef75bb6743f049180142c30dbca5164bd13b927f48e87f90c96359f09c",
+        "forced_low_prior": false,
+        "note": "UNTESTABLE: rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 20)",
+        "created_at": 1791400136.583,
+        "extra": {
+          "head_p": 0.103938,
+          "head_rank": 0.5,
+          "stated_rank": 0.5,
+          "prior_head_weight": 0.0,
+          "head_v": 0.283665
+        }
+      },
+      {
+        "move_index": 5,
+        "move_type": "propose_hypothesis",
+        "question_id": "q1",
+        "hypothesis_id": "",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.0,
+        "value_before": 0.044,
+        "value_after": 0.054,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.0,
+          "evidence_density": 1.0,
+          "stagnation": 0.4,
+          "open_without_options": 1.0,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "bcecf5ef75bb6743f049180142c30dbca5164bd13b927f48e87f90c96359f09c",
+        "state_hash_after": "263195409dd9e5c2c7476ee0e000d4cacfe557c83eba6b24976e5c336e27f374",
+        "forced_low_prior": false,
+        "note": "0 accepted, 3 repaired, 0 tabu, 0 duplicate of 3 proposed",
+        "created_at": 1791400214.707,
+        "extra": {
+          "head_v": 0.281963
+        }
+      },
+      {
+        "move_index": 6,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h3",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.76,
+        "value_before": 0.05,
+        "value_after": 0.298,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 1.0,
+          "evidence_density": 1.0,
+          "stagnation": 0.5,
+          "open_without_options": 0.5,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "263195409dd9e5c2c7476ee0e000d4cacfe557c83eba6b24976e5c336e27f374",
+        "state_hash_after": "591f08c62152d4e63d8eb679da8141f6cabd605c21a13016faaac6098e15198d",
+        "forced_low_prior": true,
+        "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'Status: failed'",
+        "created_at": 1791400215.19,
+        "extra": {
+          "head_p": 0.103008,
+          "head_rank": 1.0,
+          "stated_rank": 0.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.349954
+        }
+      },
+      {
+        "move_index": 7,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h1",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.075,
+        "value_before": 0.318,
+        "value_after": 0.3605,
+        "features": {
+          "resolved_fraction": 0.38,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.333333,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.666667,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.5,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 0.62
+        },
+        "state_hash_before": "591f08c62152d4e63d8eb679da8141f6cabd605c21a13016faaac6098e15198d",
+        "state_hash_after": "048f94ca4e5a90805027a2d682593c7c3c661cda1b1b9e1aa199a90a4da60da3",
+        "forced_low_prior": false,
+        "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'Status: failed'",
+        "created_at": 1791400215.632,
+        "extra": {
+          "head_p": 0.092627,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.354684
+        }
+      },
+      {
+        "move_index": 8,
+        "move_type": "synthesize",
+        "question_id": "q1",
+        "hypothesis_id": "h1",
+        "agent_role": "Cluster Reliability & Site Reliability Engineer",
+        "delta_u": 0.0,
+        "value_before": 0.3605,
+        "value_after": 0.3605,
+        "features": {
+          "resolved_fraction": 0.4175,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.666667,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.333333,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.5,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 0.5825
+        },
+        "state_hash_before": "048f94ca4e5a90805027a2d682593c7c3c661cda1b1b9e1aa199a90a4da60da3",
+        "state_hash_after": "ab94ca629d7cca333ea5df62954b540a1853b547fbe74667a31c40d3a51c1a82",
+        "forced_low_prior": false,
+        "note": "hae/evaluation/harness.py [rewrite]: module check failed at static_check: undefined name 'Iterable' at line 93 at module level; reverted to pre-synthesis module",
+        "created_at": 1791400823.985,
+        "extra": {
+          "head_v": 0.338727
+        }
+      },
+      {
+        "move_index": 9,
+        "move_type": "synthesize",
+        "question_id": "q1",
+        "hypothesis_id": "h1",
+        "agent_role": "Cluster Reliability & Site Reliability Engineer",
+        "delta_u": 0.145,
+        "value_before": 0.3565,
+        "value_after": 0.43,
+        "features": {
+          "resolved_fraction": 0.4175,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.666667,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.333333,
+          "evidence_density": 1.0,
+          "stagnation": 0.1,
+          "open_without_options": 0.5,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 0.5825
+        },
+        "state_hash_before": "ab94ca629d7cca333ea5df62954b540a1853b547fbe74667a31c40d3a51c1a82",
+        "state_hash_after": "2864bea5e25223f672088239e74487d55d9ce4dd4a7f813211cbb6984b301a36",
+        "forced_low_prior": false,
+        "note": "hae/evaluation/harness.py [rewrite]: module check passed: py_compile, import, static_check",
+        "created_at": 1791401408.091,
+        "extra": {
+          "head_v": 0.326358
+        }
+      },
+      {
+        "move_index": 10,
+        "move_type": "synthesize",
+        "question_id": "q1",
+        "hypothesis_id": "h3",
+        "agent_role": "Cluster Reliability & Site Reliability Engineer",
+        "delta_u": 0.73,
+        "value_before": 0.178333,
+        "value_after": 0.427333,
+        "features": {
+          "resolved_fraction": 0.125,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.333333,
+          "ruled_out_ratio": 0.333333,
+          "untested_ratio": 0.333333,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.5,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 0.875
+        },
+        "state_hash_before": "aeebac4ab2058344999c2bb695e4a90d8a72c16be39296865b9f3d2f0caa6696",
+        "state_hash_after": "e1a6e1bbb27a325558883f259034c8941d70deddf1810279753e4316cbdf2b86",
+        "forced_low_prior": false,
+        "note": "hae/evaluation/harness.py [plan]: module check passed: py_compile, import, static_check",
+        "created_at": 1791401491.36,
+        "extra": {
+          "head_v": 0.303649
+        }
+      }
+    ],
+    "created_at": 1791400030.962,
+    "counters": {
+      "e": 11,
+      "q": 2,
+      "h": 3,
+      "ro": 1,
+      "f": 2
+    },
+    "state_hash": "c9c01ccb8055878997b3c65a188207076558a5fd35cf8ecab63ac9fcc8781af2"
+  },
+  "searches": [
+    {
+      "moves_used": 9,
+      "delta_u_total": 0.98,
+      "stop_reason": "deferred_to_oracle",
+      "synthesized_paths": [
+        "hae/evaluation/harness.py"
+      ],
+      "stats": {
+        "proposal_rounds": 2,
+        "hypotheses_accepted": 3,
+        "tabu_rejections": 0,
+        "duplicate_rejections": 0,
+        "probe_repairs": 3,
+        "experiments": 5,
+        "supported": 2,
+        "falsified": 0,
+        "inconclusive": 0,
+        "rejected_probes": 3,
+        "forced_low_prior_picks": 1,
+        "forced_low_prior_wins": 1,
+        "syntheses": 2,
+        "syntheses_verified": 1,
+        "syntheses_unwritten": 0,
+        "questions_asked": 0,
+        "proposer_errors": 0,
+        "frontier_admissions": 1,
+        "questions_deferred": 1,
+        "prior_head_loaded": true,
+        "value_head_loaded": true,
+        "prior_head_steered": 0,
+        "synthesis_seconds": 1173.439,
+        "syntheses_reverted": 1,
+        "moves_used": 9,
+        "budget_moves": 60,
+        "stop_reason": "deferred_to_oracle"
+      },
+      "trajectory": [
+        {
+          "move_index": 1,
+          "move_type": "propose_hypothesis",
+          "question_id": "q1",
+          "hypothesis_id": "",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.0,
+          "value_before": 0.06,
+          "value_after": 0.07,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.0,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 1.0,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "5a7d0f3363601be0de60bb3b8a6a44ba8dd82cddd8e49db7db5f3b54d21b3837",
+          "state_hash_after": "f1d5641d742eb631a548777d0ca0e77e9657801976aab3b5a9e8d047013cb624",
+          "forced_low_prior": false,
+          "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+          "created_at": 1791400136.578,
+          "extra": {
+            "head_v": 0.329196
+          }
+        },
+        {
+          "move_index": 2,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h1",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.0,
+          "value_before": 0.066,
+          "value_after": 0.066,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 1.0,
+            "evidence_density": 0.333333,
+            "stagnation": 0.1,
+            "open_without_options": 0.5,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "f1d5641d742eb631a548777d0ca0e77e9657801976aab3b5a9e8d047013cb624",
+          "state_hash_after": "d3642a30b9f407d2b2791209eed4fe09676ceee2ce1f406283ab0dcef25f9170",
+          "forced_low_prior": false,
+          "note": "UNTESTABLE: rejected: probe reaches outside the stage ('inspect.getsource')",
+          "created_at": 1791400136.58,
+          "extra": {
+            "head_p": 0.094008,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.431428
+          }
+        },
+        {
+          "move_index": 3,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h2",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.0,
+          "value_before": 0.062,
+          "value_after": 0.062,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.666667,
+            "evidence_density": 0.666667,
+            "stagnation": 0.2,
+            "open_without_options": 0.5,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "d3642a30b9f407d2b2791209eed4fe09676ceee2ce1f406283ab0dcef25f9170",
+          "state_hash_after": "a1ccdda5f5a89c98f3b8a3007450ca80a0e3ec32724fc24f1b911001db480132",
+          "forced_low_prior": false,
+          "note": "UNTESTABLE: rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 12)",
+          "created_at": 1791400136.582,
+          "extra": {
+            "head_p": 0.09576,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.354071
+          }
+        },
+        {
+          "move_index": 4,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h3",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.0,
+          "value_before": 0.058,
+          "value_after": 0.048,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.333333,
+            "evidence_density": 1.0,
+            "stagnation": 0.3,
+            "open_without_options": 0.5,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "a1ccdda5f5a89c98f3b8a3007450ca80a0e3ec32724fc24f1b911001db480132",
+          "state_hash_after": "bcecf5ef75bb6743f049180142c30dbca5164bd13b927f48e87f90c96359f09c",
+          "forced_low_prior": false,
+          "note": "UNTESTABLE: rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 20)",
+          "created_at": 1791400136.583,
+          "extra": {
+            "head_p": 0.103938,
+            "head_rank": 0.5,
+            "stated_rank": 0.5,
+            "prior_head_weight": 0.0,
+            "head_v": 0.283665
+          }
+        },
+        {
+          "move_index": 5,
+          "move_type": "propose_hypothesis",
+          "question_id": "q1",
+          "hypothesis_id": "",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.0,
+          "value_before": 0.044,
+          "value_after": 0.054,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.0,
+            "evidence_density": 1.0,
+            "stagnation": 0.4,
+            "open_without_options": 1.0,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "bcecf5ef75bb6743f049180142c30dbca5164bd13b927f48e87f90c96359f09c",
+          "state_hash_after": "263195409dd9e5c2c7476ee0e000d4cacfe557c83eba6b24976e5c336e27f374",
+          "forced_low_prior": false,
+          "note": "0 accepted, 3 repaired, 0 tabu, 0 duplicate of 3 proposed",
+          "created_at": 1791400214.707,
+          "extra": {
+            "head_v": 0.281963
+          }
+        },
+        {
+          "move_index": 6,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h3",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.76,
+          "value_before": 0.05,
+          "value_after": 0.298,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 1.0,
+            "evidence_density": 1.0,
+            "stagnation": 0.5,
+            "open_without_options": 0.5,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "263195409dd9e5c2c7476ee0e000d4cacfe557c83eba6b24976e5c336e27f374",
+          "state_hash_after": "591f08c62152d4e63d8eb679da8141f6cabd605c21a13016faaac6098e15198d",
+          "forced_low_prior": true,
+          "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'Status: failed'",
+          "created_at": 1791400215.19,
+          "extra": {
+            "head_p": 0.103008,
+            "head_rank": 1.0,
+            "stated_rank": 0.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.349954
+          }
+        },
+        {
+          "move_index": 7,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h1",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.075,
+          "value_before": 0.318,
+          "value_after": 0.3605,
+          "features": {
+            "resolved_fraction": 0.38,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.333333,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.666667,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.5,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 0.62
+          },
+          "state_hash_before": "591f08c62152d4e63d8eb679da8141f6cabd605c21a13016faaac6098e15198d",
+          "state_hash_after": "048f94ca4e5a90805027a2d682593c7c3c661cda1b1b9e1aa199a90a4da60da3",
+          "forced_low_prior": false,
+          "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'Status: failed'",
+          "created_at": 1791400215.632,
+          "extra": {
+            "head_p": 0.092627,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.354684
+          }
+        },
+        {
+          "move_index": 8,
+          "move_type": "synthesize",
+          "question_id": "q1",
+          "hypothesis_id": "h1",
+          "agent_role": "Cluster Reliability & Site Reliability Engineer",
+          "delta_u": 0.0,
+          "value_before": 0.3605,
+          "value_after": 0.3605,
+          "features": {
+            "resolved_fraction": 0.4175,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.666667,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.333333,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.5,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 0.5825
+          },
+          "state_hash_before": "048f94ca4e5a90805027a2d682593c7c3c661cda1b1b9e1aa199a90a4da60da3",
+          "state_hash_after": "ab94ca629d7cca333ea5df62954b540a1853b547fbe74667a31c40d3a51c1a82",
+          "forced_low_prior": false,
+          "note": "hae/evaluation/harness.py [rewrite]: module check failed at static_check: undefined name 'Iterable' at line 93 at module level; reverted to pre-synthesis module",
+          "created_at": 1791400823.985,
+          "extra": {
+            "head_v": 0.338727
+          }
+        },
+        {
+          "move_index": 9,
+          "move_type": "synthesize",
+          "question_id": "q1",
+          "hypothesis_id": "h1",
+          "agent_role": "Cluster Reliability & Site Reliability Engineer",
+          "delta_u": 0.145,
+          "value_before": 0.3565,
+          "value_after": 0.43,
+          "features": {
+            "resolved_fraction": 0.4175,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.666667,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.333333,
+            "evidence_density": 1.0,
+            "stagnation": 0.1,
+            "open_without_options": 0.5,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 0.5825
+          },
+          "state_hash_before": "ab94ca629d7cca333ea5df62954b540a1853b547fbe74667a31c40d3a51c1a82",
+          "state_hash_after": "2864bea5e25223f672088239e74487d55d9ce4dd4a7f813211cbb6984b301a36",
+          "forced_low_prior": false,
+          "note": "hae/evaluation/harness.py [rewrite]: module check passed: py_compile, import, static_check",
+          "created_at": 1791401408.091,
+          "extra": {
+            "head_v": 0.326358
+          }
+        }
+      ],
+      "iteration": 2
+    },
+    {
+      "moves_used": 1,
+      "delta_u_total": 0.73,
+      "stop_reason": "deferred_to_oracle",
+      "synthesized_paths": [
+        "hae/evaluation/harness.py"
+      ],
+      "stats": {
+        "proposal_rounds": 0,
+        "hypotheses_accepted": 0,
+        "tabu_rejections": 0,
+        "duplicate_rejections": 0,
+        "probe_repairs": 0,
+        "experiments": 0,
+        "supported": 0,
+        "falsified": 0,
+        "inconclusive": 0,
+        "rejected_probes": 0,
+        "forced_low_prior_picks": 0,
+        "forced_low_prior_wins": 0,
+        "syntheses": 1,
+        "syntheses_verified": 1,
+        "syntheses_unwritten": 0,
+        "questions_asked": 0,
+        "proposer_errors": 0,
+        "frontier_admissions": 1,
+        "questions_deferred": 1,
+        "prior_head_loaded": true,
+        "value_head_loaded": true,
+        "prior_head_steered": 0,
+        "syntheses_by_plan": 1,
+        "synthesis_seconds": 36.756,
+        "moves_used": 1,
+        "budget_moves": 60,
+        "stop_reason": "deferred_to_oracle"
+      },
+      "trajectory": [
+        {
+          "move_index": 10,
+          "move_type": "synthesize",
+          "question_id": "q1",
+          "hypothesis_id": "h3",
+          "agent_role": "Cluster Reliability & Site Reliability Engineer",
+          "delta_u": 0.73,
+          "value_before": 0.178333,
+          "value_after": 0.427333,
+          "features": {
+            "resolved_fraction": 0.125,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.333333,
+            "ruled_out_ratio": 0.333333,
+            "untested_ratio": 0.333333,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.5,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 0.875
+          },
+          "state_hash_before": "aeebac4ab2058344999c2bb695e4a90d8a72c16be39296865b9f3d2f0caa6696",
+          "state_hash_after": "e1a6e1bbb27a325558883f259034c8941d70deddf1810279753e4316cbdf2b86",
+          "forced_low_prior": false,
+          "note": "hae/evaluation/harness.py [plan]: module check passed: py_compile, import, static_check",
+          "created_at": 1791401491.36,
+          "extra": {
+            "head_v": 0.303649
+          }
+        }
+      ],
+      "iteration": 3
+    }
+  ],
+  "audit": {
+    "ledger_hash": "c9c01ccb8055878997b3c65a188207076558a5fd35cf8ecab63ac9fcc8781af2",
+    "questions": 2,
+    "questions_open": 0,
+    "questions_resolved": 0,
+    "questions_certified": 2,
+    "questions_exhausted": 0,
+    "hypotheses": 3,
+    "hypotheses_tested": 2,
+    "hypotheses_supported": 0,
+    "hypotheses_falsified": 1,
+    "hypotheses_certified": 1,
+    "hypotheses_untestable": 0,
+    "probes_refused": 3,
+    "probe_repairs": 3,
+    "frontier_admissions": 2,
+    "questions_deferred": 2,
+    "evidence": 11,
+    "settled_facts": 2,
+    "ruled_out": 1,
+    "evidence_backed_fraction": 1.0,
+    "unbacked_claims": 0,
+    "status_inconsistencies": 0,
+    "calibration_brier": 0.42125,
+    "calibration_tested": 2,
+    "overconfident_falsified": 0,
+    "low_prior_wins": 1,
+    "forced_low_prior_picks": 1,
+    "forced_low_prior_wins": 1,
+    "proposed_total": 3,
+    "tabu_rejections": 0,
+    "duplicate_rejections": 0,
+    "moves_used": 10,
+    "budget_moves": 120,
+    "experiments": 5,
+    "proposal_rounds": 2,
+    "syntheses": 3,
+    "syntheses_verified": 2,
+    "delta_u_total": 1.71,
+    "initial_uncertainty": 2.0,
+    "remaining_uncertainty": 0.0,
+    "resolved_fraction": 1.0,
+    "token_usage": 297587,
+    "stop_reason": "deferred_to_oracle"
+  },
+  "policy": {
+    "enabled": true,
+    "search_budget_moves": 60,
+    "branching_k": 3,
+    "c_puct": 1.4,
+    "low_prior_quota": 0.34,
+    "experiment_timeout_s": 20,
+    "max_probe_lines": 40,
+    "value_alpha": 0.6,
+    "min_hypotheses_before_synthesis": 2,
+    "max_stagnant_moves": 8,
+    "max_hypothesis_rounds": 2,
+    "frontier_size": 3,
+    "role_bindings": {
+      "question": "qa",
+      "hypothesis": "engineering",
+      "experiment": "verification",
+      "synthesis": "engineering"
+    },
+    "prior_head_path": "v7_prior_head.json",
+    "value_head_path": "v7_value_head.json",
+    "prior_head_weight": 0.0,
+    "value_head_live": false
+  }
+}

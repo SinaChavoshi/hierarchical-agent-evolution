@@ -1,0 +1,1151 @@
+{
+  "company_id": "gen_14_mutant_1__s2",
+  "generation": 16,
+  "ledger": {
+    "company_id": "gen_14_mutant_1__s2",
+    "questions": [
+      {
+        "question_id": "q1",
+        "text": "Why does `test_generated_files_are_not_counted` fail in `hae/evaluation/harness.py`? Oracle: AssertionError: 6 != 4",
+        "module": "hae/evaluation/harness.py",
+        "uncertainty": 0.0,
+        "initial_uncertainty": 1.0,
+        "source_failure_tag": "execution_harness",
+        "source_failure_key": "execution_harness:test_generated_files_are_not_counted",
+        "source_failure": "[execution_harness] FAIL: test_generated_files_are_not_counted (tests.test_execution_harness.TestExecutionHarness.test_generated_files_are_not_counted) -> AssertionError: 6 != 4",
+        "status": "CERTIFIED",
+        "hypothesis_ids": [
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6"
+        ],
+        "hypothesis_rounds": 2,
+        "failure_epoch": 0,
+        "failure_history": [],
+        "location": "",
+        "created_at": 1791401052.018
+      }
+    ],
+    "hypotheses": [
+      {
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "claim": "The `verify_bundle` or `verify_directory` method fails to apply `filter_bundle` (from `artifacts.py`) to the input bundle before counting `python_files` or `authored_files`. Consequently, generated/mk",
+        "mechanism": "The `verify_bundle` or `verify_directory` method fails to apply `filter_bundle` (from `artifacts.py`) to the input bundle before counting `python_files` or `authored_files`. Consequently, generated/malformed files (e.g., `__pycache__`, `.pytest_cache`, or `*.p",
+        "prior": 0.65,
+        "posterior": 0.65,
+        "status": "UNTESTABLE",
+        "probe_code": "import sys\nimport os\nimport tempfile\nimport shutil\nfrom hae.evaluation.harness import ExecutionHarness\nfrom hae.evaluation.artifacts import filter_bundle\n\ndef test_filtering():\n    harness = ExecutionHarness()\n    # Create a bundle with 4 valid .py files and 2 generated .py files\n    bundle = {\n        'src/app.py': 'print(1)',\n        'src/utils.py': 'print(2)',\n        'src/models.py': 'print(3)',\n        'src/views.py': 'print(4)',\n        'src/__pycache__/app.cpython-39.pyc': 'binary',\n        'src/__pycache__/utils.cpython-39.pyc': 'binary',\n    }\n    # Note: .pyc is not .py, so let's use a generated .py file to be sure\n    bundle['src/.pytest_cache/v/cache/lastfailed.py'] = 'print(5)'\n    bundle['src/.mypy_cache/3.9/app.meta.json.py'] = 'print(6)'\n    \n    # We expect python_files to be 4 if filtering works, 6 if not\n    # We can't easily call private methods, so we rely on the report\n    report = harness.verify_bundle(bundle)\n    print(f'PYTHON_FILES: {report.python_files}')\n    print(f'AUTHORED_FILES: {report.authored_files}')\n\nif __name__ == '__main__':\n    test_filtering()",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "PYTHON_FILES: 6"
+        },
+        "evidence_ids": [
+          "e2"
+        ],
+        "visits": 1,
+        "value_sum": 0.0,
+        "mechanism_signature": "__pycache__ app artifact authored_files before bundle consequent count fil filter_bundle generat input malform pytest_cache python_files verify_bundle verify_directory",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 1,
+        "last_rejection": "rejected: probe references the repository root",
+        "epoch": 0,
+        "created_at": 1791401124.814
+      },
+      {
+        "hypothesis_id": "h2",
+        "question_id": "q1",
+        "claim": "The `verify_bundle` method correctly applies filtering, but the `python_files` count includes files that are syntactically invalid or empty, which are then counted in the denominator for the `syntax`",
+        "mechanism": "The `verify_bundle` method correctly applies filtering, but the `python_files` count includes files that are syntactically invalid or empty, which are then counted in the denominator for the `syntax` gate logic, causing a mismatch between the expected count of",
+        "prior": 0.15,
+        "posterior": 0.0,
+        "status": "FALSIFIED",
+        "probe_code": "import sys\nfrom hae.evaluation.harness import ExecutionHarness\n\ndef test_count():\n    harness = ExecutionHarness()\n    # 4 valid, 2 invalid syntax\n    bundle = {\n        'src/a.py': 'print(1)',\n        'src/b.py': 'print(2)',\n        'src/c.py': 'print(3)',\n        'src/d.py': 'print(4)',\n        'src/e.py': 'def broken(:',\n        'src/f.py': 'def broken(:',\n    }\n    report = harness.verify_bundle(bundle)\n    print(f'PYTHON_FILES: {report.python_files}')\n\nif __name__ == '__main__':\n    test_count()",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "PYTHON_FILES: 4"
+        },
+        "evidence_ids": [
+          "e4"
+        ],
+        "visits": 1,
+        "value_sum": 0.075,
+        "mechanism_signature": "apply between caus correct count denominator empty fil filter gate includ invalid logic mismatch python_files syntactical syntax verify_bundle",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401124.815
+      },
+      {
+        "hypothesis_id": "h3",
+        "question_id": "q1",
+        "claim": "The `verify_bundle` method correctly filters generated files, but the `python_files` attribute is incorrectly populated from a different source (e.g., a raw directory listing or an unfiltered `authore",
+        "mechanism": "The `verify_bundle` method correctly filters generated files, but the `python_files` attribute is incorrectly populated from a different source (e.g., a raw directory listing or an unfiltered `authored_files` count) that includes non-Python files or double-c",
+        "prior": 0.2,
+        "posterior": 0.0,
+        "status": "FALSIFIED",
+        "probe_code": "import sys\nfrom hae.evaluation.harness import ExecutionHarness\n\ndef test_count():\n    harness = ExecutionHarness()\n    # 4 valid .py, 2 .txt (should not be counted as python_files)\n    bundle = {\n        'src/a.py': 'print(1)',\n        'src/b.py': 'print(2)',\n        'src/c.py': 'print(3)',\n        'src/d.py': 'print(4)',\n        'src/e.txt': 'text',\n        'src/f.txt': 'text',\n    }\n    report = harness.verify_bundle(bundle)\n    print(f'PYTHON_FILES: {report.python_files}')\n\nif __name__ == '__main__':\n    test_count()",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "PYTHON_FILES: 6"
+        },
+        "evidence_ids": [
+          "e3"
+        ],
+        "visits": 1,
+        "value_sum": 0.1,
+        "mechanism_signature": "attribute authore authored_files correct count different directory double fil filter generat includ incorrect list non populat python python_files raw source unfilter verify_bundle",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401124.815
+      },
+      {
+        "hypothesis_id": "h4",
+        "question_id": "q1",
+        "claim": "The `verify_bundle` method calculates `python_files` by counting all `.py` files in the raw input bundle dictionary without applying `filter_bundle` (or equivalent exclusion logic for generated paths)",
+        "mechanism": "In `verify_bundle`, the code likely performs a simple list comprehension or loop like `[f for f in bundle.keys() if f.endswith('.py')]` to populate the `python_files` count for the `VerificationReport`. It fails to call `filter_bundle(bundle)` or check `is_exl",
+        "prior": 0.65,
+        "posterior": 0.0,
+        "status": "FALSIFIED",
+        "probe_code": "import sys\nfrom hae.evaluation.harness import ExecutionHarness\nfrom hae.evaluation.artifacts import filter_bundle\n\n# Create a bundle with 2 authored files and 2 generated files\nbundle = {\n    'src/main.py': 'print(1)',\n    'src/utils.py': 'print(2)',\n    '__pycache__/main.cpython-39.pyc': 'junk',\n    '.pytest_cache/v/cache/lastfailed': 'junk'\n}\n\nharness = ExecutionHarness()\n# We expect verify_bundle to filter. If it doesn't, python_files will be 4.\n# If it does, python_files will be 2.\nreport = harness.verify_bundle(bundle)\n\nprint(f'PYTHON_FILES_COUNT: {report.python_files}')\nprint(f'AUTHORED_FILES_COUNT: {report.authored_files}')\n\nif report.python_files == 4:\n    print('HYPOTHESIS_TRUE: Unfiltered count detected')\nelse:\n    print('HYPOTHESIS_FALSE: Filtered count detected')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "HYPOTHESIS_TRUE: Unfiltered count detected"
+        },
+        "evidence_ids": [
+          "e6"
+        ],
+        "visits": 1,
+        "value_sum": 0.1125,
+        "mechanism_signature": "apply bundle calculat call check comprehension count dictionary endswith equivalent exclusion fil filter_bundle generat input is_exl keys like list logic loop path perform populate python_files raw simple verificationreport verify_bundle without",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401201.216
+      },
+      {
+        "hypothesis_id": "h5",
+        "question_id": "q1",
+        "claim": "The `verify_bundle` method applies filtering correctly, but the `VerificationReport` constructor or property logic incorrectly sums `authored_files` and `generated_files` into `python_files`",
+        "mechanism": "The `verify_bundle` method correctly separates files using `partition_bundle` or `filter_bundle`. However, when constructing the `VerificationReport` dataclass, the `python_files` field is assigned `len(authored) + len(generated)` (or similar) instead of just`",
+        "prior": 0.15,
+        "posterior": 0.0,
+        "status": "FALSIFIED",
+        "probe_code": "import sys\nfrom hae.evaluation.harness import ExecutionHarness\nfrom hae.evaluation.artifacts import partition_bundle\n\nbundle = {\n    'src/main.py': 'print(1)',\n    'src/utils.py': 'print(2)',\n    '__pycache__/main.cpython-39.pyc': 'junk',\n    '.pytest_cache/v/cache/lastfailed': 'junk'\n}\n\nharness = ExecutionHarness()\nreport = harness.verify_bundle(bundle)\n\nprint(f'PYTHON_FILES_COUNT: {report.python_files}')\nprint(f'AUTHORED_FILES_COUNT: {report.authored_files}')\n\n# If python_files == 4 but authored_files == 2, it suggests a summation error\nif report.python_files == 4 and report.authored_files == 2:\n    print('HYPOTHESIS_TRUE: Summation error detected')\nelif report.python_files == 2:\n    print('HYPOTHESIS_FALSE: Correct count detected')\nelse:\n    print('HYPOTHESIS_INCONCLUSIVE: Unexpected state')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "HYPOTHESIS_TRUE: Summation error detected"
+        },
+        "evidence_ids": [
+          "e5"
+        ],
+        "visits": 1,
+        "value_sum": 0.0,
+        "mechanism_signature": "apply assign author authored_files construct constructor correct dataclass field fil filter filter_bundle generat generated_files however incorrect instead len logic partition_bundle property python_files separat similar sums using verificationreport verify_bundle",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401201.216
+      },
+      {
+        "hypothesis_id": "h6",
+        "question_id": "q1",
+        "claim": "The `verify_bundle` method filters correctly, but the test fixture itself contains 4 authored Python files and 2 generated files, and the test expectation of 4 is wrong because the test setup is misl",
+        "mechanism": "The failure `AssertionError: 6 != 4` implies the code returned 6. If the code is correct, the test fixture must have 6 Python files that are NOT filtered out. This implies the 'generated' files in the test fixture are not recognized as generated by `is_gener",
+        "prior": 0.2,
+        "posterior": 1.0,
+        "status": "CERTIFIED",
+        "probe_code": "import sys\nfrom hae.evaluation.harness import ExecutionHarness\nfrom hae.evaluation.artifacts import is_generated_path\n\n# Simulate the likely test fixture structure based on the error\n# Error says 6 != 4. So code found 6. Test expected 4.\n# If test expected 4, it likely provided 4 authored + 2 generated.\n# If code found 6, it counted the 2 generated as authored.\n\n# Let's test if common generated paths are correctly identified\npaths = [\n    '__pycache__/main.cpython-39.pyc',\n    '.pytest_cache/v/cache/lastfailed',\n    'src/main.py',\n    'src/utils.py'\n]\n\nfor p in paths:\n    is_gen = is_generated_path(p)\n    print(f'PATH: {p} | IS_GENERATED: {is_gen}')\n\n# If is_generated_path returns False for the cache files, that's the root cause\nif not is_generated_path('__pycache__/main.cpython-39.pyc'):\n    print('HYPOTHESIS_TRUE: is_generated_path failed to identify pycache')\nelse:\n    print('HYPOTHESIS_FALSE: is_generated_path works correctly')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "HYPOTHESIS_FALSE: is_generated_path works correctly"
+        },
+        "evidence_ids": [
+          "e7",
+          "e8"
+        ],
+        "visits": 1,
+        "value_sum": 0.4725,
+        "mechanism_signature": "assertionerror author contain correct expectation fil filter fixture generat imply is_gener itself misl out python recogniz setup verify_bundle wrong",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": true,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401201.217
+      }
+    ],
+    "settled_knowledge": [
+      {
+        "fact_id": "f1",
+        "question_id": "q1",
+        "hypothesis_id": "h6",
+        "statement": "execution_harness:test_generated_files_are_not_counted now passes the held-out oracle (iteration 3) -- The `verify_bundle` method filters correctly, but the test fixture itself contains 4 authored Python files and 2 generated files, and the test expectation of 4 is wrong because the test setup is misl",
+        "evidence_ids": [
+          "e9"
+        ],
+        "certified_by": "oracle",
+        "created_at": 1791401263.198
+      }
+    ],
+    "ruled_out": [
+      {
+        "belief_id": "ro1",
+        "hypothesis_id": "h3",
+        "question_id": "q1",
+        "claim": "The `verify_bundle` method correctly filters generated files, but the `python_files` attribute is incorrectly populated from a different source (e.g., a raw directory listing or an unfiltered `authore",
+        "mechanism_signature": "attribute authore authored_files correct count different directory double fil filter generat includ incorrect list non populat python python_files raw source unfilter verify_bundle",
+        "killing_evidence_id": "e3",
+        "epoch": 0,
+        "created_at": 1791401125.143
+      },
+      {
+        "belief_id": "ro2",
+        "hypothesis_id": "h2",
+        "question_id": "q1",
+        "claim": "The `verify_bundle` method correctly applies filtering, but the `python_files` count includes files that are syntactically invalid or empty, which are then counted in the denominator for the `syntax`",
+        "mechanism_signature": "apply between caus correct count denominator empty fil filter gate includ invalid logic mismatch python_files syntactical syntax verify_bundle",
+        "killing_evidence_id": "e4",
+        "epoch": 0,
+        "created_at": 1791401125.477
+      },
+      {
+        "belief_id": "ro3",
+        "hypothesis_id": "h5",
+        "question_id": "q1",
+        "claim": "The `verify_bundle` method applies filtering correctly, but the `VerificationReport` constructor or property logic incorrectly sums `authored_files` and `generated_files` into `python_files`",
+        "mechanism_signature": "apply assign author authored_files construct constructor correct dataclass field fil filter filter_bundle generat generated_files however incorrect instead len logic partition_bundle property python_files separat similar sums using verificationreport verify_bundle",
+        "killing_evidence_id": "e5",
+        "epoch": 0,
+        "created_at": 1791401201.487
+      },
+      {
+        "belief_id": "ro4",
+        "hypothesis_id": "h4",
+        "question_id": "q1",
+        "claim": "The `verify_bundle` method calculates `python_files` by counting all `.py` files in the raw input bundle dictionary without applying `filter_bundle` (or equivalent exclusion logic for generated paths)",
+        "mechanism_signature": "apply bundle calculat call check comprehension count dictionary endswith equivalent exclusion fil filter_bundle generat input is_exl keys like list logic loop path perform populate python_files raw simple verificationreport verify_bundle without",
+        "killing_evidence_id": "e6",
+        "epoch": 0,
+        "created_at": 1791401201.753
+      }
+    ],
+    "evidence_log": [
+      {
+        "evidence_id": "e1",
+        "kind": "oracle",
+        "hypothesis_id": "",
+        "question_id": "",
+        "command": "held-out oracle, iteration 2",
+        "exit_code": 1,
+        "stdout": "[execution_harness] FAIL: test_generated_files_are_not_counted (tests.test_execution_harness.TestExecutionHarness.test_generated_files_are_not_counted) -> AssertionError: 6 != 4",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": false,
+        "detail": "1 failing check(s)",
+        "network_isolated": null,
+        "sha256": "fbd2be615eb1f9c9528a84a44210c891c273eab6198049a62cb9308994e289c7",
+        "created_at": 1791401052.018
+      },
+      {
+        "evidence_id": "e2",
+        "kind": "probe_rejected",
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "command": "",
+        "exit_code": -2,
+        "stdout": "",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "PYTHON_FILES: 6"
+        },
+        "matched_prediction": false,
+        "detail": "rejected: probe references the repository root",
+        "network_isolated": null,
+        "sha256": "59e444df8c55d1bb079397c2667a014e34a2017e7fe9512724c4d906619b3f5b",
+        "created_at": 1791401124.817
+      },
+      {
+        "evidence_id": "e3",
+        "kind": "probe",
+        "hypothesis_id": "h3",
+        "question_id": "q1",
+        "command": "python _probe/h3.py",
+        "exit_code": 0,
+        "stdout": "PYTHON_FILES: 4\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "PYTHON_FILES: 6"
+        },
+        "matched_prediction": false,
+        "detail": "prediction failed: stdout contains 'PYTHON_FILES: 6'",
+        "network_isolated": true,
+        "sha256": "644ccb1e0d9ba8b27648bcb6d001f12172b8a0bd769dfffae0a9d0c402abcbcb",
+        "created_at": 1791401125.143
+      },
+      {
+        "evidence_id": "e4",
+        "kind": "probe",
+        "hypothesis_id": "h2",
+        "question_id": "q1",
+        "command": "python _probe/h2.py",
+        "exit_code": 0,
+        "stdout": "PYTHON_FILES: 6\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "PYTHON_FILES: 4"
+        },
+        "matched_prediction": false,
+        "detail": "prediction failed: stdout contains 'PYTHON_FILES: 4'",
+        "network_isolated": true,
+        "sha256": "2c58e7cac81b918f83442634e1eb617f0d896defc1b4b6382e571d166fe3f328",
+        "created_at": 1791401125.477
+      },
+      {
+        "evidence_id": "e5",
+        "kind": "probe",
+        "hypothesis_id": "h5",
+        "question_id": "q1",
+        "command": "python _probe/h5.py",
+        "exit_code": 0,
+        "stdout": "PYTHON_FILES_COUNT: 2\nAUTHORED_FILES_COUNT: 4\nHYPOTHESIS_FALSE: Correct count detected\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "HYPOTHESIS_TRUE: Summation error detected"
+        },
+        "matched_prediction": false,
+        "detail": "prediction failed: stdout contains 'HYPOTHESIS_TRUE: Summation error detected'",
+        "network_isolated": true,
+        "sha256": "1ad6b2194c1fbbf38b1ca465535555807af6c34e77e9b5db9957208b6d5737d8",
+        "created_at": 1791401201.487
+      },
+      {
+        "evidence_id": "e6",
+        "kind": "probe",
+        "hypothesis_id": "h4",
+        "question_id": "q1",
+        "command": "python _probe/h4.py",
+        "exit_code": 0,
+        "stdout": "PYTHON_FILES_COUNT: 2\nAUTHORED_FILES_COUNT: 4\nHYPOTHESIS_FALSE: Filtered count detected\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "HYPOTHESIS_TRUE: Unfiltered count detected"
+        },
+        "matched_prediction": false,
+        "detail": "prediction failed: stdout contains 'HYPOTHESIS_TRUE: Unfiltered count detected'",
+        "network_isolated": true,
+        "sha256": "f3ec11d544596dfbef7d2c825aac3faef4723ba3bcc7c2572ff7c8b511954d29",
+        "created_at": 1791401201.753
+      },
+      {
+        "evidence_id": "e7",
+        "kind": "probe",
+        "hypothesis_id": "h6",
+        "question_id": "q1",
+        "command": "python _probe/h6.py",
+        "exit_code": 0,
+        "stdout": "PATH: __pycache__/main.cpython-39.pyc | IS_GENERATED: True\nPATH: .pytest_cache/v/cache/lastfailed | IS_GENERATED: True\nPATH: src/main.py | IS_GENERATED: False\nPATH: src/utils.py | IS_GENERATED: False\nHYPOTHESIS_FALSE: is_generated_path works correctly\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "HYPOTHESIS_FALSE: is_generated_path works correctly"
+        },
+        "matched_prediction": true,
+        "detail": "prediction held: exit_code==0; stdout contains 'HYPOTHESIS_FALSE: is_generated_path works correctly'",
+        "network_isolated": true,
+        "sha256": "c60b7b53db2cbe8f8ab668c5baf2795d00028d02d9957a7701318e31f7477630",
+        "created_at": 1791401201.987
+      },
+      {
+        "evidence_id": "e8",
+        "kind": "module_check",
+        "hypothesis_id": "h6",
+        "question_id": "q1",
+        "command": "verify_module hae/evaluation/harness.py",
+        "exit_code": 0,
+        "stdout": "[py_compile] \n[import] IMPORT_OK\n\n[static_check] no undefined names (907 lines)",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "module check passed: py_compile, import, static_check",
+        "network_isolated": true,
+        "sha256": "1d7661a30328b3c2dfcd48ca4c7468ac64d1c4ade07213cabb5981e9de37a879",
+        "created_at": 1791401248.348
+      },
+      {
+        "evidence_id": "e9",
+        "kind": "oracle",
+        "hypothesis_id": "",
+        "question_id": "",
+        "command": "held-out oracle, iteration 3",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "0 failing check(s)",
+        "network_isolated": null,
+        "sha256": "59bf432aedcf300495b1d4992bd782db9c8a3db2bc3ad68492134343ed68a1ef",
+        "created_at": 1791401263.198
+      }
+    ],
+    "move_log": [
+      {
+        "move_index": 1,
+        "move_type": "propose_hypothesis",
+        "question_id": "q1",
+        "hypothesis_id": "",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.0,
+        "value_before": 0.06,
+        "value_after": 0.08,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.0,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 1.0,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "381607b49b7838530dd291b04cfb8d5c8f4c4127d972c84de793a1b8443b36ab",
+        "state_hash_after": "c810c8c9780b5a1a9f32d4da708a8cef5b201b9ae6021dd6a48fabc802a45382",
+        "forced_low_prior": false,
+        "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+        "created_at": 1791401124.815,
+        "extra": {
+          "head_v": 0.329196
+        }
+      },
+      {
+        "move_index": 2,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h1",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.0,
+        "value_before": 0.076,
+        "value_after": 0.076,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 1.0,
+          "evidence_density": 0.333333,
+          "stagnation": 0.1,
+          "open_without_options": 0.0,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "c810c8c9780b5a1a9f32d4da708a8cef5b201b9ae6021dd6a48fabc802a45382",
+        "state_hash_after": "3d6026c1949938783e4ac42ceb5c1fe3afcb20ff5289723dcf871fbac2e06594",
+        "forced_low_prior": false,
+        "note": "UNTESTABLE: rejected: probe references the repository root",
+        "created_at": 1791401124.817,
+        "extra": {
+          "head_p": 0.092156,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.369897
+        }
+      },
+      {
+        "move_index": 3,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h3",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.1,
+        "value_before": 0.072,
+        "value_after": 0.145333,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.666667,
+          "evidence_density": 0.666667,
+          "stagnation": 0.2,
+          "open_without_options": 0.0,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "3d6026c1949938783e4ac42ceb5c1fe3afcb20ff5289723dcf871fbac2e06594",
+        "state_hash_after": "0631f7a5866f4f8d5905fa2a2e7e30070dcfdac7a931af76ebbd5d3ee113fe7b",
+        "forced_low_prior": false,
+        "note": "FALSIFIED: prediction failed: stdout contains 'PYTHON_FILES: 6'",
+        "created_at": 1791401125.143,
+        "extra": {
+          "head_p": 0.09518,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.297794
+        }
+      },
+      {
+        "move_index": 4,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h2",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.075,
+        "value_before": 0.153333,
+        "value_after": 0.191667,
+        "features": {
+          "resolved_fraction": 0.1,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.333333,
+          "untested_ratio": 0.333333,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.0,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 0.9
+        },
+        "state_hash_before": "0631f7a5866f4f8d5905fa2a2e7e30070dcfdac7a931af76ebbd5d3ee113fe7b",
+        "state_hash_after": "c1da91fd4607fd546d9d4b877588c2553cc76d06733e04c470d5fb5b787b6b82",
+        "forced_low_prior": false,
+        "note": "FALSIFIED: prediction failed: stdout contains 'PYTHON_FILES: 4'",
+        "created_at": 1791401125.478,
+        "extra": {
+          "head_p": 0.101397,
+          "head_rank": 0.5,
+          "stated_rank": 0.5,
+          "prior_head_weight": 0.0,
+          "head_v": 0.225782
+        }
+      },
+      {
+        "move_index": 5,
+        "move_type": "propose_hypothesis",
+        "question_id": "q1",
+        "hypothesis_id": "",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.0,
+        "value_before": 0.191667,
+        "value_after": 0.198333,
+        "features": {
+          "resolved_fraction": 0.175,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.666667,
+          "untested_ratio": 0.0,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 1.0,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 0.825
+        },
+        "state_hash_before": "c1da91fd4607fd546d9d4b877588c2553cc76d06733e04c470d5fb5b787b6b82",
+        "state_hash_after": "b826e7a558ce07caf721d4046c45f963e7472108b11db001c75264126c4d5654",
+        "forced_low_prior": false,
+        "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+        "created_at": 1791401201.217,
+        "extra": {
+          "head_v": 0.243956
+        }
+      },
+      {
+        "move_index": 6,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h5",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.0,
+        "value_before": 0.194333,
+        "value_after": 0.201,
+        "features": {
+          "resolved_fraction": 0.175,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.333333,
+          "untested_ratio": 0.5,
+          "evidence_density": 0.666667,
+          "stagnation": 0.1,
+          "open_without_options": 0.0,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 0.825
+        },
+        "state_hash_before": "b826e7a558ce07caf721d4046c45f963e7472108b11db001c75264126c4d5654",
+        "state_hash_after": "a5c628ad43eafda5ca07a21eee501f5fb496fe3de9f728ff2ad809348d650d8d",
+        "forced_low_prior": true,
+        "note": "FALSIFIED: prediction failed: stdout contains 'HYPOTHESIS_TRUE: Summation error detected'",
+        "created_at": 1791401201.487,
+        "extra": {
+          "head_p": 0.100062,
+          "head_rank": 1.0,
+          "stated_rank": 0.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.237892
+        }
+      },
+      {
+        "move_index": 7,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h4",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.1125,
+        "value_before": 0.197,
+        "value_after": 0.271167,
+        "features": {
+          "resolved_fraction": 0.175,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.5,
+          "untested_ratio": 0.333333,
+          "evidence_density": 0.833333,
+          "stagnation": 0.2,
+          "open_without_options": 0.0,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 0.825
+        },
+        "state_hash_before": "a5c628ad43eafda5ca07a21eee501f5fb496fe3de9f728ff2ad809348d650d8d",
+        "state_hash_after": "722344bd9c39488d4407278424e97b8c4c211e8b62d1943d3231e48fe36193e0",
+        "forced_low_prior": false,
+        "note": "FALSIFIED: prediction failed: stdout contains 'HYPOTHESIS_TRUE: Unfiltered count detected'",
+        "created_at": 1791401201.754,
+        "extra": {
+          "head_p": 0.088741,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.192228
+        }
+      },
+      {
+        "move_index": 8,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h6",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.4725,
+        "value_before": 0.279167,
+        "value_after": 0.572667,
+        "features": {
+          "resolved_fraction": 0.2875,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.666667,
+          "untested_ratio": 0.166667,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.0,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 0.7125
+        },
+        "state_hash_before": "722344bd9c39488d4407278424e97b8c4c211e8b62d1943d3231e48fe36193e0",
+        "state_hash_after": "e00f2e6b48e445af52c0716f955b170702f8b53610f7719212bd86146021a001",
+        "forced_low_prior": false,
+        "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'HYPOTHESIS_FALSE: is_generated_path works correctly'",
+        "created_at": 1791401201.988,
+        "extra": {
+          "head_p": 0.091275,
+          "head_rank": 0.5,
+          "stated_rank": 0.5,
+          "prior_head_weight": 0.0,
+          "head_v": 0.167799
+        }
+      },
+      {
+        "move_index": 9,
+        "move_type": "synthesize",
+        "question_id": "q1",
+        "hypothesis_id": "h6",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.22,
+        "value_before": 0.572667,
+        "value_after": 0.764667,
+        "features": {
+          "resolved_fraction": 0.76,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.166667,
+          "ruled_out_ratio": 0.666667,
+          "untested_ratio": 0.0,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.0,
+          "module_isolation": 1.0,
+          "mean_open_uncertainty": 0.24
+        },
+        "state_hash_before": "e00f2e6b48e445af52c0716f955b170702f8b53610f7719212bd86146021a001",
+        "state_hash_after": "9b59c389a1d9a4ffb2c00bf47170bec814250546b1fb86a9e6a0da0f578e99c9",
+        "forced_low_prior": false,
+        "note": "hae/evaluation/harness.py [plan]: module check passed: py_compile, import, static_check",
+        "created_at": 1791401248.349,
+        "extra": {
+          "head_v": 0.131828
+        }
+      }
+    ],
+    "created_at": 1791401052.018,
+    "counters": {
+      "e": 9,
+      "q": 1,
+      "h": 6,
+      "ro": 4,
+      "f": 1
+    },
+    "state_hash": "2be6457d3315c8b529e680f1fe26c946685b519d106940b1ad653462dc978ba6"
+  },
+  "searches": [
+    {
+      "moves_used": 9,
+      "delta_u_total": 0.98,
+      "stop_reason": "all_resolved",
+      "synthesized_paths": [
+        "hae/evaluation/harness.py"
+      ],
+      "stats": {
+        "proposal_rounds": 2,
+        "hypotheses_accepted": 6,
+        "tabu_rejections": 0,
+        "duplicate_rejections": 0,
+        "probe_repairs": 0,
+        "experiments": 6,
+        "supported": 1,
+        "falsified": 4,
+        "inconclusive": 0,
+        "rejected_probes": 1,
+        "forced_low_prior_picks": 1,
+        "forced_low_prior_wins": 0,
+        "syntheses": 1,
+        "syntheses_verified": 1,
+        "syntheses_unwritten": 0,
+        "questions_asked": 0,
+        "proposer_errors": 0,
+        "frontier_admissions": 1,
+        "questions_deferred": 0,
+        "prior_head_loaded": true,
+        "value_head_loaded": true,
+        "prior_head_steered": 0,
+        "syntheses_by_plan": 1,
+        "synthesis_seconds": 45.956,
+        "moves_used": 9,
+        "budget_moves": 60,
+        "stop_reason": "all_resolved"
+      },
+      "trajectory": [
+        {
+          "move_index": 1,
+          "move_type": "propose_hypothesis",
+          "question_id": "q1",
+          "hypothesis_id": "",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.0,
+          "value_before": 0.06,
+          "value_after": 0.08,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.0,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 1.0,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "381607b49b7838530dd291b04cfb8d5c8f4c4127d972c84de793a1b8443b36ab",
+          "state_hash_after": "c810c8c9780b5a1a9f32d4da708a8cef5b201b9ae6021dd6a48fabc802a45382",
+          "forced_low_prior": false,
+          "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+          "created_at": 1791401124.815,
+          "extra": {
+            "head_v": 0.329196
+          }
+        },
+        {
+          "move_index": 2,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h1",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.0,
+          "value_before": 0.076,
+          "value_after": 0.076,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 1.0,
+            "evidence_density": 0.333333,
+            "stagnation": 0.1,
+            "open_without_options": 0.0,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "c810c8c9780b5a1a9f32d4da708a8cef5b201b9ae6021dd6a48fabc802a45382",
+          "state_hash_after": "3d6026c1949938783e4ac42ceb5c1fe3afcb20ff5289723dcf871fbac2e06594",
+          "forced_low_prior": false,
+          "note": "UNTESTABLE: rejected: probe references the repository root",
+          "created_at": 1791401124.817,
+          "extra": {
+            "head_p": 0.092156,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.369897
+          }
+        },
+        {
+          "move_index": 3,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h3",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.1,
+          "value_before": 0.072,
+          "value_after": 0.145333,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.666667,
+            "evidence_density": 0.666667,
+            "stagnation": 0.2,
+            "open_without_options": 0.0,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "3d6026c1949938783e4ac42ceb5c1fe3afcb20ff5289723dcf871fbac2e06594",
+          "state_hash_after": "0631f7a5866f4f8d5905fa2a2e7e30070dcfdac7a931af76ebbd5d3ee113fe7b",
+          "forced_low_prior": false,
+          "note": "FALSIFIED: prediction failed: stdout contains 'PYTHON_FILES: 6'",
+          "created_at": 1791401125.143,
+          "extra": {
+            "head_p": 0.09518,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.297794
+          }
+        },
+        {
+          "move_index": 4,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h2",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.075,
+          "value_before": 0.153333,
+          "value_after": 0.191667,
+          "features": {
+            "resolved_fraction": 0.1,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.333333,
+            "untested_ratio": 0.333333,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.0,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 0.9
+          },
+          "state_hash_before": "0631f7a5866f4f8d5905fa2a2e7e30070dcfdac7a931af76ebbd5d3ee113fe7b",
+          "state_hash_after": "c1da91fd4607fd546d9d4b877588c2553cc76d06733e04c470d5fb5b787b6b82",
+          "forced_low_prior": false,
+          "note": "FALSIFIED: prediction failed: stdout contains 'PYTHON_FILES: 4'",
+          "created_at": 1791401125.478,
+          "extra": {
+            "head_p": 0.101397,
+            "head_rank": 0.5,
+            "stated_rank": 0.5,
+            "prior_head_weight": 0.0,
+            "head_v": 0.225782
+          }
+        },
+        {
+          "move_index": 5,
+          "move_type": "propose_hypothesis",
+          "question_id": "q1",
+          "hypothesis_id": "",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.0,
+          "value_before": 0.191667,
+          "value_after": 0.198333,
+          "features": {
+            "resolved_fraction": 0.175,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.666667,
+            "untested_ratio": 0.0,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 1.0,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 0.825
+          },
+          "state_hash_before": "c1da91fd4607fd546d9d4b877588c2553cc76d06733e04c470d5fb5b787b6b82",
+          "state_hash_after": "b826e7a558ce07caf721d4046c45f963e7472108b11db001c75264126c4d5654",
+          "forced_low_prior": false,
+          "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+          "created_at": 1791401201.217,
+          "extra": {
+            "head_v": 0.243956
+          }
+        },
+        {
+          "move_index": 6,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h5",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.0,
+          "value_before": 0.194333,
+          "value_after": 0.201,
+          "features": {
+            "resolved_fraction": 0.175,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.333333,
+            "untested_ratio": 0.5,
+            "evidence_density": 0.666667,
+            "stagnation": 0.1,
+            "open_without_options": 0.0,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 0.825
+          },
+          "state_hash_before": "b826e7a558ce07caf721d4046c45f963e7472108b11db001c75264126c4d5654",
+          "state_hash_after": "a5c628ad43eafda5ca07a21eee501f5fb496fe3de9f728ff2ad809348d650d8d",
+          "forced_low_prior": true,
+          "note": "FALSIFIED: prediction failed: stdout contains 'HYPOTHESIS_TRUE: Summation error detected'",
+          "created_at": 1791401201.487,
+          "extra": {
+            "head_p": 0.100062,
+            "head_rank": 1.0,
+            "stated_rank": 0.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.237892
+          }
+        },
+        {
+          "move_index": 7,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h4",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.1125,
+          "value_before": 0.197,
+          "value_after": 0.271167,
+          "features": {
+            "resolved_fraction": 0.175,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.5,
+            "untested_ratio": 0.333333,
+            "evidence_density": 0.833333,
+            "stagnation": 0.2,
+            "open_without_options": 0.0,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 0.825
+          },
+          "state_hash_before": "a5c628ad43eafda5ca07a21eee501f5fb496fe3de9f728ff2ad809348d650d8d",
+          "state_hash_after": "722344bd9c39488d4407278424e97b8c4c211e8b62d1943d3231e48fe36193e0",
+          "forced_low_prior": false,
+          "note": "FALSIFIED: prediction failed: stdout contains 'HYPOTHESIS_TRUE: Unfiltered count detected'",
+          "created_at": 1791401201.754,
+          "extra": {
+            "head_p": 0.088741,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.192228
+          }
+        },
+        {
+          "move_index": 8,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h6",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.4725,
+          "value_before": 0.279167,
+          "value_after": 0.572667,
+          "features": {
+            "resolved_fraction": 0.2875,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.666667,
+            "untested_ratio": 0.166667,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.0,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 0.7125
+          },
+          "state_hash_before": "722344bd9c39488d4407278424e97b8c4c211e8b62d1943d3231e48fe36193e0",
+          "state_hash_after": "e00f2e6b48e445af52c0716f955b170702f8b53610f7719212bd86146021a001",
+          "forced_low_prior": false,
+          "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'HYPOTHESIS_FALSE: is_generated_path works correctly'",
+          "created_at": 1791401201.988,
+          "extra": {
+            "head_p": 0.091275,
+            "head_rank": 0.5,
+            "stated_rank": 0.5,
+            "prior_head_weight": 0.0,
+            "head_v": 0.167799
+          }
+        },
+        {
+          "move_index": 9,
+          "move_type": "synthesize",
+          "question_id": "q1",
+          "hypothesis_id": "h6",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.22,
+          "value_before": 0.572667,
+          "value_after": 0.764667,
+          "features": {
+            "resolved_fraction": 0.76,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.166667,
+            "ruled_out_ratio": 0.666667,
+            "untested_ratio": 0.0,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.0,
+            "module_isolation": 1.0,
+            "mean_open_uncertainty": 0.24
+          },
+          "state_hash_before": "e00f2e6b48e445af52c0716f955b170702f8b53610f7719212bd86146021a001",
+          "state_hash_after": "9b59c389a1d9a4ffb2c00bf47170bec814250546b1fb86a9e6a0da0f578e99c9",
+          "forced_low_prior": false,
+          "note": "hae/evaluation/harness.py [plan]: module check passed: py_compile, import, static_check",
+          "created_at": 1791401248.349,
+          "extra": {
+            "head_v": 0.131828
+          }
+        }
+      ],
+      "iteration": 2
+    }
+  ],
+  "audit": {
+    "ledger_hash": "2be6457d3315c8b529e680f1fe26c946685b519d106940b1ad653462dc978ba6",
+    "questions": 1,
+    "questions_open": 0,
+    "questions_resolved": 0,
+    "questions_certified": 1,
+    "questions_exhausted": 0,
+    "hypotheses": 6,
+    "hypotheses_tested": 5,
+    "hypotheses_supported": 0,
+    "hypotheses_falsified": 4,
+    "hypotheses_certified": 1,
+    "hypotheses_untestable": 1,
+    "probes_refused": 1,
+    "probe_repairs": 0,
+    "frontier_admissions": 1,
+    "questions_deferred": 0,
+    "evidence": 9,
+    "settled_facts": 1,
+    "ruled_out": 4,
+    "evidence_backed_fraction": 1.0,
+    "unbacked_claims": 0,
+    "status_inconsistencies": 0,
+    "calibration_brier": 0.2295,
+    "calibration_tested": 5,
+    "overconfident_falsified": 0,
+    "low_prior_wins": 1,
+    "forced_low_prior_picks": 1,
+    "forced_low_prior_wins": 0,
+    "proposed_total": 6,
+    "tabu_rejections": 0,
+    "duplicate_rejections": 0,
+    "moves_used": 9,
+    "budget_moves": 60,
+    "experiments": 6,
+    "proposal_rounds": 2,
+    "syntheses": 1,
+    "syntheses_verified": 1,
+    "delta_u_total": 0.98,
+    "initial_uncertainty": 1.0,
+    "remaining_uncertainty": 0.0,
+    "resolved_fraction": 1.0,
+    "token_usage": 152504,
+    "stop_reason": "all_resolved"
+  },
+  "policy": {
+    "enabled": true,
+    "search_budget_moves": 60,
+    "branching_k": 3,
+    "c_puct": 1.4,
+    "low_prior_quota": 0.34,
+    "experiment_timeout_s": 20,
+    "max_probe_lines": 40,
+    "value_alpha": 0.6,
+    "min_hypotheses_before_synthesis": 2,
+    "max_stagnant_moves": 8,
+    "max_hypothesis_rounds": 2,
+    "frontier_size": 3,
+    "role_bindings": {
+      "question": "qa",
+      "hypothesis": "engineering",
+      "experiment": "verification",
+      "synthesis": "engineering"
+    },
+    "prior_head_path": "v7_prior_head.json",
+    "value_head_path": "v7_value_head.json",
+    "prior_head_weight": 0.0,
+    "value_head_live": false
+  }
+}

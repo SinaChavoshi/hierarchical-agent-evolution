@@ -1,0 +1,1601 @@
+{
+  "company_id": "gen_14_mutant_2__s2",
+  "generation": 16,
+  "ledger": {
+    "company_id": "gen_14_mutant_2__s2",
+    "questions": [
+      {
+        "question_id": "q1",
+        "text": "Why does `test_failing_assertion_is_detected` fail in `hae/evaluation/harness.py`? Oracle: AssertionError: 'passed' != 'failed' - passed + failed",
+        "module": "hae/evaluation/harness.py",
+        "uncertainty": 0.0,
+        "initial_uncertainty": 1.0,
+        "source_failure_tag": "execution_harness",
+        "source_failure_key": "execution_harness:test_failing_assertion_is_detected",
+        "source_failure": "[execution_harness] FAIL: test_failing_assertion_is_detected (tests.test_execution_harness.TestExecutionHarness.test_failing_assertion_is_detected) -> AssertionError: 'passed' != 'failed' - passed + failed",
+        "status": "CERTIFIED",
+        "hypothesis_ids": [
+          "h1",
+          "h2",
+          "h3",
+          "h7"
+        ],
+        "hypothesis_rounds": 2,
+        "failure_epoch": 0,
+        "failure_history": [],
+        "location": "",
+        "created_at": 1791400544.816
+      },
+      {
+        "question_id": "q2",
+        "text": "Why does `test_crossover_overlay_merge_precedence` fail in `hae/genome/morphogenesis.py`? Oracle: hae.genome.schema.GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager. A pod without a manager cannot route work and silently produced nothing in V1.",
+        "module": "hae/genome/morphogenesis.py",
+        "uncertainty": 0.0,
+        "initial_uncertainty": 1.0,
+        "source_failure_tag": "morphogenesis",
+        "source_failure_key": "morphogenesis:test_crossover_overlay_merge_precedence",
+        "source_failure": "[morphogenesis] ERROR: test_crossover_overlay_merge_precedence (tests.test_morphogenesis.TestMorphogenesis.test_crossover_overlay_merge_precedence) -> hae.genome.schema.GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager. A pod without a manager cannot route work and silently produced nothing in V1.",
+        "status": "CERTIFIED",
+        "hypothesis_ids": [
+          "h4",
+          "h5",
+          "h6"
+        ],
+        "hypothesis_rounds": 1,
+        "failure_epoch": 0,
+        "failure_history": [],
+        "location": "hae/genome/schema.py:168 in __post_init__",
+        "created_at": 1791400544.816
+      },
+      {
+        "question_id": "q3",
+        "text": "Why does `test_structural_crossover` fail in `hae/genome/morphogenesis.py`? Oracle: hae.genome.schema.GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager. A pod without a manager cannot route work and silently produced nothing in V1.",
+        "module": "hae/genome/morphogenesis.py",
+        "uncertainty": 0.0,
+        "initial_uncertainty": 1.0,
+        "source_failure_tag": "morphogenesis",
+        "source_failure_key": "morphogenesis:test_structural_crossover",
+        "source_failure": "[morphogenesis] ERROR: test_structural_crossover (tests.test_morphogenesis.TestMorphogenesis.test_structural_crossover) -> hae.genome.schema.GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager. A pod without a manager cannot route work and silently produced nothing in V1.",
+        "status": "CERTIFIED",
+        "hypothesis_ids": [],
+        "hypothesis_rounds": 0,
+        "failure_epoch": 0,
+        "failure_history": [],
+        "location": "hae/genome/schema.py:168 in __post_init__",
+        "created_at": 1791400544.816
+      }
+    ],
+    "hypotheses": [
+      {
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "claim": "The `tests` gate implementation in `ExecutionHarness` incorrectly maps pytest exit codes or subprocess return codes to `PASSED`/`FAILED`. Specifically, it may treat a non-zero exit code (indicating a",
+        "mechanism": "Incorrect exit code handling in the `tests` gate subprocess runner: The harness likely checks `returncode == 0` for PASSED, but if the test runner (pytest or unittest fallback) is invoked with flags that suppress failure reporting or if the subprocess wrapper\u8bef",
+        "prior": 0.45,
+        "posterior": 0.45,
+        "status": "UNTESTABLE",
+        "probe_code": "import subprocess\nimport sys\nimport os\nfrom hae.evaluation.harness import ExecutionHarness, PASSED, FAILED\nimport tempfile\nimport shutil\n\ndef test_probe():\n    tmp_dir = tempfile.mkdtemp()\n    try:\n        # Create a test file that fails an assertion\n        test_content = 'def test_fail(): assert False, 'failed' '\n        with open(os.path.join(tmp_dir, 'test_fail.py'), 'w') as f:\n            f.write(test_content)\n\n        # Create minimal pyproject.toml to pass build gate\n        with open(os.path.join(tmp_dir, 'pyproject.toml'), 'w') as f:\n            f.write('[project] name = 'probe' version = '0.1.0'')\n\n        harness = ExecutionHarness()\n        report = harness.verify_directory(tmp_dir)\n        tests_gate = report.gate('tests')\n\n        if tests_gate:\n            print(f'TESTS_GATE_STATUS: {tests_gate.status}')\n            print(f'TESTS_GATE_DETAIL: {tests_gate.detail}')\n        else:\n            print('TESTS_GATE_MISSING')\n    finally:\n        shutil.rmtree(tmp_dir, ignore_errors=True)\n\nif __name__ == '__main__':\n    test_probe()",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "TESTS_GATE_STATUS: passed"
+        },
+        "evidence_ids": [
+          "e2"
+        ],
+        "visits": 1,
+        "value_sum": 0.0,
+        "mechanism_signature": "check cod executionharness exit fallback flag gate handl harness implementation incorrect indicat invok like maps non pass pytest report returncode runner specifical subprocess suppress treat unittest wrapper zero",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 1,
+        "last_rejection": "rejected: probe is not valid Python (invalid syntax at line 12)",
+        "epoch": 0,
+        "created_at": 1791400629.724
+      },
+      {
+        "hypothesis_id": "h2",
+        "question_id": "q1",
+        "claim": "The `tests` gate implementation fails to correctly parse or aggregate results from the `unittest` fallback runner when bare `def test_*()` functions are present, leading to a false positive `PASSED`",
+        "mechanism": "Bug in the stdlib `unittest` fallback logic: The harness may fail to detect failures in bare `def test_*()` functions if it only relies on `unittest.TestResult` objects or if the subprocess output parsing regex misses the 'FAILED' string in the raw stdout when",
+        "prior": 0.35,
+        "posterior": 0.35,
+        "status": "UNVERIFIED",
+        "probe_code": "import subprocess\nimport sys\nimport os\nfrom hae.evaluation.harness import ExecutionHarness, PASSED, FAILED\n\nharness = ExecutionHarness()\nimport tempfile\nimport shutil\nwith tempfile.TemporaryDirectory() as tmpdir:\n    test_file = os.path.join(tmpdir, 'test_fail.py')\n    # Use a bare function to trigger the fallback runner logic specifically\n    with open(test_file, 'w') as f:\n        f.write('def test_failing_assertion_is_detected(): assert False')\n    report = harness.verify_directory(tmpdir)\n    tests_gate = report.gate('tests')\n    if tests_gate:\n        print(f'Tests Gate Status: {tests_gate.status}')\n        print(f'Tests Gate Detail: {tests_gate.detail}')\n    else:\n        print('Tests gate not found')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "Tests Gate Status: passed"
+        },
+        "evidence_ids": [
+          "e3"
+        ],
+        "visits": 1,
+        "value_sum": 0.0,
+        "mechanism_signature": "aggregate bare bug correct def detect failur fallback false function gate harness implementation lead logic miss object output pars parse pass positive present raw regex rely result runner stdlib stdout str subprocess test_ testresult unittest",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 1,
+        "last_rejection": "rejected: probe is not valid Python (invalid syntax at line 12)",
+        "epoch": 0,
+        "created_at": 1791400629.724
+      },
+      {
+        "hypothesis_id": "h3",
+        "question_id": "q1",
+        "claim": "The `verify_directory` method or the internal `_run_tests` helper incorrectly filters out or ignores the test file because it is not considered 'authored' or 'importable' in the specific context of",
+        "mechanism": "Path filtering or PYTHONPATH configuration error: The harness might be excluding the test file from the execution set due to `is_generated_path` or `is_malformed_path` checks being applied incorrectly to test files, or the `PYTHONPATH` setup causes the",
+        "prior": 0.2,
+        "posterior": 0.76,
+        "status": "SUPPORTED",
+        "probe_code": "import subprocess\nimport sys\nimport os\nfrom hae.evaluation.harness import ExecutionHarness, PASSED, FAILED\n\nharness = ExecutionHarness()\nimport tempfile\nimport shutil\nwith tempfile.TemporaryDirectory() as tmpdir:\n    test_file = os.path.join(tmpdir, 'test_fail.py')\n    with open(test_file, 'w') as f:\n        f.write('def test_failing_assertion_is_detected(): assert False')\n    report = harness.verify_directory(tmpdir)\n    tests_gate = report.gate('tests')\n    if tests_gate:\n        print(f'Tests Gate Status: {tests_gate.status}')\n        print(f'Tests Gate Detail: {tests_gate.detail}')\n    else:\n        print('Tests gate not found')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "Tests Gate Status: passed"
+        },
+        "evidence_ids": [
+          "e4",
+          "e9"
+        ],
+        "visits": 2,
+        "value_sum": 0.76,
+        "mechanism_signature": "_run_tests appli author caus check configuration consider context due exclud execution fil file filter harness helper ignor importable incorrect internal is_generated_path is_malformed_path out path pythonpath set setup specific verify_directory",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 1,
+        "last_rejection": "rejected: probe is not valid Python (invalid syntax at line 12)",
+        "epoch": 0,
+        "created_at": 1791400629.725
+      },
+      {
+        "hypothesis_id": "h4",
+        "question_id": "q2",
+        "claim": "In `StructuralCrossoverEngine.recombine`, the logic for aligning departments by `classify_department_role` fails to correctly map the `manager` attribute from the source parent to the new `Department`",
+        "mechanism": "The crossover logic likely constructs new `DepartmentGenome` instances by copying agents and metadata but omits or incorrectly assigns the `manager` field. If the alignment logic matches departments by category but fails to extract the specific `manager` Agent",
+        "prior": 0.65,
+        "posterior": 0.0,
+        "status": "FALSIFIED",
+        "probe_code": "from hae.genome.schema import AgentGenome, DepartmentGenome, CompanyGenome\nfrom hae.genome.morphogenesis import StructuralCrossoverEngine\nimport copy\ndef make_dept(id, mgr_role):\n    mgr = AgentGenome(role=mgr_role, goal='g', backstory='b', backstory_traits=[], temperature=0.7, model_tier='worker', tools_enabled=True)\n    return DepartmentGenome(dept_id=id, name=id, mandate='m', manager=mgr, agents=[])\ndef make_co(cid, depts):\n    ceo = AgentGenome(role='CEO', goal='g', backstory='b', backstory_traits=[], temperature=0.7, model_tier='executive', tools_enabled=True)\n    return CompanyGenome(company_id=cid, generation=0, parent_ids=[], mutation_history=[], ceo=ceo, departments=depts, code_overlays={})\nd1 = make_dept('dept_systems_eng', 'MgrA')\nd2 = make_dept('dept_qa_testing', 'MgrB')\nco_a = make_co('A', [d1, d2])\nd3 = make_dept('dept_systems_eng', 'MgrC')\nco_b = make_co('B', [d3])\nengine = StructuralCrossoverEngine()\ntry:\n    child = engine.recombine(co_a, co_b, 'C', 1)\n    for d in child.departments:\n        if d.dept_id == 'dept_systems_eng':\n            if d.manager is None:\n                print('FAIL: Manager is None')\n            else:\n                print('PASS: Manager exists')\nexcept Exception as e:\n    print(f'ERROR: {type(e).__name__}: {e}')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "FAIL: Manager is None"
+        },
+        "evidence_ids": [
+          "e6"
+        ],
+        "visits": 1,
+        "value_sum": 0.325,
+        "mechanism_signature": "agent align alignment assign attribute category classify_department_role construct copy correct crossover department departmentgenome extract field incorrect instanc like logic manager map match metadata new omit parent recombine source specific structuralcrossoverengine",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791400718.459
+      },
+      {
+        "hypothesis_id": "h5",
+        "question_id": "q2",
+        "claim": "The `classify_department_role` function returns a category key that does not match the keys used in the internal alignment dictionary of `StructuralCrossoverEngine`, causing the manager lookup to miss",
+        "mechanism": "If `classify_department_role` returns a string like 'systems_eng' but the crossover engine expects a different key format or fails to handle the 'custom_specialized' fallback correctly when matching managers, the manager assignment might be skipped or set to",
+        "prior": 0.25,
+        "posterior": 1.0,
+        "status": "CERTIFIED",
+        "probe_code": "from hae.genome.schema import AgentGenome, DepartmentGenome, CompanyGenome\nfrom hae.genome.morphogenesis import StructuralCrossoverEngine, classify_department_role\ndef make_dept(id, mgr_role):\n    mgr = AgentGenome(role=mgr_role, goal='g', backstory='b', backstory_traits=[], temperature=0.7, model_tier='worker', tools_enabled=True)\n    return DepartmentGenome(dept_id=id, name=id, mandate='m', manager=mgr, agents=[])\ndef make_co(cid, depts):\n    ceo = AgentGenome(role='CEO', goal='g', backstory='b', backstory_traits=[], temperature=0.7, model_tier='executive', tools_enabled=True)\n    return CompanyGenome(company_id=cid, generation=0, parent_ids=[], mutation_history=[], ceo=ceo, departments=depts, code_overlays={})\nd1 = make_dept('dept_systems_eng', 'MgrA')\nco_a = make_co('A', [d1])\nco_b = make_co('B', [make_dept('dept_systems_eng', 'MgrB')])\nprint('Category:', classify_department_role(d1))\nengine = StructuralCrossoverEngine()\ntry:\n    child = engine.recombine(co_a, co_b, 'C', 1)\n    for d in child.departments:\n        if d.dept_id == 'dept_systems_eng':\n            print('Manager:', d.manager)\nexcept Exception as e:\n    print(f'ERROR: {type(e).__name__}: {e}')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "ERROR: GenomeValidationError"
+        },
+        "evidence_ids": [
+          "e7",
+          "e8"
+        ],
+        "visits": 1,
+        "value_sum": 0.4,
+        "mechanism_signature": "alignment assignment category caus classify_department_role correct crossover custom_specialized dictionary different engine expect fallback format handle internal key keys like lookup manager match miss set skip str structuralcrossoverengine systems_eng used",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": true,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791400718.46
+      },
+      {
+        "hypothesis_id": "h6",
+        "question_id": "q2",
+        "claim": "The `DepartmentGenome` constructor in `schema.py` is being called with `manager=None` explicitly during the deep-copy or reconstruction phase in `morphogenesis.py` due to a bug in how `AgentGenome` is",
+        "mechanism": "The error originates in `schema.py:168` in `__post_init__`. This suggests the `DepartmentGenome` is being instantiated with `manager=None`. This could happen if the crossover engine reconstructs departments using a helper that fails to pass the manager",
+        "prior": 0.1,
+        "posterior": 0.0,
+        "status": "FALSIFIED",
+        "probe_code": "from hae.genome.schema import AgentGenome, DepartmentGenome, CompanyGenome\nfrom hae.genome.morphogenesis import StructuralCrossoverEngine\nimport copy\ndef make_dept(id, mgr_role):\n    mgr = AgentGenome(role=mgr_role, goal='g', backstory='b', backstory_traits=[], temperature=0.7, model_tier='worker', tools_enabled=True)\n    return DepartmentGenome(dept_id=id, name=id, mandate='m', manager=mgr, agents=[])\ndef make_co(cid, depts):\n    ceo = AgentGenome(role='CEO', goal='g', backstory='b', backstory_traits=[], temperature=0.7, model_tier='executive', tools_enabled=True)\n    return CompanyGenome(company_id=cid, generation=0, parent_ids=[], mutation_history=[], ceo=ceo, departments=depts, code_overlays={})\nd1 = make_dept('dept_systems_eng', 'MgrA')\nco_a = make_co('A', [d1])\nco_b = make_co('B', [make_dept('dept_systems_eng', 'MgrB')])\nengine = StructuralCrossoverEngine()\ntry:\n    child = engine.recombine(co_a, co_b, 'C', 1)\n    print('Success')\nexcept Exception as e:\n    import traceback\n    traceback.print_exc()",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager"
+        },
+        "evidence_ids": [
+          "e5"
+        ],
+        "visits": 1,
+        "value_sum": 0.05,
+        "mechanism_signature": "__post_init__ agentgenome bug call constructor copy crossover deep department departmentgenome due dur engine explicit happen helper instantiat manager morphogenesi none originat pass phase reconstruct reconstruction schema suggest using",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791400718.46
+      },
+      {
+        "hypothesis_id": "h7",
+        "question_id": "q1",
+        "claim": "The `tests` gate logic in `ExecutionHarness` incorrectly interprets the subprocess return code or stdout of the test runner. Specifically, it may treat a non-zero exit code (indicating test failure) `",
+        "mechanism": "The `tests` gate logic in `ExecutionHarness` incorrectly interprets the subprocess return code or stdout of the test runner. Specifically, it may treat a non-zero exit code (indicating test failure) or a specific output pattern as a success condition, or fail",
+        "prior": 0.45,
+        "posterior": 1.0,
+        "status": "CERTIFIED",
+        "probe_code": "import subprocess\nimport sys\nimport os\nfrom hae.evaluation.harness import ExecutionHarness, PASSED, FAILED\n\ndef test_failing_assertion_is_detected():\n    assert False, 'This should fail'\n\nharness = ExecutionHarness()\n# We need to simulate a workspace with this test file\nimport tempfile\nimport shutil\nwith tempfile.TemporaryDirectory() as tmpdir:\n    test_file = os.path.join(tmpdir, 'test_fail.py')\n    with open(test_file, 'w') as f:\n        f.write('def test_failing_assertion_is_detected(): assert False')\n    # Create a dummy pyproject.toml to pass build gate if needed, or just check tests gate\n    # The harness verify_directory runs all gates. We want to inspect the 'tests' gate result.\n    report = harness.verify_directory(tmpdir)\n    tests_gate = report.gate('tests')\n    if tests_gate:\n        print(f'Tests Gate Status: {tests_gate.status}')\n        print(f'Tests Gate Detail: {tests_gate.detail}')\n    else:\n        print('Tests gate not found')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "Tests Gate Status: passed"
+        },
+        "evidence_ids": [
+          "e10",
+          "e11"
+        ],
+        "visits": 1,
+        "value_sum": 0.075,
+        "mechanism_signature": "condition executionharness exit gate incorrect indicat interpret logic non output pattern runner specific specifical stdout subprocess success treat zero",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": true,
+        "synthesis_failures": 1,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791400846.084
+      }
+    ],
+    "settled_knowledge": [
+      {
+        "fact_id": "f1",
+        "question_id": "q1",
+        "hypothesis_id": "h7",
+        "statement": "execution_harness:test_failing_assertion_is_detected now passes the held-out oracle (iteration 3) -- The `tests` gate logic in `ExecutionHarness` incorrectly interprets the subprocess return code or stdout of the test runner. Specifically, it may treat a non-zero exit code (indicating test failure) `",
+        "evidence_ids": [
+          "e12"
+        ],
+        "certified_by": "oracle",
+        "created_at": 1791402561.514
+      },
+      {
+        "fact_id": "f2",
+        "question_id": "q2",
+        "hypothesis_id": "h5",
+        "statement": "morphogenesis:test_crossover_overlay_merge_precedence now passes the held-out oracle (iteration 3) -- The `classify_department_role` function returns a category key that does not match the keys used in the internal alignment dictionary of `StructuralCrossoverEngine`, causing the manager lookup to miss",
+        "evidence_ids": [
+          "e12"
+        ],
+        "certified_by": "oracle",
+        "created_at": 1791402561.514
+      },
+      {
+        "fact_id": "f3",
+        "question_id": "q3",
+        "hypothesis_id": "",
+        "statement": "morphogenesis:test_structural_crossover now passes the held-out oracle (iteration 3)",
+        "evidence_ids": [
+          "e12"
+        ],
+        "certified_by": "oracle",
+        "created_at": 1791402561.514
+      }
+    ],
+    "ruled_out": [
+      {
+        "belief_id": "ro1",
+        "hypothesis_id": "h6",
+        "question_id": "q2",
+        "claim": "The `DepartmentGenome` constructor in `schema.py` is being called with `manager=None` explicitly during the deep-copy or reconstruction phase in `morphogenesis.py` due to a bug in how `AgentGenome` is",
+        "mechanism_signature": "__post_init__ agentgenome bug call constructor copy crossover deep department departmentgenome due dur engine explicit happen helper instantiat manager morphogenesi none originat pass phase reconstruct reconstruction schema suggest using",
+        "killing_evidence_id": "e5",
+        "epoch": 0,
+        "created_at": 1791400718.644
+      },
+      {
+        "belief_id": "ro2",
+        "hypothesis_id": "h4",
+        "question_id": "q2",
+        "claim": "In `StructuralCrossoverEngine.recombine`, the logic for aligning departments by `classify_department_role` fails to correctly map the `manager` attribute from the source parent to the new `Department`",
+        "mechanism_signature": "agent align alignment assign attribute category classify_department_role construct copy correct crossover department departmentgenome extract field incorrect instanc like logic manager map match metadata new omit parent recombine source specific structuralcrossoverengine",
+        "killing_evidence_id": "e6",
+        "epoch": 0,
+        "created_at": 1791400718.814
+      }
+    ],
+    "evidence_log": [
+      {
+        "evidence_id": "e1",
+        "kind": "oracle",
+        "hypothesis_id": "",
+        "question_id": "",
+        "command": "held-out oracle, iteration 2",
+        "exit_code": 1,
+        "stdout": "[execution_harness] FAIL: test_failing_assertion_is_detected (tests.test_execution_harness.TestExecutionHarness.test_failing_assertion_is_detected) -> AssertionError: 'passed' != 'failed' - passed + failed\n[morphogenesis] ERROR: test_crossover_overlay_merge_precedence (tests.test_morphogenesis.TestMorphogenesis.test_crossover_overlay_merge_precedence) -> hae.genome.schema.GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager. A pod without a manager cannot route work and silently produced nothing in V1.\n[morphogenesis] ERROR: test_structural_crossover (tests.test_morphogenesis.TestMorphogenesis.test_structural_crossover) -> hae.genome.schema.GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager. A pod without a manager cannot route work and silently produced nothing in V1.",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": false,
+        "detail": "3 failing check(s)",
+        "network_isolated": null,
+        "sha256": "0af71a3a46316bdc9a4ed090eb44933d559799129bc379ee76ba58165b0a77a9",
+        "created_at": 1791400544.816
+      },
+      {
+        "evidence_id": "e2",
+        "kind": "probe_rejected",
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "command": "",
+        "exit_code": -2,
+        "stdout": "",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "TESTS_GATE_STATUS: passed"
+        },
+        "matched_prediction": false,
+        "detail": "rejected: probe is not valid Python (invalid syntax at line 12)",
+        "network_isolated": null,
+        "sha256": "39158d3152e8dc3a25a2329cc99ceabcefecc1b599e32ee73246d486345cb6b7",
+        "created_at": 1791400629.727
+      },
+      {
+        "evidence_id": "e3",
+        "kind": "probe_rejected",
+        "hypothesis_id": "h2",
+        "question_id": "q1",
+        "command": "",
+        "exit_code": -2,
+        "stdout": "",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "STATUS: passed"
+        },
+        "matched_prediction": false,
+        "detail": "rejected: probe is not valid Python (invalid syntax at line 12)",
+        "network_isolated": null,
+        "sha256": "8172666ae86748b0ba4696953e8ed92509b48eb0db95bb1a97229c1a333e0223",
+        "created_at": 1791400629.729
+      },
+      {
+        "evidence_id": "e4",
+        "kind": "probe_rejected",
+        "hypothesis_id": "h3",
+        "question_id": "q1",
+        "command": "",
+        "exit_code": -2,
+        "stdout": "",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "STATUS: passed"
+        },
+        "matched_prediction": false,
+        "detail": "rejected: probe is not valid Python (invalid syntax at line 12)",
+        "network_isolated": null,
+        "sha256": "8172666ae86748b0ba4696953e8ed92509b48eb0db95bb1a97229c1a333e0223",
+        "created_at": 1791400629.73
+      },
+      {
+        "evidence_id": "e5",
+        "kind": "probe",
+        "hypothesis_id": "h6",
+        "question_id": "q2",
+        "command": "python _probe/h6.py",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "Traceback (most recent call last):\n  File \"/tmp/hae_epistemic_e9kwt1ce/_probe/h6.py\", line 15, in <module>\n    child = engine.recombine(co_a, co_b, 'C', 1)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/hae_epistemic_e9kwt1ce/hae/genome/morphogenesis.py\", line 299, in recombine\n    merged_dept = DepartmentGenome(\n                  ^^^^^^^^^^^^^^^^^\n  File \"<string>\", line 10, in __init__\n  File \"/tmp/hae_epistemic_e9kwt1ce/hae/genome/schema.py\", line 168, in __post_init__\n    raise GenomeValidationError(\nhae.genome.schema.GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager. A pod without a manager cannot route work and silently produced nothing in V1.\n",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager"
+        },
+        "matched_prediction": false,
+        "detail": "prediction failed: stdout contains \"GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager\"",
+        "network_isolated": true,
+        "sha256": "e07e9e876bb211ffe408fc359cc8cbc837f1148bed8be9b6275d8dc2cbcedabf",
+        "created_at": 1791400718.644
+      },
+      {
+        "evidence_id": "e6",
+        "kind": "probe",
+        "hypothesis_id": "h4",
+        "question_id": "q2",
+        "command": "python _probe/h4.py",
+        "exit_code": 0,
+        "stdout": "ERROR: GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager. A pod without a manager cannot route work and silently produced nothing in V1.\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "FAIL: Manager is None"
+        },
+        "matched_prediction": false,
+        "detail": "prediction failed: stdout contains 'FAIL: Manager is None'",
+        "network_isolated": true,
+        "sha256": "34d79a103582fa7e8e818da050aa3b0d2a4f23296561967cc1e2a20960092bb2",
+        "created_at": 1791400718.814
+      },
+      {
+        "evidence_id": "e7",
+        "kind": "probe",
+        "hypothesis_id": "h5",
+        "question_id": "q2",
+        "command": "python _probe/h5.py",
+        "exit_code": 0,
+        "stdout": "Category: systems_eng\nERROR: GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager. A pod without a manager cannot route work and silently produced nothing in V1.\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "ERROR: GenomeValidationError"
+        },
+        "matched_prediction": true,
+        "detail": "prediction held: exit_code==0; stdout contains 'ERROR: GenomeValidationError'",
+        "network_isolated": true,
+        "sha256": "01678511af76cdb1bc36f9b833f0d8986d8889f5b2e59c67fb3c7ed892b74abb",
+        "created_at": 1791400718.992
+      },
+      {
+        "evidence_id": "e8",
+        "kind": "module_check",
+        "hypothesis_id": "h5",
+        "question_id": "q2",
+        "command": "verify_module hae/genome/morphogenesis.py",
+        "exit_code": 0,
+        "stdout": "[py_compile] \n[import] IMPORT_OK\n\n[static_check] no undefined names (392 lines)",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "module check passed: py_compile, import, static_check",
+        "network_isolated": true,
+        "sha256": "7fe97c20c78fd024191cdbf0ed31085a050276243377f3de4815814d09938102",
+        "created_at": 1791400777.432
+      },
+      {
+        "evidence_id": "e9",
+        "kind": "probe",
+        "hypothesis_id": "h3",
+        "question_id": "q1",
+        "command": "python _probe/h3.py",
+        "exit_code": 0,
+        "stdout": "Tests Gate Status: passed\nTests Gate Detail: All tests passed\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "Tests Gate Status: passed"
+        },
+        "matched_prediction": true,
+        "detail": "prediction held: exit_code==0; stdout contains 'Tests Gate Status: passed'",
+        "network_isolated": true,
+        "sha256": "a1f949d18492a41fd109dd724b49387a8de55fa8f8ae67bd8fe1d32981f50309",
+        "created_at": 1791400846.615
+      },
+      {
+        "evidence_id": "e10",
+        "kind": "probe",
+        "hypothesis_id": "h7",
+        "question_id": "q1",
+        "command": "python _probe/h7.py",
+        "exit_code": 0,
+        "stdout": "Tests Gate Status: passed\nTests Gate Detail: All tests passed\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "Tests Gate Status: passed"
+        },
+        "matched_prediction": true,
+        "detail": "prediction held: exit_code==0; stdout contains 'Tests Gate Status: passed'",
+        "network_isolated": true,
+        "sha256": "9aff1705f4e20ff0e5a11799a240c67a985970b2c83892c4e048d6e9ad221a23",
+        "created_at": 1791400847.175
+      },
+      {
+        "evidence_id": "e11",
+        "kind": "module_check",
+        "hypothesis_id": "h7",
+        "question_id": "q1",
+        "command": "verify_module hae/evaluation/harness.py",
+        "exit_code": 0,
+        "stdout": "[py_compile] \n[import] IMPORT_OK\n\n[static_check] no undefined names (599 lines)",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "module check passed: py_compile, import, static_check",
+        "network_isolated": true,
+        "sha256": "305d747e8cfc4625db7705d3f42f0a8a59b1e8be202cca545f8c87601a6a90ad",
+        "created_at": 1791402546.464
+      },
+      {
+        "evidence_id": "e12",
+        "kind": "oracle",
+        "hypothesis_id": "",
+        "question_id": "",
+        "command": "held-out oracle, iteration 3",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "0 failing check(s)",
+        "network_isolated": null,
+        "sha256": "59bf432aedcf300495b1d4992bd782db9c8a3db2bc3ad68492134343ed68a1ef",
+        "created_at": 1791402561.514
+      }
+    ],
+    "move_log": [
+      {
+        "move_index": 1,
+        "move_type": "propose_hypothesis",
+        "question_id": "q1",
+        "hypothesis_id": "",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.0,
+        "value_before": 0.05,
+        "value_after": 0.056667,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.0,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 1.0,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "9519fb93dccac4845034a1102894244d7a89555897b3e174aeb9b0a17de83d7f",
+        "state_hash_after": "4539cfa523589d8bc45c000a57dc139816903f69431d4f04f04e31e066016a98",
+        "forced_low_prior": false,
+        "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+        "created_at": 1791400629.725,
+        "extra": {
+          "head_v": 0.417263
+        }
+      },
+      {
+        "move_index": 2,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h1",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.0,
+        "value_before": 0.052667,
+        "value_after": 0.052667,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 1.0,
+          "evidence_density": 0.333333,
+          "stagnation": 0.1,
+          "open_without_options": 0.666667,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "4539cfa523589d8bc45c000a57dc139816903f69431d4f04f04e31e066016a98",
+        "state_hash_after": "0be26e93c3f5816620cf748635e34a10cb31bcb9ef31732fff630a8b24de230b",
+        "forced_low_prior": false,
+        "note": "UNTESTABLE: rejected: probe is not valid Python (invalid syntax at line 12)",
+        "created_at": 1791400629.727,
+        "extra": {
+          "head_p": 0.096343,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.546693
+        }
+      },
+      {
+        "move_index": 3,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h2",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.0,
+        "value_before": 0.048667,
+        "value_after": 0.048667,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.666667,
+          "evidence_density": 0.666667,
+          "stagnation": 0.2,
+          "open_without_options": 0.666667,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "0be26e93c3f5816620cf748635e34a10cb31bcb9ef31732fff630a8b24de230b",
+        "state_hash_after": "f4e2d2e29d9c1089017517bdb16d95c2576e9224e564276ada154005793a4d3d",
+        "forced_low_prior": false,
+        "note": "UNTESTABLE: rejected: probe is not valid Python (invalid syntax at line 12)",
+        "created_at": 1791400629.729,
+        "extra": {
+          "head_p": 0.097941,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.465593
+        }
+      },
+      {
+        "move_index": 4,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h3",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.0,
+        "value_before": 0.044667,
+        "value_after": 0.038,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.333333,
+          "evidence_density": 1.0,
+          "stagnation": 0.3,
+          "open_without_options": 0.666667,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "f4e2d2e29d9c1089017517bdb16d95c2576e9224e564276ada154005793a4d3d",
+        "state_hash_after": "98b4d45b80c03f0b2bc35f255d1ddbab61594e3cf0099723c9aa65242d357d12",
+        "forced_low_prior": false,
+        "note": "UNTESTABLE: rejected: probe is not valid Python (invalid syntax at line 12)",
+        "created_at": 1791400629.731,
+        "extra": {
+          "head_p": 0.104598,
+          "head_rank": 0.5,
+          "stated_rank": 0.5,
+          "prior_head_weight": 0.0,
+          "head_v": 0.386272
+        }
+      },
+      {
+        "move_index": 5,
+        "move_type": "propose_hypothesis",
+        "question_id": "q2",
+        "hypothesis_id": "",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.0,
+        "value_before": 0.034,
+        "value_after": 0.040667,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.0,
+          "evidence_density": 1.0,
+          "stagnation": 0.4,
+          "open_without_options": 1.0,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "98b4d45b80c03f0b2bc35f255d1ddbab61594e3cf0099723c9aa65242d357d12",
+        "state_hash_after": "67bf779649a9d9d7d20be43e2f59a1e8aed7e21a12e8df7d9cd0ec11b9a39eb7",
+        "forced_low_prior": false,
+        "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+        "created_at": 1791400718.461,
+        "extra": {
+          "head_v": 0.364255
+        }
+      },
+      {
+        "move_index": 6,
+        "move_type": "run_experiment",
+        "question_id": "q2",
+        "hypothesis_id": "h6",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.05,
+        "value_before": 0.036667,
+        "value_after": 0.053334,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.5,
+          "evidence_density": 0.666667,
+          "stagnation": 0.5,
+          "open_without_options": 0.666667,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "67bf779649a9d9d7d20be43e2f59a1e8aed7e21a12e8df7d9cd0ec11b9a39eb7",
+        "state_hash_after": "7c017f258919543e4defe2514b6145399357a2e63d1888009e62ade9b115259c",
+        "forced_low_prior": true,
+        "note": "FALSIFIED: prediction failed: stdout contains \"GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager\"",
+        "created_at": 1791400718.645,
+        "extra": {
+          "head_p": 0.113869,
+          "head_rank": 1.0,
+          "stated_rank": 0.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.398989
+        }
+      },
+      {
+        "move_index": 7,
+        "move_type": "run_experiment",
+        "question_id": "q2",
+        "hypothesis_id": "h4",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.325,
+        "value_before": 0.073334,
+        "value_after": 0.145,
+        "features": {
+          "resolved_fraction": 0.016667,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.166667,
+          "untested_ratio": 0.333333,
+          "evidence_density": 0.833333,
+          "stagnation": 0.0,
+          "open_without_options": 0.666667,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 0.983333
+        },
+        "state_hash_before": "7c017f258919543e4defe2514b6145399357a2e63d1888009e62ade9b115259c",
+        "state_hash_after": "1befdd419b7f8f5a9db1b00203e41dc3bc4d9b9a9f6b2c93eaef938804054b2e",
+        "forced_low_prior": false,
+        "note": "FALSIFIED: prediction failed: stdout contains 'FAIL: Manager is None'",
+        "created_at": 1791400718.815,
+        "extra": {
+          "head_p": 0.102405,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.41199
+        }
+      },
+      {
+        "move_index": 8,
+        "move_type": "run_experiment",
+        "question_id": "q2",
+        "hypothesis_id": "h5",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.4,
+        "value_before": 0.145,
+        "value_after": 0.235,
+        "features": {
+          "resolved_fraction": 0.125,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.333333,
+          "untested_ratio": 0.166667,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.666667,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 0.875
+        },
+        "state_hash_before": "1befdd419b7f8f5a9db1b00203e41dc3bc4d9b9a9f6b2c93eaef938804054b2e",
+        "state_hash_after": "1015ccbebdc98c05d0bb5d29d34dfca933908146e2c9b23b942ca13fb45bbb41",
+        "forced_low_prior": false,
+        "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'ERROR: GenomeValidationError'",
+        "created_at": 1791400718.993,
+        "extra": {
+          "head_p": 0.105137,
+          "head_rank": 0.5,
+          "stated_rank": 0.5,
+          "prior_head_weight": 0.0,
+          "head_v": 0.347367
+        }
+      },
+      {
+        "move_index": 9,
+        "move_type": "synthesize",
+        "question_id": "q2",
+        "hypothesis_id": "h5",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.205,
+        "value_before": 0.235,
+        "value_after": 0.296,
+        "features": {
+          "resolved_fraction": 0.258333,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.166667,
+          "ruled_out_ratio": 0.333333,
+          "untested_ratio": 0.0,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.666667,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 0.741667
+        },
+        "state_hash_before": "1015ccbebdc98c05d0bb5d29d34dfca933908146e2c9b23b942ca13fb45bbb41",
+        "state_hash_after": "911e8b40d4a7e3f6369d16f5ed269e89b97a5f6cfe0112e8dcf60770f884cac1",
+        "forced_low_prior": false,
+        "note": "hae/genome/morphogenesis.py [plan]: module check passed: py_compile, import, static_check",
+        "created_at": 1791400777.433,
+        "extra": {
+          "head_v": 0.325507
+        }
+      },
+      {
+        "move_index": 10,
+        "move_type": "propose_hypothesis",
+        "question_id": "q1",
+        "hypothesis_id": "",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.0,
+        "value_before": 0.296,
+        "value_after": 0.302667,
+        "features": {
+          "resolved_fraction": 0.326667,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.333333,
+          "supported_ratio": 0.166667,
+          "ruled_out_ratio": 0.333333,
+          "untested_ratio": 0.0,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 1.0,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "911e8b40d4a7e3f6369d16f5ed269e89b97a5f6cfe0112e8dcf60770f884cac1",
+        "state_hash_after": "0a0ef9bf36ef27b56464a184fb6efdecac641e923b080e193f78335438bad1c5",
+        "forced_low_prior": false,
+        "note": "1 accepted, 2 repaired, 0 tabu, 0 duplicate of 3 proposed",
+        "created_at": 1791400846.085,
+        "extra": {
+          "head_v": 0.442907
+        }
+      },
+      {
+        "move_index": 11,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h3",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.76,
+        "value_before": 0.298667,
+        "value_after": 0.459238,
+        "features": {
+          "resolved_fraction": 0.326667,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.333333,
+          "supported_ratio": 0.142857,
+          "ruled_out_ratio": 0.285714,
+          "untested_ratio": 0.428571,
+          "evidence_density": 1.0,
+          "stagnation": 0.1,
+          "open_without_options": 0.5,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "0a0ef9bf36ef27b56464a184fb6efdecac641e923b080e193f78335438bad1c5",
+        "state_hash_after": "2a02b602df31bf7796e4ff2180db2921b622ba0062263fedea92b6a340f7dd24",
+        "forced_low_prior": true,
+        "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'Tests Gate Status: passed'",
+        "created_at": 1791400846.616,
+        "extra": {
+          "head_p": 0.103271,
+          "head_rank": 1.0,
+          "stated_rank": 0.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.435137
+        }
+      },
+      {
+        "move_index": 12,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h7",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.075,
+        "value_before": 0.463238,
+        "value_after": 0.486809,
+        "features": {
+          "resolved_fraction": 0.58,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.333333,
+          "supported_ratio": 0.285714,
+          "ruled_out_ratio": 0.285714,
+          "untested_ratio": 0.285714,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.5,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 0.62
+        },
+        "state_hash_before": "2a02b602df31bf7796e4ff2180db2921b622ba0062263fedea92b6a340f7dd24",
+        "state_hash_after": "a05fd4a348011e0587c8b656ae5b568609074bef44356b56ed7bc5cf2e902e67",
+        "forced_low_prior": false,
+        "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'Tests Gate Status: passed'",
+        "created_at": 1791400847.176,
+        "extra": {
+          "head_p": 0.092491,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.399801
+        }
+      },
+      {
+        "move_index": 13,
+        "move_type": "synthesize",
+        "question_id": "q1",
+        "hypothesis_id": "h7",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.0,
+        "value_before": 0.486809,
+        "value_after": 0.486809,
+        "features": {
+          "resolved_fraction": 0.605,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.333333,
+          "supported_ratio": 0.428571,
+          "ruled_out_ratio": 0.285714,
+          "untested_ratio": 0.142857,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.5,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 0.5825
+        },
+        "state_hash_before": "a05fd4a348011e0587c8b656ae5b568609074bef44356b56ed7bc5cf2e902e67",
+        "state_hash_after": "29d86dc0fa083212813fe8723dbf9436d3b39ccdc3103ec796ee39b61eeb8d56",
+        "forced_low_prior": false,
+        "note": "synthesis wrote nothing: rewrite re-emitted identical content; no second attempt; plan not applicable: anchor not found; closest is lines 495-534 (ratio 0.90); function rewrite not appl",
+        "created_at": 1791402042.214,
+        "extra": {
+          "head_v": 0.390448
+        }
+      },
+      {
+        "move_index": 14,
+        "move_type": "synthesize",
+        "question_id": "q1",
+        "hypothesis_id": "h7",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.145,
+        "value_before": 0.482809,
+        "value_after": 0.538476,
+        "features": {
+          "resolved_fraction": 0.605,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.333333,
+          "supported_ratio": 0.428571,
+          "ruled_out_ratio": 0.285714,
+          "untested_ratio": 0.142857,
+          "evidence_density": 1.0,
+          "stagnation": 0.1,
+          "open_without_options": 0.5,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 0.5825
+        },
+        "state_hash_before": "29d86dc0fa083212813fe8723dbf9436d3b39ccdc3103ec796ee39b61eeb8d56",
+        "state_hash_after": "5ba4ff8f6448c20178a963b3802fe2544885f66773364b48683695659b535ed6",
+        "forced_low_prior": false,
+        "note": "hae/evaluation/harness.py [rewrite]: module check passed: py_compile, import, static_check",
+        "created_at": 1791402546.465,
+        "extra": {
+          "head_v": 0.377269
+        }
+      }
+    ],
+    "created_at": 1791400544.816,
+    "counters": {
+      "e": 12,
+      "q": 3,
+      "h": 7,
+      "ro": 2,
+      "f": 3
+    },
+    "state_hash": "5aa6c96aa1f7082a2f68bb09557441e3159a302daa9b74fdd6acba2044384547"
+  },
+  "searches": [
+    {
+      "moves_used": 14,
+      "delta_u_total": 1.96,
+      "stop_reason": "deferred_to_oracle",
+      "synthesized_paths": [
+        "hae/genome/morphogenesis.py",
+        "hae/evaluation/harness.py"
+      ],
+      "stats": {
+        "proposal_rounds": 3,
+        "hypotheses_accepted": 7,
+        "tabu_rejections": 0,
+        "duplicate_rejections": 0,
+        "probe_repairs": 2,
+        "experiments": 8,
+        "supported": 3,
+        "falsified": 2,
+        "inconclusive": 0,
+        "rejected_probes": 3,
+        "forced_low_prior_picks": 2,
+        "forced_low_prior_wins": 1,
+        "syntheses": 3,
+        "syntheses_verified": 2,
+        "syntheses_unwritten": 1,
+        "questions_asked": 0,
+        "proposer_errors": 0,
+        "frontier_admissions": 2,
+        "questions_deferred": 1,
+        "prior_head_loaded": true,
+        "value_head_loaded": true,
+        "prior_head_steered": 0,
+        "syntheses_by_plan": 1,
+        "synthesis_seconds": 1756.922,
+        "moves_used": 14,
+        "budget_moves": 60,
+        "stop_reason": "deferred_to_oracle"
+      },
+      "trajectory": [
+        {
+          "move_index": 1,
+          "move_type": "propose_hypothesis",
+          "question_id": "q1",
+          "hypothesis_id": "",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.0,
+          "value_before": 0.05,
+          "value_after": 0.056667,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.0,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 1.0,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "9519fb93dccac4845034a1102894244d7a89555897b3e174aeb9b0a17de83d7f",
+          "state_hash_after": "4539cfa523589d8bc45c000a57dc139816903f69431d4f04f04e31e066016a98",
+          "forced_low_prior": false,
+          "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+          "created_at": 1791400629.725,
+          "extra": {
+            "head_v": 0.417263
+          }
+        },
+        {
+          "move_index": 2,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h1",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.0,
+          "value_before": 0.052667,
+          "value_after": 0.052667,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 1.0,
+            "evidence_density": 0.333333,
+            "stagnation": 0.1,
+            "open_without_options": 0.666667,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "4539cfa523589d8bc45c000a57dc139816903f69431d4f04f04e31e066016a98",
+          "state_hash_after": "0be26e93c3f5816620cf748635e34a10cb31bcb9ef31732fff630a8b24de230b",
+          "forced_low_prior": false,
+          "note": "UNTESTABLE: rejected: probe is not valid Python (invalid syntax at line 12)",
+          "created_at": 1791400629.727,
+          "extra": {
+            "head_p": 0.096343,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.546693
+          }
+        },
+        {
+          "move_index": 3,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h2",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.0,
+          "value_before": 0.048667,
+          "value_after": 0.048667,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.666667,
+            "evidence_density": 0.666667,
+            "stagnation": 0.2,
+            "open_without_options": 0.666667,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "0be26e93c3f5816620cf748635e34a10cb31bcb9ef31732fff630a8b24de230b",
+          "state_hash_after": "f4e2d2e29d9c1089017517bdb16d95c2576e9224e564276ada154005793a4d3d",
+          "forced_low_prior": false,
+          "note": "UNTESTABLE: rejected: probe is not valid Python (invalid syntax at line 12)",
+          "created_at": 1791400629.729,
+          "extra": {
+            "head_p": 0.097941,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.465593
+          }
+        },
+        {
+          "move_index": 4,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h3",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.0,
+          "value_before": 0.044667,
+          "value_after": 0.038,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.333333,
+            "evidence_density": 1.0,
+            "stagnation": 0.3,
+            "open_without_options": 0.666667,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "f4e2d2e29d9c1089017517bdb16d95c2576e9224e564276ada154005793a4d3d",
+          "state_hash_after": "98b4d45b80c03f0b2bc35f255d1ddbab61594e3cf0099723c9aa65242d357d12",
+          "forced_low_prior": false,
+          "note": "UNTESTABLE: rejected: probe is not valid Python (invalid syntax at line 12)",
+          "created_at": 1791400629.731,
+          "extra": {
+            "head_p": 0.104598,
+            "head_rank": 0.5,
+            "stated_rank": 0.5,
+            "prior_head_weight": 0.0,
+            "head_v": 0.386272
+          }
+        },
+        {
+          "move_index": 5,
+          "move_type": "propose_hypothesis",
+          "question_id": "q2",
+          "hypothesis_id": "",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.0,
+          "value_before": 0.034,
+          "value_after": 0.040667,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.0,
+            "evidence_density": 1.0,
+            "stagnation": 0.4,
+            "open_without_options": 1.0,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "98b4d45b80c03f0b2bc35f255d1ddbab61594e3cf0099723c9aa65242d357d12",
+          "state_hash_after": "67bf779649a9d9d7d20be43e2f59a1e8aed7e21a12e8df7d9cd0ec11b9a39eb7",
+          "forced_low_prior": false,
+          "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+          "created_at": 1791400718.461,
+          "extra": {
+            "head_v": 0.364255
+          }
+        },
+        {
+          "move_index": 6,
+          "move_type": "run_experiment",
+          "question_id": "q2",
+          "hypothesis_id": "h6",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.05,
+          "value_before": 0.036667,
+          "value_after": 0.053334,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.5,
+            "evidence_density": 0.666667,
+            "stagnation": 0.5,
+            "open_without_options": 0.666667,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "67bf779649a9d9d7d20be43e2f59a1e8aed7e21a12e8df7d9cd0ec11b9a39eb7",
+          "state_hash_after": "7c017f258919543e4defe2514b6145399357a2e63d1888009e62ade9b115259c",
+          "forced_low_prior": true,
+          "note": "FALSIFIED: prediction failed: stdout contains \"GenomeValidationError: DepartmentGenome 'dept_systems_eng' has no manager\"",
+          "created_at": 1791400718.645,
+          "extra": {
+            "head_p": 0.113869,
+            "head_rank": 1.0,
+            "stated_rank": 0.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.398989
+          }
+        },
+        {
+          "move_index": 7,
+          "move_type": "run_experiment",
+          "question_id": "q2",
+          "hypothesis_id": "h4",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.325,
+          "value_before": 0.073334,
+          "value_after": 0.145,
+          "features": {
+            "resolved_fraction": 0.016667,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.166667,
+            "untested_ratio": 0.333333,
+            "evidence_density": 0.833333,
+            "stagnation": 0.0,
+            "open_without_options": 0.666667,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 0.983333
+          },
+          "state_hash_before": "7c017f258919543e4defe2514b6145399357a2e63d1888009e62ade9b115259c",
+          "state_hash_after": "1befdd419b7f8f5a9db1b00203e41dc3bc4d9b9a9f6b2c93eaef938804054b2e",
+          "forced_low_prior": false,
+          "note": "FALSIFIED: prediction failed: stdout contains 'FAIL: Manager is None'",
+          "created_at": 1791400718.815,
+          "extra": {
+            "head_p": 0.102405,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.41199
+          }
+        },
+        {
+          "move_index": 8,
+          "move_type": "run_experiment",
+          "question_id": "q2",
+          "hypothesis_id": "h5",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.4,
+          "value_before": 0.145,
+          "value_after": 0.235,
+          "features": {
+            "resolved_fraction": 0.125,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.333333,
+            "untested_ratio": 0.166667,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.666667,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 0.875
+          },
+          "state_hash_before": "1befdd419b7f8f5a9db1b00203e41dc3bc4d9b9a9f6b2c93eaef938804054b2e",
+          "state_hash_after": "1015ccbebdc98c05d0bb5d29d34dfca933908146e2c9b23b942ca13fb45bbb41",
+          "forced_low_prior": false,
+          "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'ERROR: GenomeValidationError'",
+          "created_at": 1791400718.993,
+          "extra": {
+            "head_p": 0.105137,
+            "head_rank": 0.5,
+            "stated_rank": 0.5,
+            "prior_head_weight": 0.0,
+            "head_v": 0.347367
+          }
+        },
+        {
+          "move_index": 9,
+          "move_type": "synthesize",
+          "question_id": "q2",
+          "hypothesis_id": "h5",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.205,
+          "value_before": 0.235,
+          "value_after": 0.296,
+          "features": {
+            "resolved_fraction": 0.258333,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.166667,
+            "ruled_out_ratio": 0.333333,
+            "untested_ratio": 0.0,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.666667,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 0.741667
+          },
+          "state_hash_before": "1015ccbebdc98c05d0bb5d29d34dfca933908146e2c9b23b942ca13fb45bbb41",
+          "state_hash_after": "911e8b40d4a7e3f6369d16f5ed269e89b97a5f6cfe0112e8dcf60770f884cac1",
+          "forced_low_prior": false,
+          "note": "hae/genome/morphogenesis.py [plan]: module check passed: py_compile, import, static_check",
+          "created_at": 1791400777.433,
+          "extra": {
+            "head_v": 0.325507
+          }
+        },
+        {
+          "move_index": 10,
+          "move_type": "propose_hypothesis",
+          "question_id": "q1",
+          "hypothesis_id": "",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.0,
+          "value_before": 0.296,
+          "value_after": 0.302667,
+          "features": {
+            "resolved_fraction": 0.326667,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.333333,
+            "supported_ratio": 0.166667,
+            "ruled_out_ratio": 0.333333,
+            "untested_ratio": 0.0,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 1.0,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "911e8b40d4a7e3f6369d16f5ed269e89b97a5f6cfe0112e8dcf60770f884cac1",
+          "state_hash_after": "0a0ef9bf36ef27b56464a184fb6efdecac641e923b080e193f78335438bad1c5",
+          "forced_low_prior": false,
+          "note": "1 accepted, 2 repaired, 0 tabu, 0 duplicate of 3 proposed",
+          "created_at": 1791400846.085,
+          "extra": {
+            "head_v": 0.442907
+          }
+        },
+        {
+          "move_index": 11,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h3",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.76,
+          "value_before": 0.298667,
+          "value_after": 0.459238,
+          "features": {
+            "resolved_fraction": 0.326667,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.333333,
+            "supported_ratio": 0.142857,
+            "ruled_out_ratio": 0.285714,
+            "untested_ratio": 0.428571,
+            "evidence_density": 1.0,
+            "stagnation": 0.1,
+            "open_without_options": 0.5,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "0a0ef9bf36ef27b56464a184fb6efdecac641e923b080e193f78335438bad1c5",
+          "state_hash_after": "2a02b602df31bf7796e4ff2180db2921b622ba0062263fedea92b6a340f7dd24",
+          "forced_low_prior": true,
+          "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'Tests Gate Status: passed'",
+          "created_at": 1791400846.616,
+          "extra": {
+            "head_p": 0.103271,
+            "head_rank": 1.0,
+            "stated_rank": 0.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.435137
+          }
+        },
+        {
+          "move_index": 12,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h7",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.075,
+          "value_before": 0.463238,
+          "value_after": 0.486809,
+          "features": {
+            "resolved_fraction": 0.58,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.333333,
+            "supported_ratio": 0.285714,
+            "ruled_out_ratio": 0.285714,
+            "untested_ratio": 0.285714,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.5,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 0.62
+          },
+          "state_hash_before": "2a02b602df31bf7796e4ff2180db2921b622ba0062263fedea92b6a340f7dd24",
+          "state_hash_after": "a05fd4a348011e0587c8b656ae5b568609074bef44356b56ed7bc5cf2e902e67",
+          "forced_low_prior": false,
+          "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'Tests Gate Status: passed'",
+          "created_at": 1791400847.176,
+          "extra": {
+            "head_p": 0.092491,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.399801
+          }
+        },
+        {
+          "move_index": 13,
+          "move_type": "synthesize",
+          "question_id": "q1",
+          "hypothesis_id": "h7",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.0,
+          "value_before": 0.486809,
+          "value_after": 0.486809,
+          "features": {
+            "resolved_fraction": 0.605,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.333333,
+            "supported_ratio": 0.428571,
+            "ruled_out_ratio": 0.285714,
+            "untested_ratio": 0.142857,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.5,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 0.5825
+          },
+          "state_hash_before": "a05fd4a348011e0587c8b656ae5b568609074bef44356b56ed7bc5cf2e902e67",
+          "state_hash_after": "29d86dc0fa083212813fe8723dbf9436d3b39ccdc3103ec796ee39b61eeb8d56",
+          "forced_low_prior": false,
+          "note": "synthesis wrote nothing: rewrite re-emitted identical content; no second attempt; plan not applicable: anchor not found; closest is lines 495-534 (ratio 0.90); function rewrite not appl",
+          "created_at": 1791402042.214,
+          "extra": {
+            "head_v": 0.390448
+          }
+        },
+        {
+          "move_index": 14,
+          "move_type": "synthesize",
+          "question_id": "q1",
+          "hypothesis_id": "h7",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.145,
+          "value_before": 0.482809,
+          "value_after": 0.538476,
+          "features": {
+            "resolved_fraction": 0.605,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.333333,
+            "supported_ratio": 0.428571,
+            "ruled_out_ratio": 0.285714,
+            "untested_ratio": 0.142857,
+            "evidence_density": 1.0,
+            "stagnation": 0.1,
+            "open_without_options": 0.5,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 0.5825
+          },
+          "state_hash_before": "29d86dc0fa083212813fe8723dbf9436d3b39ccdc3103ec796ee39b61eeb8d56",
+          "state_hash_after": "5ba4ff8f6448c20178a963b3802fe2544885f66773364b48683695659b535ed6",
+          "forced_low_prior": false,
+          "note": "hae/evaluation/harness.py [rewrite]: module check passed: py_compile, import, static_check",
+          "created_at": 1791402546.465,
+          "extra": {
+            "head_v": 0.377269
+          }
+        }
+      ],
+      "iteration": 2
+    }
+  ],
+  "audit": {
+    "ledger_hash": "5aa6c96aa1f7082a2f68bb09557441e3159a302daa9b74fdd6acba2044384547",
+    "questions": 3,
+    "questions_open": 0,
+    "questions_resolved": 0,
+    "questions_certified": 3,
+    "questions_exhausted": 0,
+    "hypotheses": 7,
+    "hypotheses_tested": 5,
+    "hypotheses_supported": 1,
+    "hypotheses_falsified": 2,
+    "hypotheses_certified": 2,
+    "hypotheses_untestable": 1,
+    "probes_refused": 3,
+    "probe_repairs": 2,
+    "frontier_admissions": 2,
+    "questions_deferred": 1,
+    "evidence": 12,
+    "settled_facts": 3,
+    "ruled_out": 2,
+    "evidence_backed_fraction": 1.0,
+    "unbacked_claims": 0,
+    "status_inconsistencies": 0,
+    "calibration_brier": 0.3875,
+    "calibration_tested": 5,
+    "overconfident_falsified": 0,
+    "low_prior_wins": 2,
+    "forced_low_prior_picks": 2,
+    "forced_low_prior_wins": 1,
+    "proposed_total": 7,
+    "tabu_rejections": 0,
+    "duplicate_rejections": 0,
+    "moves_used": 14,
+    "budget_moves": 60,
+    "experiments": 8,
+    "proposal_rounds": 3,
+    "syntheses": 3,
+    "syntheses_verified": 2,
+    "delta_u_total": 1.96,
+    "initial_uncertainty": 3.0,
+    "remaining_uncertainty": 0.0,
+    "resolved_fraction": 1.0,
+    "token_usage": 402912,
+    "stop_reason": "deferred_to_oracle"
+  },
+  "policy": {
+    "enabled": true,
+    "search_budget_moves": 60,
+    "branching_k": 3,
+    "c_puct": 1.4,
+    "low_prior_quota": 0.34,
+    "experiment_timeout_s": 20,
+    "max_probe_lines": 40,
+    "value_alpha": 0.6,
+    "min_hypotheses_before_synthesis": 2,
+    "max_stagnant_moves": 8,
+    "max_hypothesis_rounds": 2,
+    "frontier_size": 3,
+    "role_bindings": {
+      "question": "qa",
+      "hypothesis": "engineering",
+      "experiment": "verification",
+      "synthesis": "engineering"
+    },
+    "prior_head_path": "v7_prior_head.json",
+    "value_head_path": "v7_value_head.json",
+    "prior_head_weight": 0.0,
+    "value_head_live": false
+  }
+}

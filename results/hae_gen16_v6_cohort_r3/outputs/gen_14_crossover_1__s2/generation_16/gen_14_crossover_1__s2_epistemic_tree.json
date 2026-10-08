@@ -1,0 +1,1512 @@
+{
+  "company_id": "gen_14_crossover_1__s2",
+  "generation": 16,
+  "ledger": {
+    "company_id": "gen_14_crossover_1__s2",
+    "questions": [
+      {
+        "question_id": "q1",
+        "text": "Why does `test_pytest_style_functions_are_collected` fail in `hae/evaluation/harness.py`? Oracle: AssertionError: 'failed' != 'passed' - failed + passed",
+        "module": "hae/evaluation/harness.py",
+        "uncertainty": 0.0,
+        "initial_uncertainty": 1.0,
+        "source_failure_tag": "execution_harness",
+        "source_failure_key": "execution_harness:test_pytest_style_functions_are_collected",
+        "source_failure": "[execution_harness] FAIL: test_pytest_style_functions_are_collected (tests.test_execution_harness.TestExecutionHarness.test_pytest_style_functions_are_collected) -> AssertionError: 'failed' != 'passed' - failed + passed",
+        "status": "CERTIFIED",
+        "hypothesis_ids": [
+          "h1",
+          "h2",
+          "h3"
+        ],
+        "hypothesis_rounds": 1,
+        "failure_epoch": 0,
+        "failure_history": [],
+        "location": "",
+        "created_at": 1791401014.033
+      },
+      {
+        "question_id": "q2",
+        "text": "Why does `test_unittest_style_classes_are_collected` fail in `hae/evaluation/harness.py`? Oracle: AssertionError: 'failed' != 'passed' - failed + passed",
+        "module": "hae/evaluation/harness.py",
+        "uncertainty": 0.0,
+        "initial_uncertainty": 1.0,
+        "source_failure_tag": "execution_harness",
+        "source_failure_key": "execution_harness:test_unittest_style_classes_are_collected",
+        "source_failure": "[execution_harness] FAIL: test_unittest_style_classes_are_collected (tests.test_execution_harness.TestExecutionHarness.test_unittest_style_classes_are_collected) -> AssertionError: 'failed' != 'passed' - failed + passed",
+        "status": "CERTIFIED",
+        "hypothesis_ids": [],
+        "hypothesis_rounds": 0,
+        "failure_epoch": 0,
+        "failure_history": [],
+        "location": "",
+        "created_at": 1791401014.033
+      },
+      {
+        "question_id": "q3",
+        "text": "Why can the `verification_loop` suite not import `hae/evaluation/verification_loop.py`? Oracle: suite failed to import: ModuleNotFoundError: No module named 'hae.evaluation.verification_loop'",
+        "module": "hae/evaluation/verification_loop.py",
+        "uncertainty": 0.0,
+        "initial_uncertainty": 1.0,
+        "source_failure_tag": "verification_loop",
+        "source_failure_key": "verification_loop:suite_import",
+        "source_failure": "[verification_loop] suite failed to import: ModuleNotFoundError: No module named 'hae.evaluation.verification_loop'",
+        "status": "CERTIFIED",
+        "hypothesis_ids": [
+          "h4",
+          "h5",
+          "h6"
+        ],
+        "hypothesis_rounds": 1,
+        "failure_epoch": 0,
+        "failure_history": [],
+        "location": "",
+        "created_at": 1791401014.033
+      },
+      {
+        "question_id": "q4",
+        "text": "Why can the `morphogenesis` suite not import `hae/genome/morphogenesis.py`? Oracle: suite failed to import: ModuleNotFoundError: No module named 'hae.evaluation.verification_loop'",
+        "module": "hae/genome/morphogenesis.py",
+        "uncertainty": 0.0,
+        "initial_uncertainty": 1.0,
+        "source_failure_tag": "morphogenesis",
+        "source_failure_key": "morphogenesis:suite_import",
+        "source_failure": "[morphogenesis] suite failed to import: ModuleNotFoundError: No module named 'hae.evaluation.verification_loop'",
+        "status": "CERTIFIED",
+        "hypothesis_ids": [
+          "h7",
+          "h8",
+          "h9"
+        ],
+        "hypothesis_rounds": 1,
+        "failure_epoch": 0,
+        "failure_history": [],
+        "location": "",
+        "created_at": 1791401014.033
+      }
+    ],
+    "hypotheses": [
+      {
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "claim": "The stdlib fallback test runner in `harness.py` fails to collect bare `def test_*()` functions because it relies on `unittest.TestLoader` or similar mechanisms that ignore module-level functions, or a",
+        "mechanism": "The stdlib fallback test runner in `harness.py` fails to collect bare `def test_*()` functions because it relies on `unittest.TestLoader` or similar mechanisms that ignore module-level functions, or a bug in the manual AST/inspection logic causes it to skip `0",
+        "prior": 0.45,
+        "posterior": 1.0,
+        "status": "CERTIFIED",
+        "probe_code": "import sys\nimport subprocess\nimport os\nimport tempfile\nimport textwrap\nfrom hae.evaluation.harness import ExecutionHarness\n\ndef test_probe():\n    pass\n\nif __name__ == '__main__':\n    # Create a minimal workspace with a test file containing a bare function\n    with tempfile.TemporaryDirectory() as tmpdir:\n        test_content = textwrap.dedent('''\n            def test_pytest_style_functions_are_collected():\n                assert True\n        ''')\n        test_file = os.path.join(tmpdir, 'test_dummy.py')\n        with open(test_file, 'w') as f:\n            f.write(test_content)\n\n        # We need to simulate the harness running the tests gate.\n        # Since we can't easily mock the internal subprocess call without inspecting source,\n        # we rely on the fact that if the fallback logic is broken, it will report 0 tests.\n        # However, the probe must be standalone. We can't easily invoke the private method.\n        # Let's try to invoke verify_bundle with a bundle that only has this test file.\n        # But verify_bundle requires pyproject.toml for build gate to pass/skip properly,\n        # and smoke gate might fail if no other modules exist.\n        # The failure is specifically in the 'tests' gate.\n\n        bundle = {\n            'test_dummy.py': test_content,\n            'pyproject.toml': '[project]name=probe' # Minimal valid to pass build\n        }\n        harness = ExecutionHarness()\n        report = harness.verify_bundle(bundle)\n        tests_gate = report.gate('tests')\n        if tests_gate:\n            print(f'STATUS:{tests_gate.status}')\n            print(f'DETAIL:{tests_gate.detail}')\n        else:\n            print('GATE_MISSING')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "STATUS:failed"
+        },
+        "evidence_ids": [
+          "e2",
+          "e4"
+        ],
+        "visits": 1,
+        "value_sum": 0.835,
+        "mechanism_signature": "ast bare bug caus collect def fallback function harness ignore inspection level logic manual mechanism rely runner similar skip stdlib test_ testloader unittest",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": true,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401095.813
+      },
+      {
+        "hypothesis_id": "h2",
+        "question_id": "q1",
+        "claim": "The `tests` gate implementation incorrectly filters out test files that do not match a specific naming convention or path structure expected by the internal collection logic, causing `test_pytest_st",
+        "mechanism": "The `tests` gate implementation incorrectly filters out test files that do not match a specific naming convention or path structure expected by the internal collection logic, causing `test_pytest_style_functions_are_collected` to be excluded from execution.",
+        "prior": 0.35,
+        "posterior": 0.8049999999999999,
+        "status": "SUPPORTED",
+        "probe_code": "import tempfile\nimport os\nimport textwrap\nfrom hae.evaluation.harness import ExecutionHarness\n\nif __name__ == '__main__':\n    # Create a workspace with a test file named exactly as the failing test implies\n    # The oracle says test_pytest_style_functions_are_collected fails.\n    # This implies the test file itself might be named test_pytest_style.py or similar.\n    # Let's assume the test file contains the function.\n    test_content = textwrap.dedent('''\n        def test_pytest_style_functions_are_collected():\n            assert True\n    ''')\n    \n    bundle = {\n        'test_pytest_style.py': test_content,\n        'pyproject.toml': '[project]name=probe'\n    }\n    harness = ExecutionHarness()\n    report = harness.verify_bundle(bundle)\n    tests_gate = report.gate('tests')\n    if tests_gate:\n        print(f'STATUS:{tests_gate.status}')\n        print(f'DETAIL:{tests_gate.detail}')\n    else:\n        print('GATE_MISSING')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "STATUS:failed"
+        },
+        "evidence_ids": [
+          "e3"
+        ],
+        "visits": 1,
+        "value_sum": 0.0,
+        "mechanism_signature": "caus collection convention exclud execution fil filter gate implementation incorrect internal logic match nam out path specific structure test_pytest_st test_pytest_style_functions_are_collected",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401095.813
+      },
+      {
+        "hypothesis_id": "h3",
+        "question_id": "q1",
+        "claim": "The `tests` gate correctly collects the function, but the subprocess execution fails due to an environment variable issue (e.g., `PYTHONPATH` not including the test directory), causing the import",
+        "mechanism": "The `tests` gate correctly collects the function, but the subprocess execution fails due to an environment variable issue (e.g., `PYTHONPATH` not including the test directory), causing the import of the test module to fail, which is reported as a failure.",
+        "prior": 0.2,
+        "posterior": 0.2,
+        "status": "UNVERIFIED",
+        "probe_code": "import tempfile\nimport os\nimport textwrap\nfrom hae.evaluation.harness import ExecutionHarness\n\nif __name__ == '__main__':\n    # Create a workspace with a test file\n    test_content = textwrap.dedent('''\n        def test_pytest_style_functions_are_collected():\n            assert True\n    ''')\n    \n    bundle = {\n        'test_pytest_style.py': test_content,\n        'pyproject.toml': '[project]name=probe'\n    }\n    harness = ExecutionHarness()\n    report = harness.verify_bundle(bundle)\n    tests_gate = report.gate('tests')\n    if tests_gate:\n        print(f'STATUS:{tests_gate.status}')\n        print(f'DETAIL:{tests_gate.detail}')\n    else:\n        print('GATE_MISSING')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "STATUS:failed"
+        },
+        "evidence_ids": [],
+        "visits": 0,
+        "value_sum": 0.0,
+        "mechanism_signature": "caus collect correct directory due environment execution gate import includ issue pythonpath report subprocess variable",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401095.814
+      },
+      {
+        "hypothesis_id": "h4",
+        "question_id": "q3",
+        "claim": "The module file `hae/evaluation/verification_loop.py` does not exist in the workspace, causing the import to fail.",
+        "mechanism": "File Absence",
+        "prior": 0.85,
+        "posterior": 1.0,
+        "status": "CERTIFIED",
+        "probe_code": "try:\n    import hae.evaluation.verification_loop\n    print('IMPORT_SUCCESS')\nexcept ImportError as e:\n    if 'No module named' in str(e):\n        print('IMPORT_FAIL_MODULE_MISSING')\n    else:\n        print('IMPORT_FAIL_OTHER')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "IMPORT_FAIL_MODULE_MISSING"
+        },
+        "evidence_ids": [
+          "e6",
+          "e7"
+        ],
+        "visits": 1,
+        "value_sum": 0.235,
+        "mechanism_signature": "absence caus evaluation exist file hae import verification_loop workspace",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": true,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401681.655
+      },
+      {
+        "hypothesis_id": "h5",
+        "question_id": "q3",
+        "claim": "The module file exists but contains a syntax error or top-level exception that prevents successful import.",
+        "mechanism": "Syntax/Runtime Error on Import",
+        "prior": 0.1,
+        "posterior": 0.1,
+        "status": "UNVERIFIED",
+        "probe_code": "try:\n    import hae.evaluation.verification_loop\n    print('IMPORT_SUCCESS')\nexcept SyntaxError:\n    print('IMPORT_FAIL_SYNTAX')\nexcept Exception as e:\n    print(f'IMPORT_FAIL_RUNTIME: {type(e).__name__}')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "IMPORT_FAIL_SYNTAX"
+        },
+        "evidence_ids": [],
+        "visits": 0,
+        "value_sum": 0.0,
+        "mechanism_signature": "contain exception exist file import level prevent runtime successful syntax top",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401681.656
+      },
+      {
+        "hypothesis_id": "h6",
+        "question_id": "q3",
+        "claim": "The module file exists and is syntactically valid, but the package `hae.evaluation` is missing an `__init__.py` or is not recognized as a package.",
+        "mechanism": "Package Structure Error",
+        "prior": 0.05,
+        "posterior": 0.715,
+        "status": "SUPPORTED",
+        "probe_code": "try:\n    import hae.evaluation\n    print('PKG_IMPORT_SUCCESS')\nexcept ImportError:\n    print('PKG_IMPORT_FAIL')\ntry:\n    import hae.evaluation.verification_loop\n    print('MOD_IMPORT_SUCCESS')\nexcept ImportError:\n    print('MOD_IMPORT_FAIL')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "PKG_IMPORT_SUCCESS"
+        },
+        "evidence_ids": [
+          "e5"
+        ],
+        "visits": 1,
+        "value_sum": 0.715,
+        "mechanism_signature": "__init__ evaluation exist file hae miss package recogniz structure syntactical valid",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401681.656
+      },
+      {
+        "hypothesis_id": "h7",
+        "question_id": "q4",
+        "claim": "The module `hae/genome/morphogenesis.py` contains a direct import statement for `hae.evaluation.verification_loop` (e.g., `from hae.evaluation.verification_loop import ...` or `import hae.evaluation.`",
+        "mechanism": "Direct Import Dependency",
+        "prior": 0.85,
+        "posterior": 0.0,
+        "status": "FALSIFIED",
+        "probe_code": "import sys\ntry:\n    import hae.evaluation.verification_loop\n    print('IMPORT_SUCCESS')\nexcept ImportError as e:\n    print(f'IMPORT_FAIL: {e}')\ntry:\n    import hae.genome.morphogenesis\n    print('MORPHOGENESIS_IMPORT_SUCCESS')\nexcept ImportError as e:\n    print(f'MORPHOGENESIS_IMPORT_FAIL: {e}')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "MORPHOGENESIS_IMPORT_FAIL: No module named 'hae.evaluation.verification_loop'"
+        },
+        "evidence_ids": [
+          "e8"
+        ],
+        "visits": 1,
+        "value_sum": 0.425,
+        "mechanism_signature": "contain dependency direct evaluation genome hae import morphogenesi statement verification_loop",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401844.905
+      },
+      {
+        "hypothesis_id": "h8",
+        "question_id": "q4",
+        "claim": "The module `hae/genome/morphogenesis.py` imports a module from `hae.evaluation` (like `harness` or `artifacts`) which in turn imports `hae.evaluation.verification_loop`, causing a transitive failure.",
+        "mechanism": "Transitive Import Failure",
+        "prior": 0.1,
+        "posterior": 0.1,
+        "status": "UNVERIFIED",
+        "probe_code": "import sys\ntry:\n    import hae.evaluation.harness\n    print('HARNESS_IMPORT_SUCCESS')\nexcept ImportError as e:\n    print(f'HARNESS_IMPORT_FAIL: {e}')\ntry:\n    import hae.evaluation.artifacts\n    print('ARTIFACTS_IMPORT_SUCCESS')\nexcept ImportError as e:\n    print(f'ARTIFACTS_IMPORT_FAIL: {e}')\ntry:\n    import hae.genome.morphogenesis\n    print('MORPHOGENESIS_IMPORT_SUCCESS')\nexcept ImportError as e:\n    print(f'MORPHOGENESIS_IMPORT_FAIL: {e}')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "HARNESS_IMPORT_FAIL: No module named 'hae.evaluation.verification_loop'"
+        },
+        "evidence_ids": [],
+        "visits": 0,
+        "value_sum": 0.0,
+        "mechanism_signature": "artifact caus evaluation genome hae harness import like morphogenesi transitive turn verification_loop",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": false,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401844.906
+      },
+      {
+        "hypothesis_id": "h9",
+        "question_id": "q4",
+        "claim": "The module `hae/genome/morphogenesis.py` does not import `hae.evaluation.verification_loop` directly or transitively, but the test suite or a conftest.py file injects this import or modifies sys.path,",
+        "mechanism": "Test Harness/Conftest Injection",
+        "prior": 0.05,
+        "posterior": 1.0,
+        "status": "CERTIFIED",
+        "probe_code": "import sys\nimport hae.genome.morphogenesis\nprint('DIRECT_IMPORT_SUCCESS')\nimport hae.evaluation.verification_loop\nprint('VERIFICATION_LOOP_DIRECT_SUCCESS')",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "DIRECT_IMPORT_SUCCESS"
+        },
+        "evidence_ids": [
+          "e9",
+          "e10"
+        ],
+        "visits": 1,
+        "value_sum": 0.29,
+        "mechanism_signature": "conftest direct evaluation file genome hae harness import inject injection modify morphogenesi path suite sys transitive verification_loop",
+        "proposed_by": "Principal AI Accelerator Architect",
+        "patch_applied": true,
+        "synthesis_failures": 0,
+        "probe_rejections": 0,
+        "last_rejection": "",
+        "epoch": 0,
+        "created_at": 1791401844.906
+      }
+    ],
+    "settled_knowledge": [
+      {
+        "fact_id": "f1",
+        "question_id": "q1",
+        "hypothesis_id": "h1",
+        "statement": "execution_harness:test_pytest_style_functions_are_collected now passes the held-out oracle (iteration 3) -- The stdlib fallback test runner in `harness.py` fails to collect bare `def test_*()` functions because it relies on `unittest.TestLoader` or similar mechanisms that ignore module-level functions, or a",
+        "evidence_ids": [
+          "e11"
+        ],
+        "certified_by": "oracle",
+        "created_at": 1791401878.206
+      },
+      {
+        "fact_id": "f2",
+        "question_id": "q2",
+        "hypothesis_id": "",
+        "statement": "execution_harness:test_unittest_style_classes_are_collected now passes the held-out oracle (iteration 3)",
+        "evidence_ids": [
+          "e11"
+        ],
+        "certified_by": "oracle",
+        "created_at": 1791401878.207
+      },
+      {
+        "fact_id": "f3",
+        "question_id": "q3",
+        "hypothesis_id": "h4",
+        "statement": "verification_loop:suite_import now passes the held-out oracle (iteration 3) -- The module file `hae/evaluation/verification_loop.py` does not exist in the workspace, causing the import to fail.",
+        "evidence_ids": [
+          "e11"
+        ],
+        "certified_by": "oracle",
+        "created_at": 1791401878.207
+      },
+      {
+        "fact_id": "f4",
+        "question_id": "q4",
+        "hypothesis_id": "h9",
+        "statement": "morphogenesis:suite_import now passes the held-out oracle (iteration 3) -- The module `hae/genome/morphogenesis.py` does not import `hae.evaluation.verification_loop` directly or transitively, but the test suite or a conftest.py file injects this import or modifies sys.path,",
+        "evidence_ids": [
+          "e11"
+        ],
+        "certified_by": "oracle",
+        "created_at": 1791401878.207
+      }
+    ],
+    "ruled_out": [
+      {
+        "belief_id": "ro1",
+        "hypothesis_id": "h7",
+        "question_id": "q4",
+        "claim": "The module `hae/genome/morphogenesis.py` contains a direct import statement for `hae.evaluation.verification_loop` (e.g., `from hae.evaluation.verification_loop import ...` or `import hae.evaluation.`",
+        "mechanism_signature": "contain dependency direct evaluation genome hae import morphogenesi statement verification_loop",
+        "killing_evidence_id": "e8",
+        "epoch": 0,
+        "created_at": 1791401845.143
+      }
+    ],
+    "evidence_log": [
+      {
+        "evidence_id": "e1",
+        "kind": "oracle",
+        "hypothesis_id": "",
+        "question_id": "",
+        "command": "held-out oracle, iteration 2",
+        "exit_code": 1,
+        "stdout": "[execution_harness] FAIL: test_pytest_style_functions_are_collected (tests.test_execution_harness.TestExecutionHarness.test_pytest_style_functions_are_collected) -> AssertionError: 'failed' != 'passed' - failed + passed\n[execution_harness] FAIL: test_unittest_style_classes_are_collected (tests.test_execution_harness.TestExecutionHarness.test_unittest_style_classes_are_collected) -> AssertionError: 'failed' != 'passed' - failed + passed\n[verification_loop] suite failed to import: ModuleNotFoundError: No module named 'hae.evaluation.verification_loop'\n[morphogenesis] suite failed to import: ModuleNotFoundError: No module named 'hae.evaluation.verification_loop'",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": false,
+        "detail": "4 failing check(s)",
+        "network_isolated": null,
+        "sha256": "429bfa66141595d15212a9c47dbf2f5443424f2d70c10fe2277bdca28eaa921d",
+        "created_at": 1791401014.033
+      },
+      {
+        "evidence_id": "e2",
+        "kind": "probe",
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "command": "python _probe/h1.py",
+        "exit_code": 0,
+        "stdout": "STATUS:failed\nDETAIL:Tests failed (stdlib fallback)\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "STATUS:failed"
+        },
+        "matched_prediction": true,
+        "detail": "prediction held: exit_code==0; stdout contains 'STATUS:failed'",
+        "network_isolated": true,
+        "sha256": "23b86769d9e30baf18a10c12b8a1312a48c714f7b5725990ced5d4e4c09e9574",
+        "created_at": 1791401096.103
+      },
+      {
+        "evidence_id": "e3",
+        "kind": "probe",
+        "hypothesis_id": "h2",
+        "question_id": "q1",
+        "command": "python _probe/h2.py",
+        "exit_code": 0,
+        "stdout": "STATUS:failed\nDETAIL:Tests failed (stdlib fallback)\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "STATUS:failed"
+        },
+        "matched_prediction": true,
+        "detail": "prediction held: exit_code==0; stdout contains 'STATUS:failed'",
+        "network_isolated": true,
+        "sha256": "46af4dbab94d8ce172a92b58b2544b95ae4c742005a538b5730b4a1eba27f425",
+        "created_at": 1791401096.403
+      },
+      {
+        "evidence_id": "e4",
+        "kind": "module_check",
+        "hypothesis_id": "h1",
+        "question_id": "q1",
+        "command": "verify_module hae/evaluation/harness.py",
+        "exit_code": 0,
+        "stdout": "[py_compile] \n[import] IMPORT_OK\n\n[static_check] no undefined names (903 lines)",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "module check passed: py_compile, import, static_check",
+        "network_isolated": true,
+        "sha256": "f853870e2328d79e6b40d79ef310a0a9d3b0f226603086fa3ffa47bf3ed7baea",
+        "created_at": 1791401651.541
+      },
+      {
+        "evidence_id": "e5",
+        "kind": "probe",
+        "hypothesis_id": "h6",
+        "question_id": "q3",
+        "command": "python _probe/h6.py",
+        "exit_code": 0,
+        "stdout": "PKG_IMPORT_SUCCESS\nMOD_IMPORT_FAIL\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "PKG_IMPORT_SUCCESS"
+        },
+        "matched_prediction": true,
+        "detail": "prediction held: exit_code==0; stdout contains 'PKG_IMPORT_SUCCESS'",
+        "network_isolated": true,
+        "sha256": "0b7d2e220e0637181d5694d62b4742f44cd6f067ae24962f36c98644a03d5a75",
+        "created_at": 1791401681.685
+      },
+      {
+        "evidence_id": "e6",
+        "kind": "probe",
+        "hypothesis_id": "h4",
+        "question_id": "q3",
+        "command": "python _probe/h4.py",
+        "exit_code": 0,
+        "stdout": "IMPORT_FAIL_MODULE_MISSING\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "IMPORT_FAIL_MODULE_MISSING"
+        },
+        "matched_prediction": true,
+        "detail": "prediction held: exit_code==0; stdout contains 'IMPORT_FAIL_MODULE_MISSING'",
+        "network_isolated": true,
+        "sha256": "cd7a4a85192e1d6762de7f0ae0836f88acea1e06120741bbb7522bb6456ab6dd",
+        "created_at": 1791401681.712
+      },
+      {
+        "evidence_id": "e7",
+        "kind": "module_check",
+        "hypothesis_id": "h4",
+        "question_id": "q3",
+        "command": "verify_module hae/evaluation/verification_loop.py",
+        "exit_code": 0,
+        "stdout": "[py_compile] \n[import] IMPORT_OK\n\n[static_check] no undefined names (213 lines)",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "module check passed: py_compile, import, static_check",
+        "network_isolated": true,
+        "sha256": "f92fe8e71d760a639c11bc3040c3c46eeb0c7d7c5135b2b25436344530949bbe",
+        "created_at": 1791401803.488
+      },
+      {
+        "evidence_id": "e8",
+        "kind": "probe",
+        "hypothesis_id": "h7",
+        "question_id": "q4",
+        "command": "python _probe/h7.py",
+        "exit_code": 0,
+        "stdout": "IMPORT_SUCCESS\nMORPHOGENESIS_IMPORT_SUCCESS\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "MORPHOGENESIS_IMPORT_FAIL: No module named 'hae.evaluation.verification_loop'"
+        },
+        "matched_prediction": false,
+        "detail": "prediction failed: stdout contains \"MORPHOGENESIS_IMPORT_FAIL: No module named 'hae.evaluation.verification_loop'\"",
+        "network_isolated": true,
+        "sha256": "3d04e2bcda0b7d054c02d71077c26181065106dd3fc5b272efc61344d979da29",
+        "created_at": 1791401845.143
+      },
+      {
+        "evidence_id": "e9",
+        "kind": "probe",
+        "hypothesis_id": "h9",
+        "question_id": "q4",
+        "command": "python _probe/h9.py",
+        "exit_code": 0,
+        "stdout": "DIRECT_IMPORT_SUCCESS\nVERIFICATION_LOOP_DIRECT_SUCCESS\n",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0,
+          "expect_stdout_contains": "DIRECT_IMPORT_SUCCESS"
+        },
+        "matched_prediction": true,
+        "detail": "prediction held: exit_code==0; stdout contains 'DIRECT_IMPORT_SUCCESS'",
+        "network_isolated": true,
+        "sha256": "db1a41d604d4604d81092a72704471b3fb050d5544247f49a61b40628ed703c7",
+        "created_at": 1791401845.371
+      },
+      {
+        "evidence_id": "e10",
+        "kind": "module_check",
+        "hypothesis_id": "h9",
+        "question_id": "q4",
+        "command": "verify_module hae/genome/morphogenesis.py",
+        "exit_code": 0,
+        "stdout": "[py_compile] \n[import] IMPORT_OK\n\n[static_check] no undefined names (435 lines)",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "module check passed: py_compile, import, static_check",
+        "network_isolated": true,
+        "sha256": "890b7837add4f54713810066764d17ea2ba72b245902e31d188c256f536af132",
+        "created_at": 1791401864.487
+      },
+      {
+        "evidence_id": "e11",
+        "kind": "oracle",
+        "hypothesis_id": "",
+        "question_id": "",
+        "command": "held-out oracle, iteration 3",
+        "exit_code": 0,
+        "stdout": "",
+        "stderr": "",
+        "prediction": {
+          "expect_exit_code": 0
+        },
+        "matched_prediction": true,
+        "detail": "0 failing check(s)",
+        "network_isolated": null,
+        "sha256": "59bf432aedcf300495b1d4992bd782db9c8a3db2bc3ad68492134343ed68a1ef",
+        "created_at": 1791401878.206
+      }
+    ],
+    "move_log": [
+      {
+        "move_index": 1,
+        "move_type": "propose_hypothesis",
+        "question_id": "q1",
+        "hypothesis_id": "",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.0,
+        "value_before": 0.046667,
+        "value_after": 0.051667,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.0,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 1.0,
+          "module_isolation": 0.333333,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "99e66cd2a9504326fe2e98b26d1e17be93af43ec0322671a7100300cbaabb105",
+        "state_hash_after": "e30011085b2c2a669c0430073633b67d9889e74e1df4e64aae995e2af92c491b",
+        "forced_low_prior": false,
+        "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+        "created_at": 1791401095.814,
+        "extra": {
+          "head_v": 0.448165
+        }
+      },
+      {
+        "move_index": 2,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h1",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.835,
+        "value_before": 0.047667,
+        "value_after": 0.192917,
+        "features": {
+          "resolved_fraction": 0.0,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.0,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 1.0,
+          "evidence_density": 0.333333,
+          "stagnation": 0.1,
+          "open_without_options": 0.75,
+          "module_isolation": 0.333333,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "e30011085b2c2a669c0430073633b67d9889e74e1df4e64aae995e2af92c491b",
+        "state_hash_after": "8ea882fb080673b7ef07e619d4985a00238a306c66e6e06d4ab25a39630b1fcc",
+        "forced_low_prior": false,
+        "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'STATUS:failed'",
+        "created_at": 1791401096.104,
+        "extra": {
+          "head_p": 0.096785,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.588077
+        }
+      },
+      {
+        "move_index": 3,
+        "move_type": "run_experiment",
+        "question_id": "q1",
+        "hypothesis_id": "h2",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.0,
+        "value_before": 0.196917,
+        "value_after": 0.216917,
+        "features": {
+          "resolved_fraction": 0.20875,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.333333,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.666667,
+          "evidence_density": 0.666667,
+          "stagnation": 0.0,
+          "open_without_options": 0.75,
+          "module_isolation": 0.333333,
+          "mean_open_uncertainty": 0.79125
+        },
+        "state_hash_before": "8ea882fb080673b7ef07e619d4985a00238a306c66e6e06d4ab25a39630b1fcc",
+        "state_hash_after": "4f2c8dd1528725e635e528d374ba6efeecd797a28d1a147b421dd9b2b6c466c7",
+        "forced_low_prior": false,
+        "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'STATUS:failed'",
+        "created_at": 1791401096.403,
+        "extra": {
+          "head_p": 0.099488,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.546717
+        }
+      },
+      {
+        "move_index": 4,
+        "move_type": "synthesize",
+        "question_id": "q1",
+        "hypothesis_id": "h1",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.145,
+        "value_before": 0.212917,
+        "value_after": 0.249667,
+        "features": {
+          "resolved_fraction": 0.20875,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.0,
+          "supported_ratio": 0.666667,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.333333,
+          "evidence_density": 1.0,
+          "stagnation": 0.1,
+          "open_without_options": 0.75,
+          "module_isolation": 0.333333,
+          "mean_open_uncertainty": 0.79125
+        },
+        "state_hash_before": "4f2c8dd1528725e635e528d374ba6efeecd797a28d1a147b421dd9b2b6c466c7",
+        "state_hash_after": "d9870334614425cdb922f3826ad751828dedbf3ec59c797e349a788f58d65f85",
+        "forced_low_prior": false,
+        "note": "hae/evaluation/harness.py [rewrite]: module check passed: py_compile, import, static_check",
+        "created_at": 1791401651.541,
+        "extra": {
+          "head_v": 0.505401
+        }
+      },
+      {
+        "move_index": 5,
+        "move_type": "propose_hypothesis",
+        "question_id": "q3",
+        "hypothesis_id": "",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.0,
+        "value_before": 0.253667,
+        "value_after": 0.240333,
+        "features": {
+          "resolved_fraction": 0.245,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.25,
+          "supported_ratio": 0.666667,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.333333,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 1.0,
+          "module_isolation": 0.333333,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "d9870334614425cdb922f3826ad751828dedbf3ec59c797e349a788f58d65f85",
+        "state_hash_after": "59e84ab6187dd7f4d9136d1b7a2001a2e806b3e0425465cded548fe4172c4647",
+        "forced_low_prior": false,
+        "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+        "created_at": 1791401681.657,
+        "extra": {
+          "head_v": 0.613003
+        }
+      },
+      {
+        "move_index": 6,
+        "move_type": "run_experiment",
+        "question_id": "q3",
+        "hypothesis_id": "h6",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.715,
+        "value_before": 0.236333,
+        "value_after": 0.353583,
+        "features": {
+          "resolved_fraction": 0.245,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.25,
+          "supported_ratio": 0.333333,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.666667,
+          "evidence_density": 0.666667,
+          "stagnation": 0.1,
+          "open_without_options": 0.666667,
+          "module_isolation": 0.333333,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "59e84ab6187dd7f4d9136d1b7a2001a2e806b3e0425465cded548fe4172c4647",
+        "state_hash_after": "f9a90fc837b8f77ce7eac37e10261181d100a4e909bc30e580e198bfdf23b787",
+        "forced_low_prior": true,
+        "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'PKG_IMPORT_SUCCESS'",
+        "created_at": 1791401681.686,
+        "extra": {
+          "head_p": 0.110209,
+          "head_rank": 1.0,
+          "stated_rank": 0.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.584971
+        }
+      },
+      {
+        "move_index": 7,
+        "move_type": "run_experiment",
+        "question_id": "q3",
+        "hypothesis_id": "h4",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.235,
+        "value_before": 0.357583,
+        "value_after": 0.402833,
+        "features": {
+          "resolved_fraction": 0.42375,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.25,
+          "supported_ratio": 0.5,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.5,
+          "evidence_density": 0.833333,
+          "stagnation": 0.0,
+          "open_without_options": 0.666667,
+          "module_isolation": 0.333333,
+          "mean_open_uncertainty": 0.761667
+        },
+        "state_hash_before": "f9a90fc837b8f77ce7eac37e10261181d100a4e909bc30e580e198bfdf23b787",
+        "state_hash_after": "d82f95816ee99ee329cc6d26bb901990fe10207ab37152e21e01f10331155574",
+        "forced_low_prior": false,
+        "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'IMPORT_FAIL_MODULE_MISSING'",
+        "created_at": 1791401681.713,
+        "extra": {
+          "head_p": 0.097469,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.556449
+        }
+      },
+      {
+        "move_index": 8,
+        "move_type": "synthesize",
+        "question_id": "q3",
+        "hypothesis_id": "h4",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.03,
+        "value_before": 0.402833,
+        "value_after": 0.424,
+        "features": {
+          "resolved_fraction": 0.4825,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.25,
+          "supported_ratio": 0.666667,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.333333,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.666667,
+          "module_isolation": 0.333333,
+          "mean_open_uncertainty": 0.683333
+        },
+        "state_hash_before": "d82f95816ee99ee329cc6d26bb901990fe10207ab37152e21e01f10331155574",
+        "state_hash_after": "4005049a0e663e605654a3b3550f8f93357a3d0937cbb975b17fa31656ada946",
+        "forced_low_prior": false,
+        "note": "hae/evaluation/verification_loop.py [author]: module check passed: py_compile, import, static_check",
+        "created_at": 1791401803.488,
+        "extra": {
+          "head_v": 0.533256
+        }
+      },
+      {
+        "move_index": 9,
+        "move_type": "propose_hypothesis",
+        "question_id": "q4",
+        "hypothesis_id": "",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.0,
+        "value_before": 0.424,
+        "value_after": 0.420667,
+        "features": {
+          "resolved_fraction": 0.49,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.5,
+          "supported_ratio": 0.666667,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.333333,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 1.0,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "4005049a0e663e605654a3b3550f8f93357a3d0937cbb975b17fa31656ada946",
+        "state_hash_after": "7f4eb64a5ddde0044ef65cef934c871d57498c967631eab32183549807110501",
+        "forced_low_prior": false,
+        "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+        "created_at": 1791401844.907,
+        "extra": {
+          "head_v": 0.616345
+        }
+      },
+      {
+        "move_index": 10,
+        "move_type": "run_experiment",
+        "question_id": "q4",
+        "hypothesis_id": "h7",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.425,
+        "value_before": 0.416667,
+        "value_after": 0.484861,
+        "features": {
+          "resolved_fraction": 0.49,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.5,
+          "supported_ratio": 0.444444,
+          "ruled_out_ratio": 0.0,
+          "untested_ratio": 0.555556,
+          "evidence_density": 0.777778,
+          "stagnation": 0.1,
+          "open_without_options": 0.5,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 1.0
+        },
+        "state_hash_before": "7f4eb64a5ddde0044ef65cef934c871d57498c967631eab32183549807110501",
+        "state_hash_after": "2302af8b34539621a92534e8f0441c30e2314b0f63cff84cafce4abccc3c6b24",
+        "forced_low_prior": false,
+        "note": "FALSIFIED: prediction failed: stdout contains \"MORPHOGENESIS_IMPORT_FAIL: No module named 'hae.evaluation.verification_loop'\"",
+        "created_at": 1791401845.144,
+        "extra": {
+          "head_p": 0.104977,
+          "head_rank": 0.0,
+          "stated_rank": 1.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.558503
+        }
+      },
+      {
+        "move_index": 11,
+        "move_type": "run_experiment",
+        "question_id": "q4",
+        "hypothesis_id": "h9",
+        "agent_role": "EvidenceGatekeeper",
+        "delta_u": 0.29,
+        "value_before": 0.488861,
+        "value_after": 0.539028,
+        "features": {
+          "resolved_fraction": 0.59625,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.5,
+          "supported_ratio": 0.444444,
+          "ruled_out_ratio": 0.111111,
+          "untested_ratio": 0.444444,
+          "evidence_density": 0.888889,
+          "stagnation": 0.0,
+          "open_without_options": 0.5,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 0.7875
+        },
+        "state_hash_before": "2302af8b34539621a92534e8f0441c30e2314b0f63cff84cafce4abccc3c6b24",
+        "state_hash_after": "b89281f2a7acd6f3d6c72b313374abb9ba60c120d9a229221e1198a702477acf",
+        "forced_low_prior": true,
+        "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'DIRECT_IMPORT_SUCCESS'",
+        "created_at": 1791401845.372,
+        "extra": {
+          "head_p": 0.115341,
+          "head_rank": 1.0,
+          "stated_rank": 0.0,
+          "prior_head_weight": 0.0,
+          "head_v": 0.513624
+        }
+      },
+      {
+        "move_index": 12,
+        "move_type": "synthesize",
+        "question_id": "q4",
+        "hypothesis_id": "h9",
+        "agent_role": "Principal AI Accelerator Architect",
+        "delta_u": 0.265,
+        "value_before": 0.539028,
+        "value_after": 0.598778,
+        "features": {
+          "resolved_fraction": 0.66875,
+          "certified_ratio": 0.0,
+          "resolved_ratio": 0.5,
+          "supported_ratio": 0.555556,
+          "ruled_out_ratio": 0.111111,
+          "untested_ratio": 0.333333,
+          "evidence_density": 1.0,
+          "stagnation": 0.0,
+          "open_without_options": 0.5,
+          "module_isolation": 0.5,
+          "mean_open_uncertainty": 0.6425
+        },
+        "state_hash_before": "b89281f2a7acd6f3d6c72b313374abb9ba60c120d9a229221e1198a702477acf",
+        "state_hash_after": "2b7d055a8f37b1a388322d1e87c5088356b47086e81cc182ca8bd923b3cb1f50",
+        "forced_low_prior": false,
+        "note": "hae/genome/morphogenesis.py [plan]: module check passed: py_compile, import, static_check",
+        "created_at": 1791401864.487,
+        "extra": {
+          "head_v": 0.488663
+        }
+      }
+    ],
+    "created_at": 1791401014.032,
+    "counters": {
+      "e": 11,
+      "q": 4,
+      "h": 9,
+      "ro": 1,
+      "f": 4
+    },
+    "state_hash": "55f87f63788788f1a760e5b67a60d733bbc385ec5143182dd59628f256fe45d7"
+  },
+  "searches": [
+    {
+      "moves_used": 12,
+      "delta_u_total": 2.94,
+      "stop_reason": "deferred_to_oracle",
+      "synthesized_paths": [
+        "hae/evaluation/harness.py",
+        "hae/evaluation/verification_loop.py",
+        "hae/genome/morphogenesis.py"
+      ],
+      "stats": {
+        "proposal_rounds": 3,
+        "hypotheses_accepted": 9,
+        "tabu_rejections": 0,
+        "duplicate_rejections": 0,
+        "probe_repairs": 0,
+        "experiments": 6,
+        "supported": 5,
+        "falsified": 1,
+        "inconclusive": 0,
+        "rejected_probes": 0,
+        "forced_low_prior_picks": 2,
+        "forced_low_prior_wins": 2,
+        "syntheses": 3,
+        "syntheses_verified": 3,
+        "syntheses_unwritten": 0,
+        "questions_asked": 0,
+        "proposer_errors": 0,
+        "frontier_admissions": 3,
+        "questions_deferred": 1,
+        "prior_head_loaded": true,
+        "value_head_loaded": true,
+        "prior_head_steered": 0,
+        "synthesis_seconds": 694.941,
+        "syntheses_authored": 1,
+        "syntheses_by_plan": 1,
+        "moves_used": 12,
+        "budget_moves": 60,
+        "stop_reason": "deferred_to_oracle"
+      },
+      "trajectory": [
+        {
+          "move_index": 1,
+          "move_type": "propose_hypothesis",
+          "question_id": "q1",
+          "hypothesis_id": "",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.0,
+          "value_before": 0.046667,
+          "value_after": 0.051667,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.0,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 1.0,
+            "module_isolation": 0.333333,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "99e66cd2a9504326fe2e98b26d1e17be93af43ec0322671a7100300cbaabb105",
+          "state_hash_after": "e30011085b2c2a669c0430073633b67d9889e74e1df4e64aae995e2af92c491b",
+          "forced_low_prior": false,
+          "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+          "created_at": 1791401095.814,
+          "extra": {
+            "head_v": 0.448165
+          }
+        },
+        {
+          "move_index": 2,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h1",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.835,
+          "value_before": 0.047667,
+          "value_after": 0.192917,
+          "features": {
+            "resolved_fraction": 0.0,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.0,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 1.0,
+            "evidence_density": 0.333333,
+            "stagnation": 0.1,
+            "open_without_options": 0.75,
+            "module_isolation": 0.333333,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "e30011085b2c2a669c0430073633b67d9889e74e1df4e64aae995e2af92c491b",
+          "state_hash_after": "8ea882fb080673b7ef07e619d4985a00238a306c66e6e06d4ab25a39630b1fcc",
+          "forced_low_prior": false,
+          "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'STATUS:failed'",
+          "created_at": 1791401096.104,
+          "extra": {
+            "head_p": 0.096785,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.588077
+          }
+        },
+        {
+          "move_index": 3,
+          "move_type": "run_experiment",
+          "question_id": "q1",
+          "hypothesis_id": "h2",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.0,
+          "value_before": 0.196917,
+          "value_after": 0.216917,
+          "features": {
+            "resolved_fraction": 0.20875,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.333333,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.666667,
+            "evidence_density": 0.666667,
+            "stagnation": 0.0,
+            "open_without_options": 0.75,
+            "module_isolation": 0.333333,
+            "mean_open_uncertainty": 0.79125
+          },
+          "state_hash_before": "8ea882fb080673b7ef07e619d4985a00238a306c66e6e06d4ab25a39630b1fcc",
+          "state_hash_after": "4f2c8dd1528725e635e528d374ba6efeecd797a28d1a147b421dd9b2b6c466c7",
+          "forced_low_prior": false,
+          "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'STATUS:failed'",
+          "created_at": 1791401096.403,
+          "extra": {
+            "head_p": 0.099488,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.546717
+          }
+        },
+        {
+          "move_index": 4,
+          "move_type": "synthesize",
+          "question_id": "q1",
+          "hypothesis_id": "h1",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.145,
+          "value_before": 0.212917,
+          "value_after": 0.249667,
+          "features": {
+            "resolved_fraction": 0.20875,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.0,
+            "supported_ratio": 0.666667,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.333333,
+            "evidence_density": 1.0,
+            "stagnation": 0.1,
+            "open_without_options": 0.75,
+            "module_isolation": 0.333333,
+            "mean_open_uncertainty": 0.79125
+          },
+          "state_hash_before": "4f2c8dd1528725e635e528d374ba6efeecd797a28d1a147b421dd9b2b6c466c7",
+          "state_hash_after": "d9870334614425cdb922f3826ad751828dedbf3ec59c797e349a788f58d65f85",
+          "forced_low_prior": false,
+          "note": "hae/evaluation/harness.py [rewrite]: module check passed: py_compile, import, static_check",
+          "created_at": 1791401651.541,
+          "extra": {
+            "head_v": 0.505401
+          }
+        },
+        {
+          "move_index": 5,
+          "move_type": "propose_hypothesis",
+          "question_id": "q3",
+          "hypothesis_id": "",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.0,
+          "value_before": 0.253667,
+          "value_after": 0.240333,
+          "features": {
+            "resolved_fraction": 0.245,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.25,
+            "supported_ratio": 0.666667,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.333333,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 1.0,
+            "module_isolation": 0.333333,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "d9870334614425cdb922f3826ad751828dedbf3ec59c797e349a788f58d65f85",
+          "state_hash_after": "59e84ab6187dd7f4d9136d1b7a2001a2e806b3e0425465cded548fe4172c4647",
+          "forced_low_prior": false,
+          "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+          "created_at": 1791401681.657,
+          "extra": {
+            "head_v": 0.613003
+          }
+        },
+        {
+          "move_index": 6,
+          "move_type": "run_experiment",
+          "question_id": "q3",
+          "hypothesis_id": "h6",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.715,
+          "value_before": 0.236333,
+          "value_after": 0.353583,
+          "features": {
+            "resolved_fraction": 0.245,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.25,
+            "supported_ratio": 0.333333,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.666667,
+            "evidence_density": 0.666667,
+            "stagnation": 0.1,
+            "open_without_options": 0.666667,
+            "module_isolation": 0.333333,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "59e84ab6187dd7f4d9136d1b7a2001a2e806b3e0425465cded548fe4172c4647",
+          "state_hash_after": "f9a90fc837b8f77ce7eac37e10261181d100a4e909bc30e580e198bfdf23b787",
+          "forced_low_prior": true,
+          "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'PKG_IMPORT_SUCCESS'",
+          "created_at": 1791401681.686,
+          "extra": {
+            "head_p": 0.110209,
+            "head_rank": 1.0,
+            "stated_rank": 0.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.584971
+          }
+        },
+        {
+          "move_index": 7,
+          "move_type": "run_experiment",
+          "question_id": "q3",
+          "hypothesis_id": "h4",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.235,
+          "value_before": 0.357583,
+          "value_after": 0.402833,
+          "features": {
+            "resolved_fraction": 0.42375,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.25,
+            "supported_ratio": 0.5,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.5,
+            "evidence_density": 0.833333,
+            "stagnation": 0.0,
+            "open_without_options": 0.666667,
+            "module_isolation": 0.333333,
+            "mean_open_uncertainty": 0.761667
+          },
+          "state_hash_before": "f9a90fc837b8f77ce7eac37e10261181d100a4e909bc30e580e198bfdf23b787",
+          "state_hash_after": "d82f95816ee99ee329cc6d26bb901990fe10207ab37152e21e01f10331155574",
+          "forced_low_prior": false,
+          "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'IMPORT_FAIL_MODULE_MISSING'",
+          "created_at": 1791401681.713,
+          "extra": {
+            "head_p": 0.097469,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.556449
+          }
+        },
+        {
+          "move_index": 8,
+          "move_type": "synthesize",
+          "question_id": "q3",
+          "hypothesis_id": "h4",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.03,
+          "value_before": 0.402833,
+          "value_after": 0.424,
+          "features": {
+            "resolved_fraction": 0.4825,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.25,
+            "supported_ratio": 0.666667,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.333333,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.666667,
+            "module_isolation": 0.333333,
+            "mean_open_uncertainty": 0.683333
+          },
+          "state_hash_before": "d82f95816ee99ee329cc6d26bb901990fe10207ab37152e21e01f10331155574",
+          "state_hash_after": "4005049a0e663e605654a3b3550f8f93357a3d0937cbb975b17fa31656ada946",
+          "forced_low_prior": false,
+          "note": "hae/evaluation/verification_loop.py [author]: module check passed: py_compile, import, static_check",
+          "created_at": 1791401803.488,
+          "extra": {
+            "head_v": 0.533256
+          }
+        },
+        {
+          "move_index": 9,
+          "move_type": "propose_hypothesis",
+          "question_id": "q4",
+          "hypothesis_id": "",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.0,
+          "value_before": 0.424,
+          "value_after": 0.420667,
+          "features": {
+            "resolved_fraction": 0.49,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.5,
+            "supported_ratio": 0.666667,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.333333,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 1.0,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "4005049a0e663e605654a3b3550f8f93357a3d0937cbb975b17fa31656ada946",
+          "state_hash_after": "7f4eb64a5ddde0044ef65cef934c871d57498c967631eab32183549807110501",
+          "forced_low_prior": false,
+          "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+          "created_at": 1791401844.907,
+          "extra": {
+            "head_v": 0.616345
+          }
+        },
+        {
+          "move_index": 10,
+          "move_type": "run_experiment",
+          "question_id": "q4",
+          "hypothesis_id": "h7",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.425,
+          "value_before": 0.416667,
+          "value_after": 0.484861,
+          "features": {
+            "resolved_fraction": 0.49,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.5,
+            "supported_ratio": 0.444444,
+            "ruled_out_ratio": 0.0,
+            "untested_ratio": 0.555556,
+            "evidence_density": 0.777778,
+            "stagnation": 0.1,
+            "open_without_options": 0.5,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 1.0
+          },
+          "state_hash_before": "7f4eb64a5ddde0044ef65cef934c871d57498c967631eab32183549807110501",
+          "state_hash_after": "2302af8b34539621a92534e8f0441c30e2314b0f63cff84cafce4abccc3c6b24",
+          "forced_low_prior": false,
+          "note": "FALSIFIED: prediction failed: stdout contains \"MORPHOGENESIS_IMPORT_FAIL: No module named 'hae.evaluation.verification_loop'\"",
+          "created_at": 1791401845.144,
+          "extra": {
+            "head_p": 0.104977,
+            "head_rank": 0.0,
+            "stated_rank": 1.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.558503
+          }
+        },
+        {
+          "move_index": 11,
+          "move_type": "run_experiment",
+          "question_id": "q4",
+          "hypothesis_id": "h9",
+          "agent_role": "EvidenceGatekeeper",
+          "delta_u": 0.29,
+          "value_before": 0.488861,
+          "value_after": 0.539028,
+          "features": {
+            "resolved_fraction": 0.59625,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.5,
+            "supported_ratio": 0.444444,
+            "ruled_out_ratio": 0.111111,
+            "untested_ratio": 0.444444,
+            "evidence_density": 0.888889,
+            "stagnation": 0.0,
+            "open_without_options": 0.5,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 0.7875
+          },
+          "state_hash_before": "2302af8b34539621a92534e8f0441c30e2314b0f63cff84cafce4abccc3c6b24",
+          "state_hash_after": "b89281f2a7acd6f3d6c72b313374abb9ba60c120d9a229221e1198a702477acf",
+          "forced_low_prior": true,
+          "note": "SUPPORTED: prediction held: exit_code==0; stdout contains 'DIRECT_IMPORT_SUCCESS'",
+          "created_at": 1791401845.372,
+          "extra": {
+            "head_p": 0.115341,
+            "head_rank": 1.0,
+            "stated_rank": 0.0,
+            "prior_head_weight": 0.0,
+            "head_v": 0.513624
+          }
+        },
+        {
+          "move_index": 12,
+          "move_type": "synthesize",
+          "question_id": "q4",
+          "hypothesis_id": "h9",
+          "agent_role": "Principal AI Accelerator Architect",
+          "delta_u": 0.265,
+          "value_before": 0.539028,
+          "value_after": 0.598778,
+          "features": {
+            "resolved_fraction": 0.66875,
+            "certified_ratio": 0.0,
+            "resolved_ratio": 0.5,
+            "supported_ratio": 0.555556,
+            "ruled_out_ratio": 0.111111,
+            "untested_ratio": 0.333333,
+            "evidence_density": 1.0,
+            "stagnation": 0.0,
+            "open_without_options": 0.5,
+            "module_isolation": 0.5,
+            "mean_open_uncertainty": 0.6425
+          },
+          "state_hash_before": "b89281f2a7acd6f3d6c72b313374abb9ba60c120d9a229221e1198a702477acf",
+          "state_hash_after": "2b7d055a8f37b1a388322d1e87c5088356b47086e81cc182ca8bd923b3cb1f50",
+          "forced_low_prior": false,
+          "note": "hae/genome/morphogenesis.py [plan]: module check passed: py_compile, import, static_check",
+          "created_at": 1791401864.487,
+          "extra": {
+            "head_v": 0.488663
+          }
+        }
+      ],
+      "iteration": 2
+    }
+  ],
+  "audit": {
+    "ledger_hash": "55f87f63788788f1a760e5b67a60d733bbc385ec5143182dd59628f256fe45d7",
+    "questions": 4,
+    "questions_open": 0,
+    "questions_resolved": 0,
+    "questions_certified": 4,
+    "questions_exhausted": 0,
+    "hypotheses": 9,
+    "hypotheses_tested": 6,
+    "hypotheses_supported": 2,
+    "hypotheses_falsified": 1,
+    "hypotheses_certified": 3,
+    "hypotheses_untestable": 0,
+    "probes_refused": 0,
+    "probe_repairs": 0,
+    "frontier_admissions": 3,
+    "questions_deferred": 1,
+    "evidence": 11,
+    "settled_facts": 4,
+    "ruled_out": 1,
+    "evidence_backed_fraction": 1.0,
+    "unbacked_claims": 0,
+    "status_inconsistencies": 0,
+    "calibration_brier": 0.545833,
+    "calibration_tested": 6,
+    "overconfident_falsified": 1,
+    "low_prior_wins": 3,
+    "forced_low_prior_picks": 2,
+    "forced_low_prior_wins": 2,
+    "proposed_total": 9,
+    "tabu_rejections": 0,
+    "duplicate_rejections": 0,
+    "moves_used": 12,
+    "budget_moves": 60,
+    "experiments": 6,
+    "proposal_rounds": 3,
+    "syntheses": 3,
+    "syntheses_verified": 3,
+    "delta_u_total": 2.94,
+    "initial_uncertainty": 4.0,
+    "remaining_uncertainty": 0.0,
+    "resolved_fraction": 1.0,
+    "token_usage": 264536,
+    "stop_reason": "deferred_to_oracle"
+  },
+  "policy": {
+    "enabled": true,
+    "search_budget_moves": 60,
+    "branching_k": 3,
+    "c_puct": 1.4,
+    "low_prior_quota": 0.34,
+    "experiment_timeout_s": 20,
+    "max_probe_lines": 40,
+    "value_alpha": 0.6,
+    "min_hypotheses_before_synthesis": 2,
+    "max_stagnant_moves": 8,
+    "max_hypothesis_rounds": 2,
+    "frontier_size": 3,
+    "role_bindings": {
+      "question": "qa",
+      "hypothesis": "engineering",
+      "experiment": "verification",
+      "synthesis": "engineering"
+    },
+    "prior_head_path": "v7_prior_head.json",
+    "value_head_path": "v7_value_head.json",
+    "prior_head_weight": 0.0,
+    "value_head_live": false
+  }
+}
