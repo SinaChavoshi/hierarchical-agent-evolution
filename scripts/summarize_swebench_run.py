@@ -86,7 +86,7 @@ def summarize(run_dir: str) -> List[Dict[str, Any]]:
             "instance_id": rec.get("instance_id"),
             "stop": swe.get("stop"),
             "self_oracle": swe.get("resolved_by_self_oracle"),
-            "graded": grade.get("resolved") if grade else None,
+            "graded_resolved": grade.get("resolved") if grade else None,
             "env_import": (None if not preflight else ("ok" if preflight.get("ok") else "FAILED")),
             "iterations": len(swe.get("iterations") or []),
             "moves_used": swe.get("moves_used"),
@@ -114,7 +114,7 @@ def main(argv=None) -> int:
         json.dump(rows, sys.stdout, indent=1, default=str)
         print()
         return 0
-    cols = ["instance_id", "stop", "self_oracle", "graded", "env_import", "moves_used", "experiments", "supported",
+    cols = ["instance_id", "stop", "self_oracle", "graded_resolved", "env_import", "moves_used", "experiments", "supported",
             "falsified", "rejected_probes", "probe_repairs", "synth_kept", "synth_reverted", "recruits_library",
             "recruits_synthesized", "patch_chars", "tokens", "elapsed_min"]
     print(" | ".join(cols))

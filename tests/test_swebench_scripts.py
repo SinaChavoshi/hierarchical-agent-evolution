@@ -179,5 +179,58 @@ class EntryPointTests(unittest.TestCase):
         self.assertIsNone(swebench_argv([]))
 
 
+class _FakeExec:
+    """Minimal executor double: records argv and returns a canned pytest -rA log."""
+    root = "/testbed"
+    python = "/opt/miniconda3/envs/testbed/bin/python"
+
+    def __init__(self, stdout, rc=0):
+        self.stdout, self.rc, self.calls = stdout, rc, []
+
+    def run(self, argv, cwd=None, timeout_s=None):
+        self.calls.append(list(argv))
+        return type("R", (), {"rc": self.rc, "stdout": self.stdout, "stderr": "", "timed_out": False, "elapsed_s": 0.1})()
+
+
+class GraderTests(unittest.TestCase):
+    """grade_in_testbed must mirror the harness' bookkeeping: SWE-bench stores test names cut at the
+    first whitespace, so parametrised ids such as ``test_make_error[required-Missing`` are not
+    valid node ids. Grading by node id made pytest exit 4 and reported every PASS_TO_PASS test as
+    MISSING (marshmallow-1810, 2026-10-08); the grader now runs the files and matches names."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.G = load_script("grade_in_testbed.py")
+
+    def test_test_files_dedupes_and_keeps_order(self):
+        ids = ["tests/test_b.py::T::a", "tests/test_a.py::x[1 2]", "tests/test_b.py::T::b"]
+        self.assertEqual(self.G._test_files(ids), ["tests/test_b.py", "tests/test_a.py"])
+        self.assertEqual(self.G._test_files([]), [])
+
+    def test_run_files_invokes_pytest_on_files_not_node_ids(self):
+        ex = _FakeExec("PASSED tests/test_fields.py::TestErrorMessages::test_make_error[required-Missing data for required field.]\n")
+        status, log, rc = self.G._run_files(ex, ["tests/test_fields.py"], 10.0)
+        argv = ex.calls[0]
+        self.assertEqual(argv[:3], [ex.python, "-m", "pytest"])
+        self.assertIn("-rA", argv)
+        self.assertEqual(argv[-1], "tests/test_fields.py")
+        self.assertEqual(rc, 0)
+        self.assertEqual(status, {"tests/test_fields.py::TestErrorMessages::test_make_error[required-Missing": "PASSED"})
+
+    def test_lookup_matches_truncated_ids_and_marks_absent_tests_missing(self):
+        log = ("PASSED /testbed/tests/test_fields.py::TestErrorMessages::test_make_error[required-Missing data for required field.]\n"
+               "FAILED tests/test_fields.py::TestParentAndName::test_field_named_parent_has_root - AssertionError\n"
+               "SKIPPED [1] tests/test_fields.py:10: no reason\n")
+        status, _, _ = self.G._run_files(_FakeExec(log), ["tests/test_fields.py"], 10.0)
+        wanted = ["tests/test_fields.py::TestErrorMessages::test_make_error[required-Missing",
+                  "tests/test_fields.py::TestParentAndName::test_field_named_parent_has_root",
+                  "tests/test_fields.py::TestNothing::test_absent"]
+        found = self.G._lookup(status, wanted)
+        self.assertEqual(found[wanted[0]], "PASSED")   # differently-rooted path, truncated id
+        self.assertEqual(found[wanted[1]], "FAILED")
+        self.assertEqual(found[wanted[2]], "MISSING")
+        self.assertEqual(self.G._lookup({}, ["a.py::t"]), {"a.py::t": "MISSING"})
+
+
 if __name__ == "__main__":
     unittest.main()

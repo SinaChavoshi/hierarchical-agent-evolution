@@ -114,11 +114,24 @@ published `:latest` images (2026-10-08):
   doing nothing.
 
 `scripts/grade_in_testbed.py` approximates the harness inside the live
-testbed container (reset, apply patch, apply `test_patch`, run FAIL_TO_PASS
-and PASS_TO_PASS by node id). Its two controls are the screen: `--gold` must
-resolve and `--none` must *not*. Run both before an instance counts, and keep
-the firm's prediction graded only on instances that pass the screen. The
-script imports `load_grading_info` and therefore lives outside `hae/`.
+testbed container: reset, apply patch, apply `test_patch`, `python -m pytest
+-rA` on the test files named by FAIL_TO_PASS and PASS_TO_PASS, then match the
+reported names. It runs files rather than node ids because SWE-bench stores
+test names cut at the first whitespace (`test_make_error[required-Missing` for
+a parametrised id containing spaces); such names are not valid node ids and
+pytest exits 4 without running anything, which first showed up as 111 MISSING
+PASS_TO_PASS tests on marshmallow-1810. Its two controls are the screen:
+`--gold` must resolve and `--none` must *not*. Run both before an instance
+counts, and keep the firm's prediction graded only on instances that pass the
+screen. The script imports `load_grading_info` and therefore lives outside
+`hae/`.
+
+The third smoke instance, `marshmallow-code__marshmallow-1810`, passes the
+screen (gold resolves, no-patch fails FAIL_TO_PASS 0/1) and the firm's patch
+was graded resolved (FAIL_TO_PASS 1/1, PASS_TO_PASS 111/111) with a different
+mechanism from the gold patch. Details and caveats, including that this run
+predates the organisation wiring, are in
+`results/swebench/smoke_2026-10-08/README.md`.
 
 `python -m hae.cli --mode swebench …` dispatches to the same runner. Sources:
 image rule `https://raw.githubusercontent.com/SWE-bench/SWE-bench/main/swebench/image_builder/image_spec.py`;

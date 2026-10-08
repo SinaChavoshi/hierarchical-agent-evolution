@@ -1,0 +1,5 @@
+{
+ "instance_id": "pydicom__pydicom-938",
+ "model_name_or_path": "hae-v8-smoke/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/pydicom/valuerep.py b/pydicom/valuerep.py\nindex 38e36fe30..c8a8d8b49 100644\n--- a/pydicom/valuerep.py\n+++ b/pydicom/valuerep.py\n@@ -442,16 +442,8 @@ else:\n \n \n def DS(val):\n-    \"\"\"Factory function for creating DS class instances.\n-\n-    Checks for blank string; if so, returns that, else calls :class:`DSfloat`\n-    or :class:`DSdecimal` to create the class instance. This avoids overriding\n-    ``DSfloat.__new__()`` (which carries a time penalty for large arrays of\n-    DS).\n-\n-    Similarly the string clean and check can be avoided and :class:`DSfloat`\n-    called directly if a string has already been processed.\n-    \"\"\"\n+    if isinstance(val, (DSfloat, DSdecimal)):\n+        return val\n     if isinstance(val, (str, compat.text_type)):\n         val = val.strip()\n     if val == '' or val is None:\n"
+}
