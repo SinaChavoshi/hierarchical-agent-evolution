@@ -1,0 +1,178 @@
+     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: budget=60 moves, k=3, c_puct=1.4, low_prior_quota=0.34, bindings={'question': 'qa', 'hypothesis': 'engineering', 'experiment': 'verification', 'synthesis': 'engineering'}
+ [Iteration 1/5] [self-hosting-benchmark] 8/50 held-out tests (score=16.0)
+[epistemic] gen_14_elite_1__s2 iteration 2: oracle reconciliation -> certified=0 reopened=0 refreshed=0 seeded=17 open=17 uncertainty=17.00
+[epistemic] gen_14_elite_1__s2: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_1__s2 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_elite_1__s2 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_elite_1__s2 frontier size 3: 17 open question(s) in 4 cluster(s)
+[epistemic] gen_14_elite_1__s2 frontier += q1 (1/3; u=1.00; cluster "hae/evaluation/harness.py|AttributeError: '?' object has no attribute ")
+[epistemic] gen_14_elite_1__s2 frontier += q15 (2/3; u=1.00; cluster 'hae/evaluation/harness.py|AssertionError: # != #')
+[epistemic] gen_14_elite_1__s2 frontier += q16 (3/3; u=1.00; cluster 'q:q16')
+[epistemic] gen_14_elite_1__s2 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q1/h3 prior=0.60 head_p=0.10 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('sys.path.insert')
+[epistemic] gen_14_elite_1__s2 q1/h2 prior=0.25 head_p=0.10 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('sys.path.insert')
+[epistemic] gen_14_elite_1__s2 q1/h1 prior=0.15 head_p=0.11 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('sys.path.insert')
+[epistemic] gen_14_elite_1__s2 q15: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q15/h6 prior=0.10 head_p=0.11 FORCED -> SUPPORTED (dU=0.730) prediction held: exit_code==0; stdout contains 'REPORT_AUTHORED_FILES: 6'
+[epistemic] gen_14_elite_1__s2 q15/h4 prior=0.75 head_p=0.10 -> SUPPORTED (dU=0.195) prediction held: exit_code==0; stdout contains 'REPORT_AUTHORED_FILES: 6'
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: function rewrite of `VerificationLoop.verify`: rewrote `VerificationLoop.verify` (lines 196-256, 61 -> 58 lines); The `verify_bundle` method in `ExecutionHarness` fails to apply `filter_bundle` to the input bundle before
+[epistemic] gen_14_elite_1__s2 q15/h4 synthesized hae/evaluation/harness.py [function]: module check passed: py_compile, import, static_check (dU=0.055)
+[epistemic] gen_14_elite_1__s2 frontier += q17 (3/3; u=1.00; cluster 'q:q17')
+[epistemic] gen_14_elite_1__s2 q16: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q16/h9 prior=0.02 head_p=0.11 FORCED -> FALSIFIED (dU=0.010) prediction failed: stdout contains 'IMPORT_FAIL_RUNTIME'
+[epistemic] gen_14_elite_1__s2 q16/h7 prior=0.95 head_p=0.10 -> SUPPORTED (dU=0.940) prediction held: exit_code==0; stdout contains 'IMPORT_FAIL_MODULE_MISSING'
+[epistemic] gen_14_elite_1__s2 q16/h7 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser did not create the file twice; target module absent: authoring it (failure 1/2)
+[epistemic] gen_14_elite_1__s2 q16/h7 synthesis wrote nothing: no-op (re-prompted, gave up): synthesiser did not create the file twice; target module absent: authoring it (failure 2/2)
+[epistemic] gen_14_elite_1__s2 q16/h8 prior=0.03 head_p=0.10 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'IMPORT_FAIL_SYNTAX_ERROR'
+[epistemic] gen_14_elite_1__s2 q17: proposed 3 -> 2 accepted, 0 repaired, 0 tabu, 1 duplicate
+[epistemic] gen_14_elite_1__s2 q17/h11 prior=0.05 head_p=0.12 FORCED -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('__file__')
+[epistemic] gen_14_elite_1__s2 q17/h10 prior=0.85 head_p=0.10 -> SUPPORTED (dU=0.950) prediction held: exit_code==0; stdout contains 'MODULE_MISSING'
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: anchored edit in `hae/genome/morphogenesis.py`: replaced 6 line(s) at line 13 (exact match) with 13; The module `hae/genome/morphogenesis.py` does not currently import `hae.evaluation.verification_loop`, but the test sui
+[epistemic] gen_14_elite_1__s2 q17/h10 synthesized hae/genome/morphogenesis.py [plan]: module check passed: py_compile, import, static_check (dU=0.030)
+[epistemic] gen_14_elite_1__s2 q1: proposed 3 -> 2 accepted, 1 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q1/h12 prior=0.35 head_p=0.10 -> FALSIFIED (dU=0.113) prediction failed: stdout contains 'REPORT_IS_NONE'
+[epistemic] gen_14_elite_1__s2 q1/h1 prior=0.15 head_p=0.11 FORCED -> FALSIFIED (dU=0.048) prediction failed: stdout contains 'RESULT_NONE'
+[epistemic] gen_14_elite_1__s2 q1/h13 prior=0.20 head_p=0.10 -> FALSIFIED (dU=0.065) prediction failed: stdout contains 'REPORT_IS_NONE: True'
+[epistemic] gen_14_elite_1__s2 frontier += q10 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AttributeError: '?' object has no attribute ")
+[epistemic] gen_14_elite_1__s2 q10: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q10/h14 prior=0.65 head_p=0.09 -> FALSIFIED (dU=0.325) prediction failed: exit_code==0; stdout contains 'HYPOTHESIS_TRUE: gate returned None'
+[epistemic] gen_14_elite_1__s2 q10/h16 prior=0.10 head_p=0.10 FORCED -> FALSIFIED (dU=0.050) prediction failed: stdout contains 'HYPOTHESIS_TRUE: Report creation failed with'
+[epistemic] gen_14_elite_1__s2 q10/h15 prior=0.25 head_p=0.10 -> SUPPORTED (dU=0.400) prediction held: exit_code==0; stdout contains 'HYPOTHESIS_TRUE: missing gate returned None'
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: anchored edit in `VerificationReport.gate`: replaced 5 line(s) at line 49 (dedent match) with 5; The `gate` method returns `None` when a gate name is not found, causing `AttributeError` in downstream code that expects a
+[epistemic] gen_14_elite_1__s2 q10/h15 synthesized hae/evaluation/harness.py [plan]: module check passed: py_compile, import, static_check (dU=0.205)
+[epistemic] gen_14_elite_1__s2 q2 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q3 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q4 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q5 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q6 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q7 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q8 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q9 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q11 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q12 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q13 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q14 deferred to the oracle: same cluster as resolved q10
+[epistemic] gen_14_elite_1__s2 q16: proposed 3 -> 0 accepted, 0 repaired, 3 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 iteration 2: 28 moves, dU=4.116, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py', 'hae/genome/morphogenesis.py'], counts={'questions': 17, 'questions_open': 14, 'questions_resolved': 3, 'questions_certified': 0, 'questions_exhausted': 1, 'hypotheses': 16, 'hypotheses_untested': 1, 'hypotheses_supported': 5, 'hypotheses_falsified': 7, 'hypotheses_cer
+ [Iteration 2/5] [self-hosting-benchmark] 8/50 held-out tests (score=16.0)
+[epistemic] gen_14_elite_1__s2 iteration 3: oracle reconciliation -> certified=0 reopened=3 refreshed=13 seeded=0 open=17 uncertainty=15.07
+[epistemic] gen_14_elite_1__s2: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_1__s2 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_elite_1__s2 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_elite_1__s2 frontier size 3: 17 open question(s) in 6 cluster(s)
+[epistemic] gen_14_elite_1__s2 frontier += q15 (1/3; u=0.75; cluster 'hae/evaluation/harness.py|AssertionError: # != #')
+[epistemic] gen_14_elite_1__s2 frontier += q11 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - skipped + faile")
+[epistemic] gen_14_elite_1__s2 frontier += q12 (3/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - skipped + passe")
+[epistemic] gen_14_elite_1__s2 q15/h6 synthesized hae/evaluation/harness.py [rewrite]: module check passed: py_compile, import, static_check (dU=0.730)
+[epistemic] gen_14_elite_1__s2 frontier += q13 (3/3; u=1.00; cluster "hae/evaluation/harness.py|AttributeError: '?' object has no attribute ")
+[epistemic] gen_14_elite_1__s2 q11: proposed 1 -> 1 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q11/h17 prior=0.85 head_p=0.10 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python ('{' was never closed at line 9)
+[epistemic] gen_14_elite_1__s2 q12: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q12/h18 prior=0.65 head_p=0.09 -> FALSIFIED (dU=0.325) prediction failed: stdout contains 'HYPOTHESIS_CONFIRMED: Syntax gate skipped on valid code'
+[epistemic] gen_14_elite_1__s2 q12/h20 prior=0.10 head_p=0.11 FORCED -> FALSIFIED (dU=0.050) prediction failed: stdout contains 'HYPOTHESIS_CONFIRMED: Syntax gate skipped'
+[epistemic] gen_14_elite_1__s2 q12/h19 prior=0.25 head_p=0.10 -> FALSIFIED (dU=0.125) prediction failed: stdout contains 'HYPOTHESIS_CONFIRMED: Syntax gate skipped'
+[epistemic] gen_14_elite_1__s2 q13: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q13/h21 prior=0.85 head_p=0.09 -> FALSIFIED (dU=0.425) prediction failed: stdout contains "FAILURE: AttributeError: 'VerificationReport' object has no attribute 'passed_gates'
+[epistemic] gen_14_elite_1__s2 q13/h22 prior=0.05 head_p=0.11 FORCED -> FALSIFIED (dU=0.025) prediction failed: stdout contains 'HAS_ATTR_ON_CLASS: False'
+[epistemic] gen_14_elite_1__s2 q13/h23 prior=0.10 head_p=0.10 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (f-string: unmatched '(' at line 12)
+[epistemic] gen_14_elite_1__s2 q11: proposed 3 -> 2 accepted, 1 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q11/h17 prior=0.85 head_p=0.09 -> FALSIFIED (dU=0.425) prediction failed: stdout contains 'STATUS: skipped'
+[epistemic] gen_14_elite_1__s2 q11/h25 prior=0.05 head_p=0.10 FORCED -> FALSIFIED (dU=0.025) prediction failed: stdout contains 'STATUS: skipped'
+[epistemic] gen_14_elite_1__s2 q11/h24 prior=0.10 head_p=0.10 -> SUPPORTED (dU=0.280) prediction held: exit_code==0; stdout contains 'STATUS: failed'
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: function rewrite of `ExecutionHarness.verify_bundle`: rewrote `ExecutionHarness.verify_bundle` (lines 280-292, 13 -> 9 lines); The `verify_bundle` method wraps `verify_directory` in a try-except block that catches unexpe
+[epistemic] gen_14_elite_1__s2 q11/h24 synthesized hae/evaluation/harness.py [function]: module check passed: py_compile, import, static_check (dU=0.250)
+[epistemic] gen_14_elite_1__s2 q1 deferred to the oracle: same cluster as resolved q11
+[epistemic] gen_14_elite_1__s2 q2 deferred to the oracle: same cluster as resolved q11
+[epistemic] gen_14_elite_1__s2 q3 deferred to the oracle: same cluster as resolved q11
+[epistemic] gen_14_elite_1__s2 q4 deferred to the oracle: same cluster as resolved q11
+[epistemic] gen_14_elite_1__s2 q5 deferred to the oracle: same cluster as resolved q11
+[epistemic] gen_14_elite_1__s2 q6 deferred to the oracle: same cluster as resolved q11
+[epistemic] gen_14_elite_1__s2 q7 deferred to the oracle: same cluster as resolved q11
+[epistemic] gen_14_elite_1__s2 q8 deferred to the oracle: same cluster as resolved q11
+[epistemic] gen_14_elite_1__s2 frontier += q17 (3/3; u=0.75; cluster 'q:q17')
+[epistemic] gen_14_elite_1__s2 q17: proposed 3 -> 2 accepted, 1 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q17/h26 prior=0.85 head_p=0.10 -> SUPPORTED (dU=0.700) prediction held: exit_code==0; stdout contains "IMPORT_FAIL: No module named 'hae.evaluation.verification_loop'"
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: anchored edit in `hae/genome/morphogenesis.py`: replaced 6 line(s) at line 20 (exact match) with 3; The morphogenesis test suite fails to import because `hae.evaluation.verification_loop` is missing from the workspace, c
+[epistemic] gen_14_elite_1__s2 q17/h26 reverted hae/genome/morphogenesis.py to its pre-synthesis content after a failed module check
+[epistemic] gen_14_elite_1__s2 q17/h26 synthesized hae/genome/morphogenesis.py [plan]: module check failed at import (exit 1) (reverted) (dU=0.000)
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: anchored edit in `hae/genome/morphogenesis.py`: replaced 7 line(s) at line 20 (exact match) with 1; The module fails to import because it explicitly imports `hae.evaluation.verification_loop`, which does not exist in the
+[epistemic] gen_14_elite_1__s2 q17/h26 synthesized hae/genome/morphogenesis.py [plan]: module check passed: py_compile, import, static_check (dU=0.030)
+[epistemic] gen_14_elite_1__s2 frontier += q16 (3/3; u=0.05; cluster 'q:q16')
+[epistemic] gen_14_elite_1__s2 q13: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q13/h30 prior=0.10 head_p=0.10 FORCED -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'FAIL: passed_gates not found in any MRO class'
+[epistemic] gen_14_elite_1__s2 q13/h28 prior=0.75 head_p=0.09 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'FAIL: passed_gates not found in class dict'
+[epistemic] gen_14_elite_1__s2 q13/h29 prior=0.15 head_p=0.09 -> SUPPORTED (dU=0.295) prediction held: exit_code==0; stdout contains 'INFO: No __slots__ defined'
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: function rewrite of `VerificationReport`: rewrote `VerificationReport` (lines 113-183, 71 -> 71 lines); The `VerificationReport` dataclass is rewritten to explicitly define `passed_gates` as a property, ensuring it is co
+[epistemic] gen_14_elite_1__s2 q13/h29 synthesized hae/evaluation/harness.py [function]: module check passed: py_compile, import, static_check (dU=0.235)
+[epistemic] gen_14_elite_1__s2 q12: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q12/h33 prior=0.20 head_p=0.10 FORCED -> SUPPORTED (dU=0.260) prediction held: exit_code==0; stdout contains 'FINAL_STATUS: passed'
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: function rewrite of `ExecutionHarness.verify_directory`: rewrote `ExecutionHarness.verify_directory` (lines 290-343, 54 -> 42 lines); The `verify_directory` method filters files using `filter_bundle` from `artifacts.py`,
+[epistemic] gen_14_elite_1__s2 q12/h33 synthesized hae/evaluation/harness.py [function]: module check passed: py_compile, import, static_check (dU=0.220)
+[epistemic] gen_14_elite_1__s2 q9 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_elite_1__s2 q10 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_elite_1__s2 q14 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_elite_1__s2 q16: proposed 3 -> 2 accepted, 0 repaired, 0 tabu, 1 duplicate
+[epistemic] gen_14_elite_1__s2 q16/h34 prior=0.03 head_p=0.10 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'IMPORT_FAIL_SYNTAX_ERROR'
+[epistemic] gen_14_elite_1__s2 q16/h35 prior=0.02 head_p=0.10 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'PACKAGE_IMPORT_FAIL_MODULE_NOT_FOUND'
+[epistemic] gen_14_elite_1__s2 q16: proposed 3 -> 2 accepted, 0 repaired, 0 tabu, 1 duplicate
+[epistemic] gen_14_elite_1__s2 q16/h37 prior=0.02 head_p=0.10 FORCED -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('__file__')
+[epistemic] gen_14_elite_1__s2 q16/h36 prior=0.03 head_p=0.10 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('__file__')
+[epistemic] gen_14_elite_1__s2 iteration 3: 34 moves, dU=4.400, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py', 'hae/genome/morphogenesis.py'], counts={'questions': 17, 'questions_open': 12, 'questions_resolved': 5, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 37, 'hypotheses_untested': 5, 'hypotheses_supported': 6, 'hypotheses_falsified': 21, 'hypotheses_ce
+ [Iteration 3/5] [self-hosting-benchmark] 20/50 held-out tests (score=40.0)
+[epistemic] gen_14_elite_1__s2 iteration 4: oracle reconciliation -> certified=12 reopened=2 refreshed=3 seeded=0 open=5 uncertainty=3.55
+[epistemic] gen_14_elite_1__s2: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_1__s2 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_elite_1__s2 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_elite_1__s2 frontier size 3: 5 open question(s) in 4 cluster(s)
+[epistemic] gen_14_elite_1__s2 frontier += q17 (1/3; u=0.75; cluster 'q:q17')
+[epistemic] gen_14_elite_1__s2 frontier += q14 (2/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_elite_1__s2 frontier += q13 (3/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_elite_1__s2 q17/h27 prior=0.10 head_p=0.10 -> FALSIFIED (dU=0.236) prediction failed: stdout contains "HARNESS_IMPORT_FAIL: No module named 'hae.evaluation.verification_loop'"
+[epistemic] gen_14_elite_1__s2 q17/h11 prior=0.05 head_p=0.11 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('__file__')
+[epistemic] gen_14_elite_1__s2 q14: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q14/h40 prior=0.10 head_p=0.10 FORCED -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (f-string: unmatched '(' at line 20)
+[epistemic] gen_14_elite_1__s2 q14/h38 prior=0.65 head_p=0.09 -> UNTESTABLE (dU=0.000) rejected: probe has 56 non-blank lines; the policy allows 40
+[epistemic] gen_14_elite_1__s2 q14/h39 prior=0.25 head_p=0.09 -> UNTESTABLE (dU=0.000) rejected: probe has 48 non-blank lines; the policy allows 40
+[epistemic] gen_14_elite_1__s2 q14: proposed 3 -> 0 accepted, 3 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q14/h40 prior=0.10 head_p=0.10 FORCED -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (':' expected after dictionary key at line 11)
+[epistemic] gen_14_elite_1__s2 q14/h38 prior=0.65 head_p=0.09 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (':' expected after dictionary key at line 11)
+[epistemic] gen_14_elite_1__s2 iteration 4: 9 moves, dU=0.236, stop=stagnation, synthesized=[], counts={'questions': 17, 'questions_open': 5, 'questions_resolved': 0, 'questions_certified': 12, 'questions_exhausted': 0, 'hypotheses': 40, 'hypotheses_untested': 4, 'hypotheses_supported': 1, 'hypotheses_falsified': 24, 'hypotheses_certified': 3, 'hypotheses_untestable': 8, 'evidence': 54, 'settled_f
+ [Iteration 4/5] [self-hosting-benchmark] 20/50 held-out tests (score=40.0)
+[epistemic] gen_14_elite_1__s2 iteration 5: oracle reconciliation -> certified=0 reopened=0 refreshed=0 seeded=0 open=5 uncertainty=3.31
+[epistemic] gen_14_elite_1__s2: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Cluster Reliability & Site Reliability Engineer' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_elite_1__s2 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_elite_1__s2 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_elite_1__s2 frontier size 3: 5 open question(s) in 4 cluster(s)
+[epistemic] gen_14_elite_1__s2 frontier += q14 (1/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + passed")
+[epistemic] gen_14_elite_1__s2 frontier += q13 (2/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_elite_1__s2 frontier += q17 (3/3; u=0.51; cluster 'q:q17')
+[epistemic] gen_14_elite_1__s2 q14/h39 prior=0.25 head_p=0.09 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (':' expected after dictionary key at line 11)
+[epistemic] gen_14_elite_1__s2 q14: proposed 3 -> 1 accepted, 2 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q14/h41 prior=0.65 head_p=0.09 -> SUPPORTED (dU=0.895) prediction held: exit_code==0; stdout contains 'MARKER: FAILED_AS_EXPECTED'
+[epistemic] gen_14_elite_1__s2 q14/h40 prior=0.10 head_p=0.10 FORCED -> SUPPORTED (dU=0.000) prediction held: exit_code==0; stdout contains 'MARKER: FAILED_AS_EXPECTED'
+[epistemic] gen_14_elite_1__s2 q14/h41 synthesized hae/evaluation/harness.py [rewrite]: module check passed: py_compile, import, static_check (dU=0.085)
+[epistemic] gen_14_elite_1__s2 q9 deferred to the oracle: same cluster as resolved q14
+[epistemic] gen_14_elite_1__s2 frontier += q16 (3/3; u=0.05; cluster 'q:q16')
+[epistemic] gen_14_elite_1__s2 q13: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q13/h42 prior=0.65 head_p=0.09 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 9)
+[epistemic] gen_14_elite_1__s2 q13/h43 prior=0.25 head_p=0.09 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 9)
+[epistemic] gen_14_elite_1__s2 q13/h44 prior=0.10 head_p=0.09 -> FALSIFIED (dU=0.083) prediction failed: stdout contains 'HAS_PASSED_GATES:False'
+[epistemic] gen_14_elite_1__s2 q13: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q13/h47 prior=0.20 head_p=0.09 FORCED -> SUPPORTED (dU=0.427) prediction held: exit_code==0; stdout contains 'GATE:smoke:STATUS:failed'
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: anchored edit in `ExecutionHarness._check_smoke`: replaced 8 line(s) at line 500 (exact match) with 8; The smoke gate currently returns FAILED when no non-test modules are found, but the specification requires SKIPPED fo
+[epistemic] gen_14_elite_1__s2 q13/h47 synthesized hae/evaluation/harness.py [plan]: module check passed: py_compile, import, static_check (dU=0.220)
+[epistemic] gen_14_elite_1__s2 q17: proposed 3 -> 0 accepted, 0 repaired, 3 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q17: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_elite_1__s2 q17/h48 prior=0.45 head_p=0.10 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'HARNESS_FAIL_VERIFICATION_LOOP'
+[epistemic] gen_14_elite_1__s2 q17/h50 prior=0.10 head_p=0.10 FORCED -> SUPPORTED (dU=0.244) prediction held: exit_code==0; stdout contains 'VL_FAIL'
+[epistemic] gen_14_elite_1__s2 Cluster Reliability & Site Reliability Engineer: anchored edit in `hae/genome/morphogenesis.py`: replaced 6 line(s) at line 13 (exact match) with 18; The import error is caused by a namespace collision where a local file or directory named `verification_loop.py` or `ve
+[epistemic] gen_14_elite_1__s2 q17/h50 synthesized hae/genome/morphogenesis.py [plan]: module check passed: py_compile, import, static_check (dU=0.250)
+[epistemic] gen_14_elite_1__s2 q16: proposed 3 -> 0 accepted, 1 repaired, 0 tabu, 2 duplicate
+[epistemic] gen_14_elite_1__s2 q16/h37 prior=0.02 head_p=0.10 -> SUPPORTED (dU=0.000) prediction held: exit_code==0; stdout contains 'SUBMODULE_IMPORT_FAILURE'
+[epistemic] gen_14_elite_1__s2 q16/h37 synthesized hae/evaluation/verification_loop.py [author]: module check passed: py_compile, import, static_check (dU=0.030)
+[epistemic] gen_14_elite_1__s2 iteration 5: 20 moves, dU=2.234, stop=deferred_to_oracle, synthesized=['hae/evaluation/harness.py', 'hae/genome/morphogenesis.py', 'hae/evaluation/verification_loop.py'], counts={'questions': 17, 'questions_open': 1, 'questions_resolved': 4, 'questions_certified': 12, 'questions_exhausted': 0, 'hypotheses': 50, 'hypotheses_untested': 7, 'hypotheses_supported': 6, 'hy
+ [Iteration 5/5] [self-hosting-benchmark] 47/50 held-out tests (score=94.0)
+[epistemic] gen_14_elite_1__s2 iteration 6: oracle reconciliation -> certified=2 reopened=2 refreshed=0 seeded=0 open=3 uncertainty=2.50
+ [EPISTEMIC AUDIT] questions=17 certified=14 hypotheses_tested=35 evidence_backed=1.00 inconsistencies=0 brier=0.307371 resolved=0.85 moves=91/240 ledger=8647180d585c
+ FINAL NET FITNESS: 89.43/100 (Gross: 85.66) | Iterations: 5/5
+WORKER_EXIT=0

@@ -1,0 +1,63 @@
+     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: budget=60 moves, k=3, c_puct=1.4, low_prior_quota=0.34, bindings={'question': 'qa', 'hypothesis': 'engineering', 'experiment': 'verification', 'synthesis': 'engineering'}
+ [Iteration 1/5] [self-hosting-benchmark] 49/50 held-out tests (score=98.0)
+[epistemic] gen_14_mutant_3__s1 iteration 2: oracle reconciliation -> certified=0 reopened=0 refreshed=0 seeded=1 open=1 uncertainty=1.00
+[epistemic] gen_14_mutant_3__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_3__s1 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_mutant_3__s1 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_mutant_3__s1 frontier size 3: 1 open question(s) in 1 cluster(s)
+[epistemic] gen_14_mutant_3__s1 frontier += q1 (1/3; u=1.00; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_mutant_3__s1 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_3__s1 q1/h1 prior=0.85 head_p=0.09 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 19)
+[epistemic] gen_14_mutant_3__s1 q1/h2 prior=0.10 head_p=0.09 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 19)
+[epistemic] gen_14_mutant_3__s1 q1/h3 prior=0.05 head_p=0.10 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 15)
+[epistemic] gen_14_mutant_3__s1 q1: proposed 3 -> 1 accepted, 2 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_3__s1 q1/h3 prior=0.05 head_p=0.10 FORCED -> SUPPORTED (dU=0.715) prediction held: exit_code==0; stdout contains 'SMOKE_GATE_STATUS_EMPTY_AUTHORED: failed'
+[epistemic] gen_14_mutant_3__s1 q1/h4 prior=0.65 head_p=0.09 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'TESTS_GATE_STATUS: failed'
+[epistemic] gen_14_mutant_3__s1 q1/h3 synthesis wrote nothing: rewrite re-emitted identical content; no second attempt; plan write refused: error Refused to overwrite valid Python module with invalid syntax (invalid syntax  (failure 1/2)
+[epistemic] gen_14_mutant_3__s1 Principal AI Accelerator Architect: function rewrite of `ExecutionHarness._check_smoke`: rewrote `ExecutionHarness._check_smoke` (lines 521-623, 103 -> 103 lines); The smoke gate incorrectly classifies ModuleNotFoundError as FAILED when the missing module
+[epistemic] gen_14_mutant_3__s1 q1/h3 synthesized hae/evaluation/harness.py [function]: module check passed: py_compile, import, static_check (dU=0.265)
+[epistemic] gen_14_mutant_3__s1 iteration 2: 9 moves, dU=0.980, stop=all_resolved, synthesized=['hae/evaluation/harness.py'], counts={'questions': 1, 'questions_open': 0, 'questions_resolved': 1, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 4, 'hypotheses_untested': 1, 'hypotheses_supported': 1, 'hypotheses_falsified': 1, 'hypotheses_certified': 0, 'hypotheses_untestable': 1, 
+ [Iteration 2/5] [self-hosting-benchmark] 49/50 held-out tests (score=98.0)
+[epistemic] gen_14_mutant_3__s1 iteration 3: oracle reconciliation -> certified=0 reopened=1 refreshed=0 seeded=0 open=1 uncertainty=0.75
+[epistemic] gen_14_mutant_3__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_3__s1 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_mutant_3__s1 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_mutant_3__s1 frontier size 3: 1 open question(s) in 1 cluster(s)
+[epistemic] gen_14_mutant_3__s1 frontier += q1 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_mutant_3__s1 q1/h1 prior=0.85 head_p=0.09 -> SUPPORTED (dU=0.700) prediction held: exit_code==0; stdout contains 'SMOKE_GATE_STATUS: failed'
+[epistemic] gen_14_mutant_3__s1 q1/h1 synthesis wrote nothing: rewrite re-emitted identical content; no second attempt; plan write refused: error Refused to overwrite valid Python module with invalid syntax (invalid syntax  (failure 1/2)
+[epistemic] gen_14_mutant_3__s1 Principal AI Accelerator Architect: function rewrite of `ExecutionHarness._check_smoke`: rewrote `ExecutionHarness._check_smoke` (lines 521-623, 103 -> 103 lines); The smoke gate incorrectly classifies ModuleNotFoundError as FAILED when the missing module
+[epistemic] gen_14_mutant_3__s1 q1/h1 synthesized hae/evaluation/harness.py [function]: module check passed: py_compile, import, static_check (dU=0.030)
+[epistemic] gen_14_mutant_3__s1 iteration 3: 3 moves, dU=0.730, stop=all_resolved, synthesized=['hae/evaluation/harness.py'], counts={'questions': 1, 'questions_open': 0, 'questions_resolved': 1, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 4, 'hypotheses_untested': 0, 'hypotheses_supported': 1, 'hypotheses_falsified': 2, 'hypotheses_certified': 0, 'hypotheses_untestable': 1, 
+ [Iteration 3/5] [self-hosting-benchmark] 49/50 held-out tests (score=98.0)
+[epistemic] gen_14_mutant_3__s1 iteration 4: oracle reconciliation -> certified=0 reopened=1 refreshed=0 seeded=0 open=1 uncertainty=0.75
+[epistemic] gen_14_mutant_3__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_3__s1 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_mutant_3__s1 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_mutant_3__s1 frontier size 3: 1 open question(s) in 1 cluster(s)
+[epistemic] gen_14_mutant_3__s1 frontier += q1 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_mutant_3__s1 q1: proposed 3 -> 0 accepted, 0 repaired, 3 tabu, 0 duplicate
+[epistemic] gen_14_mutant_3__s1 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_3__s1 q1/h5 prior=0.45 head_p=0.09 -> SUPPORTED (dU=0.585) prediction held: exit_code==0; stdout contains 'TESTS_STATUS: failed'
+[epistemic] gen_14_mutant_3__s1 Principal AI Accelerator Architect: anchored edit in `ExecutionHarness._check_tests`: replaced 40 line(s) at line 753 (fuzzy match, ratio 0.99) with 44; The stdlib fallback runner currently only catches ModuleNotFoundError during module import (collection)
+[epistemic] gen_14_mutant_3__s1 q1/h5 synthesized hae/evaluation/harness.py [plan]: module check passed: py_compile, import, static_check (dU=0.145)
+[epistemic] gen_14_mutant_3__s1 iteration 4: 4 moves, dU=0.730, stop=all_resolved, synthesized=['hae/evaluation/harness.py'], counts={'questions': 1, 'questions_open': 0, 'questions_resolved': 1, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 7, 'hypotheses_untested': 2, 'hypotheses_supported': 1, 'hypotheses_falsified': 3, 'hypotheses_certified': 0, 'hypotheses_untestable': 1, 
+ [Iteration 4/5] [self-hosting-benchmark] 49/50 held-out tests (score=98.0)
+[epistemic] gen_14_mutant_3__s1 iteration 5: oracle reconciliation -> certified=0 reopened=1 refreshed=0 seeded=0 open=1 uncertainty=0.75
+[epistemic] gen_14_mutant_3__s1: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_mutant_3__s1 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_mutant_3__s1 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_mutant_3__s1 frontier size 3: 1 open question(s) in 1 cluster(s)
+[epistemic] gen_14_mutant_3__s1 frontier += q1 (1/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - failed + skippe")
+[epistemic] gen_14_mutant_3__s1 q1/h6 prior=0.35 head_p=0.09 -> FALSIFIED (dU=0.193) prediction failed: stdout contains 'TESTS_STATUS: failed'
+[epistemic] gen_14_mutant_3__s1 q1/h7 prior=0.20 head_p=0.09 -> FALSIFIED (dU=0.038) prediction failed: stdout contains 'TESTS_STATUS: skipped'
+[epistemic] gen_14_mutant_3__s1 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_mutant_3__s1 q1/h10 prior=0.15 head_p=0.09 FORCED -> SUPPORTED (dU=0.264) prediction held: exit_code==0; stdout contains 'Status: failed'
+[epistemic] gen_14_mutant_3__s1 Principal AI Accelerator Architect: anchored edit in `_check_tests`: replaced 15 line(s) at line 783 (dedent match) with 18; The stdlib fallback runner incorrectly classifies any collection error (including syntax errors) as FAILED if it's not exclusively
+[epistemic] gen_14_mutant_3__s1 q1/h10 synthesized hae/evaluation/harness.py [plan]: module check passed: py_compile, import, static_check (dU=0.235)
+[epistemic] gen_14_mutant_3__s1 iteration 5: 5 moves, dU=0.730, stop=all_resolved, synthesized=['hae/evaluation/harness.py'], counts={'questions': 1, 'questions_open': 0, 'questions_resolved': 1, 'questions_certified': 0, 'questions_exhausted': 0, 'hypotheses': 10, 'hypotheses_untested': 2, 'hypotheses_supported': 1, 'hypotheses_falsified': 6, 'hypotheses_certified': 0, 'hypotheses_untestable': 1,
+ [Iteration 5/5] [self-hosting-benchmark] 49/50 held-out tests (score=98.0)
+[epistemic] gen_14_mutant_3__s1 iteration 6: oracle reconciliation -> certified=0 reopened=1 refreshed=0 seeded=0 open=1 uncertainty=0.75
+ [EPISTEMIC AUDIT] questions=1 certified=0 hypotheses_tested=7 evidence_backed=1.00 inconsistencies=0 brier=0.219286 resolved=0.25 moves=21/240 ledger=836265685c8a
+ FINAL NET FITNESS: 81.39/100 (Gross: 77.05) | Iterations: 5/5
+WORKER_EXIT=0

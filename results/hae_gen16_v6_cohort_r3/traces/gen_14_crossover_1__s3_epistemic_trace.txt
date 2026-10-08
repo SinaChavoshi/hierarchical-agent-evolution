@@ -1,0 +1,146 @@
+     [V6 EPISTEMIC] Repair iterations run as epistemic tree-search: budget=60 moves, k=3, c_puct=1.4, low_prior_quota=0.34, bindings={'question': 'qa', 'hypothesis': 'engineering', 'experiment': 'verification', 'synthesis': 'engineering'}
+ [Iteration 1/5] [self-hosting-benchmark] 23/50 held-out tests (score=46.0)
+[epistemic] gen_14_crossover_1__s3 iteration 2: oracle reconciliation -> certified=0 reopened=0 refreshed=0 seeded=20 open=20 uncertainty=20.00
+[epistemic] gen_14_crossover_1__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_crossover_1__s3 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_crossover_1__s3 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_crossover_1__s3 frontier size 3: 20 open question(s) in 2 cluster(s)
+[epistemic] gen_14_crossover_1__s3 frontier += q1 (1/3; u=1.00; cluster 'hae/evaluation/harness.py|UnboundLocalError: cannot access local varia')
+[epistemic] gen_14_crossover_1__s3 frontier += q16 (2/3; u=1.00; cluster 'hae/evaluation/verification_loop.py|UnboundLocalError: cannot access l')
+[epistemic] gen_14_crossover_1__s3 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q1/h1 prior=0.85 head_p=0.10 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python ('{' was never closed at line 18)
+[epistemic] gen_14_crossover_1__s3 q1/h2 prior=0.10 head_p=0.10 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python ('{' was never closed at line 12)
+[epistemic] gen_14_crossover_1__s3 q1/h3 prior=0.05 head_p=0.11 -> FALSIFIED (dU=0.025) prediction failed: stdout contains 'INSTANTIATION_OK'
+[epistemic] gen_14_crossover_1__s3 q16: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q16/h5 prior=0.05 head_p=0.10 FORCED -> FALSIFIED (dU=0.025) prediction failed: stdout contains 'SUCCESS: verify completed'
+[epistemic] gen_14_crossover_1__s3 q16/h4 prior=0.85 head_p=0.09 -> SUPPORTED (dU=0.925) prediction held: exit_code==0; stdout contains 'FAILURE: UnboundLocalError caught'
+[epistemic] gen_14_crossover_1__s3 Principal AI Accelerator Architect: function rewrite of `VerificationLoop.verify`: rewrote `VerificationLoop.verify` (lines 94-184, 91 -> 117 lines); The UnboundLocalError originates in harness.py's _gate_tests/_gate_smoke when generating subprocess script
+[epistemic] gen_14_crossover_1__s3 q16/h4 synthesized hae/evaluation/verification_loop.py [function]: module check passed: py_compile, import, static_check (dU=0.030)
+[epistemic] gen_14_crossover_1__s3 q17 deferred to the oracle: same cluster as resolved q16
+[epistemic] gen_14_crossover_1__s3 q18 deferred to the oracle: same cluster as resolved q16
+[epistemic] gen_14_crossover_1__s3 q19 deferred to the oracle: same cluster as resolved q16
+[epistemic] gen_14_crossover_1__s3 q20 deferred to the oracle: same cluster as resolved q16
+[epistemic] gen_14_crossover_1__s3 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q1/h9 prior=0.05 head_p=0.10 FORCED -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('inspect.getsource')
+[epistemic] gen_14_crossover_1__s3 q1/h7 prior=0.85 head_p=0.09 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('inspect.getsource')
+[epistemic] gen_14_crossover_1__s3 q1/h8 prior=0.10 head_p=0.10 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('inspect.getsource')
+[epistemic] gen_14_crossover_1__s3 frontier += q10 (1/3; u=1.00; cluster 'hae/evaluation/harness.py|UnboundLocalError: cannot access local varia')
+[epistemic] gen_14_crossover_1__s3 q10: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q10/h12 prior=0.05 head_p=0.10 FORCED -> SUPPORTED (dU=0.715) prediction held: exit_code==0; stdout contains 'UNBOUND_E_DETECTED'
+[epistemic] gen_14_crossover_1__s3 q10/h10 prior=0.85 head_p=0.09 -> SUPPORTED (dU=0.235) prediction held: exit_code==0; stdout contains 'UNBOUND_E_DETECTED'
+[epistemic] gen_14_crossover_1__s3 q10/h10 reverted hae/evaluation/harness.py to its pre-synthesis content after a failed module check
+[epistemic] gen_14_crossover_1__s3 q10/h10 synthesized hae/evaluation/harness.py [rewrite]: module check failed at static_check: undefined name 'exc' at line 464 in _gate_smoke (+3 more) (reverted) (dU=0.000)
+[epistemic] gen_14_crossover_1__s3 q10/h10 synthesis wrote nothing: rewrite re-emitted identical content; no second attempt; plan not applicable: plan is a no-op (new_lines == old_lines); function rewrite not applicable: replace (failure 2/2)
+[epistemic] gen_14_crossover_1__s3 Principal AI Accelerator Architect: function rewrite of `ExecutionHarness._gate_smoke`: rewrote `ExecutionHarness._gate_smoke` (lines 395-562, 168 -> 125 lines); The UnboundLocalError is caused by Python 3 scoping rules where the variable `e` defined in an
+[epistemic] gen_14_crossover_1__s3 q10/h12 reverted hae/evaluation/harness.py to its pre-synthesis content after a failed module check
+[epistemic] gen_14_crossover_1__s3 q10/h12 synthesized hae/evaluation/harness.py [function]: module check failed at static_check: name 'exc' is unbound at line 440 in _gate_smoke: it is bound only by 'except ... a (reverted) (dU=0.000)
+[epistemic] gen_14_crossover_1__s3 q10/h12 reverted hae/evaluation/harness.py to its pre-synthesis content after a failed module check
+[epistemic] gen_14_crossover_1__s3 q10/h12 synthesized hae/evaluation/harness.py [rewrite]: module check failed at static_check: undefined name 'exc' at line 464 in _gate_smoke (+3 more) (reverted) (dU=0.000)
+[epistemic] gen_14_crossover_1__s3 q10/h11 prior=0.10 head_p=0.10 -> SUPPORTED (dU=0.000) prediction held: exit_code==0; stdout contains 'UNBOUND_E_DETECTED'
+[epistemic] gen_14_crossover_1__s3 q10/h11 reverted hae/evaluation/harness.py to its pre-synthesis content after a failed module check
+[epistemic] gen_14_crossover_1__s3 q10/h11 synthesized hae/evaluation/harness.py [rewrite]: module check failed at static_check: undefined name 'exc' at line 464 in _gate_smoke (+3 more) (reverted) (dU=0.000)
+[epistemic] gen_14_crossover_1__s3 Principal AI Accelerator Architect: function rewrite of `ExecutionHarness._gate_smoke`: rewrote `ExecutionHarness._gate_smoke` (lines 395-562, 168 -> 118 lines); The variable `e` is undefined in the scope where it is referenced in the generated script stri
+[epistemic] gen_14_crossover_1__s3 q10/h11 reverted hae/evaluation/harness.py to its pre-synthesis content after a failed module check
+[epistemic] gen_14_crossover_1__s3 q10/h11 synthesized hae/evaluation/harness.py [function]: module check failed at static_check: name 'exc' is unbound at line 439 in _gate_smoke: it is bound only by 'except ... a (reverted) (dU=0.000)
+[epistemic] gen_14_crossover_1__s3 q10: proposed 3 -> 0 accepted, 0 repaired, 0 tabu, 3 duplicate
+[epistemic] gen_14_crossover_1__s3 iteration 2: 23 moves, dU=1.955, stop=stagnation, synthesized=['hae/evaluation/verification_loop.py'], counts={'questions': 20, 'questions_open': 19, 'questions_resolved': 1, 'questions_certified': 0, 'questions_exhausted': 1, 'hypotheses': 12, 'hypotheses_untested': 1, 'hypotheses_supported': 4, 'hypotheses_falsified': 2, 'hypotheses_certified': 0, 'hypotheses_u
+ [Iteration 2/5] [self-hosting-benchmark] 32/50 held-out tests (score=64.0)
+[epistemic] gen_14_crossover_1__s3 iteration 3: oracle reconciliation -> certified=4 reopened=0 refreshed=1 seeded=2 open=18 uncertainty=17.02
+[epistemic] gen_14_crossover_1__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_crossover_1__s3 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_crossover_1__s3 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_crossover_1__s3 frontier size 3: 18 open question(s) in 4 cluster(s)
+[epistemic] gen_14_crossover_1__s3 frontier += q11 (1/3; u=1.00; cluster 'hae/evaluation/harness.py|UnboundLocalError: cannot access local varia')
+[epistemic] gen_14_crossover_1__s3 frontier += q19 (2/3; u=1.00; cluster 'hae/evaluation/verification_loop.py|AssertionError: \'?\' not found in "')
+[epistemic] gen_14_crossover_1__s3 frontier += q21 (3/3; u=1.00; cluster "hae/evaluation/verification_loop.py|AssertionError: '?' != '?' - faile")
+[epistemic] gen_14_crossover_1__s3 q11: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q11/h13 prior=0.85 head_p=0.09 -> SUPPORTED (dU=0.950) prediction held: exit_code==0; stdout contains 'PROBE_HIT_UNBOUND_LOCAL_E'
+[epistemic] gen_14_crossover_1__s3 q11/h14 prior=0.10 head_p=0.10 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'PROBE_HIT_NAME_ERROR_E'
+[epistemic] gen_14_crossover_1__s3 Principal AI Accelerator Architect: function rewrite of `ExecutionHarness._gate_smoke`: rewrote `ExecutionHarness._gate_smoke` (lines 395-562, 168 -> 120 lines); The variable `e` is referenced in the generated subprocess script's `except` blocks but is not
+[epistemic] gen_14_crossover_1__s3 q11/h13 revert of hae/evaluation/harness.py refused: Monotonic Verification Guard: refused to overwrite hae/evaluation/harness.py (current ground-truth score: 18.75%) with a lower-scoring implementation (6.25%). W
+[epistemic] gen_14_crossover_1__s3 q11/h13 synthesized hae/evaluation/harness.py [function]: module check failed at static_check: name 'e' is unbound at line 649 in _gate_tests: it is bound only by 'except ... as  (dU=0.000)
+[epistemic] gen_14_crossover_1__s3 Principal AI Accelerator Architect: function rewrite of `ExecutionHarness._gate_smoke`: rewrote `ExecutionHarness._gate_smoke` (lines 395-514, 120 -> 120 lines); Fixes UnboundLocalError in the generated subprocess script by removing the reference to 'e' in
+[epistemic] gen_14_crossover_1__s3 q11/h13 reverted hae/evaluation/harness.py to its pre-synthesis content after a failed module check
+[epistemic] gen_14_crossover_1__s3 q11/h13 synthesized hae/evaluation/harness.py [function]: module check failed at static_check: name 'e' is unbound at line 649 in _gate_tests: it is bound only by 'except ... as  (reverted) (dU=0.000)
+[epistemic] gen_14_crossover_1__s3 q11/h15 prior=0.05 head_p=0.10 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'PROBE_HIT_UNBOUND_LOCAL_E'
+[epistemic] gen_14_crossover_1__s3 q19: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q19/h18 prior=0.05 head_p=0.10 FORCED -> SUPPORTED (dU=0.715) prediction held: exit_code==0; stdout contains 'MARKER: HAS_INDENT_ERROR'
+[epistemic] gen_14_crossover_1__s3 q19/h16 prior=0.85 head_p=0.09 -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'MARKER: HARNESS_EXCEPTION_LEAK'
+[epistemic] gen_14_crossover_1__s3 Principal AI Accelerator Architect: anchored edit in `VerificationLoop.verify`: replaced 34 line(s) at line 116 (exact match) with 3; The current implementation catches exceptions from `self.harness.verify_bundle` and replaces the report with a synthetic o
+[epistemic] gen_14_crossover_1__s3 q19/h18 synthesized hae/evaluation/verification_loop.py [plan]: module check passed: py_compile, import, static_check (dU=0.265)
+[epistemic] gen_14_crossover_1__s3 frontier += q22 (3/3; u=1.00; cluster 'hae/evaluation/verification_loop.py|AssertionError: # not greater than')
+[epistemic] gen_14_crossover_1__s3 q21: proposed 1 -> 1 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q21/h19 prior=0.65 head_p=0.09 -> UNTESTABLE (dU=0.000) rejected: probe is not valid Python (invalid syntax. Perhaps you forgot a comma? at line 16)
+[epistemic] gen_14_crossover_1__s3 q22: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q22/h22 prior=0.05 head_p=0.10 FORCED -> FALSIFIED (dU=0.025) prediction failed: exit_code==0; stdout contains 'attempt_passed_count: 0'
+[epistemic] gen_14_crossover_1__s3 q22/h20 prior=0.85 head_p=0.09 -> FALSIFIED (dU=0.425) prediction failed: exit_code==0; stdout contains 'best_passed_count: 0'
+[epistemic] gen_14_crossover_1__s3 q22/h21 prior=0.10 head_p=0.09 -> FALSIFIED (dU=0.050) prediction failed: exit_code==0; stdout contains 'best_passed_count: 0'
+[epistemic] gen_14_crossover_1__s3 q21: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q21/h25 prior=0.10 head_p=0.10 FORCED -> FALSIFIED (dU=0.030) prediction failed: exit_code==0; stdout contains 'GATE_STATUS_LEN:0'
+[epistemic] gen_14_crossover_1__s3 q21/h24 prior=0.75 head_p=0.09 -> FALSIFIED (dU=0.227) prediction failed: exit_code==0
+[epistemic] gen_14_crossover_1__s3 q21/h23 prior=0.15 head_p=0.09 -> FALSIFIED (dU=0.045) prediction failed: exit_code==0; stdout contains 'GATE_STATUS:'
+[epistemic] gen_14_crossover_1__s3 q22: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q22/h28 prior=0.10 head_p=0.09 FORCED -> SUPPORTED (dU=0.230) prediction held: exit_code==0; stdout contains 'PASSED_COUNT: 1'
+[epistemic] gen_14_crossover_1__s3 Principal AI Accelerator Architect: function rewrite of `VerificationLoop.verify`: rewrote `VerificationLoop.verify` (lines 94-179, 86 -> 94 lines); The `verify` method must correctly extract `gate_status` and `gate_detail` from the `VerificationReport` ob
+[epistemic] gen_14_crossover_1__s3 q22/h28 reverted hae/evaluation/verification_loop.py to its pre-synthesis content after a failed module check
+[epistemic] gen_14_crossover_1__s3 q22/h28 synthesized hae/evaluation/verification_loop.py [function]: module check failed at static_check: name 'e' is unbound at line 126 in verify: it is bound only by 'except ... as e', a (reverted) (dU=0.000)
+[epistemic] gen_14_crossover_1__s3 Principal AI Accelerator Architect: anchored edit in `verify`: replaced 40 line(s) at line 116 (exact match) with 46; The `verify` method contains a bug where an exception during harness execution (or potentially within the harness itself due to variable s
+[epistemic] gen_14_crossover_1__s3 q22/h28 synthesized hae/evaluation/verification_loop.py [plan]: module check passed: py_compile, import, static_check (dU=0.250)
+[epistemic] gen_14_crossover_1__s3 q11: proposed 3 -> 0 accepted, 0 repaired, 2 tabu, 1 duplicate
+[epistemic] gen_14_crossover_1__s3 frontier += q12 (1/3; u=1.00; cluster 'hae/evaluation/harness.py|UnboundLocalError: cannot access local varia')
+[epistemic] gen_14_crossover_1__s3 q12: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q12/h29 prior=0.85 head_p=0.09 -> UNTESTABLE (dU=0.000) rejected: probe reaches outside the stage ('inspect.getsource')
+[epistemic] gen_14_crossover_1__s3 q12/h30 prior=0.05 head_p=0.10 FORCED -> SUPPORTED (dU=0.715) prediction held: exit_code==0; stdout contains 'HYPOTHESIS_TRUE'
+[epistemic] gen_14_crossover_1__s3 q12/h31 prior=0.10 head_p=0.10 -> SUPPORTED (dU=0.015) prediction held: exit_code==0; stdout contains 'HYPOTHESIS_TRUE'
+[epistemic] gen_14_crossover_1__s3 q12/h31 synthesized hae/evaluation/harness.py [rewrite]: module check passed: py_compile, import, static_check (dU=0.250)
+[epistemic] gen_14_crossover_1__s3 q1 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q2 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q3 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q4 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q5 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q6 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q7 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q8 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q9 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q10 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q13 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q14 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 q15 deferred to the oracle: same cluster as resolved q12
+[epistemic] gen_14_crossover_1__s3 iteration 3: 30 moves, dU=4.193, stop=deferred_to_oracle, synthesized=['hae/evaluation/verification_loop.py', 'hae/evaluation/harness.py'], counts={'questions': 22, 'questions_open': 15, 'questions_resolved': 3, 'questions_certified': 4, 'questions_exhausted': 2, 'hypotheses': 31, 'hypotheses_untested': 4, 'hypotheses_supported': 8, 'hypotheses_falsified': 11, 'h
+ [Iteration 3/5] [self-hosting-benchmark] 48/50 held-out tests (score=96.0)
+[epistemic] gen_14_crossover_1__s3 iteration 4: oracle reconciliation -> certified=16 reopened=0 refreshed=2 seeded=0 open=2 uncertainty=1.98
+[epistemic] gen_14_crossover_1__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_crossover_1__s3 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_crossover_1__s3 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_crossover_1__s3 frontier size 3: 2 open question(s) in 2 cluster(s)
+[epistemic] gen_14_crossover_1__s3 frontier += q3 (1/3; u=1.00; cluster 'hae/evaluation/harness.py|AssertionError: # != #')
+[epistemic] gen_14_crossover_1__s3 frontier += q1 (2/3; u=0.97; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - passed + failed")
+[epistemic] gen_14_crossover_1__s3 q3: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q3/h32 prior=0.45 head_p=0.09 -> SUPPORTED (dU=0.835) prediction held: exit_code==0; stdout contains 'AUTHORED_COUNT: 4'
+[epistemic] gen_14_crossover_1__s3 q3/h33 prior=0.35 head_p=0.09 -> SUPPORTED (dU=0.000) prediction held: exit_code==0; stdout contains 'FILTERED_COUNT: 4'
+[epistemic] gen_14_crossover_1__s3 Principal AI Accelerator Architect: anchored edit in `verify_directory`: replaced 2 line(s) at line 221 (exact match) with 2; Exclude files with 'test' in their basename from the authored_files and python_files counts to align with the specification that t
+[epistemic] gen_14_crossover_1__s3 q3/h32 synthesized hae/evaluation/harness.py [plan]: module check passed: py_compile, import, static_check (dU=0.145)
+[epistemic] gen_14_crossover_1__s3 q1: proposed 3 -> 3 accepted, 0 repaired, 0 tabu, 0 duplicate
+[epistemic] gen_14_crossover_1__s3 q1/h37 prior=0.05 head_p=0.10 FORCED -> FALSIFIED (dU=0.000) prediction failed: stdout contains 'STATUS: skipped'
+[epistemic] gen_14_crossover_1__s3 q1/h35 prior=0.85 head_p=0.09 -> SUPPORTED (dU=0.925) prediction held: exit_code==0; stdout contains 'TESTS_GATE_STATUS: passed'
+[epistemic] gen_14_crossover_1__s3 q1/h35 synthesized hae/evaluation/harness.py [rewrite]: module check passed: py_compile, import, static_check (dU=0.030)
+[epistemic] gen_14_crossover_1__s3 iteration 4: 8 moves, dU=1.935, stop=all_resolved, synthesized=['hae/evaluation/harness.py'], counts={'questions': 22, 'questions_open': 0, 'questions_resolved': 2, 'questions_certified': 20, 'questions_exhausted': 0, 'hypotheses': 37, 'hypotheses_untested': 6, 'hypotheses_supported': 6, 'hypotheses_falsified': 12, 'hypotheses_certified': 6, 'hypotheses_untestabl
+ [Iteration 4/5] [self-hosting-benchmark] 48/50 held-out tests (score=96.0)
+[epistemic] gen_14_crossover_1__s3 iteration 5: oracle reconciliation -> certified=0 reopened=2 refreshed=0 seeded=0 open=2 uncertainty=1.50
+[epistemic] gen_14_crossover_1__s3: bindings hypothesis='Principal AI Accelerator Architect' synthesis='Principal AI Accelerator Architect' budget=60 moves k=3 c_puct=1.4 low_prior_quota=0.34
+[epistemic] gen_14_crossover_1__s3 value head loaded from /app/hae/epistemic/heads/v7_value_head.json
+[epistemic] gen_14_crossover_1__s3 prior head loaded from /app/hae/epistemic/heads/v7_prior_head.json
+[epistemic] gen_14_crossover_1__s3 frontier size 3: 2 open question(s) in 2 cluster(s)
+[epistemic] gen_14_crossover_1__s3 frontier += q3 (1/3; u=0.75; cluster 'hae/evaluation/harness.py|AssertionError: # != #')
+[epistemic] gen_14_crossover_1__s3 frontier += q1 (2/3; u=0.75; cluster "hae/evaluation/harness.py|AssertionError: '?' != '?' - passed + failed")
+[epistemic] gen_14_crossover_1__s3 Principal AI Accelerator Architect: anchored edit in `verify_directory`: replaced 37 line(s) at line 221 (fuzzy match, ratio 1.00) with 34; The `verify_directory` method currently counts all Python files as authored, including test files, which causes `tes
+[epistemic] gen_14_crossover_1__s3 q3/h33 synthesized hae/evaluation/harness.py [plan]: module check passed: py_compile, import, static_check (dU=0.730)
+[epistemic] gen_14_crossover_1__s3 q1/h36 prior=0.10 head_p=0.09 -> SUPPORTED (dU=0.480) prediction held: exit_code==0; stdout contains 'STATUS: passed'
+[epistemic] gen_14_crossover_1__s3 q1/h36 synthesis wrote nothing: rewrite re-emitted identical content; no second attempt; plan not applicable: plan is a no-op (new_lines == old_lines); function rewrite not applicable: replace (failure 1/2)
+[epistemic] gen_14_crossover_1__s3 q1/h36 synthesized hae/evaluation/harness.py [rewrite]: module check passed: py_compile, import, static_check (dU=0.250)
+[epistemic] gen_14_crossover_1__s3 iteration 5: 4 moves, dU=1.460, stop=all_resolved, synthesized=['hae/evaluation/harness.py'], counts={'questions': 22, 'questions_open': 0, 'questions_resolved': 2, 'questions_certified': 20, 'questions_exhausted': 0, 'hypotheses': 37, 'hypotheses_untested': 5, 'hypotheses_supported': 5, 'hypotheses_falsified': 14, 'hypotheses_certified': 6, 'hypotheses_untestabl
+ [Iteration 5/5] [self-hosting-benchmark] 48/50 held-out tests (score=96.0)
+[epistemic] gen_14_crossover_1__s3 iteration 6: oracle reconciliation -> certified=0 reopened=2 refreshed=0 seeded=0 open=2 uncertainty=1.50
+ [EPISTEMIC AUDIT] questions=22 certified=20 hypotheses_tested=25 evidence_backed=1.00 inconsistencies=0 brier=0.3334 resolved=0.93 moves=65/240 ledger=61de02181df1
+ FINAL NET FITNESS: 92.37/100 (Gross: 89.1) | Iterations: 5/5
+WORKER_EXIT=0
