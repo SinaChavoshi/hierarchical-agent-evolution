@@ -1,9 +1,11 @@
 # Track C — SWE-bench adapters (v8)
 
-Status: merged on `main`. First live run on 2026-10-08 (`KubectlExecutor`
-against a SWE-bench instance image on GKE, self-hosted Qwen3.8 via vLLM); see
-`results/swebench/smoke_2026-10-08/`. The Docker path is verified only through
-argv construction and the upstream docs cited at the end.
+Status: merged on `main`. First live runs on 2026-10-08 (`KubectlExecutor`
+against SWE-bench instance images on GKE, self-hosted Qwen3.8 via vLLM); see
+`results/swebench/smoke_2026-10-08/` (three instances, V8) and
+`results/swebench/v9_ab_mcts_2026-10-08/` (V9 against a V8 rerun on one
+instance, with the gate defects those runs found). The Docker path is verified
+only through argv construction and the upstream docs cited at the end.
 
 ## 1. Executor boundary
 
@@ -26,7 +28,11 @@ class is byte-for-byte v7. In executor mode a probe is written to
 compile → import → static check (new findings vs `git show HEAD:`) →
 *proximity tests*: at most 3 tracked `test_*.py`/`*_test.py`/`tests.py` files
 under a `tests/`, `test/` or `testing/` directory whose name contains the edited
-module's stem, shortest first. It never reads `FAIL_TO_PASS`/`PASS_TO_PASS`;
+module's stem, shortest first. Only a test failure fails the step, plus one
+case added after the 2026-10-08 runs: pytest exiting 3/4 before collection
+(for instance `ImportError while loading conftest`) with a traceback frame in
+the edited module. Other start-up errors, "nothing collected" and timeouts
+stay inconclusive and pass. It never reads `FAIL_TO_PASS`/`PASS_TO_PASS`;
 `tests/test_swebench_dataset.py::LeakageTests` AST-scans
 runner/task/export/gatekeeper/executor for those names. Repos without pytest
 (django) get "skipped-pass" — pass `--test-command` for those.

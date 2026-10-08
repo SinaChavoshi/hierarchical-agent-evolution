@@ -57,7 +57,8 @@ from hae.runtime.workspace import AgentWorkspace
 from tests.test_epistemic_runner import BUGGY as RUNNER_BUGGY, OBJECTIVE, _genome
 from tests.test_epistemic_search import PROBE, FakeSystem1, right, wrong
 from tests.test_recruit_move import (
-    LoopFixture, RecordingRecruiter, RoleAwareSystem1, ScriptedCEO, ceo_policy, refused, role, strip_volatile,
+    BAD_PROBE, LoopFixture, RecordingRecruiter, RoleAwareSystem1, ScriptedCEO, ceo_policy, refused, role,
+    strip_volatile,
 )
 
 GOLDEN = os.path.join(os.path.dirname(os.path.abspath(__file__)), "golden", "puct_v8_trajectories.json")
@@ -444,6 +445,31 @@ class FastPathTests(LoopFixture):
             self.assertEqual(result.stop_reason, STOP_RESOLVED, seed)
             self.assertLessEqual(result.moves_used, 5, seed)
 
+    def test_a_refused_probe_is_repaired_by_restating_the_mechanism(self):
+        # The live V9 run on marshmallow-1810 left two refused hypotheses dead:
+        # the k=1 prompt forbade restating them. The ledger's repair path
+        # (same claim and mechanism, new probe) must stay reachable under
+        # AB-MCTS: the refusal costs one GEN draw, the restatement is a
+        # repair, and the repaired hypothesis comes back as an experiment arm.
+        good = right(0.9)
+        broken = good.__class__(good.claim, good.mechanism, good.prior, BAD_PROBE, dict(good.prediction))
+        sys1 = KRecordingSystem1(self.ws, rounds=[[broken], [good]])
+        loop = self.loop(sys1, search_algorithm="ab_mcts")
+        loop.ab.rng = MeanRng()
+        result = loop.run()
+        self.assertEqual(result.stop_reason, STOP_RESOLVED)
+        self.assertEqual([m.move_type for m in result.trajectory],
+                         [MOVE_PROPOSE_HYPOTHESIS, MOVE_RUN_EXPERIMENT,      # refused
+                          MOVE_PROPOSE_HYPOTHESIS,                           # restated: a repair, not a duplicate
+                          MOVE_RUN_EXPERIMENT, MOVE_SYNTHESIZE])
+        self.assertEqual(sys1.ks, [1, 1])
+        self.assertEqual((result.stats["rejected_probes"], result.stats["probe_repairs"],
+                          result.stats["duplicate_rejections"], result.stats["supported"]), (1, 1, 0, 1))
+        self.assertEqual(len(result.final_state.hypotheses), 1)            # repaired in place, same id
+        self.assertIn("1 repaired", result.trajectory[2].note)
+        counts = result.stats["ab_mcts"]["counts"]
+        self.assertEqual((counts["widen_hypothesis"], counts["gen_empty_draws"]), (2, 0))
+
 
 # --------------------------------------------------------------------------- #
 # 3. Hard bug: widen past the V8 cap
@@ -678,6 +704,7 @@ class SingleHypothesisAdapterTests(unittest.TestCase):
         self.assertIn("PROPOSE 1 NEW FALSIFIABLE HYPOTHESIS", prompt)
         self.assertNotIn("MUTUALLY-EXCLUSIVE", prompt)
         self.assertIn("The mechanism must be NEW", prompt)
+        self.assertIn("may be restated with the same claim and mechanism and a corrected probe", prompt)
         self.assertIn("RULED OUT (falsified; do NOT propose again):", prompt)
         self.assertIn(self.h.claim, prompt)
         self.assertIn("PROBE OUTCOMES ON THIS QUESTION", prompt)
@@ -698,6 +725,7 @@ class SingleHypothesisAdapterTests(unittest.TestCase):
                           prompt)
             self.assertNotIn("PROBE OUTCOMES ON THIS QUESTION", prompt)
             self.assertNotIn("must be NEW", prompt)
+            self.assertNotIn("may be restated", prompt)
 
     def test_probe_record_covers_refused_probes_and_is_empty_without_probes(self):
         self.assertEqual(HierarchicalCompanyRunner._probe_outcomes_block(EpistemicState("x"), "q1"), "")

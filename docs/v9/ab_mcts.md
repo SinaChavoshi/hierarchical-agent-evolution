@@ -8,7 +8,7 @@ Specification: `docs/v8_role_evolution_and_swebench_roadmap.md`, section
 "Agent Implementation Specification for V9". Code: `hae/epistemic/ab_mcts.py`
 (the controller), `hae/epistemic/mcts.py` (`_ab_step`, the gate),
 `hae/genome/schema.py` (the gene fields), `hae/runtime/company.py` (the k=1
-proposer prompt). Tests: `tests/test_ab_mcts.py` (28 tests).
+proposer prompt). Tests: `tests/test_ab_mcts.py` (29 tests).
 
 ## 1. What changes and what does not
 
@@ -100,11 +100,15 @@ HYPOTHESIS" whose mechanism differs from every listed and RULED OUT one, and
 adds a `PROBE OUTCOMES ON THIS QUESTION` block to the context: for each probe
 that ran on the question, the hypothesis id and verdict, the claim, what the
 probe predicted and what it actually printed (exit code and the last 160
-characters of stdout), or the gatekeeper's refusal. The `k >= 2` prompt and
-context are unchanged byte for byte (`branching_k` is bounded to [2, 6], so
-the PUCT path never reaches the single mode). The schema
-(`V6_HYPOTHESIS_SCHEMA`) and `max_tokens` are the same; `parse_hypothesis_packet`
-keeps one item.
+characters of stdout), or the gatekeeper's refusal. One exception to "NEW" is
+spelled out: a hypothesis whose probe was refused may be restated with the
+same claim and mechanism and a corrected probe, which the ledger records as a
+repair of the original (the V8 k=3 prompt reaches the same repair path
+without being told; the first live V9 run showed that the stricter k=1 rule
+had closed it). The `k >= 2` prompt and context are unchanged byte for byte
+(`branching_k` is bounded to [2, 6], so the PUCT path never reaches the single
+mode). The schema (`V6_HYPOTHESIS_SCHEMA`) and `max_tokens` are the same;
+`parse_hypothesis_packet` keeps one item.
 
 ## 5. Decisions the specification left open
 
@@ -162,7 +166,9 @@ sampler and assert loosely.
    loop has no controller, no `ab_*` fields and no V9 stats keys.
 2. **Width 1.** One hypothesis with prior 0.9: `propose(k=1)`, `run_experiment`,
    `synthesize`, `all_resolved` in 3 moves, with `min_hypotheses_before_synthesis = 3`
-   ignored. Under the seeded sampler, at most 5 moves over 6 seeds.
+   ignored. Under the seeded sampler, at most 5 moves over 6 seeds. A refused
+   probe restated with a corrected probe is a repair, not a duplicate: 5 moves,
+   one hypothesis id, `probe_repairs = 1`.
 3. **Widening.** Seven falsified mechanisms then the right one: 8 hypotheses,
    17 moves, `all_resolved`; the GEN arm's mean falls monotonically from 0.5
    to below 0.3 while each new hypothesis is tested as soon as it exists. The
@@ -196,6 +202,20 @@ python3 -m hae.cli --mode swebench --instance-id <id> \
 ```
 
 The tree's `stats.ab_mcts.trace` shows, per step, every arm's draw and the one
-taken; `stats.ab_mcts.arms` shows where each posterior ended. The next step on
-the roadmap is the V8-vs-V9 comparison on the 50-task dev slice with the
-self-hosted model; nothing here has been measured on a live task yet.
+taken; `stats.ab_mcts.arms` shows where each posterior ended.
+
+## 8. First live run
+
+`results/swebench/v9_ab_mcts_2026-10-08/README.md` reports the first live run
+(`marshmallow-code__marshmallow-1810`, self-hosted Qwen3.8, 2026-10-08) next
+to a `puct` rerun of the same genome on the same code. In short: AB-MCTS
+resolved the instance in 24 moves (10 min, 146k tokens) and stopped on
+`all_resolved`; the width-1 path, the widening on the hard question and the
+decay-driven recruit all happened as the tests describe. The `puct` rerun
+stopped `exhausted` at move 19 and its patch was broken by a later synthesis
+that the module gate should have failed. The same write-up records the two
+shared defects found (a pytest start-up failure passed the gate as
+inconclusive; cosmetic function rewrites pass the gate) and the V9-specific
+one (refused probes could not be repaired under the k=1 prompt); the first
+and third are fixed. One instance says nothing about rates; the V8-vs-V9
+comparison on the 50-task dev slice is the next measurement.

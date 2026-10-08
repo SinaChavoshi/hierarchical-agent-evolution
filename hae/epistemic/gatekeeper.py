@@ -861,14 +861,35 @@ class EvidenceGatekeeper:
             return [], [], "none"
         return [self.python, "-m", "pytest", "-x", "-q", "--no-header", "-p", "no:cacheprovider", *files], files, "proximity"
 
+    @staticmethod
+    def _startup_failure_through(text: str, rel: str) -> str:
+        """The first traceback frame of a pytest startup failure that lies in `rel`, else ''.
+
+        pytest exits 3 (internal error) or 4 (usage error, which includes
+        `ImportError while loading conftest`) before any test runs. When the
+        environment is at fault that is inconclusive; when the traceback runs
+        through the module that was just written, the write broke the test
+        infrastructure and the gate has to fail. Both traceback styles are
+        recognised: pytest's `path:line: in name` and Python's
+        `File "path", line N`.
+        """
+        needle = re.escape(rel.replace("\\", "/"))
+        frame = re.compile(rf"(?:^|[\s'\"/]){needle}:\d+: in |File \"[^\"]*{needle}\", line \d+")
+        for line in text.splitlines():
+            s = line.strip()
+            if frame.search(s):
+                return s[:200]
+        return ""
+
     def _run_repo_tests(self, rel: str) -> Tuple[Dict[str, Any], str]:
         """Runs the repository's nearby tests. Returns (result with a pass/fail exit_code, note).
 
         Only an actual test failure (pytest exit 1, or any non-zero exit of an
-        explicit `test_command`) fails the step. "Nothing collected",
-        pytest usage/internal errors, a missing pytest and a timeout are
-        recorded as notes and pass: an inconclusive gate must not block every
-        synthesis, and the self-oracle still has to be convinced afterwards.
+        explicit `test_command`), or a pytest startup failure whose traceback
+        runs through `rel`, fails the step. "Nothing collected", other pytest
+        usage/internal errors, a missing pytest and a timeout are recorded as
+        notes and pass: an inconclusive gate must not block every synthesis,
+        and the self-oracle still has to be convinced afterwards.
         """
         argv, files, mode = self._repo_tests_argv(rel)
         if mode == "none":
@@ -895,6 +916,12 @@ class EvidenceGatekeeper:
         if mode == "proximity" and rc == 5:
             return passed, f"no tests collected from {label}; step skipped"
         if mode == "proximity" and rc in (3, 4):
+            frame = self._startup_failure_through(text, rel)
+            if frame:
+                error = next((l.strip() for l in text.splitlines() if l.strip().startswith("E ")), "")
+                return (dict(res, exit_code=rc),
+                        f"{mode} tests could not start (pytest exited {rc}) and the traceback runs through "
+                        f"{rel}: {frame}" + (f" -- {error[:160]}" if error else ""))
             return passed, f"pytest exited {rc} (internal/usage error) on {label}; inconclusive, step skipped"
         tail = [l.strip() for l in str(res.get("stdout", "")).splitlines() if l.strip()]
         summary = next((l for l in reversed(tail) if "failed" in l or "error" in l.lower()), tail[-1] if tail else "")

@@ -1230,8 +1230,11 @@ class HierarchicalCompanyRunner:
             if single:
                 header = f"EPISTEMIC MOVE: PROPOSE 1 NEW FALSIFIABLE HYPOTHESIS for question {question.question_id}.\n"
                 rule_2 = ("2. The mechanism must be NEW: different from every hypothesis already listed for this question "
-                          "(tested or untested) and from everything under RULED OUT. Name the mechanism the probe "
-                          "outcomes point at that nobody has named yet; if none stands out, the most likely remaining one.\n")
+                          "(tested or untested) and from everything under RULED OUT. One exception: a hypothesis whose "
+                          "probe was REFUSED (status UNTESTABLE under PROBE OUTCOMES) may be restated with the same claim "
+                          "and mechanism and a corrected probe; the ledger records that as a repair of the original, not "
+                          "a duplicate. Otherwise name the mechanism the probe outcomes point at that nobody has named "
+                          "yet; if none stands out, the most likely remaining one.\n")
             else:
                 header = f"EPISTEMIC MOVE: PROPOSE {k} MUTUALLY-EXCLUSIVE HYPOTHESES for question {question.question_id}.\n"
                 rule_2 = "2. Hypotheses must be mutually exclusive, and at least one must be a mechanism you consider UNLIKELY.\n"

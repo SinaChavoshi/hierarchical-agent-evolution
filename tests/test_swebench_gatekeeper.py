@@ -193,6 +193,37 @@ class ModuleCheckTests(ExecutorGatekeeperFixture):
         ev2 = self.gk.verify_module(self.state, "pkg/mod.py")
         self.assertTrue(ev2.matched_prediction, ev2.detail)
 
+    def test_startup_failure_caused_by_the_module_fails_the_check(self):
+        # The V8 rerun on marshmallow-1810 rewrote `Schema.__init__` so that
+        # every schema raised; the repository's conftest builds schemas at
+        # import time, pytest exited 4 before collecting anything, and the
+        # gate recorded "inconclusive" and let the write through.
+        if not self._has_pytest():
+            self.skipTest("pytest not installed")
+        _write(self.root, "conftest.py", "from pkg.mod import f\n\nVALUE = f(1)\n")
+        _git(self.root, "add", "-A")
+        _git(self.root, "commit", "-q", "-m", "conftest uses the module")
+        ev_ok = self.gk.verify_module(self.state, "pkg/mod.py")
+        self.assertTrue(ev_ok.matched_prediction, ev_ok.detail)
+        _write(self.root, "pkg/mod.py", "def f(x):\n    return x.missing_attribute\n")
+        ev = self.gk.verify_module(self.state, "pkg/mod.py")
+        self.assertFalse(ev.matched_prediction)
+        self.assertIn("failed at repo_tests", ev.detail)
+        self.assertIn("could not start (pytest exited 4)", ev.detail)
+        self.assertIn("traceback runs through pkg/mod.py", ev.detail)
+        self.assertIn("AttributeError", ev.detail)
+
+    def test_startup_failure_elsewhere_stays_inconclusive(self):
+        if not self._has_pytest():
+            self.skipTest("pytest not installed")
+        _write(self.root, "conftest.py", "import module_that_does_not_exist_anywhere\n")
+        _git(self.root, "add", "-A")
+        _git(self.root, "commit", "-q", "-m", "broken conftest")
+        ev = self.gk.verify_module(self.state, "pkg/mod.py")
+        self.assertTrue(ev.matched_prediction, ev.detail)
+        self.assertIn("pytest exited 4 (internal/usage error)", ev.stdout)
+        self.assertIn("inconclusive, step skipped", ev.stdout)
+
     def test_test_command_overrides_proximity(self):
         gk_ok = EvidenceGatekeeper(workspace=None, executor=self.ex, isolate=False, test_command="exit 0")
         ev = gk_ok.verify_module(self.state, "pkg/mod.py")
