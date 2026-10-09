@@ -59,8 +59,8 @@ from hae.swebench.executor import (
 )
 from hae.swebench.export import DEFAULT_MODEL_NAME, export_prediction, write_prediction
 from hae.swebench.task import (
-    REPO_MAP_CAP, build_repo_map, focus_lines_for, module_view, package_names, resolve_paths, root_question,
-    seed_from_problem_statement, task_features,
+    REPO_MAP_CAP, build_repo_map, focus_lines_for, hypothesis_target_module, module_view, package_names,
+    resolve_paths, root_question, seed_from_problem_statement, task_features,
 )
 from hae.task.budget import Budget
 
@@ -377,7 +377,20 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
             pass
         return ""
 
-    def _get_focused_module_context(self, target_mod: str, objective: str) -> str:
+    def _synthesis_target(self, question: Question, hypothesis: Any) -> str:
+        """Target module for synthesising `hypothesis` on `question`.
+
+        When the hypothesis's claim or mechanism names a tracked non-test `.py`
+        file (for instance a reproduction hypothesis on `q1` seeded at
+        `schema.py` that locates the defect in `fields.py`), edit that file;
+        otherwise fall back to `question.module`.
+        """
+        default = (question.module or (self._required_modules[0] if self._required_modules else "")).lstrip("./")
+        return hypothesis_target_module(
+            default, getattr(hypothesis, "claim", ""), getattr(hypothesis, "mechanism", ""),
+            self.py_files(), repo=self.task.repo)
+
+    def _get_focused_module_context(self, target_mod: str, objective: str, focus_hint: str = "") -> str:
         """Prompt context for both adapters: task header, statement, repo map, target source, probe rules."""
         parts = [self._task_header(), objective]
         files = self.repo_map()
@@ -387,7 +400,7 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
         if target:
             source = self._module_source(target)
             if source:
-                view = module_view(source, focus_lines_for(source, self.task.problem_statement, target))
+                view = module_view(source, focus_lines_for(source, self.task.problem_statement, target, extra_text=focus_hint))
                 parts.append(f"CURRENT SOURCE OF `{target}` (edit THIS file in place; it is the module under "
                              f"investigation):\n```python\n{view}\n```")
             else:

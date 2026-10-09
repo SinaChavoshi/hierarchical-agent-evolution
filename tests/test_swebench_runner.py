@@ -302,6 +302,31 @@ class EndToEndTests(RunnerFixture):
             runner2.run_swebench(budget_moves=12, max_iterations=1)
         self.assertTrue(any(c.get("schema") == "tools" for c in fake2.calls))
 
+    def test_synthesis_target_resolves_collaborator_module_from_hypothesis(self):
+        from hae.epistemic.ledger import EpistemicState
+        runner, _ = self.make_runner()
+        state = EpistemicState("firm")
+        runner.epistemic_state = state
+        q = state.add_question(text="Reproduce the failure via pkg/other.py", module="pkg/other.py", uncertainty=1.0)
+        h = state.add_hypothesis(
+            question_id=q.question_id,
+            claim="Calling f(1) returns 3 because pkg/mod.py adds 2 instead of 1.",
+            mechanism="In `pkg/mod.py`, `f` returns `x + 2`.",
+            prior=0.8,
+            probe_code=REPRO,
+            prediction={"expect_exit_code": 1, "expect_stdout_contains": "F 3"},
+            proposed_by="Lead Implementation Engineer",
+        )
+        self.assertEqual(runner._synthesis_target(q, h), "pkg/mod.py")
+        synthesize = runner._synthesize_patch_adapter(runner.genome.departments[0].manager, runner.objective_text())
+        res = synthesize(q, h, state)
+        self.assertEqual(res["path"], "pkg/mod.py")
+        self.assertIn("target resolved from hypothesis to pkg/mod.py (question module was pkg/other.py)", res["notes"])
+        with open(os.path.join(self.root, "pkg", "mod.py")) as fh:
+            self.assertEqual(fh.read(), FIXED)
+        with open(os.path.join(self.root, "pkg", "other.py")) as fh:
+            self.assertEqual(fh.read(), "X = 1\n")
+
 
 class DynamicOrganizationTests(RunnerFixture):
     """With `ceo_policy.enabled` the SWE-bench loop is staffed from the role library, not the departments."""

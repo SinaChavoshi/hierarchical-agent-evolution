@@ -372,7 +372,7 @@ class HierarchicalCompanyRunner:
                     return candidate
             return None
 
-    def _get_focused_module_context(self, target_mod: str, objective: str) -> str:
+    def _get_focused_module_context(self, target_mod: str, objective: str, focus_hint: str = "") -> str:
         """Builds a focused specification and visible context for `target_mod`."""
         from hae.evaluation.benchmark import TASKS, module_specification, REPO_ROOT
         task_key = MODULE_TASK_MAP.get(target_mod)
@@ -1321,6 +1321,15 @@ class HierarchicalCompanyRunner:
             blocks.append(f"`{name}` (lines {start}-{end}):\n```python\n" + "\n".join(body) + "\n```")
         return "\n".join(blocks)
 
+    def _synthesis_target(self, question: Question, hypothesis: Hypothesis) -> str:
+        """Module path a synthesis attempt for `hypothesis` on `question` edits.
+
+        Defaults to `question.module` (or the first required module). Overridden
+        in SWE-bench mode when the hypothesis's claim or mechanism names a
+        different tracked repository module.
+        """
+        return (question.module or (self._required_modules[0] if self._required_modules else "")).lstrip("./")
+
     def _synthesize_patch_adapter(self, agent: AgentGenome, objective: str):
         """System 1 adapter: turn a SUPPORTED hypothesis into the *smallest change* to its module.
 
@@ -1390,9 +1399,12 @@ class HierarchicalCompanyRunner:
                     out["previous_source"] = source
                 return out
 
-            target = (question.module or (self._required_modules[0] if self._required_modules else "")).lstrip("./")
+            target = self._synthesis_target(question, hypothesis)
             if not target:
                 return result(written=False, path="", mode="none", summary="no target module for this question")
+            q_mod = (question.module or "").lstrip("./")
+            if q_mod and target != q_mod:
+                notes.append(f"target resolved from hypothesis to {target} (question module was {q_mod})")
             evidence_lines = []
             for eid in hypothesis.evidence_ids:
                 ev = state.evidence_by_id(eid)
@@ -1409,9 +1421,10 @@ class HierarchicalCompanyRunner:
                 f"  EVIDENCE:\n" + ("\n".join(evidence_lines) or "  (none recorded)") + "\n\n"
                 f"Oracle failure being answered: {question.source_failure or question.text}\n"
             )
+            focus_hint = f"{hypothesis.claim}\n{hypothesis.mechanism}\n{hypothesis.probe_code}"
             context = (
                 f"{state.summary(question.question_id)}\n\n"
-                f"{self._get_focused_module_context(target, objective)}"
+                f"{self._get_focused_module_context(target, objective, focus_hint=focus_hint)}"
             )
             current = self.workspace.read_file(target)
             source = current.get("content", "") if current.get("status") in ("ok", "success") else ""

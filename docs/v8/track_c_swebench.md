@@ -88,6 +88,15 @@ One root question "Reproduce the reported behaviour: …" (uncertainty 1.0, key
 is never called. 134/225 dev statements name no path, so the runner has a
 LOCATE step (one JSON call) before proposing.
 
+When a synthesis move runs on a question whose `module` is a caller (for
+instance `q1.module = src/marshmallow/schema.py`, the top traceback frame) and
+the supported hypothesis's `claim` or `mechanism` names a tracked non-test `.py`
+file (`marshmallow/fields.py`), `SweBenchCompanyRunner._synthesis_target`
+(`hypothesis_target_module`) resolves the target to that file and passes the
+hypothesis's `claim`, `mechanism`, and `probe_code` into `focus_lines_for(...,
+extra_text=...)` so `module_view` shows windows around definitions and `line N`
+references named by the hypothesis (`results/swebench/v9_ab_mcts_gate2_2026-10-08/README.md`).
+
 ## 5. Self-oracle — definition and weakness
 
 After each iteration that changed files, `reconcile_with_reproduction` re-runs

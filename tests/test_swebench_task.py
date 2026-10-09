@@ -184,6 +184,60 @@ class PromptContextTests(unittest.TestCase):
         self.assertIn(4, lines)      # `read` is named in the statement
         self.assertNotIn(7, lines)
 
+    def test_focus_lines_includes_extra_text_line_refs_and_definitions(self):
+        source = "\n".join(f"x{i} = {i}" for i in range(1, 500)) + "\ndef root(self):\n    return None\n"
+        # Statement mentions neither `root` nor lines 411-420; hypothesis extra_text names both.
+        extra = "In `marshmallow/fields.py` (lines 411-420), `Field.root` traverses parent hierarchy."
+        lines = T.focus_lines_for(source, "Something broke in schema", "src/marshmallow/fields.py", extra_text=extra)
+        self.assertIn(411, lines)
+        self.assertIn(420, lines)
+        self.assertIn(500, lines)    # `def root` at line 500
+
+    def test_is_test_path_and_hypothesis_target_module(self):
+        self.assertTrue(T.is_test_path("tests/test_fields.py"))
+        self.assertTrue(T.is_test_path("astropy/io/ascii/tests/test_read.py"))
+        self.assertTrue(T.is_test_path("pkg/mod_test.py"))
+        self.assertTrue(T.is_test_path("conftest.py"))
+        self.assertFalse(T.is_test_path("src/marshmallow/fields.py"))
+        self.assertFalse(T.is_test_path("astropy/io/ascii/core.py"))
+
+        known = [
+            "src/marshmallow/schema.py",
+            "src/marshmallow/fields.py",
+            "src/marshmallow/base.py",
+            "tests/test_fields.py",
+        ]
+        # Hypothesis on q1 (seeded at schema.py) that locates the bug in fields.py resolves to fields.py.
+        target = T.hypothesis_target_module(
+            "src/marshmallow/schema.py",
+            "Calling load raises AttributeError in Field.root when parent is a Dict field.",
+            "In `marshmallow/fields.py` (lines 411-420), `Field.root` walks `root.parent`.",
+            known,
+            repo="marshmallow-code/marshmallow",
+        )
+        self.assertEqual(target, "src/marshmallow/fields.py")
+        # Mentioning only a test path (or no path) preserves question_module.
+        self.assertEqual(
+            T.hypothesis_target_module(
+                "src/marshmallow/schema.py",
+                "See tests/test_fields.py for reproduction",
+                "The helper fails on nested dict",
+                known,
+                repo="marshmallow-code/marshmallow",
+            ),
+            "src/marshmallow/schema.py",
+        )
+        self.assertEqual(
+            T.hypothesis_target_module(
+                "src/marshmallow/schema.py",
+                "No path mentioned here",
+                " Nor in mechanism",
+                known,
+                repo="marshmallow-code/marshmallow",
+            ),
+            "src/marshmallow/schema.py",
+        )
+
     def test_task_features_are_llm_free(self):
         feats = T.task_features(make_task(TRACEBACK_STATEMENT), ["astropy/io/ascii/core.py"]).to_dict()
         self.assertEqual(feats["n_exception_classes"], 1)
@@ -193,3 +247,4 @@ class PromptContextTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

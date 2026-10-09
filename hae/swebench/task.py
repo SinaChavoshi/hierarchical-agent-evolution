@@ -360,14 +360,57 @@ def list_definitions_index(source: str) -> List[str]:
     return out
 
 
-def focus_lines_for(source: str, statement: str, path: str) -> List[int]:
-    """Line numbers worth showing: traceback lines for `path` and definitions the statement names."""
+def is_test_path(path: str) -> bool:
+    """True for test files (`tests/...`, `test_*.py`, `*_test.py`, `conftest.py`), which a synthesis move does not edit."""
+    comps = [c.lower() for c in (path or "").replace("\\", "/").split("/") if c]
+    if not comps:
+        return False
+    name = comps[-1]
+    return (any(c in ("tests", "test", "testing") for c in comps[:-1])
+            or name.startswith("test_") or name.endswith("_test.py")
+            or name in ("tests.py", "conftest.py"))
+
+
+def hypothesis_target_module(question_module: str, claim: str, mechanism: str,
+                             known_files: Iterable[str], repo: str = "") -> str:
+    """Which module a synthesis attempt edits when `claim`/`mechanism` name a path.
+
+    A question's `module` is seeded from the problem statement (for the root
+    reproduction question, the top traceback frame). On multi-file bugs a
+    hypothesis on that question often locates the mechanism in a collaborator
+    (`q1.module = src/marshmallow/schema.py`, hypothesis about `Field.root` in
+    `marshmallow/fields.py`). When `claim` + `mechanism` name a tracked non-test
+    `.py` file, the most-mentioned (first-mentioned on ties) resolved path wins;
+    otherwise `question_module` stands.
+    """
+    default = (question_module or "").lstrip("./")
+    known = [f for f in known_files if f]
+    source_files = [f for f in known if not is_test_path(f)] or known
+    text = f"{claim or ''}\n{mechanism or ''}"
+    resolved = resolve_paths(extract_paths(text, repo), source_files)
+    return resolved[0] if resolved else default
+
+
+_LINE_REF_RE = re.compile(r"\blines?\s+(\d+)(?:\s*[-–]\s*(\d+))?\b", re.I)
+
+
+def focus_lines_for(source: str, statement: str, path: str, extra_text: str = "") -> List[int]:
+    """Line numbers worth showing: traceback lines for `path`, explicit `line N` refs, and named definitions."""
     lines: List[int] = []
+    combined = f"{statement or ''}\n{extra_text or ''}" if extra_text else (statement or "")
     name = path.rsplit("/", 1)[-1]
-    for fpath, line, _fn in traceback_frames(statement):
+    for fpath, line, _fn in traceback_frames(combined):
         if fpath.endswith(name):
             lines.append(line)
-    toks = set(statement_tokens(statement))
+    if extra_text:
+        n_lines = len(source.splitlines())
+        for m in _LINE_REF_RE.finditer(extra_text):
+            for grp in (1, 2):
+                if m.group(grp):
+                    ln = int(m.group(grp))
+                    if 1 <= ln <= max(1, n_lines):
+                        lines.append(ln)
+    toks = set(statement_tokens(combined))
     for i, text in enumerate(source.splitlines(), start=1):
         m = _DEF_RE.match(text.strip())
         if m and m.group(1).lower() in toks:
