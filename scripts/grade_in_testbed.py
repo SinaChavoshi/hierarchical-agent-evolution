@@ -129,7 +129,7 @@ def main(argv=None) -> int:
         source = args.prediction
     started = time.time()
     report = {"instance_id": args.instance_id, "patch_source": source, "executor": ex.describe(),
-              "patch_chars": len(model_patch), "steps": {}}
+              "patch_chars": len(model_patch), "resolved": False, "steps": {}}
     try:
         reset = _sh(ex, "git checkout -q -- . && git clean -fdq && git status --short | wc -l")
         report["steps"]["reset"] = {"rc": reset.rc, "dirty_after": reset.stdout.strip()}

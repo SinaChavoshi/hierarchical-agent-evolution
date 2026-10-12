@@ -1,0 +1,1871 @@
+{
+ "authored_files": [
+  "src/sqlfluff/rules/L031.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 180.34,
+ "epistemic_audit": {
+  "budget_moves": 30,
+  "calibration_brier": 0.01,
+  "calibration_tested": 1,
+  "delta_u_total": 0.98,
+  "duplicate_rejections": 0,
+  "evidence": 6,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 1,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 1,
+  "hypotheses": 1,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 1,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "576d75a266c8f2bcd6583d67d4e8afdde9a00d6edad1305869479adaa2d4f94b",
+  "low_prior_wins": 0,
+  "moves_used": 4,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 1,
+  "proposed_total": 1,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 0,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 0.02,
+  "resolved_fraction": 0.98,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "all_resolved",
+  "syntheses": 1,
+  "syntheses_verified": 1,
+  "tabu_rejections": 0,
+  "token_usage": 22284,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v9_ab_mcts_swebench_firm_0",
+  "counters": {
+   "e": 6,
+   "h": 1,
+   "q": 1
+  },
+  "created_at": 1791592232.086,
+  "evidence_log": [
+   {
+    "command": "python .hae/probe_h1.py",
+    "created_at": 1791592332.896,
+    "detail": "prediction held: exit_code==1; stdout contains 'BUG: L031 triggered on simple FROM clause with alias'",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on simple FROM clause with alias"
+    },
+    "question_id": "q1",
+    "sha256": "23b648af99245b37addeb3d8f102cbb6bf53834639eb929e2f4200ab3dab593f",
+    "stderr": "command terminated with exit code 1\n",
+    "stdout": "BUG: L031 triggered on simple FROM clause with alias\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L031.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed)",
+    "created_at": 1791592403.54,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e2",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "632a7090c62c787f20252bc362b0844de72bcc84e803356a1ad3cccdee6b03bd",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L031.py\n\n[import] IMPORT_OK sqlfluff.rules.L031\n\n[static_check] no undefined names (219 lines)\n[repo_tests] no test file near src/sqlfluff/rules/L031.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "post-synthesis re-run: python .hae/probe_h1.py",
+    "created_at": 1791592405.275,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: L031 triggered on simple FROM clause with alias'",
+    "evidence_id": "e3",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on simple FROM clause with alias"
+    },
+    "question_id": "q1",
+    "sha256": "32a9509fb3e857e4bba4b4e9b01b6e7887c175487a939f609eeda74d33b37cf0",
+    "stderr": "",
+    "stdout": "OK: No L031 violation\n"
+   },
+   {
+    "command": "post-synthesis effect check: supported probes re-run after the write (NOT the hidden tests)",
+    "created_at": 1791592405.275,
+    "detail": "post-synthesis effect check: effective -- 1/1 re-run probe(s) no longer reproduce the bug (h1)",
+    "evidence_id": "e4",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "521e6913af4036b9dc37999eb74bcdc12f3b680c0cf68f61c743e37f073c70b9",
+    "stderr": "",
+    "stdout": "h1 (q1): completed=True matched=False exit=0 bug_no_longer_reproduces=True"
+   },
+   {
+    "command": "python .hae/probe_h1.py",
+    "created_at": 1791592408.265,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: L031 triggered on simple FROM clause with alias'",
+    "evidence_id": "e5",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on simple FROM clause with alias"
+    },
+    "question_id": "q1",
+    "sha256": "b9704e0c8cbc8e239653a2714d00b2dc7703400b8c23003433f800003712b698",
+    "stderr": "",
+    "stdout": "OK: No L031 violation\n"
+   },
+   {
+    "command": "self-oracle: reproduction probe re-run after patch (NOT the hidden tests)",
+    "created_at": 1791592408.265,
+    "detail": "self-oracle, iteration 1: resolved (1/1 reproduction probe(s) no longer reproduce the bug)",
+    "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "oracle",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "f2f4db00959c7f61845e803717a90e2944e82156273c7bf93e788bdb6b6eaace",
+    "stderr": "",
+    "stdout": "h1: completed=True matched=False exit=0 bug_no_longer_reproduces=True"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Rule L031's `_eval` method fails to verify the presence of a JOIN clause before invoking `_lint_aliases_in_join`, causing it to flag aliases in simple FROM clauses as if they were join conditions.",
+    "created_at": 1791592318.868,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1",
+     "e2",
+     "e3",
+     "e4",
+     "e5"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "In `src/sqlfluff/rules/L031.py`, the `_eval` method extracts `from_expression_elements` from the `from_clause` and passes them directly to `_lint_aliases_in_join`. The logic inside `_lint_aliases_in_join` iterates over these elements and flags any alias found,",
+    "mechanism_signature": "_eval _lint_aliases_in_join alia alias before caus claus clause condition direct element extract flag found from_clause from_expression_elements inside invok iterat join l031 logic over pass presence rul rule simple sqlfluff src them they verify",
+    "patch_applied": true,
+    "posterior": 0.97,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on simple FROM clause with alias"
+    },
+    "prior": 0.9,
+    "probe_code": "from sqlfluff.core import Linter, FluffConfig\nfrom sqlfluff.core.rules import get_ruleset\nimport sys\n\nsql_with_alias = 'SELECT a.[hello] FROM mytable AS a'\nsql_no_alias = 'SELECT [hello] FROM mytable'\n\nconfig = FluffConfig(overrides={'dialect': 'tsql'})\nlinter = Linter(config=config)\n\ntry:\n    result = linter.lint_string(sql_with_alias)\n    violations = [v for v in result.violations if v.rule_code() == 'L031']\n    if violations:\n        print('BUG: L031 triggered on simple FROM clause with alias')\n        sys.exit(1)\n    else:\n        print('OK: No L031 violation')\n        sys.exit(0)\nexcept Exception as e:\n    print(f'ERROR: {e}')\n    sys.exit(1)",
+    "probe_rejections": 0,
+    "proposed_by": "Issue Reproducer",
+    "question_id": "q1",
+    "role_id": "r_issue_reproducer_swebench",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.95,
+    "visits": 1
+   }
+  ],
+  "move_log": [
+   {
+    "agent_role": "Issue Reproducer",
+    "created_at": 1791592318.869,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.468359,
+     "ab_y": 0.0,
+     "head_v": 0.370193
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 1.0,
+     "module_isolation": 1.0,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 0.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 1,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q1",
+    "role_id": "r_issue_reproducer_swebench",
+    "state_hash_after": "9e01d0eef7a26dcd66472332fac0bdd86788da2391e43b6a546406aad9489490",
+    "state_hash_before": "b314d3b26e88f5e4ca5ad046611990a0062ef6e7a3a16614efffea19bf01aedf",
+    "value_after": 0.08,
+    "value_before": 0.06
+   },
+   {
+    "agent_role": "TSQL Parser & Grammar Specialist",
+    "created_at": 1791592331.153,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.204883,
+     "ab_theta": 0.433575,
+     "ab_y": 0.0,
+     "head_v": 0.384021,
+     "recruit_prior": 0.057324,
+     "stall_counter": 0.0,
+     "unmatched_modules": 1.0
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 1.0,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.1,
+     "supported_ratio": 0.0,
+     "untested_ratio": 1.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 2,
+    "move_type": "recruit_specialist",
+    "note": "recruited TSQL Parser & Grammar Specialist [synthesized] (stall=0, unmatched=1; tags: sqlfluff, tsql, grammar, ast, parser, l031): no library role overlaps the gaps (6 candidate(s)); synthesized by CEO: The current team lacks expertise in SQL dialect grammars and AST structure analysis required to d",
+    "question_id": "q1",
+    "role_id": "r_tsql_parser_grammar_specialist",
+    "state_hash_after": "9e01d0eef7a26dcd66472332fac0bdd86788da2391e43b6a546406aad9489490",
+    "state_hash_before": "9e01d0eef7a26dcd66472332fac0bdd86788da2391e43b6a546406aad9489490",
+    "value_after": 0.076,
+    "value_before": 0.076
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791592332.896,
+    "delta_u": 0.95,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.8,
+     "ab_theta": 0.907419,
+     "ab_y": 1.0,
+     "head_v": 0.370927
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 1.0,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.2,
+     "supported_ratio": 0.0,
+     "untested_ratio": 1.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 3,
+    "move_type": "run_experiment",
+    "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: L031 triggered on simple FROM clause with alias'",
+    "question_id": "q1",
+    "role_id": "r_issue_reproducer_swebench",
+    "state_hash_after": "4ea5f8ee6e22d80eec6e6c9e92f02647688a9a7e848368ef80e1b0178d5689a7",
+    "state_hash_before": "9e01d0eef7a26dcd66472332fac0bdd86788da2391e43b6a546406aad9489490",
+    "value_after": 0.702,
+    "value_before": 0.072
+   },
+   {
+    "agent_role": "API-Contract Specialist",
+    "created_at": 1791592405.276,
+    "delta_u": 0.03,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.772857,
+     "ab_theta": 0.963449,
+     "ab_y": 0.53,
+     "head_v": 0.219771
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.05,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.95,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 4,
+    "move_type": "synthesize",
+    "note": "src/sqlfluff/rules/L031.py [function]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (1/1 re-run probe(s) no longer reproduce the bug)",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "state_hash_after": "92c7505ac319d1f0599103b5c08bbfb39d48f7c013ad91ada4226e5154ba7962",
+    "state_hash_before": "4ea5f8ee6e22d80eec6e6c9e92f02647688a9a7e848368ef80e1b0178d5689a7",
+    "value_after": 0.788,
+    "value_before": 0.71
+   }
+  ],
+  "questions": [
+   {
+    "created_at": 1791592233.359,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 1,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "src/sqlfluff/rules/L031.py",
+    "question_id": "q1",
+    "source_failure": "TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present",
+    "source_failure_key": "swebench:sqlfluff__sqlfluff-1625",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present -- ## Expected Behaviour Both of these queries should pass, the only difference is the addition of a table alias 'a': 1/ no alias ``` SELECT [hello] FROM mytable ``` 2/ same query with alias ``` SELECT a.[hello] FROM mytable AS a ``` ## Observed Behaviour 1/ passes 2/ fails with: L031: Avoid using aliases in join condition. But there is no join condition :-) ## Steps to Reproduce Lint queries above ## Dialect TSQL ## Version sqlfluff 0.6.9 Python 3.6.9 ## Configuration N/A",
+    "uncertainty": 0.02
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "576d75a266c8f2bcd6583d67d4e8afdde9a00d6edad1305869479adaa2d4f94b"
+ },
+ "epistemic_searches": [
+  {
+   "delta_u_total": 0.98,
+   "iteration": 1,
+   "moves_used": 4,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "cli",
+       "argparse",
+       "option",
+       "flag",
+       "command",
+       "config",
+       "configuration",
+       "documentation",
+       "docs",
+       "help",
+       "output",
+       "console",
+       "logging",
+       "warning",
+       "deprecationwarning",
+       "pylint",
+       "flake8",
+       "requests",
+       "http",
+       "session",
+       "header",
+       "url",
+       "matplotlib",
+       "figure",
+       "axes",
+       "pyplot",
+       "xarray",
+       "dataset"
+      ],
+      "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Docs & CLI Behaviour Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_docs_cli_behaviour_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "reproduce",
+       "reproduction",
+       "minimal",
+       "example",
+       "issue",
+       "actual",
+       "behaviour",
+       "behavior",
+       "traceback",
+       "regression"
+      ],
+      "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Issue Reproducer",
+      "origin": "seed:swebench",
+      "role_id": "r_issue_reproducer_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     },
+     {
+      "backstory": "Expert in SQL dialect grammars and AST traversal within sqlfluff, with deep experience in TSQL syntax parsing and rule evaluation logic. Specializes in debugging false positives in linting rules caused by grammar ambiguity or missing context checks in rule evaluation methods.",
+      "cost_per_move": 1.0,
+      "created_generation": 17,
+      "domain_tags": [
+       "sqlfluff",
+       "tsql",
+       "grammar",
+       "ast",
+       "parser",
+       "l031",
+       "dialect",
+       "rule"
+      ],
+      "goal": "Analyze the TSQL dialect grammar and L031 rule logic to determine why table aliases in FROM clauses are incorrectly identified as join conditions.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "TSQL Parser & Grammar Specialist",
+      "origin": "recruited:v9_ab_mcts_swebench_firm_0:g17:m2",
+      "rationale": "The current team lacks expertise in SQL dialect grammars and AST structure analysis required to diagnose why the TSQL parser or L031 rule misinterprets FROM clause aliases as join conditions. The Issue Reproducer can trigger the error, but cannot analyze the underlying grammar/rule interaction to un",
+      "role_id": "r_tsql_parser_grammar_specialist",
+      "source": "synthesized",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.7,
+      "tools_enabled": true,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [
+     {
+      "move_index": 2,
+      "name": "TSQL Parser & Grammar Specialist",
+      "prior": 0.0392,
+      "reason": "stall=0, unmatched=1",
+      "role_id": "r_tsql_parser_grammar_specialist",
+      "source": "synthesized",
+      "stall_counter": 0,
+      "unmatched_modules": [
+       "src/sqlfluff/rules/L031.py"
+      ]
+     }
+    ],
+    "recruit_prior": 0.018,
+    "stall_counter": 0,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.03,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_docs_cli_behaviour_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_issue_reproducer_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.95,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_tsql_parser_grammar_specialist": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": 2,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     }
+    },
+    "unmatched_modules": []
+   },
+   "stats": {
+    "ab_mcts": {
+     "algorithm": "ab_mcts",
+     "arms": {
+      "q1": [
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_api_contract_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_data_model_orm_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_docs_cli_behaviour_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 3.2,
+        "beta": 3.8,
+        "ident": "r_issue_reproducer_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.4571,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         1.0
+        ]
+       },
+       {
+        "alpha": 1.2293,
+        "beta": 4.7707,
+        "ident": "ceo",
+        "kind": "gen_specialist",
+        "mean": 0.2049,
+        "observations": 0,
+        "prior_mean": 0.0573,
+        "pulls": 1,
+        "rewards": []
+       },
+       {
+        "alpha": 5.6,
+        "beta": 1.4,
+        "ident": "h1",
+        "kind": "experiment",
+        "mean": 0.8,
+        "observations": 1,
+        "prior_mean": 0.9,
+        "pulls": 1,
+        "rewards": [
+         1.0
+        ]
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_tsql_parser_grammar_specialist",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 5.41,
+        "beta": 1.59,
+        "ident": "h1",
+        "kind": "synthesize",
+        "mean": 0.7729,
+        "observations": 1,
+        "prior_mean": 0.97,
+        "pulls": 1,
+        "rewards": [
+         0.53
+        ]
+       }
+      ]
+     },
+     "counts": {
+      "deepen_experiment": 1,
+      "deepen_synthesize": 1,
+      "gen_empty_draws": 0,
+      "gen_exhausted_questions": 0,
+      "steps": 4,
+      "widen_hypothesis": 1,
+      "widen_specialist": 1,
+      "widest_question": 1
+     },
+     "gen_empty": {
+      "q1": 0
+     },
+     "prior_strength": 4.0,
+     "trace": [
+      {
+       "chosen": "gen_hypothesis:r_issue_reproducer_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.304027,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.140062,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.173002,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.468359,
+        "gen_specialist:ceo": 0.284323
+       },
+       "mean": 0.366667,
+       "move_index": 1,
+       "question_id": "q1",
+       "theta": 0.468359,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_specialist:ceo",
+       "draws": {
+        "experiment:h1": 0.315504,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.078656,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.268296,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.276993,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.376226,
+        "gen_specialist:ceo": 0.433575
+       },
+       "mean": 0.204883,
+       "move_index": 2,
+       "question_id": "q1",
+       "theta": 0.433575,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h1",
+       "draws": {
+        "experiment:h1": 0.907419,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.240894,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.337218,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.172352,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.075534,
+        "gen_hypothesis:r_tsql_parser_grammar_specialist": 0.440604
+       },
+       "mean": 0.8,
+       "move_index": 3,
+       "question_id": "q1",
+       "theta": 0.907419,
+       "y": 1.0
+      },
+      {
+       "chosen": "synthesize:h1",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.257311,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.422146,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.31223,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.299556,
+        "gen_hypothesis:r_tsql_parser_grammar_specialist": 0.113582,
+        "synthesize:h1": 0.963449
+       },
+       "mean": 0.772857,
+       "move_index": 4,
+       "question_id": "q1",
+       "theta": 0.963449,
+       "y": 0.53
+      }
+     ]
+    },
+    "budget_moves": 30,
+    "delta_u_by_role": {
+     "r_api_contract_specialist_swebench": 0.03,
+     "r_issue_reproducer_swebench": 0.95
+    },
+    "duplicate_rejections": 0,
+    "experiments": 1,
+    "falsified": 0,
+    "forced_low_prior_picks": 0,
+    "forced_low_prior_wins": 0,
+    "frontier_admissions": 1,
+    "hypotheses_accepted": 1,
+    "inconclusive": 0,
+    "moves_by_role": {
+     "r_api_contract_specialist_swebench": 1,
+     "r_issue_reproducer_swebench": 2
+    },
+    "moves_used": 4,
+    "prior_head_loaded": true,
+    "prior_head_steered": 0,
+    "probe_repairs": 0,
+    "proposal_rounds": 1,
+    "proposer_errors": 0,
+    "questions_asked": 0,
+    "questions_deferred": 0,
+    "recruit_declined": 0,
+    "recruits": 1,
+    "recruits_from_library": 0,
+    "recruits_synthesized": 1,
+    "rejected_probes": 0,
+    "roles_routed": true,
+    "search_algorithm": "ab_mcts",
+    "stop_reason": "all_resolved",
+    "supported": 1,
+    "syntheses": 1,
+    "syntheses_by_function": 1,
+    "syntheses_unwritten": 0,
+    "syntheses_verified": 1,
+    "synthesis_seconds": 66.91,
+    "tabu_rejections": 0,
+    "value_head_loaded": true
+   },
+   "stop_reason": "all_resolved",
+   "synthesized_paths": [
+    "src/sqlfluff/rules/L031.py"
+   ],
+   "trajectory": [
+    {
+     "agent_role": "Issue Reproducer",
+     "created_at": 1791592318.869,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.468359,
+      "ab_y": 0.0,
+      "head_v": 0.370193
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 1.0,
+      "module_isolation": 1.0,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 0.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 1,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q1",
+     "role_id": "r_issue_reproducer_swebench",
+     "state_hash_after": "9e01d0eef7a26dcd66472332fac0bdd86788da2391e43b6a546406aad9489490",
+     "state_hash_before": "b314d3b26e88f5e4ca5ad046611990a0062ef6e7a3a16614efffea19bf01aedf",
+     "value_after": 0.08,
+     "value_before": 0.06
+    },
+    {
+     "agent_role": "TSQL Parser & Grammar Specialist",
+     "created_at": 1791592331.153,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.204883,
+      "ab_theta": 0.433575,
+      "ab_y": 0.0,
+      "head_v": 0.384021,
+      "recruit_prior": 0.057324,
+      "stall_counter": 0.0,
+      "unmatched_modules": 1.0
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 1.0,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.1,
+      "supported_ratio": 0.0,
+      "untested_ratio": 1.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 2,
+     "move_type": "recruit_specialist",
+     "note": "recruited TSQL Parser & Grammar Specialist [synthesized] (stall=0, unmatched=1; tags: sqlfluff, tsql, grammar, ast, parser, l031): no library role overlaps the gaps (6 candidate(s)); synthesized by CEO: The current team lacks expertise in SQL dialect grammars and AST structure analysis required to d",
+     "question_id": "q1",
+     "role_id": "r_tsql_parser_grammar_specialist",
+     "state_hash_after": "9e01d0eef7a26dcd66472332fac0bdd86788da2391e43b6a546406aad9489490",
+     "state_hash_before": "9e01d0eef7a26dcd66472332fac0bdd86788da2391e43b6a546406aad9489490",
+     "value_after": 0.076,
+     "value_before": 0.076
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791592332.896,
+     "delta_u": 0.95,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.8,
+      "ab_theta": 0.907419,
+      "ab_y": 1.0,
+      "head_v": 0.370927
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 1.0,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.2,
+      "supported_ratio": 0.0,
+      "untested_ratio": 1.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 3,
+     "move_type": "run_experiment",
+     "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: L031 triggered on simple FROM clause with alias'",
+     "question_id": "q1",
+     "role_id": "r_issue_reproducer_swebench",
+     "state_hash_after": "4ea5f8ee6e22d80eec6e6c9e92f02647688a9a7e848368ef80e1b0178d5689a7",
+     "state_hash_before": "9e01d0eef7a26dcd66472332fac0bdd86788da2391e43b6a546406aad9489490",
+     "value_after": 0.702,
+     "value_before": 0.072
+    },
+    {
+     "agent_role": "API-Contract Specialist",
+     "created_at": 1791592405.276,
+     "delta_u": 0.03,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.772857,
+      "ab_theta": 0.963449,
+      "ab_y": 0.53,
+      "head_v": 0.219771
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.05,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.95,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 4,
+     "move_type": "synthesize",
+     "note": "src/sqlfluff/rules/L031.py [function]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (1/1 re-run probe(s) no longer reproduce the bug)",
+     "question_id": "q1",
+     "role_id": "r_api_contract_specialist_swebench",
+     "state_hash_after": "92c7505ac319d1f0599103b5c08bbfb39d48f7c013ad91ada4226e5154ba7962",
+     "state_hash_before": "4ea5f8ee6e22d80eec6e6c9e92f02647688a9a7e848368ef80e1b0178d5689a7",
+     "value_after": 0.788,
+     "value_before": 0.71
+    }
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v9_ab_mcts_swebench_firm_0",
+ "instance_id": "sqlfluff__sqlfluff-1625",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.94,
+  "estimated_cost_usd": 0.0056,
+  "flash_count": 26,
+  "flash_input_tokens": 18457,
+  "flash_output_tokens": 1644,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 1931,
+  "pro_output_tokens": 252,
+  "total_tokens": 22284
+ },
+ "org": {
+  "active_roles": [
+   {
+    "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "api",
+     "signature",
+     "kwargs",
+     "args",
+     "deprecation",
+     "deprecated",
+     "backwards",
+     "compatibility",
+     "contract",
+     "interface",
+     "public",
+     "default",
+     "argument",
+     "parameter"
+    ],
+    "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "API-Contract Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_api_contract_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "django",
+     "orm",
+     "queryset",
+     "model",
+     "models",
+     "migration",
+     "migrations",
+     "field",
+     "fields",
+     "sql",
+     "database",
+     "sqlalchemy",
+     "serializer",
+     "foreignkey",
+     "compiler",
+     "expression",
+     "annotation",
+     "subquery",
+     "admin",
+     "forms"
+    ],
+    "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Data-Model & ORM Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "cli",
+     "argparse",
+     "option",
+     "flag",
+     "command",
+     "config",
+     "configuration",
+     "documentation",
+     "docs",
+     "help",
+     "output",
+     "console",
+     "logging",
+     "warning",
+     "deprecationwarning",
+     "pylint",
+     "flake8",
+     "requests",
+     "http",
+     "session",
+     "header",
+     "url",
+     "matplotlib",
+     "figure",
+     "axes",
+     "pyplot",
+     "xarray",
+     "dataset"
+    ],
+    "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Docs & CLI Behaviour Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "reproduce",
+     "reproduction",
+     "minimal",
+     "example",
+     "issue",
+     "actual",
+     "behaviour",
+     "behavior",
+     "traceback",
+     "regression"
+    ],
+    "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+    "kind": "probe",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Issue Reproducer",
+    "origin": "seed:swebench",
+    "role_id": "r_issue_reproducer_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": false,
+    "uses": 0
+   },
+   {
+    "backstory": "Expert in SQL dialect grammars and AST traversal within sqlfluff, with deep experience in TSQL syntax parsing and rule evaluation logic. Specializes in debugging false positives in linting rules caused by grammar ambiguity or missing context checks in rule evaluation methods.",
+    "cost_per_move": 1.0,
+    "created_generation": 17,
+    "domain_tags": [
+     "sqlfluff",
+     "tsql",
+     "grammar",
+     "ast",
+     "parser",
+     "l031",
+     "dialect",
+     "rule"
+    ],
+    "goal": "Analyze the TSQL dialect grammar and L031 rule logic to determine why table aliases in FROM clauses are incorrectly identified as join conditions.",
+    "kind": "probe",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "TSQL Parser & Grammar Specialist",
+    "origin": "recruited:v9_ab_mcts_swebench_firm_0:g17:m2",
+    "rationale": "The current team lacks expertise in SQL dialect grammars and AST structure analysis required to diagnose why the TSQL parser or L031 rule misinterprets FROM clause aliases as join conditions. The Issue Reproducer can trigger the error, but cannot analyze the underlying grammar/rule interaction to un",
+    "role_id": "r_tsql_parser_grammar_specialist",
+    "source": "synthesized",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.7,
+    "tools_enabled": true,
+    "uses": 0
+   }
+  ],
+  "policy": {
+   "enabled": true,
+   "exploration_c": 0.25,
+   "headcount_lambda": 0.05,
+   "max_active_roles": 6,
+   "max_initial_roles": 4,
+   "min_initial_roles": 2,
+   "optimistic_prior": 0.3,
+   "recruit_bias": -2.0,
+   "recruit_cooldown_moves": 3,
+   "recruit_mode": "both",
+   "recruit_w_headcount": 0.4,
+   "recruit_w_stall": 0.5,
+   "recruit_w_unmatched": 0.8,
+   "stall_delta_u": 0.05,
+   "stall_moves": 4,
+   "temperature": 0.0
+  },
+  "recruit_log": [
+   {
+    "move_index": 2,
+    "name": "TSQL Parser & Grammar Specialist",
+    "prior": 0.0392,
+    "reason": "stall=0, unmatched=1",
+    "role_id": "r_tsql_parser_grammar_specialist",
+    "source": "synthesized",
+    "stall_counter": 0,
+    "unmatched_modules": [
+     "src/sqlfluff/rules/L031.py"
+    ]
+   }
+  ],
+  "recruit_prior": 0.018,
+  "stall_counter": 0,
+  "stats": {
+   "r_api_contract_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.03,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 1,
+    "untestable": 0,
+    "visits": 1
+   },
+   "r_data_model_orm_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   },
+   "r_docs_cli_behaviour_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   },
+   "r_issue_reproducer_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.95,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 1,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 1
+   },
+   "r_tsql_parser_grammar_specialist": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": 2,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   }
+  },
+  "unmatched_modules": []
+ },
+ "org_history": [
+  {
+   "audit": {
+    "candidates": 364,
+    "chosen": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_docs_cli_behaviour_specialist_swebench",
+     "r_issue_reproducer_swebench"
+    ],
+    "iteration": 1,
+    "lambda_eff": 0.0668,
+    "library_size": 10,
+    "library_source": "genome",
+    "scores": {
+     "r_api_contract_specialist_swebench": 0.15,
+     "r_data_model_orm_specialist_swebench": 0.15,
+     "r_docs_cli_behaviour_specialist_swebench": 0.1554,
+     "r_issue_reproducer_swebench": 0.18,
+     "r_minimal_diff_synthesiser_swebench": 0.15,
+     "r_numerics_symbolic_specialist_swebench": 0.15,
+     "r_parsing_grammar_specialist_swebench": 0.15,
+     "r_regression_guard_swebench": 0.15,
+     "r_test_suite_analyst_swebench": 0.15,
+     "r_traceback_localiser_swebench": 0.15
+    },
+    "task": {
+     "complexity": 0.1635,
+     "has_assertion": false,
+     "has_import_error": false,
+     "n_exception_classes": 0,
+     "n_failures": 0,
+     "n_modules": 1,
+     "n_paths_mentioned": 1,
+     "source": "problem_statement",
+     "statement_chars": 635,
+     "tags": [
+      "sqlfluff",
+      "rules",
+      "l031",
+      "tsql",
+      "incorrectly",
+      "triggers",
+      "avoid",
+      "using",
+      "aliases",
+      "join",
+      "condition",
+      "present",
+      "behaviour",
+      "both",
+      "these",
+      "queries",
+      "pass",
+      "only",
+      "difference",
+      "addition",
+      "table",
+      "alias",
+      "select",
+      "hello",
+      "mytable",
+      "same",
+      "query",
+      "observed",
+      "passes",
+      "fails",
+      "steps",
+      "reproduce",
+      "lint",
+      "above",
+      "dialect",
+      "version",
+      "configuration"
+     ]
+    },
+    "team": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_docs_cli_behaviour_specialist_swebench",
+     "r_issue_reproducer_swebench"
+    ],
+    "team_names": [
+     "API-Contract Specialist",
+     "Data-Model & ORM Specialist",
+     "Docs & CLI Behaviour Specialist",
+     "Issue Reproducer"
+    ],
+    "v_org": 0.3681
+   },
+   "iteration": 1,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "cli",
+       "argparse",
+       "option",
+       "flag",
+       "command",
+       "config",
+       "configuration",
+       "documentation",
+       "docs",
+       "help",
+       "output",
+       "console",
+       "logging",
+       "warning",
+       "deprecationwarning",
+       "pylint",
+       "flake8",
+       "requests",
+       "http",
+       "session",
+       "header",
+       "url",
+       "matplotlib",
+       "figure",
+       "axes",
+       "pyplot",
+       "xarray",
+       "dataset"
+      ],
+      "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Docs & CLI Behaviour Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_docs_cli_behaviour_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "reproduce",
+       "reproduction",
+       "minimal",
+       "example",
+       "issue",
+       "actual",
+       "behaviour",
+       "behavior",
+       "traceback",
+       "regression"
+      ],
+      "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Issue Reproducer",
+      "origin": "seed:swebench",
+      "role_id": "r_issue_reproducer_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     },
+     {
+      "backstory": "Expert in SQL dialect grammars and AST traversal within sqlfluff, with deep experience in TSQL syntax parsing and rule evaluation logic. Specializes in debugging false positives in linting rules caused by grammar ambiguity or missing context checks in rule evaluation methods.",
+      "cost_per_move": 1.0,
+      "created_generation": 17,
+      "domain_tags": [
+       "sqlfluff",
+       "tsql",
+       "grammar",
+       "ast",
+       "parser",
+       "l031",
+       "dialect",
+       "rule"
+      ],
+      "goal": "Analyze the TSQL dialect grammar and L031 rule logic to determine why table aliases in FROM clauses are incorrectly identified as join conditions.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "TSQL Parser & Grammar Specialist",
+      "origin": "recruited:v9_ab_mcts_swebench_firm_0:g17:m2",
+      "rationale": "The current team lacks expertise in SQL dialect grammars and AST structure analysis required to diagnose why the TSQL parser or L031 rule misinterprets FROM clause aliases as join conditions. The Issue Reproducer can trigger the error, but cannot analyze the underlying grammar/rule interaction to un",
+      "role_id": "r_tsql_parser_grammar_specialist",
+      "source": "synthesized",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.7,
+      "tools_enabled": true,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [
+     {
+      "move_index": 2,
+      "name": "TSQL Parser & Grammar Specialist",
+      "prior": 0.0392,
+      "reason": "stall=0, unmatched=1",
+      "role_id": "r_tsql_parser_grammar_specialist",
+      "source": "synthesized",
+      "stall_counter": 0,
+      "unmatched_modules": [
+       "src/sqlfluff/rules/L031.py"
+      ]
+     }
+    ],
+    "recruit_prior": 0.018,
+    "stall_counter": 0,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.03,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_docs_cli_behaviour_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_issue_reproducer_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.95,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_tsql_parser_grammar_specialist": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": 2,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     }
+    },
+    "unmatched_modules": []
+   }
+  }
+ ],
+ "prediction_chars": 2975,
+ "swebench": {
+  "base_commit": "14e1a23a3166b9a645a16de96f694c77a5d4abb7",
+  "budget_moves": 30,
+  "changed_files": [
+   "src/sqlfluff/rules/L031.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "sqlfluff__sqlfluff-1625",
+  "iterations": [
+   {
+    "iteration": 1,
+    "moves_used": 4,
+    "org": {
+     "recruits": 1,
+     "stall": 0,
+     "team": [
+      "r_api_contract_specialist_swebench",
+      "r_data_model_orm_specialist_swebench",
+      "r_docs_cli_behaviour_specialist_swebench",
+      "r_issue_reproducer_swebench",
+      "r_tsql_parser_grammar_specialist"
+     ],
+     "unmatched": []
+    },
+    "patched": true,
+    "recheck": {
+     "bug_gone_hypotheses": [
+      "h1"
+     ],
+     "evidence_id": "e6",
+     "probes_rerun": 1,
+     "reopened": [],
+     "resolved": [
+      "q1"
+     ],
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "all_resolved",
+    "synthesized_paths": [
+     "src/sqlfluff/rules/L031.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "src/sqlfluff/rules/L031.py",
+    "rationale": "The issue explicitly reports incorrect behavior for rule L031 ('Avoid using aliases in join condition'), which is implemented in this specific rule module.",
+    "resolved": "src/sqlfluff/rules/L031.py"
+   }
+  ],
+  "moves_used": 4,
+  "patch_chars": 2975,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "sqlfluff",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 60.0,
+    "duration_s": 60.6,
+    "mode": "proximity",
+    "reason": "whole suite did not finish within 60s",
+    "target": "test"
+   },
+   "tried": [
+    "sqlfluff"
+   ]
+  },
+  "repo": "sqlfluff/sqlfluff",
+  "reproduction": [
+   {
+    "bug_gone_hypotheses": [
+     "h1"
+    ],
+    "evidence_id": "e6",
+    "probes_rerun": 1,
+    "reopened": [],
+    "reruns": [
+     {
+      "bug_no_longer_reproduces": true,
+      "completed": true,
+      "detail": "prediction failed: exit_code==1; stdout contains 'BUG: L031 triggered on simple FROM clause with alias'",
+      "evidence_id": "e5",
+      "exit_code": 0,
+      "hypothesis_id": "h1",
+      "matched_prediction": false
+     }
+    ],
+    "resolved": [
+     "q1"
+    ],
+    "verdict": "resolved"
+   }
+  ],
+  "resolved_by_self_oracle": true,
+  "root_module": "src/sqlfluff/rules/L031.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [],
+   "failure": "TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present",
+   "paths": [
+    "src/sqlfluff/rules/L031.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "resolved",
+  "task_features": {
+   "complexity": 0.1635,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 635,
+   "tags": [
+    "sqlfluff",
+    "rules",
+    "l031",
+    "tsql",
+    "incorrectly",
+    "triggers",
+    "avoid",
+    "using",
+    "aliases",
+    "join",
+    "condition",
+    "present",
+    "behaviour",
+    "both",
+    "these",
+    "queries",
+    "pass",
+    "only",
+    "difference",
+    "addition",
+    "table",
+    "alias",
+    "select",
+    "hello",
+    "mytable",
+    "same",
+    "query",
+    "observed",
+    "passes",
+    "fails",
+    "steps",
+    "reproduce",
+    "lint",
+    "above",
+    "dialect",
+    "version",
+    "configuration"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 1
+ },
+ "task": {
+  "base_commit": "14e1a23a3166b9a645a16de96f694c77a5d4abb7",
+  "created_at": "2021-10-13T11:35:29Z",
+  "environment_setup_commit": "67023b85c41d23d6c6d69812a41b207c4f8a9331",
+  "hints_text": "",
+  "instance_id": "sqlfluff__sqlfluff-1625",
+  "problem_statement": "TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present\n## Expected Behaviour\r\n\r\nBoth of these queries should pass, the only difference is the addition of a table alias 'a':\r\n\r\n1/ no alias\r\n\r\n```\r\nSELECT [hello]\r\nFROM\r\n    mytable\r\n```\r\n\r\n2/ same query with alias\r\n\r\n```\r\nSELECT a.[hello]\r\nFROM\r\n    mytable AS a\r\n```\r\n\r\n## Observed Behaviour\r\n\r\n1/ passes\r\n2/ fails with: L031: Avoid using aliases in join condition.\r\n\r\nBut there is no join condition :-)\r\n\r\n## Steps to Reproduce\r\n\r\nLint queries above\r\n\r\n## Dialect\r\n\r\nTSQL\r\n\r\n## Version\r\n\r\nsqlfluff 0.6.9\r\nPython 3.6.9\r\n\r\n## Configuration\r\n\r\nN/A\n",
+  "repo": "sqlfluff/sqlfluff",
+  "version": "0.6"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 5,
+  "thought_tokens": 0
+ },
+ "token_usage": 22284,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

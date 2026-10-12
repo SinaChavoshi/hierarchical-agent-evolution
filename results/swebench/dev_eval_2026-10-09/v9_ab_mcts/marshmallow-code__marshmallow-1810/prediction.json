@@ -1,0 +1,5 @@
+{
+ "instance_id": "marshmallow-code__marshmallow-1810",
+ "model_name_or_path": "hae-v9-ab/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/src/marshmallow/fields.py b/src/marshmallow/fields.py\nindex a82623be..db2304a6 100644\n--- a/src/marshmallow/fields.py\n+++ b/src/marshmallow/fields.py\n@@ -410,14 +410,10 @@ class Field(FieldABC):\n \n     @property\n     def root(self):\n-        \"\"\"Reference to the `Schema` that this field belongs to even if it is buried in a\n-        container field (e.g. `List`).\n-        Return `None` for unbound fields.\n-        \"\"\"\n         ret = self\n-        while hasattr(ret, \"parent\"):\n+        while ret is not None and not isinstance(ret, SchemaABC):\n             ret = ret.parent\n-        return ret if isinstance(ret, SchemaABC) else None\n+        return ret\n \n \n class Raw(Field):\n"
+}

@@ -1,0 +1,1582 @@
+{
+ "authored_files": [
+  "src/sqlfluff/core/linter.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 161.93,
+ "epistemic_audit": {
+  "budget_moves": 30,
+  "calibration_brier": 0.9025,
+  "calibration_tested": 2,
+  "delta_u_total": 0.98,
+  "duplicate_rejections": 0,
+  "evidence": 7,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 2,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 1,
+  "hypotheses": 3,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 1,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 2,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "c40d1cb24e3ac3cced6a6f7e0af96530e2edc4358736fdf1dafd706cb49f3fa5",
+  "low_prior_wins": 1,
+  "moves_used": 4,
+  "overconfident_falsified": 1,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 1,
+  "proposed_total": 3,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 0,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 0.02,
+  "resolved_fraction": 0.98,
+  "ruled_out": 1,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "all_resolved",
+  "syntheses": 1,
+  "syntheses_verified": 1,
+  "tabu_rejections": 0,
+  "token_usage": 15753,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v8_smoke_swebench_firm_0",
+  "counters": {
+   "e": 7,
+   "h": 3,
+   "q": 1,
+   "ro": 1
+  },
+  "created_at": 1791590556.068,
+  "evidence_log": [
+   {
+    "command": "python .hae/probe_h1.py",
+    "created_at": 1791590683.992,
+    "detail": "prediction failed: stdout contains 'BUG: disable keyword treated as rule code'",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: disable keyword treated as rule code"
+    },
+    "question_id": "q1",
+    "sha256": "c2a641e4e66796bbeca64082be23872b1ca137692f33abe56076c7e21a5d1f34",
+    "stderr": "command terminated with exit code 1\n",
+    "stdout": "BUG: Exception Found unparsable section: '\\n    -- noqa: enable=L001\\n    SELECT 1'\n"
+   },
+   {
+    "command": "python .hae/probe_h2.py",
+    "created_at": 1791590685.673,
+    "detail": "prediction held: exit_code==1; stdout contains 'BUG: No state tracking for disable/enable'",
+    "evidence_id": "e2",
+    "exit_code": 1,
+    "hypothesis_id": "h2",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: No state tracking for disable/enable"
+    },
+    "question_id": "q1",
+    "sha256": "1157b87a231d4c0d73ac311e395d1557e7dbea12a284235c81e9e65de8f0b899",
+    "stderr": "command terminated with exit code 1\n",
+    "stdout": "Has state: False\nBUG: No state tracking for disable/enable\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
+    "created_at": 1791590707.306,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e3",
+    "exit_code": 0,
+    "hypothesis_id": "h2",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "4cf89a1be67472941c71606288da83ed15e409a1738b89eb00cde43343771837",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1331 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.09s\n"
+   },
+   {
+    "command": "post-synthesis re-run: python .hae/probe_h2.py",
+    "created_at": 1791590710.387,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: No state tracking for disable/enable'",
+    "evidence_id": "e4",
+    "exit_code": 0,
+    "hypothesis_id": "h2",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: No state tracking for disable/enable"
+    },
+    "question_id": "q1",
+    "sha256": "6220d4317145f878042928bc4925716c51fefb33792d448a41b3a2fa24a320b2",
+    "stderr": "",
+    "stdout": "Has state: True\nOK: State tracking exists\n"
+   },
+   {
+    "command": "post-synthesis effect check: supported probes re-run after the write (NOT the hidden tests)",
+    "created_at": 1791590710.387,
+    "detail": "post-synthesis effect check: effective -- 1/1 re-run probe(s) no longer reproduce the bug (h2)",
+    "evidence_id": "e5",
+    "exit_code": 0,
+    "hypothesis_id": "h2",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "3037b37011d4c3c946a912405082a315e2ed04eb6327aea0e1f121ebcbc7f0ad",
+    "stderr": "",
+    "stdout": "h2 (q1): completed=True matched=False exit=0 bug_no_longer_reproduces=True"
+   },
+   {
+    "command": "python .hae/probe_h2.py",
+    "created_at": 1791590713.171,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: No state tracking for disable/enable'",
+    "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "h2",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: No state tracking for disable/enable"
+    },
+    "question_id": "q1",
+    "sha256": "ea6c70661bc3512ed1f49e8f34d424b8a906c21caa1deb505627ecadb8681845",
+    "stderr": "",
+    "stdout": "Has state: True\nOK: State tracking exists\n"
+   },
+   {
+    "command": "self-oracle: reproduction probe re-run after patch (NOT the hidden tests)",
+    "created_at": 1791590713.171,
+    "detail": "self-oracle, iteration 1: resolved (1/1 reproduction probe(s) no longer reproduce the bug)",
+    "evidence_id": "e7",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "oracle",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "7acee25194eafd8d320f4a50f6f20531a646d3c8de79c1335b235f6bd2eb0a3b",
+    "stderr": "",
+    "stdout": "h2: completed=True matched=False exit=0 bug_no_longer_reproduces=True"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "The `extract_ignore_from_comment` method in `Linter` currently parses noqa comments using a regex that only matches the `noqa` keyword followed by optional rule codes (e.g., `-- noqa: L001`). It lacks",
+    "created_at": 1791590682.23,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "The `extract_ignore_from_comment` method in `Linter` currently parses noqa comments using a regex that only matches the `noqa` keyword followed by optional rule codes (e.g., `-- noqa: L001`). It lacks any logic to recognize `noqa: disable` or `noqa: enable` as",
+    "mechanism_signature": "cod comment current disable enable extract_ignore_from_comment follow keyword l001 lack linter logic match noqa optional pars recognize regex rule using",
+    "patch_applied": false,
+    "posterior": 0.0,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: disable keyword treated as rule code"
+    },
+    "prior": 0.95,
+    "probe_code": "import sys\nfrom sqlfluff.core import Linter\nfrom sqlfluff.core.config import FluffConfig\n\ndef test_disable_enable():\n    sql = '''\n    -- noqa: disable=L001\n    SELECT 1\n    -- noqa: enable=L001\n    SELECT 1\n    '''\n    cfg = FluffConfig(overrides={'dialect': 'ansi'})\n    linter = Linter(config=cfg)\n    try:\n        result = linter.lint_string(sql)\n        violations = result.check_tuples()\n        # If disable/enable works, we expect NO violations for L001 in the disabled block\n        # But currently, it likely treats 'disable=L001' as an invalid rule code or ignores it\n        # Let's check if 'disable' is parsed as a rule code\n        print(f'Violations: {violations}')\n        if any('disable' in str(v) for v in violations):\n            print('BUG: disable keyword treated as rule code')\n            sys.exit(1)\n        else:\n            print('OK: disable keyword handled')\n            sys.exit(0)\n    except Exception as e:\n        print(f'BUG: Exception {e}')\n        sys.exit(1)\n\ntest_disable_enable()",
+    "probe_rejections": 0,
+    "proposed_by": "API-Contract Specialist",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "status": "FALSIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.470297,
+    "visits": 1
+   },
+   {
+    "claim": "The `Linter` class does not maintain state across lines to track whether rules are currently disabled or enabled. The `lint_string` method processes violations line-by-line or",
+    "created_at": 1791590682.23,
+    "epoch": 0,
+    "evidence_ids": [
+     "e2",
+     "e3",
+     "e4",
+     "e5",
+     "e6"
+    ],
+    "hypothesis_id": "h2",
+    "last_rejection": "",
+    "mechanism": "The `Linter` class does not maintain state across lines to track whether rules are currently disabled or enabled. The `lint_string` method processes violations line-by-line or segment-by-segment without a persistent 'disabled_rules' set that is updated by `no",
+    "mechanism_signature": "across current disabl disabled_rules enabl lint_string linter maintain persistent process rul segment set state track updat violation whether without",
+    "patch_applied": true,
+    "posterior": 0.715,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: No state tracking for disable/enable"
+    },
+    "prior": 0.05,
+    "probe_code": "import sys\nfrom sqlfluff.core import Linter\nfrom sqlfluff.core.config import FluffConfig\n\ndef test_state():\n    sql = '''\n    -- noqa: disable=L001\n    SELECT 1\n    '''\n    cfg = FluffConfig(overrides={'dialect': 'ansi'})\n    linter = Linter(config=cfg)\n    # Check if Linter has any attribute for tracking disabled rules across lines\n    has_state = hasattr(linter, '_disabled_rules') or hasattr(linter, 'disabled_rules')\n    print(f'Has state: {has_state}')\n    if not has_state:\n        print('BUG: No state tracking for disable/enable')\n        sys.exit(1)\n    else:\n        print('OK: State tracking exists')\n        sys.exit(0)\n\ntest_state()",
+    "probe_rejections": 0,
+    "proposed_by": "API-Contract Specialist",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.244703,
+    "visits": 1
+   },
+   {
+    "claim": "The `noqa` comment parsing logic in `extract_ignore_from_comment` is implemented in a way that strictly expects a comma-separated list of rule codes after `noqa:`. It does not",
+    "created_at": 1791590682.23,
+    "epoch": 0,
+    "evidence_ids": [],
+    "hypothesis_id": "h3",
+    "last_rejection": "",
+    "mechanism": "The `noqa` comment parsing logic in `extract_ignore_from_comment` is implemented in a way that strictly expects a comma-separated list of rule codes after `noqa:`. It does not support the `disable` and `enable` keywords as special",
+    "mechanism_signature": "after cod comma comment disable enable expect extract_ignore_from_comment implement keyword list logic noqa pars rule separat special strict support way",
+    "patch_applied": false,
+    "posterior": 0.01,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: Syntax error"
+    },
+    "prior": 0.01,
+    "probe_code": "import sys\nfrom sqlfluff.core import Linter\nfrom sqlfluff.core.config import FluffConfig\n\ndef test_syntax():\n    sql = '''\n    -- noqa: disable=L001\n    SELECT 1\n    '''\n    cfg = FluffConfig(overrides={'dialect': 'ansi'})\n    linter = Linter(config=cfg)\n    try:\n        result = linter.lint_string(sql)\n        print('OK: Syntax parsed without error')\n        sys.exit(0)\n    except Exception as e:\n        print(f'BUG: Syntax error {e}')\n        sys.exit(1)\n\ntest_syntax()",
+    "probe_rejections": 0,
+    "proposed_by": "API-Contract Specialist",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "status": "UNVERIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [
+   {
+    "agent_role": "API-Contract Specialist",
+    "created_at": 1791590682.231,
+    "delta_u": 0.0,
+    "extra": {
+     "head_v": 0.370193
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 1.0,
+     "module_isolation": 1.0,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 0.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 1,
+    "move_type": "propose_hypothesis",
+    "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "state_hash_after": "5277c908c172d852c8a1d2f7f8a71a74cde4fbd9828f6d654d19f28b532b2ff8",
+    "state_hash_before": "44bdfbdc63e8bdff244665e031e828bec45303871c6df15d27ace028834cc651",
+    "value_after": 0.08,
+    "value_before": 0.06
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791590683.992,
+    "delta_u": 0.470297,
+    "extra": {
+     "head_p": 0.093814,
+     "head_rank": 0.0,
+     "head_v": 0.384021,
+     "prior_head_weight": 0.0,
+     "stated_rank": 1.0
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 1.0,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.1,
+     "supported_ratio": 0.0,
+     "untested_ratio": 1.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 2,
+    "move_type": "run_experiment",
+    "note": "FALSIFIED: prediction failed: stdout contains 'BUG: disable keyword treated as rule code'",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "state_hash_after": "983fe09b7b59625a774a9d9707189f013add563b24a2fc054a1c8c2050e7772e",
+    "state_hash_before": "5277c908c172d852c8a1d2f7f8a71a74cde4fbd9828f6d654d19f28b532b2ff8",
+    "value_after": 0.371512,
+    "value_before": 0.076
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791590685.674,
+    "delta_u": 0.244703,
+    "extra": {
+     "head_p": 0.096067,
+     "head_rank": 0.0,
+     "head_v": 0.248733,
+     "prior_head_weight": 0.0,
+     "stated_rank": 1.0
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.333333,
+     "mean_open_uncertainty": 0.529703,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.470297,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.333333,
+     "stagnation": 0.0,
+     "supported_ratio": 0.0,
+     "untested_ratio": 0.666667
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h2",
+    "move_index": 3,
+    "move_type": "run_experiment",
+    "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: No state tracking for disable/enable'",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "state_hash_after": "5e69eec0e4c8a17c941167d298747dd55c7bfa968fc0930ec4b67311d239ac65",
+    "state_hash_before": "983fe09b7b59625a774a9d9707189f013add563b24a2fc054a1c8c2050e7772e",
+    "value_after": 0.542333,
+    "value_before": 0.375512
+   },
+   {
+    "agent_role": "API-Contract Specialist",
+    "created_at": 1791590710.388,
+    "delta_u": 0.265,
+    "extra": {
+     "head_v": 0.205969
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.666667,
+     "mean_open_uncertainty": 0.285,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.715,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.333333,
+     "stagnation": 0.0,
+     "supported_ratio": 0.333333,
+     "untested_ratio": 0.333333
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h2",
+    "move_index": 4,
+    "move_type": "synthesize",
+    "note": "src/sqlfluff/core/linter.py [plan]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (1/1 re-run probe(s) no longer reproduce the bug)",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "state_hash_after": "6da2f3a1a29811d0d9759902b956d47ade2e8377e991e7466be3b16cf5109612",
+    "state_hash_before": "5e69eec0e4c8a17c941167d298747dd55c7bfa968fc0930ec4b67311d239ac65",
+    "value_after": 0.761333,
+    "value_before": 0.542333
+   }
+  ],
+  "questions": [
+   {
+    "created_at": 1791590557.315,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1",
+     "h2",
+     "h3"
+    ],
+    "hypothesis_rounds": 1,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "src/sqlfluff/core/linter.py",
+    "question_id": "q1",
+    "source_failure": "Add \"enable\" and \"disable\" syntax to noqa to allow rules disabling across multiple lines",
+    "source_failure_key": "swebench:sqlfluff__sqlfluff-891",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: Add \"enable\" and \"disable\" syntax to noqa to allow rules disabling across multiple lines -- See the `pylint` docs for an example: https://docs.pylint.org/en/1.6.0/faq.html#is-it-possible-to-locally-disable-a-particular-message",
+    "uncertainty": 0.02
+   }
+  ],
+  "ruled_out": [
+   {
+    "belief_id": "ro1",
+    "claim": "The `extract_ignore_from_comment` method in `Linter` currently parses noqa comments using a regex that only matches the `noqa` keyword followed by optional rule codes (e.g., `-- noqa: L001`). It lacks",
+    "created_at": 1791590683.992,
+    "epoch": 0,
+    "hypothesis_id": "h1",
+    "killing_evidence_id": "e1",
+    "mechanism_signature": "cod comment current disable enable extract_ignore_from_comment follow keyword l001 lack linter logic match noqa optional pars recognize regex rule using",
+    "question_id": "q1"
+   }
+  ],
+  "settled_knowledge": [],
+  "state_hash": "c40d1cb24e3ac3cced6a6f7e0af96530e2edc4358736fdf1dafd706cb49f3fa5"
+ },
+ "epistemic_searches": [
+  {
+   "delta_u_total": 0.98,
+   "iteration": 1,
+   "moves_used": 4,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "cli",
+       "argparse",
+       "option",
+       "flag",
+       "command",
+       "config",
+       "configuration",
+       "documentation",
+       "docs",
+       "help",
+       "output",
+       "console",
+       "logging",
+       "warning",
+       "deprecationwarning",
+       "pylint",
+       "flake8",
+       "requests",
+       "http",
+       "session",
+       "header",
+       "url",
+       "matplotlib",
+       "figure",
+       "axes",
+       "pyplot",
+       "xarray",
+       "dataset"
+      ],
+      "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Docs & CLI Behaviour Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_docs_cli_behaviour_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "reproduce",
+       "reproduction",
+       "minimal",
+       "example",
+       "issue",
+       "actual",
+       "behaviour",
+       "behavior",
+       "traceback",
+       "regression"
+      ],
+      "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Issue Reproducer",
+      "origin": "seed:swebench",
+      "role_id": "r_issue_reproducer_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [],
+    "recruit_prior": 0.0573,
+    "stall_counter": 0,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.98,
+      "falsified": 1,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 3
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_docs_cli_behaviour_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_issue_reproducer_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     }
+    },
+    "unmatched_modules": [
+     "src/sqlfluff/core/linter.py"
+    ]
+   },
+   "stats": {
+    "budget_moves": 30,
+    "delta_u_by_role": {
+     "r_api_contract_specialist_swebench": 0.98
+    },
+    "duplicate_rejections": 0,
+    "experiments": 2,
+    "falsified": 1,
+    "forced_low_prior_picks": 0,
+    "forced_low_prior_wins": 0,
+    "frontier_admissions": 1,
+    "hypotheses_accepted": 3,
+    "inconclusive": 0,
+    "moves_by_role": {
+     "r_api_contract_specialist_swebench": 4
+    },
+    "moves_used": 4,
+    "prior_head_loaded": true,
+    "prior_head_steered": 0,
+    "probe_repairs": 0,
+    "proposal_rounds": 1,
+    "proposer_errors": 0,
+    "questions_asked": 0,
+    "questions_deferred": 0,
+    "recruit_declined": 0,
+    "recruits": 0,
+    "recruits_from_library": 0,
+    "recruits_synthesized": 0,
+    "rejected_probes": 0,
+    "roles_routed": true,
+    "stop_reason": "all_resolved",
+    "supported": 1,
+    "syntheses": 1,
+    "syntheses_by_plan": 1,
+    "syntheses_unwritten": 0,
+    "syntheses_verified": 1,
+    "synthesis_seconds": 13.675,
+    "tabu_rejections": 0,
+    "value_head_loaded": true
+   },
+   "stop_reason": "all_resolved",
+   "synthesized_paths": [
+    "src/sqlfluff/core/linter.py"
+   ],
+   "trajectory": [
+    {
+     "agent_role": "API-Contract Specialist",
+     "created_at": 1791590682.231,
+     "delta_u": 0.0,
+     "extra": {
+      "head_v": 0.370193
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 1.0,
+      "module_isolation": 1.0,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 0.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 1,
+     "move_type": "propose_hypothesis",
+     "note": "3 accepted, 0 repaired, 0 tabu, 0 duplicate of 3 proposed",
+     "question_id": "q1",
+     "role_id": "r_api_contract_specialist_swebench",
+     "state_hash_after": "5277c908c172d852c8a1d2f7f8a71a74cde4fbd9828f6d654d19f28b532b2ff8",
+     "state_hash_before": "44bdfbdc63e8bdff244665e031e828bec45303871c6df15d27ace028834cc651",
+     "value_after": 0.08,
+     "value_before": 0.06
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791590683.992,
+     "delta_u": 0.470297,
+     "extra": {
+      "head_p": 0.093814,
+      "head_rank": 0.0,
+      "head_v": 0.384021,
+      "prior_head_weight": 0.0,
+      "stated_rank": 1.0
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 1.0,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.1,
+      "supported_ratio": 0.0,
+      "untested_ratio": 1.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 2,
+     "move_type": "run_experiment",
+     "note": "FALSIFIED: prediction failed: stdout contains 'BUG: disable keyword treated as rule code'",
+     "question_id": "q1",
+     "role_id": "r_api_contract_specialist_swebench",
+     "state_hash_after": "983fe09b7b59625a774a9d9707189f013add563b24a2fc054a1c8c2050e7772e",
+     "state_hash_before": "5277c908c172d852c8a1d2f7f8a71a74cde4fbd9828f6d654d19f28b532b2ff8",
+     "value_after": 0.371512,
+     "value_before": 0.076
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791590685.674,
+     "delta_u": 0.244703,
+     "extra": {
+      "head_p": 0.096067,
+      "head_rank": 0.0,
+      "head_v": 0.248733,
+      "prior_head_weight": 0.0,
+      "stated_rank": 1.0
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.333333,
+      "mean_open_uncertainty": 0.529703,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.470297,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.333333,
+      "stagnation": 0.0,
+      "supported_ratio": 0.0,
+      "untested_ratio": 0.666667
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h2",
+     "move_index": 3,
+     "move_type": "run_experiment",
+     "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: No state tracking for disable/enable'",
+     "question_id": "q1",
+     "role_id": "r_api_contract_specialist_swebench",
+     "state_hash_after": "5e69eec0e4c8a17c941167d298747dd55c7bfa968fc0930ec4b67311d239ac65",
+     "state_hash_before": "983fe09b7b59625a774a9d9707189f013add563b24a2fc054a1c8c2050e7772e",
+     "value_after": 0.542333,
+     "value_before": 0.375512
+    },
+    {
+     "agent_role": "API-Contract Specialist",
+     "created_at": 1791590710.388,
+     "delta_u": 0.265,
+     "extra": {
+      "head_v": 0.205969
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.666667,
+      "mean_open_uncertainty": 0.285,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.715,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.333333,
+      "stagnation": 0.0,
+      "supported_ratio": 0.333333,
+      "untested_ratio": 0.333333
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h2",
+     "move_index": 4,
+     "move_type": "synthesize",
+     "note": "src/sqlfluff/core/linter.py [plan]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (1/1 re-run probe(s) no longer reproduce the bug)",
+     "question_id": "q1",
+     "role_id": "r_api_contract_specialist_swebench",
+     "state_hash_after": "6da2f3a1a29811d0d9759902b956d47ade2e8377e991e7466be3b16cf5109612",
+     "state_hash_before": "5e69eec0e4c8a17c941167d298747dd55c7bfa968fc0930ec4b67311d239ac65",
+     "value_after": 0.761333,
+     "value_before": 0.542333
+    }
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v8_smoke_swebench_firm_0",
+ "instance_id": "sqlfluff__sqlfluff-891",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.99,
+  "estimated_cost_usd": 0.0015,
+  "flash_count": 26,
+  "flash_input_tokens": 14420,
+  "flash_output_tokens": 1333,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 15753
+ },
+ "org": {
+  "active_roles": [
+   {
+    "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "api",
+     "signature",
+     "kwargs",
+     "args",
+     "deprecation",
+     "deprecated",
+     "backwards",
+     "compatibility",
+     "contract",
+     "interface",
+     "public",
+     "default",
+     "argument",
+     "parameter"
+    ],
+    "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "API-Contract Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_api_contract_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "django",
+     "orm",
+     "queryset",
+     "model",
+     "models",
+     "migration",
+     "migrations",
+     "field",
+     "fields",
+     "sql",
+     "database",
+     "sqlalchemy",
+     "serializer",
+     "foreignkey",
+     "compiler",
+     "expression",
+     "annotation",
+     "subquery",
+     "admin",
+     "forms"
+    ],
+    "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Data-Model & ORM Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "cli",
+     "argparse",
+     "option",
+     "flag",
+     "command",
+     "config",
+     "configuration",
+     "documentation",
+     "docs",
+     "help",
+     "output",
+     "console",
+     "logging",
+     "warning",
+     "deprecationwarning",
+     "pylint",
+     "flake8",
+     "requests",
+     "http",
+     "session",
+     "header",
+     "url",
+     "matplotlib",
+     "figure",
+     "axes",
+     "pyplot",
+     "xarray",
+     "dataset"
+    ],
+    "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Docs & CLI Behaviour Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "reproduce",
+     "reproduction",
+     "minimal",
+     "example",
+     "issue",
+     "actual",
+     "behaviour",
+     "behavior",
+     "traceback",
+     "regression"
+    ],
+    "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+    "kind": "probe",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Issue Reproducer",
+    "origin": "seed:swebench",
+    "role_id": "r_issue_reproducer_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": false,
+    "uses": 0
+   }
+  ],
+  "policy": {
+   "enabled": true,
+   "exploration_c": 0.25,
+   "headcount_lambda": 0.05,
+   "max_active_roles": 6,
+   "max_initial_roles": 4,
+   "min_initial_roles": 2,
+   "optimistic_prior": 0.3,
+   "recruit_bias": -2.0,
+   "recruit_cooldown_moves": 3,
+   "recruit_mode": "both",
+   "recruit_w_headcount": 0.4,
+   "recruit_w_stall": 0.5,
+   "recruit_w_unmatched": 0.8,
+   "stall_delta_u": 0.05,
+   "stall_moves": 4,
+   "temperature": 0.0
+  },
+  "recruit_log": [],
+  "recruit_prior": 0.0573,
+  "stall_counter": 0,
+  "stats": {
+   "r_api_contract_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.98,
+    "falsified": 1,
+    "recruited_at_move": -1,
+    "supported": 1,
+    "syntheses_written": 1,
+    "untestable": 0,
+    "visits": 3
+   },
+   "r_data_model_orm_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   },
+   "r_docs_cli_behaviour_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   },
+   "r_issue_reproducer_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   }
+  },
+  "unmatched_modules": [
+   "src/sqlfluff/core/linter.py"
+  ]
+ },
+ "org_history": [
+  {
+   "audit": {
+    "candidates": 364,
+    "chosen": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_docs_cli_behaviour_specialist_swebench",
+     "r_issue_reproducer_swebench"
+    ],
+    "iteration": 1,
+    "lambda_eff": 0.0689,
+    "library_size": 10,
+    "library_source": "genome",
+    "scores": {
+     "r_api_contract_specialist_swebench": 0.15,
+     "r_data_model_orm_specialist_swebench": 0.15,
+     "r_docs_cli_behaviour_specialist_swebench": 0.1615,
+     "r_issue_reproducer_swebench": 0.165,
+     "r_minimal_diff_synthesiser_swebench": 0.15,
+     "r_numerics_symbolic_specialist_swebench": 0.15,
+     "r_parsing_grammar_specialist_swebench": 0.15,
+     "r_regression_guard_swebench": 0.15,
+     "r_test_suite_analyst_swebench": 0.15,
+     "r_traceback_localiser_swebench": 0.15
+    },
+    "task": {
+     "complexity": 0.1224,
+     "has_assertion": false,
+     "has_import_error": false,
+     "n_exception_classes": 0,
+     "n_failures": 0,
+     "n_modules": 1,
+     "n_paths_mentioned": 1,
+     "source": "problem_statement",
+     "statement_chars": 224,
+     "tags": [
+      "sqlfluff",
+      "core",
+      "linter",
+      "add",
+      "enable",
+      "disable",
+      "syntax",
+      "noqa",
+      "allow",
+      "rules",
+      "disabling",
+      "across",
+      "multiple",
+      "lines",
+      "see",
+      "pylint",
+      "docs",
+      "example",
+      "https",
+      "org",
+      "faq",
+      "html",
+      "possible",
+      "locally",
+      "particular",
+      "message"
+     ]
+    },
+    "team": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_docs_cli_behaviour_specialist_swebench",
+     "r_issue_reproducer_swebench"
+    ],
+    "team_names": [
+     "API-Contract Specialist",
+     "Data-Model & ORM Specialist",
+     "Docs & CLI Behaviour Specialist",
+     "Issue Reproducer"
+    ],
+    "v_org": 0.351
+   },
+   "iteration": 1,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "cli",
+       "argparse",
+       "option",
+       "flag",
+       "command",
+       "config",
+       "configuration",
+       "documentation",
+       "docs",
+       "help",
+       "output",
+       "console",
+       "logging",
+       "warning",
+       "deprecationwarning",
+       "pylint",
+       "flake8",
+       "requests",
+       "http",
+       "session",
+       "header",
+       "url",
+       "matplotlib",
+       "figure",
+       "axes",
+       "pyplot",
+       "xarray",
+       "dataset"
+      ],
+      "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Docs & CLI Behaviour Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_docs_cli_behaviour_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "reproduce",
+       "reproduction",
+       "minimal",
+       "example",
+       "issue",
+       "actual",
+       "behaviour",
+       "behavior",
+       "traceback",
+       "regression"
+      ],
+      "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Issue Reproducer",
+      "origin": "seed:swebench",
+      "role_id": "r_issue_reproducer_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [],
+    "recruit_prior": 0.0573,
+    "stall_counter": 0,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.98,
+      "falsified": 1,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 3
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_docs_cli_behaviour_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_issue_reproducer_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     }
+    },
+    "unmatched_modules": [
+     "src/sqlfluff/core/linter.py"
+    ]
+   }
+  }
+ ],
+ "prediction_chars": 564,
+ "swebench": {
+  "base_commit": "bcc986e7d217f017130385b89cbda837f3e650ac",
+  "budget_moves": 30,
+  "changed_files": [
+   "src/sqlfluff/core/linter.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "sqlfluff__sqlfluff-891",
+  "iterations": [
+   {
+    "iteration": 1,
+    "moves_used": 4,
+    "org": {
+     "recruits": 0,
+     "stall": 0,
+     "team": [
+      "r_api_contract_specialist_swebench",
+      "r_data_model_orm_specialist_swebench",
+      "r_docs_cli_behaviour_specialist_swebench",
+      "r_issue_reproducer_swebench"
+     ],
+     "unmatched": [
+      "src/sqlfluff/core/linter.py"
+     ]
+    },
+    "patched": true,
+    "recheck": {
+     "bug_gone_hypotheses": [
+      "h2"
+     ],
+     "evidence_id": "e7",
+     "probes_rerun": 1,
+     "reopened": [],
+     "resolved": [
+      "q1"
+     ],
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "all_resolved",
+    "synthesized_paths": [
+     "src/sqlfluff/core/linter.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "src/sqlfluff/core/linter.py",
+    "rationale": "The noqa directive processing logic, which currently handles single-line ignores, is implemented in the Linter class within this file and requires modification to support multi-line enable/disable syntax.",
+    "resolved": "src/sqlfluff/core/linter.py"
+   }
+  ],
+  "moves_used": 4,
+  "patch_chars": 564,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "sqlfluff",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 60.0,
+    "duration_s": 60.64,
+    "mode": "proximity",
+    "reason": "whole suite did not finish within 60s",
+    "target": "test"
+   },
+   "tried": [
+    "sqlfluff"
+   ]
+  },
+  "repo": "sqlfluff/sqlfluff",
+  "reproduction": [
+   {
+    "bug_gone_hypotheses": [
+     "h2"
+    ],
+    "evidence_id": "e7",
+    "probes_rerun": 1,
+    "reopened": [],
+    "reruns": [
+     {
+      "bug_no_longer_reproduces": true,
+      "completed": true,
+      "detail": "prediction failed: exit_code==1; stdout contains 'BUG: No state tracking for disable/enable'",
+      "evidence_id": "e6",
+      "exit_code": 0,
+      "hypothesis_id": "h2",
+      "matched_prediction": false
+     }
+    ],
+    "resolved": [
+     "q1"
+    ],
+    "verdict": "resolved"
+   }
+  ],
+  "resolved_by_self_oracle": true,
+  "root_module": "src/sqlfluff/core/linter.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [],
+   "failure": "Add \"enable\" and \"disable\" syntax to noqa to allow rules disabling across multiple lines",
+   "paths": [
+    "src/sqlfluff/core/linter.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "resolved",
+  "task_features": {
+   "complexity": 0.1224,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 224,
+   "tags": [
+    "sqlfluff",
+    "core",
+    "linter",
+    "add",
+    "enable",
+    "disable",
+    "syntax",
+    "noqa",
+    "allow",
+    "rules",
+    "disabling",
+    "across",
+    "multiple",
+    "lines",
+    "see",
+    "pylint",
+    "docs",
+    "example",
+    "https",
+    "org",
+    "faq",
+    "html",
+    "possible",
+    "locally",
+    "particular",
+    "message"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 1
+ },
+ "task": {
+  "base_commit": "bcc986e7d217f017130385b89cbda837f3e650ac",
+  "created_at": "2021-03-25T12:55:23Z",
+  "environment_setup_commit": "cbdcfb09feb4883de91de142956c3be6ac7f827d",
+  "hints_text": "",
+  "instance_id": "sqlfluff__sqlfluff-891",
+  "problem_statement": "Add \"enable\" and \"disable\" syntax to noqa to allow rules disabling across multiple lines\nSee the `pylint` docs for an example: https://docs.pylint.org/en/1.6.0/faq.html#is-it-possible-to-locally-disable-a-particular-message\n",
+  "repo": "sqlfluff/sqlfluff",
+  "version": "0.4"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 3,
+  "thought_tokens": 0
+ },
+ "token_usage": 15753,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

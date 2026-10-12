@@ -1,0 +1,3245 @@
+{
+ "authored_files": [
+  "src/marshmallow/fields.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 224.15,
+ "epistemic_audit": {
+  "budget_moves": 30,
+  "calibration_brier": 0.6505,
+  "calibration_tested": 5,
+  "delta_u_total": 1.78,
+  "duplicate_rejections": 0,
+  "evidence": 10,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 5,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 3,
+  "hypotheses": 5,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 4,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 5,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 2.6,
+  "ledger_hash": "1cbe79bcc8f83c56b070779c5e4933c189d39aed053b0bbbdb1abe0c644598cf",
+  "low_prior_wins": 0,
+  "moves_used": 15,
+  "overconfident_falsified": 4,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 8,
+  "proposed_total": 8,
+  "questions": 3,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 2,
+  "questions_open": 2,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 0.82,
+  "resolved_fraction": 0.684615,
+  "ruled_out": 4,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "stagnation",
+  "syntheses": 1,
+  "syntheses_verified": 1,
+  "tabu_rejections": 3,
+  "token_usage": 71813,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v9_ab_mcts_swebench_firm_0",
+  "counters": {
+   "e": 10,
+   "h": 5,
+   "q": 3,
+   "ro": 4
+  },
+  "created_at": 1791590175.212,
+  "evidence_log": [
+   {
+    "command": "python .hae/probe_h1.py",
+    "created_at": 1791590208.423,
+    "detail": "prediction held: exit_code==1; stdout contains 'BUG: AttributeError regarding opts detected'",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: AttributeError regarding opts detected"
+    },
+    "question_id": "q1",
+    "sha256": "5bab8be166c0ed81764fcaaa38ef57e451732b8b025a27ed854cc57593d92daf",
+    "stderr": "command terminated with exit code 1\n",
+    "stdout": "BUG: AttributeError regarding opts detected\n"
+   },
+   {
+    "command": "verify_module src/marshmallow/fields.py (in place via kubectl:default/swebench-tb-marshmallow-code-marshmallow-1359/testbed:/testbed)",
+    "created_at": 1791590252.796,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e2",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "fdf84583c9ee457e48574b72bb060db4cd831745bba71d3acb26465770cfb995",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/marshmallow/fields.py\n\n[import] IMPORT_OK marshmallow.fields\n\n[static_check] no undefined names (1693 lines)\n[repo_tests] whole suite passed: tests/ (whole suite, 0 baseline failure(s))\n      [ 82%]\ntests/test_utils.py ................................                     [ 85%]\ntests/test_validate.py ................................................. [ 91%]\n........................................................................ [ 99%]\n.........                                                                [100%]\n\n=============================== warnings summary ===============================\nsrc/marshmallow/__init__.py:17\n  /testbed/src/marshmallow/__init__.py:17: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.\n    __version_info__ = tuple(LooseVersion(__version__).version)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 911 passed, 1 warning in 1.28s ========================\n"
+   },
+   {
+    "command": "post-synthesis re-run: python .hae/probe_h1.py",
+    "created_at": 1791590255.344,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: AttributeError regarding opts detected'",
+    "evidence_id": "e3",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: AttributeError regarding opts detected"
+    },
+    "question_id": "q1",
+    "sha256": "0f9de007f46cd4d3f910edbb8436c23922c8eca091e0194b2d894c52bb460c0f",
+    "stderr": "",
+    "stdout": "OK: Schema instantiated successfully\n"
+   },
+   {
+    "command": "post-synthesis effect check: supported probes re-run after the write (NOT the hidden tests)",
+    "created_at": 1791590255.344,
+    "detail": "post-synthesis effect check: effective -- 1/1 re-run probe(s) no longer reproduce the bug (h1)",
+    "evidence_id": "e4",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "521e6913af4036b9dc37999eb74bcdc12f3b680c0cf68f61c743e37f073c70b9",
+    "stderr": "",
+    "stdout": "h1 (q1): completed=True matched=False exit=0 bug_no_longer_reproduces=True"
+   },
+   {
+    "command": "python .hae/probe_h2.py",
+    "created_at": 1791590281.318,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: AttributeError accessing opts on non-Schema parent'",
+    "evidence_id": "e5",
+    "exit_code": 0,
+    "hypothesis_id": "h2",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: AttributeError accessing opts on non-Schema parent"
+    },
+    "question_id": "q2",
+    "sha256": "588d8c995d589fa1f1b5b9cad7558b97c8a5edf1fe1a858852c7e28f7d4042f6",
+    "stderr": "",
+    "stdout": "SUCCESS: No error raised\n"
+   },
+   {
+    "command": "python .hae/probe_h3.py",
+    "created_at": 1791590303.717,
+    "detail": "prediction failed: stdout contains 'BUG: AttributeError regarding opts'",
+    "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "h3",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0,
+     "expect_stdout_contains": "BUG: AttributeError regarding opts"
+    },
+    "question_id": "q3",
+    "sha256": "73aacc1b11e823b3f065123b1519bac1dff41c56ced0729efa2cf2230aef8e69",
+    "stderr": "",
+    "stdout": "OK: No error\n"
+   },
+   {
+    "command": "python .hae/probe_h4.py",
+    "created_at": 1791590322.538,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: AttributeError accessing opts on non-Schema parent'",
+    "evidence_id": "e7",
+    "exit_code": 0,
+    "hypothesis_id": "h4",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: AttributeError accessing opts on non-Schema parent"
+    },
+    "question_id": "q2",
+    "sha256": "f2853638b1cf0be416077863d2c3ab58f8514f7d657ae86217366bc863b2c44f",
+    "stderr": "",
+    "stdout": "SUCCESS: No error raised\n"
+   },
+   {
+    "command": "python .hae/probe_h5.py",
+    "created_at": 1791590392.873,
+    "detail": "prediction failed: stdout contains 'BUG: AttributeError regarding opts'",
+    "evidence_id": "e8",
+    "exit_code": 0,
+    "hypothesis_id": "h5",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0,
+     "expect_stdout_contains": "BUG: AttributeError regarding opts"
+    },
+    "question_id": "q3",
+    "sha256": "3628e342bee20a174fda7836cf4851469af9282f4ea55dded654743f7f2c1eed",
+    "stderr": "",
+    "stdout": "OK: No error\n"
+   },
+   {
+    "command": "python .hae/probe_h1.py",
+    "created_at": 1791590395.28,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: AttributeError regarding opts detected'",
+    "evidence_id": "e9",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: AttributeError regarding opts detected"
+    },
+    "question_id": "q1",
+    "sha256": "68d304946b85a6ad13f3f91ea9c8f637c318adee0a359cfb7710f4adb6a1d45b",
+    "stderr": "",
+    "stdout": "OK: Schema instantiated successfully\n"
+   },
+   {
+    "command": "self-oracle: reproduction probe re-run after patch (NOT the hidden tests)",
+    "created_at": 1791590395.28,
+    "detail": "self-oracle, iteration 1: resolved (1/1 reproduction probe(s) no longer reproduce the bug)",
+    "evidence_id": "e10",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "oracle",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "f2f4db00959c7f61845e803717a90e2944e82156273c7bf93e788bdb6b6eaace",
+    "stderr": "",
+    "stdout": "h1: completed=True matched=False exit=0 bug_no_longer_reproduces=True"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "The `DateTime` field's `_bind_to_schema` method (or a method it calls) attempts to access `schema.opts` to retrieve schema-level options (like `datetimeformat`). When `DateTime` is nested inside a ```",
+    "created_at": 1791590207.047,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1",
+     "e2",
+     "e3",
+     "e4",
+     "e9"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "In `marshmallow/fields.py`, the `DateTime` class (or its parent `Date`/`Field`) implements `_bind_to_schema` or accesses `self.parent` expecting it to be a `Schema` instance. However, when nested in a `List`, the parent is the `List` field instance. The code `",
+    "mechanism_signature": "_bind_to_schema access attempt call date datetime datetimeformat expect field however implement inside instance level like list marshmallow nest option opts parent retrieve schema self",
+    "patch_applied": true,
+    "posterior": 0.985,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: AttributeError regarding opts detected"
+    },
+    "prior": 0.95,
+    "probe_code": "import sys\nimport traceback\ntry:\n    from marshmallow import fields, Schema\n    class MySchema(Schema):\n        times = fields.List(fields.DateTime())\n    s = MySchema()\n    print('OK: Schema instantiated successfully')\nexcept AttributeError as e:\n    if 'opts' in str(e):\n        print('BUG: AttributeError regarding opts detected')\n        sys.exit(1)\n    else:\n        print('OTHER_ERROR: ' + str(e))\n        sys.exit(1)\nexcept Exception as e:\n    print('OTHER_ERROR: ' + str(e))\n    sys.exit(1)",
+    "probe_rejections": 0,
+    "proposed_by": "Traceback Localiser",
+    "question_id": "q1",
+    "role_id": "r_traceback_localiser_swebench",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.95,
+    "visits": 1
+   },
+   {
+    "claim": "The `DateTime` field's `_bind_to_schema` method assumes its parent context is always a `Schema` instance and attempts to access `schema.opts`, which fails with `AttributeError` when the parent is a `N",
+    "created_at": 1791590279.917,
+    "epoch": 0,
+    "evidence_ids": [
+     "e5"
+    ],
+    "hypothesis_id": "h2",
+    "last_rejection": "",
+    "mechanism": "In `src/marshmallow/fields.py` (specifically the `DateTime` class or its base `Field` class logic invoked via `_bind_to_schema`), the code executes `getattr(schema.opts, self.SCHEMA_OPTS_VAR_NAME)` or similar. When `DateTime` is nested inside a `List` or `Tupl",
+    "mechanism_signature": "_bind_to_schema access alway assum attempt attributeerror base context datetime execut field getattr inside instance invok list logic marshmallow nest opts parent schema schema_opts_var_name self similar specifical src tupl via",
+    "patch_applied": false,
+    "posterior": 0.0,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: AttributeError accessing opts on non-Schema parent"
+    },
+    "prior": 0.85,
+    "probe_code": "import sys\nfrom marshmallow import fields, Schema\n\ndef test_repro():\n    try:\n        class MySchema(Schema):\n            times = fields.List(fields.DateTime())\n        s = MySchema()\n        print('SUCCESS: No error raised')\n        sys.exit(0)\n    except AttributeError as e:\n        if 'opts' in str(e):\n            print('BUG: AttributeError accessing opts on non-Schema parent')\n            sys.exit(1)\n        else:\n            print(f'OTHER_ERROR: {e}')\n            sys.exit(1)\n    except Exception as e:\n        print(f'UNEXPECTED_ERROR: {type(e).__name__}: {e}')\n        sys.exit(1)\n\nif __name__ == '__main__':\n    test_repro()",
+    "probe_rejections": 0,
+    "proposed_by": "Issue Reproducer",
+    "question_id": "q2",
+    "role_id": "r_issue_reproducer_swebench",
+    "status": "FALSIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.4,
+    "visits": 1
+   },
+   {
+    "claim": "DateTime._bind_to_schema assumes the 'schema' argument passed to it is always a Schema instance with an 'opts' attribute, failing when called recursively by List._bind_to_schema which passes the List/",
+    "created_at": 1791590302.392,
+    "epoch": 0,
+    "evidence_ids": [
+     "e6"
+    ],
+    "hypothesis_id": "h3",
+    "last_rejection": "",
+    "mechanism": "DateTime._bind_to_schema (line 1113) accesses `schema.opts` (via `getattr(schema.opts, ...)` or similar logic implied by the traceback at 1117) without checking if `schema` is a Field (like List) rather than a Schema. When List._bind_to_schema (line 636) calls",
+    "mechanism_signature": "_bind_to_schema access alway argument assum attribute call check datetime field getattr impli instance like list logic opts pass rather recursive schema similar traceback via without",
+    "patch_applied": false,
+    "posterior": 0.0,
+    "prediction": {
+     "expect_exit_code": 0,
+     "expect_stdout_contains": "BUG: AttributeError regarding opts"
+    },
+    "prior": 0.95,
+    "probe_code": "import sys\nimport traceback\ntry:\n    from marshmallow import fields, Schema\n    class MySchema(Schema):\n        times = fields.List(fields.DateTime())\n    s = MySchema()\n    print('OK: No error')\nexcept AttributeError as e:\n    if 'opts' in str(e):\n        print('BUG: AttributeError regarding opts')\n    else:\n        print('BUG: Other AttributeError')\nexcept Exception as e:\n    print('BUG: Other Exception')\n    traceback.print_exc()",
+    "probe_rejections": 0,
+    "proposed_by": "Traceback Localiser",
+    "question_id": "q3",
+    "role_id": "r_traceback_localiser_swebench",
+    "status": "FALSIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.4,
+    "visits": 1
+   },
+   {
+    "claim": "The `_bind_field` method in `src/marshmallow/schema.py` (around line 969) unconditionally passes the `Schema` instance (`self`) as the second argument to `field_obj._bind_to_schema`. When the field is",
+    "created_at": 1791590321.2,
+    "epoch": 0,
+    "evidence_ids": [
+     "e7"
+    ],
+    "hypothesis_id": "h4",
+    "last_rejection": "",
+    "mechanism": "In `Schema._bind_field`, the call `field_obj._bind_to_schema(field_name, self)` passes the Schema instance as the `parent` argument. For container fields like `List`, the `List._bind_to_schema` implementation (in `fields.py`) receives this Schema as `parent` (",
+    "mechanism_signature": "_bind_field _bind_to_schema argument around call container field field_name field_obj implementation instance like list marshmallow parent pass receiv schema second self src unconditional",
+    "patch_applied": false,
+    "posterior": 0.0,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: AttributeError accessing opts on non-Schema parent"
+    },
+    "prior": 0.85,
+    "probe_code": "from marshmallow import fields, Schema\ntry:\n    class MySchema(Schema):\n        times = fields.List(fields.DateTime())\n    s = MySchema()\n    print('SUCCESS: No error raised')\nexcept AttributeError as e:\n    if 'opts' in str(e):\n        print('BUG: AttributeError accessing opts on non-Schema parent')\n    else:\n        print('BUG: Unexpected AttributeError:', e)\nexcept Exception as e:\n    print('BUG: Unexpected error:', e)",
+    "probe_rejections": 0,
+    "proposed_by": "Issue Reproducer",
+    "question_id": "q2",
+    "role_id": "r_issue_reproducer_swebench",
+    "status": "FALSIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 1
+   },
+   {
+    "claim": "DateTime._bind_to_schema unconditionally accesses schema.opts, assuming schema is always a Schema instance, but fails when called by List._bind_to_schema which passes the List field instance as 'self'",
+    "created_at": 1791590391.47,
+    "epoch": 0,
+    "evidence_ids": [
+     "e8"
+    ],
+    "hypothesis_id": "h5",
+    "last_rejection": "",
+    "mechanism": "In DateTime._bind_to_schema (line ~1117), the code attempts to access `schema.opts` to retrieve schema-level options. When a DateTime field is nested inside a List field, List._bind_to_schema calls `self.inner._bind_to_schema(field_name, self)`. Here, `self` (",
+    "mechanism_signature": "_bind_to_schema access alway assum attempt call datetime field field_name inner inside instance level list nest option opts pass retrieve schema self unconditional",
+    "patch_applied": false,
+    "posterior": 0.0,
+    "prediction": {
+     "expect_exit_code": 0,
+     "expect_stdout_contains": "BUG: AttributeError regarding opts"
+    },
+    "prior": 0.95,
+    "probe_code": "from marshmallow import fields, Schema\nimport sys\ntry:\n    class MySchema(Schema):\n        times = fields.List(fields.DateTime())\n    s = MySchema()\n    print('OK: No error')\nexcept AttributeError as e:\n    if 'opts' in str(e):\n        print('BUG: AttributeError regarding opts')\n    else:\n        print('OTHER_ERROR:', e)\nexcept Exception as e:\n    print('OTHER_ERROR:', e)",
+    "probe_rejections": 0,
+    "proposed_by": "Traceback Localiser",
+    "question_id": "q3",
+    "role_id": "r_traceback_localiser_swebench",
+    "status": "FALSIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 1
+   }
+  ],
+  "move_log": [
+   {
+    "agent_role": "Traceback Localiser",
+    "created_at": 1791590207.048,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.469861,
+     "ab_y": 0.0,
+     "head_v": 0.450962
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 0.866667,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 0.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 1,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q1",
+    "role_id": "r_traceback_localiser_swebench",
+    "state_hash_after": "6760fcb1f02f2778cfcc387daf071533a683cc15b074d49fa56dfc882300d685",
+    "state_hash_before": "70cc7df0243dca019a89e956b52aaf4729166f2e3be08f21e1659721da8a8fd8",
+    "value_after": 0.056667,
+    "value_before": 0.05
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791590208.423,
+    "delta_u": 0.95,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.828571,
+     "ab_theta": 0.983125,
+     "ab_y": 1.0,
+     "head_v": 0.550889
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 0.866667,
+     "module_isolation": 0.5,
+     "open_without_options": 0.666667,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.1,
+     "supported_ratio": 0.0,
+     "untested_ratio": 1.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 2,
+    "move_type": "run_experiment",
+    "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: AttributeError regarding opts detected'",
+    "question_id": "q1",
+    "role_id": "r_traceback_localiser_swebench",
+    "state_hash_after": "72decc2eb4399722b2ead600b7f8243787376d64f4f5c1bece3a89110054338a",
+    "state_hash_before": "6760fcb1f02f2778cfcc387daf071533a683cc15b074d49fa56dfc882300d685",
+    "value_after": 0.331898,
+    "value_before": 0.052667
+   },
+   {
+    "agent_role": "API-Contract Specialist",
+    "created_at": 1791590255.344,
+    "delta_u": 0.03,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.781429,
+     "ab_theta": 0.977292,
+     "ab_y": 0.53,
+     "head_v": 0.436728
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.55,
+     "module_isolation": 0.5,
+     "open_without_options": 0.666667,
+     "resolved_fraction": 0.365385,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 3,
+    "move_type": "synthesize",
+    "note": "src/marshmallow/fields.py [function]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (1/1 re-run probe(s) no longer reproduce the bug)",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "state_hash_after": "75d6002688b537ecb209faf0aee4aa15413b78e0f46092433d9449566df5f79d",
+    "state_hash_before": "72decc2eb4399722b2ead600b7f8243787376d64f4f5c1bece3a89110054338a",
+    "value_after": 0.36282,
+    "value_before": 0.335898
+   },
+   {
+    "agent_role": "Issue Reproducer",
+    "created_at": 1791590279.918,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.702655,
+     "ab_y": 0.0,
+     "head_v": 0.563343
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.8,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.376923,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 4,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q2",
+    "role_id": "r_issue_reproducer_swebench",
+    "state_hash_after": "9cf2d2359bbab53e3250265a0d6a94b39705c5d4259561f5ff1493363c5d44cd",
+    "state_hash_before": "75d6002688b537ecb209faf0aee4aa15413b78e0f46092433d9449566df5f79d",
+    "value_after": 0.34282,
+    "value_before": 0.36282
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791590281.319,
+    "delta_u": 0.4,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.685714,
+     "ab_theta": 0.901325,
+     "ab_y": 0.4,
+     "head_v": 0.50432
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.8,
+     "module_isolation": 0.5,
+     "open_without_options": 0.5,
+     "resolved_fraction": 0.376923,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.1,
+     "supported_ratio": 0.5,
+     "untested_ratio": 0.5
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h2",
+    "move_index": 5,
+    "move_type": "run_experiment",
+    "note": "FALSIFIED: prediction failed: exit_code==1; stdout contains 'BUG: AttributeError accessing opts on non-Schema parent'",
+    "question_id": "q2",
+    "role_id": "r_issue_reproducer_swebench",
+    "state_hash_after": "36ffd1241eb9b907fbfd08f9357e3bcfac9c803af29a96e488e9e274a827a5a5",
+    "state_hash_before": "9cf2d2359bbab53e3250265a0d6a94b39705c5d4259561f5ff1493363c5d44cd",
+    "value_after": 0.441128,
+    "value_before": 0.33882
+   },
+   {
+    "agent_role": "Traceback Localiser",
+    "created_at": 1791590302.393,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.494727,
+     "ab_y": 0.0,
+     "head_v": 0.419195
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.6,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.530769,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.5,
+     "stagnation": 0.0,
+     "supported_ratio": 0.5,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 6,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q3",
+    "role_id": "r_traceback_localiser_swebench",
+    "state_hash_after": "751f6190a3bba26d721aa9b4d490b8fb4611087ae6b9be6b734f040bb4ab65ff",
+    "state_hash_before": "36ffd1241eb9b907fbfd08f9357e3bcfac9c803af29a96e488e9e274a827a5a5",
+    "value_after": 0.438461,
+    "value_before": 0.445128
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791590303.718,
+    "delta_u": 0.4,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.742857,
+     "ab_theta": 0.845125,
+     "ab_y": 0.4,
+     "head_v": 0.394615
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.6,
+     "module_isolation": 0.5,
+     "open_without_options": 0.5,
+     "resolved_fraction": 0.530769,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.333333,
+     "stagnation": 0.1,
+     "supported_ratio": 0.333333,
+     "untested_ratio": 0.333333
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h3",
+    "move_index": 7,
+    "move_type": "run_experiment",
+    "note": "FALSIFIED: prediction failed: stdout contains 'BUG: AttributeError regarding opts'",
+    "question_id": "q3",
+    "role_id": "r_traceback_localiser_swebench",
+    "state_hash_after": "29966b75fb4ff398361a25ff2460236cbbd2f868df1a2bf7fd9b3df01565f4fc",
+    "state_hash_before": "751f6190a3bba26d721aa9b4d490b8fb4611087ae6b9be6b734f040bb4ab65ff",
+    "value_after": 0.530102,
+    "value_before": 0.434461
+   },
+   {
+    "agent_role": "Issue Reproducer",
+    "created_at": 1791590321.201,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.371429,
+     "ab_theta": 0.577185,
+     "ab_y": 0.0,
+     "head_v": 0.357601
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.666667,
+     "stagnation": 0.0,
+     "supported_ratio": 0.333333,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 8,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q2",
+    "role_id": "r_issue_reproducer_swebench",
+    "state_hash_after": "b39436f110fde7272020e09d6c513b25e9d1d7494d5312fe34e3ade46da4921d",
+    "state_hash_before": "29966b75fb4ff398361a25ff2460236cbbd2f868df1a2bf7fd9b3df01565f4fc",
+    "value_after": 0.532436,
+    "value_before": 0.534102
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791590322.539,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.628571,
+     "ab_theta": 0.797739,
+     "ab_y": 0.0,
+     "head_v": 0.331779
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 0.5,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.5,
+     "stagnation": 0.1,
+     "supported_ratio": 0.25,
+     "untested_ratio": 0.25
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h4",
+    "move_index": 9,
+    "move_type": "run_experiment",
+    "note": "FALSIFIED: prediction failed: exit_code==1; stdout contains 'BUG: AttributeError accessing opts on non-Schema parent'",
+    "question_id": "q2",
+    "role_id": "r_issue_reproducer_swebench",
+    "state_hash_after": "04550c325ce84df57d3b13ed2672f2fc83427f242a6e18725908527f01323f12",
+    "state_hash_before": "b39436f110fde7272020e09d6c513b25e9d1d7494d5312fe34e3ade46da4921d",
+    "value_after": 0.528436,
+    "value_before": 0.528436
+   },
+   {
+    "agent_role": "API-Contract Specialist",
+    "created_at": 1791590338.245,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.314286,
+     "ab_theta": 0.677672,
+     "ab_y": 0.0,
+     "head_v": 0.314853
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.75,
+     "stagnation": 0.2,
+     "supported_ratio": 0.25,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 10,
+    "move_type": "propose_hypothesis",
+    "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q3",
+    "role_id": "r_api_contract_specialist_swebench",
+    "state_hash_after": "f821407e29234bfa8270d016f6163c8b8589dbc47b1552799dee22b44d8eb66b",
+    "state_hash_before": "04550c325ce84df57d3b13ed2672f2fc83427f242a6e18725908527f01323f12",
+    "value_after": 0.524436,
+    "value_before": 0.524436
+   },
+   {
+    "agent_role": "Data-Model & ORM Specialist",
+    "created_at": 1791590357.437,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.314286,
+     "ab_theta": 0.905054,
+     "ab_y": 0.0,
+     "head_v": 0.302956
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.75,
+     "stagnation": 0.3,
+     "supported_ratio": 0.25,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 11,
+    "move_type": "propose_hypothesis",
+    "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q3",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "state_hash_after": "98bc2658e4f36ee7c06f856e95533cd935da47794915dff1e454f112da4f747c",
+    "state_hash_before": "f821407e29234bfa8270d016f6163c8b8589dbc47b1552799dee22b44d8eb66b",
+    "value_after": 0.520436,
+    "value_before": 0.520436
+   },
+   {
+    "agent_role": "Marshmallow Core Internals Specialist",
+    "created_at": 1791590370.921,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 1.0,
+     "ab_mean": 0.387875,
+     "ab_theta": 0.563985,
+     "ab_y": 0.0,
+     "head_v": 0.291318,
+     "recruit_prior": 0.331812,
+     "stall_counter": 1.0,
+     "unmatched_modules": 3.0
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.75,
+     "stagnation": 0.4,
+     "supported_ratio": 0.25,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 12,
+    "move_type": "recruit_specialist",
+    "note": "recruited Marshmallow Core Internals Specialist [synthesized] (stall=1, unmatched=3; tags: marshmallow, fields, schema, opts, bind_to_schema, list): no library role overlaps the gaps (6 candidate(s)); synthesized by CEO: The current team lacks specific expertise in marshmallow's internal field bindi",
+    "question_id": "q3",
+    "role_id": "r_marshmallow_core_internals_specialist",
+    "state_hash_after": "98bc2658e4f36ee7c06f856e95533cd935da47794915dff1e454f112da4f747c",
+    "state_hash_before": "98bc2658e4f36ee7c06f856e95533cd935da47794915dff1e454f112da4f747c",
+    "value_after": 0.516436,
+    "value_before": 0.516436
+   },
+   {
+    "agent_role": "API-Contract Specialist",
+    "created_at": 1791590372.346,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 4.0,
+     "ab_mean": 0.275,
+     "ab_theta": 0.648379,
+     "ab_y": 0.0,
+     "head_v": 0.279948
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.75,
+     "stagnation": 0.5,
+     "supported_ratio": 0.25,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 13,
+    "move_type": "propose_hypothesis",
+    "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q3",
+    "role_id": "r_api_contract_specialist_swebench",
+    "state_hash_after": "c6fc51467a3ea8616a13dfd7d28aedb481d0ba39cb90a040e430d022a75f9cc8",
+    "state_hash_before": "98bc2658e4f36ee7c06f856e95533cd935da47794915dff1e454f112da4f747c",
+    "value_after": 0.512436,
+    "value_before": 0.512436
+   },
+   {
+    "agent_role": "Traceback Localiser",
+    "created_at": 1791590391.471,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 4.0,
+     "ab_mean": 0.371429,
+     "ab_theta": 0.485156,
+     "ab_y": 0.0,
+     "head_v": 0.268853
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.75,
+     "stagnation": 0.6,
+     "supported_ratio": 0.25,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 14,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q3",
+    "role_id": "r_traceback_localiser_swebench",
+    "state_hash_after": "9b8e3173367df5cce1c9c54cfcdc64c3cb3a7d9cd2d37630aa98290e092ba54f",
+    "state_hash_before": "c6fc51467a3ea8616a13dfd7d28aedb481d0ba39cb90a040e430d022a75f9cc8",
+    "value_after": 0.509436,
+    "value_before": 0.508436
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791590392.874,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.685714,
+     "ab_theta": 0.916224,
+     "ab_y": 0.0,
+     "head_v": 0.242623
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 0.5,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.6,
+     "stagnation": 0.7,
+     "supported_ratio": 0.2,
+     "untested_ratio": 0.2
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h5",
+    "move_index": 15,
+    "move_type": "run_experiment",
+    "note": "FALSIFIED: prediction failed: stdout contains 'BUG: AttributeError regarding opts'",
+    "question_id": "q3",
+    "role_id": "r_traceback_localiser_swebench",
+    "state_hash_after": "9208fc411d01984417adeaaa6c6917f356e37a0a9b4767da29bb134ebdc0c65d",
+    "state_hash_before": "9b8e3173367df5cce1c9c54cfcdc64c3cb3a7d9cd2d37630aa98290e092ba54f",
+    "value_after": 0.503436,
+    "value_before": 0.505436
+   }
+  ],
+  "questions": [
+   {
+    "created_at": 1791590176.713,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 1,
+    "initial_uncertainty": 1.0,
+    "location": "src/marshmallow/schema.py:383",
+    "module": "src/marshmallow/schema.py",
+    "question_id": "q1",
+    "source_failure": "AttributeError: 'List' object has no attribute 'opts'",
+    "source_failure_key": "swebench:marshmallow-code__marshmallow-1359",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: 3.0: DateTime fields cannot be used as inner field for List or Tuple fields -- Between releases 3.0.0rc8 and 3.0.0rc9, `DateTime` fields have started throwing an error when being instantiated as inner fields of container fields like `List` or `Tuple`. The snippet below works in <=3.0.0rc8 and throws the error below in >=3.0.0rc9 (and, worryingly, 3.0.0): ```python from marshmallow import fields, Schema class MySchema(Schema): times = fields.List(fields.DateTime()) s = MySchema() ``` Traceback: ``` Traceback (most recent call last): File \"test-mm.py\", line 8, in <module> s = MySchema() File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow...",
+    "uncertainty": 0.02
+   },
+   {
+    "created_at": 1791590176.713,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h2",
+     "h4"
+    ],
+    "hypothesis_rounds": 2,
+    "initial_uncertainty": 0.8,
+    "location": "src/marshmallow/schema.py:383",
+    "module": "src/marshmallow/schema.py",
+    "question_id": "q2",
+    "source_failure": "",
+    "source_failure_key": "swebench:marshmallow-code__marshmallow-1359:src/marshmallow/schema.py",
+    "source_failure_tag": "swebench",
+    "status": "EXHAUSTED",
+    "text": "Where in `src/marshmallow/schema.py` (traceback line 383) does the reported behaviour arise? The issue says: \"File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py\", line 383, in __init__\" | \"File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py\", line 913, in _init_fields\" | \"File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py\", line 969, in _bind_field\"",
+    "uncertainty": 0.4
+   },
+   {
+    "created_at": 1791590176.713,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h3",
+     "h5"
+    ],
+    "hypothesis_rounds": 5,
+    "initial_uncertainty": 0.8,
+    "location": "src/marshmallow/fields.py:636",
+    "module": "src/marshmallow/fields.py",
+    "question_id": "q3",
+    "source_failure": "",
+    "source_failure_key": "swebench:marshmallow-code__marshmallow-1359:src/marshmallow/fields.py",
+    "source_failure_tag": "swebench",
+    "status": "EXHAUSTED",
+    "text": "Where in `src/marshmallow/fields.py` (traceback line 636) does the reported behaviour arise? The issue says: \"3.0: DateTime fields cannot be used as inner field for List or Tuple fields\" | \"Between releases 3.0.0rc8 and 3.0.0rc9, `DateTime` fields have started throwing an error when being instantiated as inner fields of container fields like `List` or `Tuple`. The snippet below works in \" | \"from marshmallow import fields, Schema\"",
+    "uncertainty": 0.4
+   }
+  ],
+  "ruled_out": [
+   {
+    "belief_id": "ro1",
+    "claim": "The `DateTime` field's `_bind_to_schema` method assumes its parent context is always a `Schema` instance and attempts to access `schema.opts`, which fails with `AttributeError` when the parent is a `N",
+    "created_at": 1791590281.318,
+    "epoch": 0,
+    "hypothesis_id": "h2",
+    "killing_evidence_id": "e5",
+    "mechanism_signature": "_bind_to_schema access alway assum attempt attributeerror base context datetime execut field getattr inside instance invok list logic marshmallow nest opts parent schema schema_opts_var_name self similar specifical src tupl via",
+    "question_id": "q2"
+   },
+   {
+    "belief_id": "ro2",
+    "claim": "DateTime._bind_to_schema assumes the 'schema' argument passed to it is always a Schema instance with an 'opts' attribute, failing when called recursively by List._bind_to_schema which passes the List/",
+    "created_at": 1791590303.717,
+    "epoch": 0,
+    "hypothesis_id": "h3",
+    "killing_evidence_id": "e6",
+    "mechanism_signature": "_bind_to_schema access alway argument assum attribute call check datetime field getattr impli instance like list logic opts pass rather recursive schema similar traceback via without",
+    "question_id": "q3"
+   },
+   {
+    "belief_id": "ro3",
+    "claim": "The `_bind_field` method in `src/marshmallow/schema.py` (around line 969) unconditionally passes the `Schema` instance (`self`) as the second argument to `field_obj._bind_to_schema`. When the field is",
+    "created_at": 1791590322.538,
+    "epoch": 0,
+    "hypothesis_id": "h4",
+    "killing_evidence_id": "e7",
+    "mechanism_signature": "_bind_field _bind_to_schema argument around call container field field_name field_obj implementation instance like list marshmallow parent pass receiv schema second self src unconditional",
+    "question_id": "q2"
+   },
+   {
+    "belief_id": "ro4",
+    "claim": "DateTime._bind_to_schema unconditionally accesses schema.opts, assuming schema is always a Schema instance, but fails when called by List._bind_to_schema which passes the List field instance as 'self'",
+    "created_at": 1791590392.873,
+    "epoch": 0,
+    "hypothesis_id": "h5",
+    "killing_evidence_id": "e8",
+    "mechanism_signature": "_bind_to_schema access alway assum attempt call datetime field field_name inner inside instance level list nest option opts pass retrieve schema self unconditional",
+    "question_id": "q3"
+   }
+  ],
+  "settled_knowledge": [],
+  "state_hash": "1cbe79bcc8f83c56b070779c5e4933c189d39aed053b0bbbdb1abe0c644598cf"
+ },
+ "epistemic_searches": [
+  {
+   "delta_u_total": 1.78,
+   "iteration": 1,
+   "moves_used": 15,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "reproduce",
+       "reproduction",
+       "minimal",
+       "example",
+       "issue",
+       "actual",
+       "behaviour",
+       "behavior",
+       "traceback",
+       "regression"
+      ],
+      "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Issue Reproducer",
+      "origin": "seed:swebench",
+      "role_id": "r_issue_reproducer_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads stack traces top-down and bottom-up. One falsifiable mechanism per hypothesis.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "traceback",
+       "stack",
+       "frame",
+       "exception",
+       "typeerror",
+       "attributeerror",
+       "valueerror",
+       "keyerror",
+       "indexerror",
+       "nameerror",
+       "runtimeerror",
+       "recursionerror"
+      ],
+      "goal": "Map an exception to the frame, call path and input that raise it, and propose probes that separate candidate mechanisms.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Traceback Localiser",
+      "origin": "seed:swebench",
+      "role_id": "r_traceback_localiser_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     },
+     {
+      "backstory": "Expert in marshmallow's internal architecture, specifically the interaction between Schema.opts and field._bind_to_schema. Has deep experience debugging complex field nesting issues in marshmallow 3.0+, including the transition from rc8 to rc9. Proficient in patching src/marshmallow/fields.py to ensure container fields like List and Tuple correctly propagate schema context to their inner fields.",
+      "cost_per_move": 1.0,
+      "created_generation": 17,
+      "domain_tags": [
+       "marshmallow",
+       "fields",
+       "schema",
+       "opts",
+       "bind_to_schema",
+       "list",
+       "tuple",
+       "datetime"
+      ],
+      "goal": "Resolve the AttributeError in marshmallow's field binding logic by correctly handling schema option inheritance for nested container fields.",
+      "kind": "synthesis",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Marshmallow Core Internals Specialist",
+      "origin": "recruited:v9_ab_mcts_swebench_firm_0:g17:m12",
+      "rationale": "The current team lacks specific expertise in marshmallow's internal field binding mechanism and the Schema.opts attribute access pattern. The issue is a regression in how container fields pass context to inner fields, requiring a precise fix in src/marshmallow/fields.py that respects the distinction",
+      "role_id": "r_marshmallow_core_internals_specialist",
+      "source": "synthesized",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.7,
+      "tools_enabled": true,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [
+     {
+      "move_index": 12,
+      "name": "Marshmallow Core Internals Specialist",
+      "prior": 0.2497,
+      "reason": "stall=1, unmatched=3",
+      "role_id": "r_marshmallow_core_internals_specialist",
+      "source": "synthesized",
+      "stall_counter": 1,
+      "unmatched_modules": [
+       "src/marshmallow/schema.py",
+       "test-mm.py",
+       "Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py"
+      ]
+     }
+    ],
+    "recruit_prior": 0.063,
+    "stall_counter": 1,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.03,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_issue_reproducer_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 0.4,
+      "falsified": 2,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 2
+     },
+     "r_marshmallow_core_internals_specialist": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": 12,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_traceback_localiser_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 1.35,
+      "falsified": 2,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 3
+     }
+    },
+    "unmatched_modules": [
+     "test-mm.py"
+    ]
+   },
+   "stats": {
+    "ab_mcts": {
+     "algorithm": "ab_mcts",
+     "arms": {
+      "q1": [
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_api_contract_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_data_model_orm_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_issue_reproducer_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 3.2,
+        "beta": 3.8,
+        "ident": "r_traceback_localiser_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.4571,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         1.0
+        ]
+       },
+       {
+        "alpha": 1.9259,
+        "beta": 4.0741,
+        "ident": "ceo",
+        "kind": "gen_specialist",
+        "mean": 0.321,
+        "observations": 0,
+        "prior_mean": 0.2315,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 5.8,
+        "beta": 1.2,
+        "ident": "h1",
+        "kind": "experiment",
+        "mean": 0.8286,
+        "observations": 1,
+        "prior_mean": 0.95,
+        "pulls": 1,
+        "rewards": [
+         1.0
+        ]
+       },
+       {
+        "alpha": 5.47,
+        "beta": 1.53,
+        "ident": "h1",
+        "kind": "synthesize",
+        "mean": 0.7814,
+        "observations": 1,
+        "prior_mean": 0.985,
+        "pulls": 1,
+        "rewards": [
+         0.53
+        ]
+       }
+      ],
+      "q2": [
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_api_contract_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_data_model_orm_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 2.6,
+        "beta": 5.4,
+        "ident": "r_issue_reproducer_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.325,
+        "observations": 2,
+        "prior_mean": 0.3,
+        "pulls": 2,
+        "rewards": [
+         0.4,
+         0.0
+        ]
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_traceback_localiser_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 1.9259,
+        "beta": 4.0741,
+        "ident": "ceo",
+        "kind": "gen_specialist",
+        "mean": 0.321,
+        "observations": 0,
+        "prior_mean": 0.2315,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 4.8,
+        "beta": 2.2,
+        "ident": "h2",
+        "kind": "experiment",
+        "mean": 0.6857,
+        "observations": 1,
+        "prior_mean": 0.85,
+        "pulls": 1,
+        "rewards": [
+         0.4
+        ]
+       },
+       {
+        "alpha": 4.4,
+        "beta": 2.6,
+        "ident": "h4",
+        "kind": "experiment",
+        "mean": 0.6286,
+        "observations": 1,
+        "prior_mean": 0.85,
+        "pulls": 1,
+        "rewards": [
+         0.0
+        ]
+       }
+      ],
+      "q3": [
+       {
+        "alpha": 2.2,
+        "beta": 5.8,
+        "ident": "r_api_contract_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.275,
+        "observations": 2,
+        "prior_mean": 0.3,
+        "pulls": 2,
+        "rewards": [
+         0.0,
+         0.0
+        ]
+       },
+       {
+        "alpha": 2.2,
+        "beta": 4.8,
+        "ident": "r_data_model_orm_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3143,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         0.0
+        ]
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_issue_reproducer_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 2.6,
+        "beta": 5.4,
+        "ident": "r_traceback_localiser_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.325,
+        "observations": 2,
+        "prior_mean": 0.3,
+        "pulls": 2,
+        "rewards": [
+         0.4,
+         0.0
+        ]
+       },
+       {
+        "alpha": 1.1567,
+        "beta": 4.8433,
+        "ident": "ceo",
+        "kind": "gen_specialist",
+        "mean": 0.1928,
+        "observations": 0,
+        "prior_mean": 0.0392,
+        "pulls": 1,
+        "rewards": []
+       },
+       {
+        "alpha": 5.2,
+        "beta": 1.8,
+        "ident": "h3",
+        "kind": "experiment",
+        "mean": 0.7429,
+        "observations": 1,
+        "prior_mean": 0.95,
+        "pulls": 1,
+        "rewards": [
+         0.4
+        ]
+       },
+       {
+        "alpha": 4.8,
+        "beta": 2.2,
+        "ident": "h5",
+        "kind": "experiment",
+        "mean": 0.6857,
+        "observations": 1,
+        "prior_mean": 0.95,
+        "pulls": 1,
+        "rewards": [
+         0.0
+        ]
+       }
+      ]
+     },
+     "counts": {
+      "deepen_experiment": 5,
+      "deepen_synthesize": 1,
+      "gen_empty_draws": 3,
+      "gen_exhausted_questions": 1,
+      "steps": 15,
+      "widen_hypothesis": 8,
+      "widen_specialist": 1,
+      "widest_question": 2
+     },
+     "gen_empty": {
+      "q1": 0,
+      "q2": 0,
+      "q3": 0
+     },
+     "prior_strength": 4.0,
+     "trace": [
+      {
+       "chosen": "gen_hypothesis:r_traceback_localiser_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.255535,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.163759,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.227668,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.469861,
+        "gen_specialist:ceo": 0.137002
+       },
+       "mean": 0.366667,
+       "move_index": 1,
+       "question_id": "q1",
+       "theta": 0.469861,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h1",
+       "draws": {
+        "experiment:h1": 0.983125,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.062672,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.184183,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.139289,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.48713,
+        "gen_specialist:ceo": 0.008198
+       },
+       "mean": 0.828571,
+       "move_index": 2,
+       "question_id": "q1",
+       "theta": 0.983125,
+       "y": 1.0
+      },
+      {
+       "chosen": "synthesize:h1",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.5757,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.281821,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.082783,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.549273,
+        "gen_specialist:ceo": 0.29159,
+        "synthesize:h1": 0.977292
+       },
+       "mean": 0.781429,
+       "move_index": 3,
+       "question_id": "q1",
+       "theta": 0.977292,
+       "y": 0.53
+      },
+      {
+       "chosen": "gen_hypothesis:r_issue_reproducer_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.670606,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.30005,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.702655,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.263439,
+        "gen_specialist:ceo": 0.329594
+       },
+       "mean": 0.366667,
+       "move_index": 4,
+       "question_id": "q2",
+       "theta": 0.702655,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h2",
+       "draws": {
+        "experiment:h2": 0.901325,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.566516,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.397041,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.189297,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.159145,
+        "gen_specialist:ceo": 0.542234
+       },
+       "mean": 0.685714,
+       "move_index": 5,
+       "question_id": "q2",
+       "theta": 0.901325,
+       "y": 0.4
+      },
+      {
+       "chosen": "gen_hypothesis:r_traceback_localiser_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.250087,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.325209,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.384742,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.494727,
+        "gen_specialist:ceo": 0.339739
+       },
+       "mean": 0.366667,
+       "move_index": 6,
+       "question_id": "q3",
+       "theta": 0.494727,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h3",
+       "draws": {
+        "experiment:h3": 0.845125,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.574809,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.193504,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.266363,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.495317,
+        "gen_specialist:ceo": 0.381059
+       },
+       "mean": 0.742857,
+       "move_index": 7,
+       "question_id": "q3",
+       "theta": 0.845125,
+       "y": 0.4
+      },
+      {
+       "chosen": "gen_hypothesis:r_issue_reproducer_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.389691,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.379189,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.577185,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.079578,
+        "gen_specialist:ceo": 0.564188
+       },
+       "mean": 0.371429,
+       "move_index": 8,
+       "question_id": "q2",
+       "theta": 0.577185,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h4",
+       "draws": {
+        "experiment:h4": 0.797739,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.322543,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.472237,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.741609,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.128452,
+        "gen_specialist:ceo": 0.138586
+       },
+       "mean": 0.628571,
+       "move_index": 9,
+       "question_id": "q2",
+       "theta": 0.797739,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_hypothesis:r_api_contract_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.677672,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.522496,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.29501,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.364028,
+        "gen_specialist:ceo": 0.469512
+       },
+       "mean": 0.314286,
+       "move_index": 10,
+       "question_id": "q3",
+       "theta": 0.677672,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_hypothesis:r_data_model_orm_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.374088,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.905054,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.491461,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.319846,
+        "gen_specialist:ceo": 0.362336
+       },
+       "mean": 0.314286,
+       "move_index": 11,
+       "question_id": "q3",
+       "theta": 0.905054,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_specialist:ceo",
+       "draws": {
+        "gen_specialist:ceo": 0.563985
+       },
+       "mean": 0.387875,
+       "move_index": 12,
+       "question_id": "q3",
+       "theta": 0.563985,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_hypothesis:r_api_contract_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.648379,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.263293,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.425762,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.480373
+       },
+       "mean": 0.275,
+       "move_index": 13,
+       "question_id": "q3",
+       "theta": 0.648379,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_hypothesis:r_traceback_localiser_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.263349,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.200721,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.235914,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.485156
+       },
+       "mean": 0.371429,
+       "move_index": 14,
+       "question_id": "q3",
+       "theta": 0.485156,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h5",
+       "draws": {
+        "experiment:h5": 0.916224,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.532413,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.440585,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.157525,
+        "gen_hypothesis:r_traceback_localiser_swebench": 0.504865,
+        "gen_specialist:ceo": 0.011226
+       },
+       "mean": 0.685714,
+       "move_index": 15,
+       "question_id": "q3",
+       "theta": 0.916224,
+       "y": 0.0
+      }
+     ]
+    },
+    "budget_moves": 30,
+    "delta_u_by_role": {
+     "r_api_contract_specialist_swebench": 0.03,
+     "r_data_model_orm_specialist_swebench": 0.0,
+     "r_issue_reproducer_swebench": 0.4,
+     "r_traceback_localiser_swebench": 1.35
+    },
+    "duplicate_rejections": 0,
+    "experiments": 5,
+    "falsified": 4,
+    "forced_low_prior_picks": 0,
+    "forced_low_prior_wins": 0,
+    "frontier_admissions": 3,
+    "hypotheses_accepted": 5,
+    "inconclusive": 0,
+    "moves_by_role": {
+     "r_api_contract_specialist_swebench": 3,
+     "r_data_model_orm_specialist_swebench": 1,
+     "r_issue_reproducer_swebench": 4,
+     "r_traceback_localiser_swebench": 6
+    },
+    "moves_used": 15,
+    "prior_head_loaded": true,
+    "prior_head_steered": 0,
+    "probe_repairs": 0,
+    "proposal_rounds": 8,
+    "proposer_errors": 0,
+    "questions_asked": 0,
+    "questions_deferred": 0,
+    "recruit_declined": 0,
+    "recruits": 1,
+    "recruits_from_library": 0,
+    "recruits_synthesized": 1,
+    "rejected_probes": 0,
+    "roles_routed": true,
+    "search_algorithm": "ab_mcts",
+    "stop_reason": "stagnation",
+    "supported": 1,
+    "syntheses": 1,
+    "syntheses_by_function": 1,
+    "syntheses_unwritten": 0,
+    "syntheses_verified": 1,
+    "synthesis_seconds": 39.347,
+    "tabu_rejections": 3,
+    "value_head_loaded": true
+   },
+   "stop_reason": "stagnation",
+   "synthesized_paths": [
+    "src/marshmallow/fields.py"
+   ],
+   "trajectory": [
+    {
+     "agent_role": "Traceback Localiser",
+     "created_at": 1791590207.048,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.469861,
+      "ab_y": 0.0,
+      "head_v": 0.450962
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 0.866667,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 0.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 1,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q1",
+     "role_id": "r_traceback_localiser_swebench",
+     "state_hash_after": "6760fcb1f02f2778cfcc387daf071533a683cc15b074d49fa56dfc882300d685",
+     "state_hash_before": "70cc7df0243dca019a89e956b52aaf4729166f2e3be08f21e1659721da8a8fd8",
+     "value_after": 0.056667,
+     "value_before": 0.05
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791590208.423,
+     "delta_u": 0.95,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.828571,
+      "ab_theta": 0.983125,
+      "ab_y": 1.0,
+      "head_v": 0.550889
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 0.866667,
+      "module_isolation": 0.5,
+      "open_without_options": 0.666667,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.1,
+      "supported_ratio": 0.0,
+      "untested_ratio": 1.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 2,
+     "move_type": "run_experiment",
+     "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: AttributeError regarding opts detected'",
+     "question_id": "q1",
+     "role_id": "r_traceback_localiser_swebench",
+     "state_hash_after": "72decc2eb4399722b2ead600b7f8243787376d64f4f5c1bece3a89110054338a",
+     "state_hash_before": "6760fcb1f02f2778cfcc387daf071533a683cc15b074d49fa56dfc882300d685",
+     "value_after": 0.331898,
+     "value_before": 0.052667
+    },
+    {
+     "agent_role": "API-Contract Specialist",
+     "created_at": 1791590255.344,
+     "delta_u": 0.03,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.781429,
+      "ab_theta": 0.977292,
+      "ab_y": 0.53,
+      "head_v": 0.436728
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.55,
+      "module_isolation": 0.5,
+      "open_without_options": 0.666667,
+      "resolved_fraction": 0.365385,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 3,
+     "move_type": "synthesize",
+     "note": "src/marshmallow/fields.py [function]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (1/1 re-run probe(s) no longer reproduce the bug)",
+     "question_id": "q1",
+     "role_id": "r_api_contract_specialist_swebench",
+     "state_hash_after": "75d6002688b537ecb209faf0aee4aa15413b78e0f46092433d9449566df5f79d",
+     "state_hash_before": "72decc2eb4399722b2ead600b7f8243787376d64f4f5c1bece3a89110054338a",
+     "value_after": 0.36282,
+     "value_before": 0.335898
+    },
+    {
+     "agent_role": "Issue Reproducer",
+     "created_at": 1791590279.918,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.702655,
+      "ab_y": 0.0,
+      "head_v": 0.563343
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.8,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.376923,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 4,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q2",
+     "role_id": "r_issue_reproducer_swebench",
+     "state_hash_after": "9cf2d2359bbab53e3250265a0d6a94b39705c5d4259561f5ff1493363c5d44cd",
+     "state_hash_before": "75d6002688b537ecb209faf0aee4aa15413b78e0f46092433d9449566df5f79d",
+     "value_after": 0.34282,
+     "value_before": 0.36282
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791590281.319,
+     "delta_u": 0.4,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.685714,
+      "ab_theta": 0.901325,
+      "ab_y": 0.4,
+      "head_v": 0.50432
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.8,
+      "module_isolation": 0.5,
+      "open_without_options": 0.5,
+      "resolved_fraction": 0.376923,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.1,
+      "supported_ratio": 0.5,
+      "untested_ratio": 0.5
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h2",
+     "move_index": 5,
+     "move_type": "run_experiment",
+     "note": "FALSIFIED: prediction failed: exit_code==1; stdout contains 'BUG: AttributeError accessing opts on non-Schema parent'",
+     "question_id": "q2",
+     "role_id": "r_issue_reproducer_swebench",
+     "state_hash_after": "36ffd1241eb9b907fbfd08f9357e3bcfac9c803af29a96e488e9e274a827a5a5",
+     "state_hash_before": "9cf2d2359bbab53e3250265a0d6a94b39705c5d4259561f5ff1493363c5d44cd",
+     "value_after": 0.441128,
+     "value_before": 0.33882
+    },
+    {
+     "agent_role": "Traceback Localiser",
+     "created_at": 1791590302.393,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.494727,
+      "ab_y": 0.0,
+      "head_v": 0.419195
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.6,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.530769,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.5,
+      "stagnation": 0.0,
+      "supported_ratio": 0.5,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 6,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q3",
+     "role_id": "r_traceback_localiser_swebench",
+     "state_hash_after": "751f6190a3bba26d721aa9b4d490b8fb4611087ae6b9be6b734f040bb4ab65ff",
+     "state_hash_before": "36ffd1241eb9b907fbfd08f9357e3bcfac9c803af29a96e488e9e274a827a5a5",
+     "value_after": 0.438461,
+     "value_before": 0.445128
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791590303.718,
+     "delta_u": 0.4,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.742857,
+      "ab_theta": 0.845125,
+      "ab_y": 0.4,
+      "head_v": 0.394615
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.6,
+      "module_isolation": 0.5,
+      "open_without_options": 0.5,
+      "resolved_fraction": 0.530769,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.333333,
+      "stagnation": 0.1,
+      "supported_ratio": 0.333333,
+      "untested_ratio": 0.333333
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h3",
+     "move_index": 7,
+     "move_type": "run_experiment",
+     "note": "FALSIFIED: prediction failed: stdout contains 'BUG: AttributeError regarding opts'",
+     "question_id": "q3",
+     "role_id": "r_traceback_localiser_swebench",
+     "state_hash_after": "29966b75fb4ff398361a25ff2460236cbbd2f868df1a2bf7fd9b3df01565f4fc",
+     "state_hash_before": "751f6190a3bba26d721aa9b4d490b8fb4611087ae6b9be6b734f040bb4ab65ff",
+     "value_after": 0.530102,
+     "value_before": 0.434461
+    },
+    {
+     "agent_role": "Issue Reproducer",
+     "created_at": 1791590321.201,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.371429,
+      "ab_theta": 0.577185,
+      "ab_y": 0.0,
+      "head_v": 0.357601
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.666667,
+      "stagnation": 0.0,
+      "supported_ratio": 0.333333,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 8,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q2",
+     "role_id": "r_issue_reproducer_swebench",
+     "state_hash_after": "b39436f110fde7272020e09d6c513b25e9d1d7494d5312fe34e3ade46da4921d",
+     "state_hash_before": "29966b75fb4ff398361a25ff2460236cbbd2f868df1a2bf7fd9b3df01565f4fc",
+     "value_after": 0.532436,
+     "value_before": 0.534102
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791590322.539,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.628571,
+      "ab_theta": 0.797739,
+      "ab_y": 0.0,
+      "head_v": 0.331779
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 0.5,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.5,
+      "stagnation": 0.1,
+      "supported_ratio": 0.25,
+      "untested_ratio": 0.25
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h4",
+     "move_index": 9,
+     "move_type": "run_experiment",
+     "note": "FALSIFIED: prediction failed: exit_code==1; stdout contains 'BUG: AttributeError accessing opts on non-Schema parent'",
+     "question_id": "q2",
+     "role_id": "r_issue_reproducer_swebench",
+     "state_hash_after": "04550c325ce84df57d3b13ed2672f2fc83427f242a6e18725908527f01323f12",
+     "state_hash_before": "b39436f110fde7272020e09d6c513b25e9d1d7494d5312fe34e3ade46da4921d",
+     "value_after": 0.528436,
+     "value_before": 0.528436
+    },
+    {
+     "agent_role": "API-Contract Specialist",
+     "created_at": 1791590338.245,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.314286,
+      "ab_theta": 0.677672,
+      "ab_y": 0.0,
+      "head_v": 0.314853
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.75,
+      "stagnation": 0.2,
+      "supported_ratio": 0.25,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 10,
+     "move_type": "propose_hypothesis",
+     "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q3",
+     "role_id": "r_api_contract_specialist_swebench",
+     "state_hash_after": "f821407e29234bfa8270d016f6163c8b8589dbc47b1552799dee22b44d8eb66b",
+     "state_hash_before": "04550c325ce84df57d3b13ed2672f2fc83427f242a6e18725908527f01323f12",
+     "value_after": 0.524436,
+     "value_before": 0.524436
+    },
+    {
+     "agent_role": "Data-Model & ORM Specialist",
+     "created_at": 1791590357.437,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.314286,
+      "ab_theta": 0.905054,
+      "ab_y": 0.0,
+      "head_v": 0.302956
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.75,
+      "stagnation": 0.3,
+      "supported_ratio": 0.25,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 11,
+     "move_type": "propose_hypothesis",
+     "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q3",
+     "role_id": "r_data_model_orm_specialist_swebench",
+     "state_hash_after": "98bc2658e4f36ee7c06f856e95533cd935da47794915dff1e454f112da4f747c",
+     "state_hash_before": "f821407e29234bfa8270d016f6163c8b8589dbc47b1552799dee22b44d8eb66b",
+     "value_after": 0.520436,
+     "value_before": 0.520436
+    },
+    {
+     "agent_role": "Marshmallow Core Internals Specialist",
+     "created_at": 1791590370.921,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 1.0,
+      "ab_mean": 0.387875,
+      "ab_theta": 0.563985,
+      "ab_y": 0.0,
+      "head_v": 0.291318,
+      "recruit_prior": 0.331812,
+      "stall_counter": 1.0,
+      "unmatched_modules": 3.0
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.75,
+      "stagnation": 0.4,
+      "supported_ratio": 0.25,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 12,
+     "move_type": "recruit_specialist",
+     "note": "recruited Marshmallow Core Internals Specialist [synthesized] (stall=1, unmatched=3; tags: marshmallow, fields, schema, opts, bind_to_schema, list): no library role overlaps the gaps (6 candidate(s)); synthesized by CEO: The current team lacks specific expertise in marshmallow's internal field bindi",
+     "question_id": "q3",
+     "role_id": "r_marshmallow_core_internals_specialist",
+     "state_hash_after": "98bc2658e4f36ee7c06f856e95533cd935da47794915dff1e454f112da4f747c",
+     "state_hash_before": "98bc2658e4f36ee7c06f856e95533cd935da47794915dff1e454f112da4f747c",
+     "value_after": 0.516436,
+     "value_before": 0.516436
+    },
+    {
+     "agent_role": "API-Contract Specialist",
+     "created_at": 1791590372.346,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 4.0,
+      "ab_mean": 0.275,
+      "ab_theta": 0.648379,
+      "ab_y": 0.0,
+      "head_v": 0.279948
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.75,
+      "stagnation": 0.5,
+      "supported_ratio": 0.25,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 13,
+     "move_type": "propose_hypothesis",
+     "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q3",
+     "role_id": "r_api_contract_specialist_swebench",
+     "state_hash_after": "c6fc51467a3ea8616a13dfd7d28aedb481d0ba39cb90a040e430d022a75f9cc8",
+     "state_hash_before": "98bc2658e4f36ee7c06f856e95533cd935da47794915dff1e454f112da4f747c",
+     "value_after": 0.512436,
+     "value_before": 0.512436
+    },
+    {
+     "agent_role": "Traceback Localiser",
+     "created_at": 1791590391.471,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 4.0,
+      "ab_mean": 0.371429,
+      "ab_theta": 0.485156,
+      "ab_y": 0.0,
+      "head_v": 0.268853
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.75,
+      "stagnation": 0.6,
+      "supported_ratio": 0.25,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 14,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q3",
+     "role_id": "r_traceback_localiser_swebench",
+     "state_hash_after": "9b8e3173367df5cce1c9c54cfcdc64c3cb3a7d9cd2d37630aa98290e092ba54f",
+     "state_hash_before": "c6fc51467a3ea8616a13dfd7d28aedb481d0ba39cb90a040e430d022a75f9cc8",
+     "value_after": 0.509436,
+     "value_before": 0.508436
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791590392.874,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.685714,
+      "ab_theta": 0.916224,
+      "ab_y": 0.0,
+      "head_v": 0.242623
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 0.5,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.6,
+      "stagnation": 0.7,
+      "supported_ratio": 0.2,
+      "untested_ratio": 0.2
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h5",
+     "move_index": 15,
+     "move_type": "run_experiment",
+     "note": "FALSIFIED: prediction failed: stdout contains 'BUG: AttributeError regarding opts'",
+     "question_id": "q3",
+     "role_id": "r_traceback_localiser_swebench",
+     "state_hash_after": "9208fc411d01984417adeaaa6c6917f356e37a0a9b4767da29bb134ebdc0c65d",
+     "state_hash_before": "9b8e3173367df5cce1c9c54cfcdc64c3cb3a7d9cd2d37630aa98290e092ba54f",
+     "value_after": 0.503436,
+     "value_before": 0.505436
+    }
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-marshmallow-code-marshmallow-1359/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v9_ab_mcts_swebench_firm_0",
+ "instance_id": "marshmallow-code__marshmallow-1359",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.9,
+  "estimated_cost_usd": 0.0101,
+  "flash_count": 26,
+  "flash_input_tokens": 65981,
+  "flash_output_tokens": 3322,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 2246,
+  "pro_output_tokens": 264,
+  "total_tokens": 71813
+ },
+ "org": {
+  "active_roles": [
+   {
+    "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "api",
+     "signature",
+     "kwargs",
+     "args",
+     "deprecation",
+     "deprecated",
+     "backwards",
+     "compatibility",
+     "contract",
+     "interface",
+     "public",
+     "default",
+     "argument",
+     "parameter"
+    ],
+    "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "API-Contract Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_api_contract_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "django",
+     "orm",
+     "queryset",
+     "model",
+     "models",
+     "migration",
+     "migrations",
+     "field",
+     "fields",
+     "sql",
+     "database",
+     "sqlalchemy",
+     "serializer",
+     "foreignkey",
+     "compiler",
+     "expression",
+     "annotation",
+     "subquery",
+     "admin",
+     "forms"
+    ],
+    "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Data-Model & ORM Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "reproduce",
+     "reproduction",
+     "minimal",
+     "example",
+     "issue",
+     "actual",
+     "behaviour",
+     "behavior",
+     "traceback",
+     "regression"
+    ],
+    "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+    "kind": "probe",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Issue Reproducer",
+    "origin": "seed:swebench",
+    "role_id": "r_issue_reproducer_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": false,
+    "uses": 0
+   },
+   {
+    "backstory": "Reads stack traces top-down and bottom-up. One falsifiable mechanism per hypothesis.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "traceback",
+     "stack",
+     "frame",
+     "exception",
+     "typeerror",
+     "attributeerror",
+     "valueerror",
+     "keyerror",
+     "indexerror",
+     "nameerror",
+     "runtimeerror",
+     "recursionerror"
+    ],
+    "goal": "Map an exception to the frame, call path and input that raise it, and propose probes that separate candidate mechanisms.",
+    "kind": "probe",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Traceback Localiser",
+    "origin": "seed:swebench",
+    "role_id": "r_traceback_localiser_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": false,
+    "uses": 0
+   },
+   {
+    "backstory": "Expert in marshmallow's internal architecture, specifically the interaction between Schema.opts and field._bind_to_schema. Has deep experience debugging complex field nesting issues in marshmallow 3.0+, including the transition from rc8 to rc9. Proficient in patching src/marshmallow/fields.py to ensure container fields like List and Tuple correctly propagate schema context to their inner fields.",
+    "cost_per_move": 1.0,
+    "created_generation": 17,
+    "domain_tags": [
+     "marshmallow",
+     "fields",
+     "schema",
+     "opts",
+     "bind_to_schema",
+     "list",
+     "tuple",
+     "datetime"
+    ],
+    "goal": "Resolve the AttributeError in marshmallow's field binding logic by correctly handling schema option inheritance for nested container fields.",
+    "kind": "synthesis",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Marshmallow Core Internals Specialist",
+    "origin": "recruited:v9_ab_mcts_swebench_firm_0:g17:m12",
+    "rationale": "The current team lacks specific expertise in marshmallow's internal field binding mechanism and the Schema.opts attribute access pattern. The issue is a regression in how container fields pass context to inner fields, requiring a precise fix in src/marshmallow/fields.py that respects the distinction",
+    "role_id": "r_marshmallow_core_internals_specialist",
+    "source": "synthesized",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.7,
+    "tools_enabled": true,
+    "uses": 0
+   }
+  ],
+  "policy": {
+   "enabled": true,
+   "exploration_c": 0.25,
+   "headcount_lambda": 0.05,
+   "max_active_roles": 6,
+   "max_initial_roles": 4,
+   "min_initial_roles": 2,
+   "optimistic_prior": 0.3,
+   "recruit_bias": -2.0,
+   "recruit_cooldown_moves": 3,
+   "recruit_mode": "both",
+   "recruit_w_headcount": 0.4,
+   "recruit_w_stall": 0.5,
+   "recruit_w_unmatched": 0.8,
+   "stall_delta_u": 0.05,
+   "stall_moves": 4,
+   "temperature": 0.0
+  },
+  "recruit_log": [
+   {
+    "move_index": 12,
+    "name": "Marshmallow Core Internals Specialist",
+    "prior": 0.2497,
+    "reason": "stall=1, unmatched=3",
+    "role_id": "r_marshmallow_core_internals_specialist",
+    "source": "synthesized",
+    "stall_counter": 1,
+    "unmatched_modules": [
+     "src/marshmallow/schema.py",
+     "test-mm.py",
+     "Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py"
+    ]
+   }
+  ],
+  "recruit_prior": 0.063,
+  "stall_counter": 1,
+  "stats": {
+   "r_api_contract_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.03,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 1,
+    "untestable": 0,
+    "visits": 1
+   },
+   "r_data_model_orm_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   },
+   "r_issue_reproducer_swebench": {
+    "consecutive_stalls": 1,
+    "cumulative_delta_u": 0.4,
+    "falsified": 2,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 2
+   },
+   "r_marshmallow_core_internals_specialist": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": 12,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   },
+   "r_traceback_localiser_swebench": {
+    "consecutive_stalls": 1,
+    "cumulative_delta_u": 1.35,
+    "falsified": 2,
+    "recruited_at_move": -1,
+    "supported": 1,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 3
+   }
+  },
+  "unmatched_modules": [
+   "test-mm.py"
+  ]
+ },
+ "org_history": [
+  {
+   "audit": {
+    "candidates": 364,
+    "chosen": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_issue_reproducer_swebench",
+     "r_traceback_localiser_swebench"
+    ],
+    "iteration": 1,
+    "lambda_eff": 0.0429,
+    "library_size": 10,
+    "library_source": "genome",
+    "scores": {
+     "r_api_contract_specialist_swebench": 0.15,
+     "r_data_model_orm_specialist_swebench": 0.165,
+     "r_docs_cli_behaviour_specialist_swebench": 0.15,
+     "r_issue_reproducer_swebench": 0.165,
+     "r_minimal_diff_synthesiser_swebench": 0.15,
+     "r_numerics_symbolic_specialist_swebench": 0.15,
+     "r_parsing_grammar_specialist_swebench": 0.15,
+     "r_regression_guard_swebench": 0.15,
+     "r_test_suite_analyst_swebench": 0.15,
+     "r_traceback_localiser_swebench": 0.175
+    },
+    "task": {
+     "complexity": 0.6415,
+     "has_assertion": false,
+     "has_import_error": false,
+     "n_exception_classes": 1,
+     "n_failures": 0,
+     "n_modules": 5,
+     "n_paths_mentioned": 5,
+     "source": "problem_statement",
+     "statement_chars": 1748,
+     "tags": [
+      "marshmallow",
+      "fields",
+      "schema",
+      "test-mm",
+      "attributeerror",
+      "datetime",
+      "cannot",
+      "used",
+      "inner",
+      "field",
+      "list",
+      "tuple",
+      "between",
+      "releases",
+      "rc8",
+      "rc9",
+      "started",
+      "throwing",
+      "being",
+      "instantiated",
+      "container",
+      "like",
+      "snippet",
+      "below",
+      "works",
+      "throws",
+      "worryingly",
+      "myschema",
+      "times",
+      "traceback",
+      "most",
+      "recent",
+      "call",
+      "last",
+      "users",
+      "victor",
+      "pyenv",
+      "versions",
+      "lib",
+      "python3",
+      "site"
+     ]
+    },
+    "team": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_issue_reproducer_swebench",
+     "r_traceback_localiser_swebench"
+    ],
+    "team_names": [
+     "API-Contract Specialist",
+     "Data-Model & ORM Specialist",
+     "Issue Reproducer",
+     "Traceback Localiser"
+    ],
+    "v_org": 0.4833
+   },
+   "iteration": 1,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "reproduce",
+       "reproduction",
+       "minimal",
+       "example",
+       "issue",
+       "actual",
+       "behaviour",
+       "behavior",
+       "traceback",
+       "regression"
+      ],
+      "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Issue Reproducer",
+      "origin": "seed:swebench",
+      "role_id": "r_issue_reproducer_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads stack traces top-down and bottom-up. One falsifiable mechanism per hypothesis.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "traceback",
+       "stack",
+       "frame",
+       "exception",
+       "typeerror",
+       "attributeerror",
+       "valueerror",
+       "keyerror",
+       "indexerror",
+       "nameerror",
+       "runtimeerror",
+       "recursionerror"
+      ],
+      "goal": "Map an exception to the frame, call path and input that raise it, and propose probes that separate candidate mechanisms.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Traceback Localiser",
+      "origin": "seed:swebench",
+      "role_id": "r_traceback_localiser_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     },
+     {
+      "backstory": "Expert in marshmallow's internal architecture, specifically the interaction between Schema.opts and field._bind_to_schema. Has deep experience debugging complex field nesting issues in marshmallow 3.0+, including the transition from rc8 to rc9. Proficient in patching src/marshmallow/fields.py to ensure container fields like List and Tuple correctly propagate schema context to their inner fields.",
+      "cost_per_move": 1.0,
+      "created_generation": 17,
+      "domain_tags": [
+       "marshmallow",
+       "fields",
+       "schema",
+       "opts",
+       "bind_to_schema",
+       "list",
+       "tuple",
+       "datetime"
+      ],
+      "goal": "Resolve the AttributeError in marshmallow's field binding logic by correctly handling schema option inheritance for nested container fields.",
+      "kind": "synthesis",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Marshmallow Core Internals Specialist",
+      "origin": "recruited:v9_ab_mcts_swebench_firm_0:g17:m12",
+      "rationale": "The current team lacks specific expertise in marshmallow's internal field binding mechanism and the Schema.opts attribute access pattern. The issue is a regression in how container fields pass context to inner fields, requiring a precise fix in src/marshmallow/fields.py that respects the distinction",
+      "role_id": "r_marshmallow_core_internals_specialist",
+      "source": "synthesized",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.7,
+      "tools_enabled": true,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [
+     {
+      "move_index": 12,
+      "name": "Marshmallow Core Internals Specialist",
+      "prior": 0.2497,
+      "reason": "stall=1, unmatched=3",
+      "role_id": "r_marshmallow_core_internals_specialist",
+      "source": "synthesized",
+      "stall_counter": 1,
+      "unmatched_modules": [
+       "src/marshmallow/schema.py",
+       "test-mm.py",
+       "Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py"
+      ]
+     }
+    ],
+    "recruit_prior": 0.063,
+    "stall_counter": 1,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.03,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_issue_reproducer_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 0.4,
+      "falsified": 2,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 2
+     },
+     "r_marshmallow_core_internals_specialist": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": 12,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_traceback_localiser_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 1.35,
+      "falsified": 2,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 3
+     }
+    },
+    "unmatched_modules": [
+     "test-mm.py"
+    ]
+   }
+  }
+ ],
+ "prediction_chars": 512,
+ "swebench": {
+  "base_commit": "b40a0f4e33823e6d0f341f7e8684e359a99060d1",
+  "budget_moves": 30,
+  "changed_files": [
+   "src/marshmallow/fields.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-marshmallow-code-marshmallow-1359/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "marshmallow-code__marshmallow-1359",
+  "iterations": [
+   {
+    "iteration": 1,
+    "moves_used": 15,
+    "org": {
+     "recruits": 1,
+     "stall": 1,
+     "team": [
+      "r_api_contract_specialist_swebench",
+      "r_data_model_orm_specialist_swebench",
+      "r_issue_reproducer_swebench",
+      "r_traceback_localiser_swebench",
+      "r_marshmallow_core_internals_specialist"
+     ],
+     "unmatched": [
+      "test-mm.py"
+     ]
+    },
+    "patched": true,
+    "recheck": {
+     "bug_gone_hypotheses": [
+      "h1"
+     ],
+     "evidence_id": "e10",
+     "probes_rerun": 1,
+     "reopened": [],
+     "resolved": [
+      "q1"
+     ],
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "stagnation",
+    "synthesized_paths": [
+     "src/marshmallow/fields.py"
+    ]
+   }
+  ],
+  "locate": [],
+  "moves_used": 15,
+  "patch_chars": 512,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "marshmallow",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 60.0,
+    "duration_s": 2.19,
+    "mode": "whole_suite",
+    "reason": "",
+    "summary": "======================== 911 passed, 1 warning in 1.28s ========================",
+    "target": "tests",
+    "timeout_s": 60.0
+   },
+   "tried": [
+    "marshmallow"
+   ]
+  },
+  "repo": "marshmallow-code/marshmallow",
+  "reproduction": [
+   {
+    "bug_gone_hypotheses": [
+     "h1"
+    ],
+    "evidence_id": "e10",
+    "probes_rerun": 1,
+    "reopened": [],
+    "reruns": [
+     {
+      "bug_no_longer_reproduces": true,
+      "completed": true,
+      "detail": "prediction failed: exit_code==1; stdout contains 'BUG: AttributeError regarding opts detected'",
+      "evidence_id": "e9",
+      "exit_code": 0,
+      "hypothesis_id": "h1",
+      "matched_prediction": false
+     }
+    ],
+    "resolved": [
+     "q1"
+    ],
+    "verdict": "resolved"
+   }
+  ],
+  "resolved_by_self_oracle": true,
+  "root_module": "src/marshmallow/schema.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [
+    "marshmallow/schema.py",
+    "marshmallow/fields.py",
+    "test-mm.py"
+   ],
+   "failure": "AttributeError: 'List' object has no attribute 'opts'",
+   "paths": [
+    "src/marshmallow/schema.py",
+    "src/marshmallow/fields.py"
+   ],
+   "primary_module": "src/marshmallow/schema.py",
+   "root_question_id": "q1",
+   "sub_question_ids": [
+    "q2",
+    "q3"
+   ]
+  },
+  "stop": "resolved",
+  "task_features": {
+   "complexity": 0.6415,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 1,
+   "n_failures": 0,
+   "n_modules": 5,
+   "n_paths_mentioned": 5,
+   "source": "problem_statement",
+   "statement_chars": 1748,
+   "tags": [
+    "marshmallow",
+    "fields",
+    "schema",
+    "test-mm",
+    "attributeerror",
+    "datetime",
+    "cannot",
+    "used",
+    "inner",
+    "field",
+    "list",
+    "tuple",
+    "between",
+    "releases",
+    "rc8",
+    "rc9",
+    "started",
+    "throwing",
+    "being",
+    "instantiated",
+    "container",
+    "like",
+    "snippet",
+    "below",
+    "works",
+    "throws",
+    "worryingly",
+    "myschema",
+    "times",
+    "traceback",
+    "most",
+    "recent",
+    "call",
+    "last",
+    "users",
+    "victor",
+    "pyenv",
+    "versions",
+    "lib",
+    "python3",
+    "site"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 1
+ },
+ "task": {
+  "base_commit": "b40a0f4e33823e6d0f341f7e8684e359a99060d1",
+  "created_at": "2019-08-21T15:45:13Z",
+  "environment_setup_commit": "8b3a32614fd4a74e93e9a63a042e74c1fea34466",
+  "hints_text": "",
+  "instance_id": "marshmallow-code__marshmallow-1359",
+  "problem_statement": "3.0: DateTime fields cannot be used as inner field for List or Tuple fields\nBetween releases 3.0.0rc8 and 3.0.0rc9, `DateTime` fields have started throwing an error when being instantiated as inner fields of container fields like `List` or `Tuple`. The snippet below works in <=3.0.0rc8 and throws the error below in >=3.0.0rc9 (and, worryingly, 3.0.0):\r\n\r\n```python\r\nfrom marshmallow import fields, Schema\r\n\r\nclass MySchema(Schema):\r\n    times = fields.List(fields.DateTime())\r\n\r\ns = MySchema()\r\n```\r\n\r\nTraceback:\r\n```\r\nTraceback (most recent call last):\r\n  File \"test-mm.py\", line 8, in <module>\r\n    s = MySchema()\r\n  File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py\", line 383, in __init__\r\n    self.fields = self._init_fields()\r\n  File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py\", line 913, in _init_fields\r\n    self._bind_field(field_name, field_obj)\r\n  File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/schema.py\", line 969, in _bind_field\r\n    field_obj._bind_to_schema(field_name, self)\r\n  File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/fields.py\", line 636, in _bind_to_schema\r\n    self.inner._bind_to_schema(field_name, self)\r\n  File \"/Users/victor/.pyenv/versions/marshmallow/lib/python3.6/site-packages/marshmallow/fields.py\", line 1117, in _bind_to_schema\r\n    or getattr(schema.opts, self.SCHEMA_OPTS_VAR_NAME)\r\nAttributeError: 'List' object has no attribute 'opts'\r\n```\r\n\r\nIt seems like it's treating the parent field as a Schema without checking that it is indeed a schema, so the `schema.opts` statement fails as fields don't have an `opts` attribute.\n",
+  "repo": "marshmallow-code/marshmallow",
+  "version": "3.0"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 11,
+  "thought_tokens": 0
+ },
+ "token_usage": 71813,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

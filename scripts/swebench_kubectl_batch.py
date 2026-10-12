@@ -217,29 +217,35 @@ def run_policy_on_instance(instance_id: str, pod: str, dataset: str, policy_tag:
         ]
         started = time.time()
         try:
-            proc = subprocess.run(cmd, cwd=REPO_ROOT, env=env, stdin=subprocess.DEVNULL,
-                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                  timeout=instance_timeout_s, text=True, errors="replace")
             with open(stdout_log, "w", encoding="utf-8") as fh:
-                fh.write(proc.stdout)
-        except subprocess.TimeoutExpired as exc:
-            out = exc.stdout.decode("utf-8", "replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
-            with open(stdout_log, "w", encoding="utf-8") as fh:
-                fh.write(out + f"\n[TIMEOUT after {instance_timeout_s}s]\n")
+                subprocess.run(cmd, cwd=REPO_ROOT, env=env, stdin=subprocess.DEVNULL,
+                               stdout=fh, stderr=subprocess.STDOUT,
+                               timeout=instance_timeout_s, text=True, errors="replace")
+        except subprocess.TimeoutExpired:
+            with open(stdout_log, "a", encoding="utf-8") as fh:
+                fh.write(f"\n[TIMEOUT after {instance_timeout_s}s]\n")
             return {"instance_id": instance_id, "policy": policy_tag, "status": "timeout",
                     "elapsed_s": round(time.time() - started, 1)}
 
     if os.path.exists(pred_path) and not os.path.exists(grade_path):
-        cmd_grade = [
-            sys.executable, GRADE_SCRIPT,
-            "--instance-id", instance_id,
-            "--dataset", dataset,
-            "--executor", "kubectl", "--pod", pod, "--container", "testbed",
-            "--prediction", pred_path,
-            "--out", grade_path,
-        ]
-        subprocess.run(cmd_grade, cwd=REPO_ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                       timeout=900, text=True, errors="replace")
+        pred_obj = json.load(open(pred_path, "r", encoding="utf-8"))
+        if not (pred_obj.get("model_patch") or "").strip():
+            with open(grade_path, "w", encoding="utf-8") as fh:
+                json.dump({"instance_id": instance_id, "patch_source": pred_path, "patch_chars": 0,
+                           "resolved": False, "steps": {"apply_model_patch": {"ok": False, "note": "model: empty patch"}}},
+                          fh, indent=1, sort_keys=True)
+                fh.write("\n")
+        else:
+            cmd_grade = [
+                sys.executable, GRADE_SCRIPT,
+                "--instance-id", instance_id,
+                "--dataset", dataset,
+                "--executor", "kubectl", "--pod", pod, "--container", "testbed",
+                "--prediction", pred_path,
+                "--out", grade_path,
+            ]
+            subprocess.run(cmd_grade, cwd=REPO_ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           timeout=900, text=True, errors="replace")
 
     rec = json.load(open(rec_path, "r", encoding="utf-8")) if os.path.exists(rec_path) else {}
     grade = json.load(open(grade_path, "r", encoding="utf-8")) if os.path.exists(grade_path) else {}
@@ -257,7 +263,7 @@ def run_policy_on_instance(instance_id: str, pod: str, dataset: str, policy_tag:
         "p2p_summary": grade.get("PASS_TO_PASS_summary"),
         "patch_chars": swe.get("patch_chars"),
         "changed_files": swe.get("changed_files"),
-        "tokens": (rec.get("token_usage") or {}).get("total_tokens"),
+        "tokens": rec.get("token_usage", {}).get("total_tokens") if isinstance(rec.get("token_usage"), dict) else rec.get("token_usage"),
         "elapsed_s": rec.get("elapsed_seconds"),
     }
 
@@ -323,14 +329,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     valid_count[0] += 1
             if scr.get("valid") and not args.screen_only:
                 for tag, genome_path, model_name in policies:
-                    res = run_policy_on_instance(
-                        iid, pod, args.dataset, tag, genome_path, model_name,
-                        args.out_root, args.context,
-                        budget_moves=args.budget_moves, max_iterations=args.max_iterations,
-                    )
+                    try:
+                        res = run_policy_on_instance(
+                            iid, pod, args.dataset, tag, genome_path, model_name,
+                            args.out_root, args.context,
+                            budget_moves=args.budget_moves, max_iterations=args.max_iterations,
+                        )
+                    except Exception as exc:
+                        res = {"instance_id": iid, "policy": tag, "status": f"error: {type(exc).__name__}: {exc}"}
                     with lock:
                         run_rows.append(res)
                         print(json.dumps({"event": "run", **res}), flush=True)
+        except Exception as exc:
+            with lock:
+                print(json.dumps({"event": "error", "instance_id": iid, "error": f"{type(exc).__name__}: {exc}"}), flush=True)
         finally:
             if created and not args.keep_pods:
                 delete_pod(pod, args.context)

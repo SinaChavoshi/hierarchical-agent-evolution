@@ -1,0 +1,5 @@
+{
+ "instance_id": "sqlfluff__sqlfluff-891",
+ "model_name_or_path": "hae-v8-puct/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/src/sqlfluff/core/linter.py b/src/sqlfluff/core/linter.py\nindex b29c97863..66ee291cc 100644\n--- a/src/sqlfluff/core/linter.py\n+++ b/src/sqlfluff/core/linter.py\n@@ -727,6 +727,8 @@ class Linter:\n         self.formatter = formatter\n         # Store references to user rule classes\n         self.user_rules = user_rules or []\n+        # Store the set of rules disabled by noqa directives\n+        self.disabled_rules = set()\n \n     def get_ruleset(self, config: Optional[FluffConfig] = None) -> List[BaseRule]:\n         \"\"\"Get hold of a set of rules.\"\"\"\n"
+}

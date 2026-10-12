@@ -1,0 +1,43 @@
+{
+ "FAIL_TO_PASS": {
+  "tests/unittest_raw_building.py::RawBuildingTC::test_module_object_with_broken_getattr": "FAILED"
+ },
+ "PASS_TO_PASS_failures": [],
+ "PASS_TO_PASS_summary": {
+  "ERROR": 0,
+  "FAILED": 0,
+  "MISSING": 0,
+  "PASSED": 11,
+  "SKIPPED": 0
+ },
+ "elapsed_seconds": 6.5,
+ "executor": "kubectl:default/swebench-tb-pylint-dev-astroid-1962/testbed:/testbed",
+ "f2p_passed": 0,
+ "f2p_total": 1,
+ "instance_id": "pylint-dev__astroid-1962",
+ "patch_chars": 2426,
+ "patch_source": "results/swebench/dev_eval_2026-10-09/v9_ab_mcts/pylint-dev__astroid-1962/prediction.json",
+ "pytest": {
+  "files": [
+   "tests/unittest_raw_building.py"
+  ],
+  "log_tail": "                                                            [100%]\n=================================== FAILURES ===================================\n_____________ RawBuildingTC.test_module_object_with_broken_getattr _____________\n\nself = <tests.unittest_raw_building.RawBuildingTC testMethod=test_module_object_with_broken_getattr>\n\n    def test_module_object_with_broken_getattr(self) -> None:\n        # Tests https://github.com/PyCQA/astroid/issues/1958\n        # When astroid deep inspection of modules raises\n        # errors when using hasattr().\n    \n        # This should not raise an exception\n>       AstroidBuilder().inspect_build(fm_getattr, \"test\")\n\ntests/unittest_raw_building.py:117: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nastroid/raw_building.py:366: in inspect_build\n    self.object_build(node, module)\nastroid/raw_building.py:424: in object_build\n    if hasattr(member, '__all__'):\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <tests.testdata.python3.data.fake_module_with_broken_getattr.Broken object at 0x7c42e14a0d30>\nname = '__all__'\n\n    def __getattr__(self, name):\n>       raise Exception(\"boom\")\nE       Exception: boom\n\ntests/testdata/python3/data/fake_module_with_broken_getattr.py:4: Exception\n==================================== PASSES ====================================\n=========================== short test summary info ============================\nPASSED tests/unittest_raw_building.py::RawBuildingTC::test_attach_dummy_node\nPASSED tests/unittest_raw_building.py::RawBuildingTC::test_build_class\nPASSED tests/unittest_raw_building.py::RawBuildingTC::test_build_from_import\nPASSED tests/unittest_raw_building.py::RawBuildingTC::test_build_function\nPASSED tests/unittest_raw_building.py::RawBuildingTC::test_build_function_args\nPASSED tests/unittest_raw_building.py::RawBuildingTC::test_build_function_deepinspect_deprecation\nPASSED tests/unittest_raw_building.py::RawBuildingTC::test_build_function_defaults\nPASSED tests/unittest_raw_building.py::RawBuildingTC::test_build_function_kwonlyargs\nPASSED tests/unittest_raw_building.py::RawBuildingTC::test_build_function_posonlyargs\nPASSED tests/unittest_raw_building.py::RawBuildingTC::test_build_module\nPASSED tests/unittest_raw_building.py::RawBuildingTC::test_io_is__io\nFAILED tests/unittest_raw_building.py::RawBuildingTC::test_module_object_with_broken_getattr\n1 failed, 11 passed in 0.53s\n\ncommand terminated with exit code 1\n",
+  "rc": 1,
+  "reported": 12
+ },
+ "resolved": false,
+ "steps": {
+  "apply_model_patch": {
+   "note": "",
+   "ok": true
+  },
+  "apply_test_patch": {
+   "note": "",
+   "ok": true
+  },
+  "reset": {
+   "dirty_after": "0",
+   "rc": 0
+  }
+ }
+}

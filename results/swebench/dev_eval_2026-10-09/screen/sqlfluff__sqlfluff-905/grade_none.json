@@ -1,0 +1,43 @@
+{
+ "FAIL_TO_PASS": {
+  "test/api/simple_test.py::test__api__fix_string": "FAILED"
+ },
+ "PASS_TO_PASS_failures": [],
+ "PASS_TO_PASS_summary": {
+  "ERROR": 0,
+  "FAILED": 0,
+  "MISSING": 0,
+  "PASSED": 6,
+  "SKIPPED": 0
+ },
+ "elapsed_seconds": 5.3,
+ "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-905/testbed:/testbed",
+ "f2p_passed": 0,
+ "f2p_total": 1,
+ "instance_id": "sqlfluff__sqlfluff-905",
+ "patch_chars": 0,
+ "patch_source": "none",
+ "pytest": {
+  "files": [
+   "test/api/simple_test.py"
+  ],
+  "log_tail": "....F..                                                                  [100%]\n=================================== FAILURES ===================================\n____________________________ test__api__fix_string _____________________________\n\n    def test__api__fix_string():\n        \"\"\"Basic checking of lint functionality.\"\"\"\n        result = sqlfluff.fix(my_bad_query)\n        # Check return types.\n        assert isinstance(result, str)\n        # Check actual result\n>       assert (\n            result\n            == \"\"\"SELECT\n        *,\n        1,\n        blah AS foo FROM mytable\n    \"\"\"\n        )\nE       AssertionError: assert 'SELECT\\n    ...ROM mytable\\n' == 'SELECT\\n    ...ROM mytable\\n'\nE         \nE           SELECT\nE         -     *,\nE         -     1,\nE         -     blah AS foo FROM mytable\nE         +     *, 1, blah AS foo FROM mytable\nE         ?    ++++++\n\ntest/api/simple_test.py:124: AssertionError\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n==================================== PASSES ====================================\n=========================== short test summary info ============================\nPASSED test/api/simple_test.py::test__api__lint_string_without_violations\nPASSED test/api/simple_test.py::test__api__lint_string\nPASSED test/api/simple_test.py::test__api__lint_file\nPASSED test/api/simple_test.py::test__api__lint_string_specific\nPASSED test/api/simple_test.py::test__api__fix_string_specific\nPASSED test/api/simple_test.py::test__api__parse_string\nFAILED test/api/simple_test.py::test__api__fix_string - AssertionError: asser...\n1 failed, 6 passed, 1 warning in 0.98s\n\ncommand terminated with exit code 1\n",
+  "rc": 1,
+  "reported": 7
+ },
+ "resolved": false,
+ "steps": {
+  "apply_model_patch": {
+   "note": "no model patch (control)",
+   "ok": true
+  },
+  "apply_test_patch": {
+   "note": "",
+   "ok": true
+  },
+  "reset": {
+   "dirty_after": "0",
+   "rc": 0
+  }
+ }
+}
