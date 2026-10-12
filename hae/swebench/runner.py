@@ -390,6 +390,22 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
             default, getattr(hypothesis, "claim", ""), getattr(hypothesis, "mechanism", ""),
             self.py_files(), repo=self.task.repo)
 
+    def _secondary_targets(self, question: Question, hypothesis: Any, primary: str) -> List[str]:
+        """Up to 2 tracked non-test collaborator `.py` modules referenced in the issue or hypothesis."""
+        from hae.swebench.task import extract_paths, is_test_path
+        known = [f for f in self.py_files() if f and not is_test_path(f)]
+        raw_text = "\n".join([
+            getattr(hypothesis, "claim", "") or "",
+            getattr(hypothesis, "mechanism", "") or "",
+            question.text or "",
+            question.module or "",
+        ])
+        cands = resolve_paths(extract_paths(raw_text, self.task.repo), known)
+        for sp in (self.seed_info.get("paths") or []):
+            if sp and sp not in cands and not is_test_path(sp):
+                cands.append(sp)
+        return [p for p in cands if p and p != primary][:2]
+
     def _get_focused_module_context(self, target_mod: str, objective: str, focus_hint: str = "") -> str:
         """Prompt context for both adapters: task header, statement, repo map, target source, probe rules."""
         parts = [self._task_header(), objective]

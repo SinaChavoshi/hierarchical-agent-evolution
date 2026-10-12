@@ -102,6 +102,7 @@ from __future__ import annotations
 
 import math
 import random
+import difflib
 import re
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
@@ -110,7 +111,7 @@ from hae.epistemic.ab_mcts import (
     ARM_EXPERIMENT, ARM_GEN_HYPOTHESIS, ARM_SYNTHESIZE, AdaptiveBranchingController,
 )
 from hae.epistemic.gatekeeper import (
-    EFFECT_INCONCLUSIVE, EFFECT_INEFFECTIVE, EvidenceGatekeeper, failure_signature,
+    EFFECT_EFFECTIVE, EFFECT_INCONCLUSIVE, EFFECT_INEFFECTIVE, EvidenceGatekeeper, failure_signature,
 )
 from hae.epistemic.ledger import (
     CERTIFIED, FALSIFIED, Q_RESOLVED, SUPPORTED, UNTESTABLE, UNVERIFIED,
@@ -945,37 +946,92 @@ class EpistemicSearchLoop:
             self.logger(f"[epistemic] {q.question_id}/{h.hypothesis_id} {note[:200]} "
                         f"(failure {h.synthesis_failures}/{MAX_SYNTHESIS_FAILURES})")
             return
+        mod_paths = list(dict.fromkeys([path] + [str(p) for p in (result.get("paths") or []) if p]))
+        prev_map: Dict[str, str] = {}
+        if isinstance(result.get("previous_sources"), Mapping):
+            for k, v in result["previous_sources"].items():
+                if k and isinstance(v, str):
+                    prev_map[str(k)] = v
+        elif isinstance(result.get("previous_source"), str) and path:
+            prev_map[path] = result["previous_source"]
+        written_map: Dict[str, str] = {}
+        if isinstance(result.get("written_sources"), Mapping):
+            for k, v in result["written_sources"].items():
+                if k and isinstance(v, str):
+                    written_map[str(k)] = v
+
         evidence = self.gatekeeper.verify_module(self.state, path, q.question_id, h.hypothesis_id)
-        # The module gate says the write is a valid module; the effect check
-        # says whether it is a fix: the supported probes are re-run and must
-        # stop reproducing the bug. A write that passes the gate but leaves
-        # every probe's buggy prediction in place is `ineffective` -- a
-        # cosmetic rewrite, the wrong function, a dead branch -- and is
-        # treated as a failed synthesis: reverted, no RESOLVED, no credit.
+        for extra_p in mod_paths[1:]:
+            if not evidence.matched_prediction:
+                break
+            evidence = self.gatekeeper.verify_module(self.state, extra_p, q.question_id, h.hypothesis_id)
+
         effect: Optional[Dict[str, Any]] = None
         if evidence.matched_prediction:
             effect = self.gatekeeper.check_synthesis_effect(
                 self.state, q, h, root_question_id=self.root_question_id, module_evidence=evidence)
-        delta = self.gatekeeper.apply_synthesis(self.state, q, h, evidence, effect=effect)
+        strict_inv = bool(getattr(self.policy, "strict_probe_inversion", False))
+        effective_effect = (
+            dict(effect, verdict=EFFECT_INEFFECTIVE)
+            if (strict_inv and effect is not None and str(effect.get("verdict", "")) != EFFECT_EFFECTIVE)
+            else effect
+        )
+        delta = self.gatekeeper.apply_synthesis(self.state, q, h, evidence, effect=effective_effect)
         self._note_resolution(q)
         verdict = str(effect["verdict"]) if effect is not None else ""
-        ineffective = verdict == EFFECT_INEFFECTIVE
-        kept = bool(evidence.matched_prediction) and not ineffective
+        rejected_effect = effect is not None and (
+            verdict != EFFECT_EFFECTIVE if strict_inv else verdict == EFFECT_INEFFECTIVE
+        )
+        kept = bool(evidence.matched_prediction) and not rejected_effect
         reverted = False
         if kept:
             self.stats["syntheses_verified"] += 1
             if verdict == EFFECT_INCONCLUSIVE:
                 self.stats["syntheses_unconfirmed"] = self.stats.get("syntheses_unconfirmed", 0) + 1
-            if path not in self.synthesized_paths:
-                self.synthesized_paths.append(path)
-        elif self.revert_patch is not None and isinstance(result.get("previous_source"), str):
-            # The write broke the module (compile/import/firm tests) or
-            # changed nothing a probe can see: put the pre-synthesis text back
-            # so the next move -- and the oracle -- see the last known state,
-            # not the failed experiment.
-            reverted = self._revert(path, result["previous_source"], q, h,
-                                    reason="an ineffective write" if ineffective else "a failed module check")
-        if ineffective:
+            for mp in mod_paths:
+                if mp and mp not in self.synthesized_paths:
+                    self.synthesized_paths.append(mp)
+        else:
+            # V11 Error-Conditioned Retry Feedback: record exact diff + compiler/test/probe failure before reverting
+            diff_chunks: List[str] = []
+            for mp in mod_paths:
+                before_txt = prev_map.get(mp, "")
+                after_txt = written_map.get(mp, "")
+                if before_txt and after_txt and before_txt != after_txt:
+                    dlines = list(difflib.unified_diff(
+                        before_txt.splitlines(), after_txt.splitlines(),
+                        fromfile=f"a/{mp}", tofile=f"b/{mp}", lineterm="", n=2
+                    ))
+                    diff_chunks.append("\n".join(dlines[:80]))
+            if not evidence.matched_prediction:
+                stage = "module_check"
+                fail_detail = evidence.detail
+                diag = ((evidence.stderr or "") + "\n" + (evidence.stdout or "")).strip()[-1200:]
+            else:
+                stage = f"effect_check ({verdict})"
+                fail_detail = str(effect.get("detail", "")) if effect else verdict
+                r_diag = []
+                for rr in (effect.get("reruns") or []) if effect else []:
+                    r_diag.append(
+                        f"{rr.get('hypothesis_id')} exit={rr.get('exit_code')} "
+                        f"gone={rr.get('bug_no_longer_reproduces')}: "
+                        f"{rr.get('stderr_tail') or rr.get('stdout_tail') or rr.get('detail')}"
+                    )
+                diag = "\n".join(r_diag)[-1200:]
+            h.synthesis_attempts.append({
+                "attempt": len(h.synthesis_attempts) + 1,
+                "paths": mod_paths,
+                "diff": "\n".join(diff_chunks)[:2400],
+                "stage": stage,
+                "detail": fail_detail[:400],
+                "diagnostics": diag,
+            })
+            if self.revert_patch is not None and prev_map:
+                reason = f"rejected post-synthesis effect ({verdict})" if rejected_effect else "a failed module check"
+                for mp, prev_src in prev_map.items():
+                    if self._revert(mp, prev_src, q, h, reason=reason):
+                        reverted = True
+        if rejected_effect:
             self.stats["syntheses_ineffective"] = self.stats.get("syntheses_ineffective", 0) + 1
         note = f"{path} [{mode or 'unknown'}]: {evidence.detail}"
         if effect is not None:
@@ -987,7 +1043,7 @@ class EpistemicSearchLoop:
             note += ")"
         if reverted:
             note += "; reverted to pre-synthesis module"
-        if ineffective:
+        if rejected_effect:
             note += f" (failure {h.synthesis_failures}/{MAX_SYNTHESIS_FAILURES})"
         # V8 credit: `wrote` means the write stayed -- the module check passed
         # and the effect check did not reject it. A write that broke the module

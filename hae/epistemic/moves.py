@@ -214,6 +214,8 @@ V6_QUESTION_SCHEMA: Dict[str, Any] = {
 # fallback. Line arrays for the same reason as `probe_lines`.
 MAX_REPAIR_OLD_LINES = 40
 MAX_REPAIR_NEW_LINES = 120
+MAX_REPAIR_SECONDARY_EDITS = 3
+_LINENO_PREFIX_RE = re.compile(r"^\s*\d+\|\s?")
 
 V6_REPAIR_PLAN_SCHEMA: Dict[str, Any] = {
     "type": "json_schema",
@@ -230,15 +232,39 @@ V6_REPAIR_PLAN_SCHEMA: Dict[str, Any] = {
                 "old_lines": {
                     "type": "array",
                     "maxItems": MAX_REPAIR_OLD_LINES,
-                    "items": {"type": "string", "maxLength": 200},
+                    "items": {"type": "string", "maxLength": 500},
                 },
                 "new_lines": {
                     "type": "array",
                     "maxItems": MAX_REPAIR_NEW_LINES,
-                    "items": {"type": "string", "maxLength": 200},
+                    "items": {"type": "string", "maxLength": 500},
+                },
+                "secondary_edits": {
+                    "type": "array",
+                    "maxItems": MAX_REPAIR_SECONDARY_EDITS,
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "path": {"type": "string", "maxLength": 120},
+                            "function": {"type": "string", "maxLength": 80},
+                            "old_lines": {
+                                "type": "array",
+                                "maxItems": MAX_REPAIR_OLD_LINES,
+                                "items": {"type": "string", "maxLength": 500},
+                            },
+                            "new_lines": {
+                                "type": "array",
+                                "maxItems": MAX_REPAIR_NEW_LINES,
+                                "items": {"type": "string", "maxLength": 500},
+                            },
+                        },
+                        "required": ["path", "function", "old_lines", "new_lines"],
+                        "additionalProperties": False,
+                    },
                 },
             },
-            "required": ["packet", "hypothesis_id", "function", "rationale", "old_lines", "new_lines"],
+            "required": ["packet", "hypothesis_id", "function", "rationale", "old_lines", "new_lines",
+                         "secondary_edits"],
             "additionalProperties": False,
         },
     },
@@ -246,14 +272,25 @@ V6_REPAIR_PLAN_SCHEMA: Dict[str, Any] = {
 
 
 @dataclass
+class SecondaryEdit:
+    """An optional coordinated hunk in the same module (`path == ""`) or a collaborator file (`path != ""`)."""
+
+    path: str
+    function: str
+    old_lines: List[str]
+    new_lines: List[str]
+
+
+@dataclass
 class RepairPlan:
-    """An anchored edit: replace `old_lines` (verbatim) with `new_lines`."""
+    """An anchored edit: replace `old_lines` (verbatim) with `new_lines`, plus optional `secondary_edits`."""
 
     function: str
     rationale: str
     old_lines: List[str]
     new_lines: List[str]
     hypothesis_id: str = ""
+    secondary_edits: List[SecondaryEdit] = field(default_factory=list)
 
     @property
     def old_text(self) -> str:
@@ -262,6 +299,13 @@ class RepairPlan:
     @property
     def new_text(self) -> str:
         return "\n".join(self.new_lines)
+
+
+def _strip_lineno_gutter(lines: List[str]) -> List[str]:
+    """Strips accidental `  144| ` line-number prefixes copied from windowed module views."""
+    if lines and any(_LINENO_PREFIX_RE.match(ln) for ln in lines if ln.strip()):
+        return [_LINENO_PREFIX_RE.sub("", ln) for ln in lines]
+    return list(lines)
 
 
 def parse_repair_plan(raw: str) -> Optional[RepairPlan]:
@@ -273,15 +317,35 @@ def parse_repair_plan(raw: str) -> Optional[RepairPlan]:
     new = data.get("new_lines")
     if not isinstance(old, list) or not isinstance(new, list):
         return None
-    old_lines = [str(x) for x in old if x is not None]
-    new_lines = [str(x) for x in new if x is not None]
+    old_lines = _strip_lineno_gutter([str(x) for x in old if x is not None])
+    new_lines = _strip_lineno_gutter([str(x) for x in new if x is not None])
     if not any(ln.strip() for ln in old_lines):
         return None
+    sec_raw = data.get("secondary_edits")
+    secondary_edits: List[SecondaryEdit] = []
+    if isinstance(sec_raw, list):
+        for item in sec_raw[:MAX_REPAIR_SECONDARY_EDITS]:
+            if not isinstance(item, Mapping):
+                continue
+            s_old = item.get("old_lines")
+            s_new = item.get("new_lines")
+            if not isinstance(s_old, list) or not isinstance(s_new, list):
+                continue
+            so = _strip_lineno_gutter([str(x) for x in s_old if x is not None])
+            sn = _strip_lineno_gutter([str(x) for x in s_new if x is not None])
+            if so and any(ln.strip() for ln in so):
+                secondary_edits.append(SecondaryEdit(
+                    path=str(item.get("path", "") or "").strip().lstrip("./"),
+                    function=" ".join(str(item.get("function", "")).split()),
+                    old_lines=so,
+                    new_lines=sn,
+                ))
     return RepairPlan(
         function=" ".join(str(data.get("function", "")).split()),
         rationale=" ".join(str(data.get("rationale", "")).split()),
         old_lines=old_lines, new_lines=new_lines,
         hypothesis_id=str(data.get("hypothesis_id", "") or ""),
+        secondary_edits=secondary_edits,
     )
 
 
@@ -456,7 +520,7 @@ def function_rewrite_schema(definitions: List[str]) -> Dict[str, Any]:
                     "new_source": {
                         "type": "array",
                         "maxItems": MAX_FUNCTION_REWRITE_LINES,
-                        "items": {"type": "string", "maxLength": 200},
+                        "items": {"type": "string", "maxLength": 500},
                     },
                     "add_imports": {
                         "type": "array",
@@ -538,7 +602,7 @@ def parse_function_rewrite(raw: str) -> Optional[FunctionRewrite]:
     new = data.get("new_source")
     if not function or not isinstance(new, list):
         return None
-    new_source = [str(x) for x in new if x is not None]
+    new_source = _strip_lineno_gutter([str(x) for x in new if x is not None])
     if not any(ln.strip() for ln in new_source):
         return None
     imports = data.get("add_imports")
@@ -585,12 +649,20 @@ def list_definitions(source: str) -> List[Tuple[str, int, int]]:
 
 def _resolve_definition(name: str, defs: List[_Definition]) -> Optional[_Definition]:
     """Exact qualified name first; else a bare method name that is unique in the module."""
-    exact = [d for d in defs if d[0] == name]
+    norm = (name or "").strip()
+    if ":" in norm:
+        norm = norm.rsplit(":", 1)[-1].strip()
+    for pfx in ("async def ", "def ", "class "):
+        if norm.startswith(pfx):
+            norm = norm[len(pfx):].strip()
+    if "(" in norm:
+        norm = norm.split("(", 1)[0].strip()
+    exact = [d for d in defs if d[0] == norm]
     if len(exact) == 1:
         return exact[0]
     if exact:
         return None  # redefined in the module: the name is ambiguous
-    suffix = [d for d in defs if d[0].endswith("." + name)]
+    suffix = [d for d in defs if d[0].endswith("." + norm)]
     return suffix[0] if len(suffix) == 1 else None
 
 

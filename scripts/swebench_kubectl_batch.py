@@ -39,6 +39,7 @@ DEFAULT_POLICIES: List[Tuple[str, str, str]] = [
     ("v8_puct", "configs/genomes/v8_smoke_swebench_firm_0.json", "hae-v8-puct/nvidia-Qwen3.8-Flash-Next-NVFP4"),
     ("v9_ab_mcts", "configs/genomes/v9_ab_mcts_swebench_firm_0.json", "hae-v9-ab/nvidia-Qwen3.8-Flash-Next-NVFP4"),
     ("v10_ab_mcts", "configs/genomes/v10_ab_mcts_swebench_firm_0.json", "hae-v10-ab/nvidia-Qwen3.8-Flash-Next-NVFP4"),
+    ("v11_ab_mcts", "configs/genomes/v11_ab_mcts_swebench_firm_0.json", "hae-v11-ab/nvidia-Qwen3.8-Flash-Next-NVFP4"),
 ]
 
 

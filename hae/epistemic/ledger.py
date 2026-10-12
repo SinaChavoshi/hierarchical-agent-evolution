@@ -271,7 +271,10 @@ class Evidence:
             }))
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        out = asdict(self)
+        if not out.get("synthesis_attempts"):
+            out.pop("synthesis_attempts", None)
+        return out
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "Evidence":
@@ -338,7 +341,10 @@ class Question:
         return ""
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        out = asdict(self)
+        if not out.get("synthesis_attempts"):
+            out.pop("synthesis_attempts", None)
+        return out
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "Question":
@@ -371,6 +377,10 @@ class Hypothesis:
     role_id: str = ""
     patch_applied: bool = False
     synthesis_failures: int = 0
+    # V11: history of failed/reverted synthesis attempts on this hypothesis
+    # (`{attempt, paths, diff, stage, detail, diagnostics}`), fed into retry
+    # prompts so subsequent attempts never re-emit a broken edit blindly.
+    synthesis_attempts: List[Dict[str, Any]] = field(default_factory=list)
     probe_rejections: int = 0
     last_rejection: str = ""
     # The question's `failure_epoch` when this hypothesis was proposed. A
@@ -399,7 +409,10 @@ class Hypothesis:
         return self.status in (SUPPORTED, FALSIFIED, CERTIFIED)
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        out = asdict(self)
+        if not out.get("synthesis_attempts"):
+            out.pop("synthesis_attempts", None)
+        return out
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "Hypothesis":
@@ -417,7 +430,10 @@ class CertifiedFact:
     created_at: float = field(default_factory=_now)
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        out = asdict(self)
+        if not out.get("synthesis_attempts"):
+            out.pop("synthesis_attempts", None)
+        return out
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "CertifiedFact":
@@ -438,7 +454,10 @@ class FalsifiedBelief:
     created_at: float = field(default_factory=_now)
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        out = asdict(self)
+        if not out.get("synthesis_attempts"):
+            out.pop("synthesis_attempts", None)
+        return out
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "FalsifiedBelief":
@@ -475,7 +494,10 @@ class MoveRecord:
     extra: Dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        out = asdict(self)
+        if not out.get("synthesis_attempts"):
+            out.pop("synthesis_attempts", None)
+        return out
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "MoveRecord":

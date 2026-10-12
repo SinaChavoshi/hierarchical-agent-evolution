@@ -722,6 +722,8 @@ class EvidenceGatekeeper:
         reruns: List[Dict[str, Any]] = []
         gone: List[str] = []
         already: List[str] = []
+        regressed: List[str] = []
+        crashed: List[str] = []
         unsettled = 0
         for h in probes:
             was_gone = self.probe_already_gone(state, h)
@@ -732,17 +734,40 @@ class EvidenceGatekeeper:
                            "evidence_id": ev.evidence_id, "completed": completed,
                            "matched_prediction": bool(ev.matched_prediction), "exit_code": int(ev.exit_code),
                            "bug_no_longer_reproduces": is_gone, "already_gone_before_write": was_gone,
-                           "detail": ev.detail})
+                           "detail": ev.detail,
+                           "stdout_tail": (ev.stdout or "")[-400:], "stderr_tail": (ev.stderr or "")[-400:]})
             if is_gone and was_gone:
                 already.append(h.hypothesis_id)
             elif is_gone:
                 gone.append(h.hypothesis_id)
-            elif not (completed and ev.matched_prediction):
-                unsettled += 1
-        if gone:
+            else:
+                if was_gone and completed and ev.matched_prediction:
+                    regressed.append(h.hypothesis_id)
+                if not completed or int(ev.exit_code) != 0:
+                    crashed.append(h.hypothesis_id)
+                if not (completed and ev.matched_prediction):
+                    unsettled += 1
+        own_rerun = next((r for r in reruns if r["hypothesis_id"] == hypothesis.hypothesis_id), None)
+        is_root_target = not root_question_id or question.question_id == root_question_id
+        own_still_buggy = bool(
+            own_rerun is not None
+            and not own_rerun["already_gone_before_write"]
+            and not own_rerun["bug_no_longer_reproduces"]
+            and is_root_target
+        )
+        if regressed:
+            verdict = EFFECT_INEFFECTIVE
+            detail = (f"post-synthesis effect check: ineffective -- write regressed previously passing "
+                      f"probe(s) ({', '.join(regressed)})")
+        elif gone and not crashed and not own_still_buggy:
             verdict = EFFECT_EFFECTIVE
             detail = (f"post-synthesis effect check: effective -- {len(gone)}/{len(probes)} re-run probe(s) "
                       f"no longer reproduce the bug ({', '.join(gone)})")
+        elif gone and (crashed or own_still_buggy):
+            verdict = EFFECT_INEFFECTIVE
+            why = (f"crashed probe(s) {', '.join(crashed)}" if crashed
+                   else f"synthesized hypothesis {hypothesis.hypothesis_id} still reproduces the bug")
+            detail = (f"post-synthesis effect check: ineffective -- partial fix rejected ({why})")
         elif unsettled == 0:
             verdict = EFFECT_INEFFECTIVE
             still = len(probes) - len(already)
@@ -777,32 +802,26 @@ class EvidenceGatekeeper:
         state.record_evidence(summary, self.authority)  # attaches itself to the hypothesis
         return {"verdict": verdict, "evidence_id": summary.evidence_id, "detail": detail,
                 "reruns": reruns, "bug_gone_hypotheses": gone, "already_gone_hypotheses": already,
-                "probes_rerun": len(probes)}
+                "regressed_hypotheses": regressed, "probes_rerun": len(probes)}
 
     def apply_synthesis(self, state: EpistemicState, question: Question,
                         hypothesis: Hypothesis, evidence: Evidence,
-                        effect: Optional[Mapping[str, Any]] = None) -> float:
-        """Records a post-synthesis module check and moves the question to RESOLVED if it passed.
-
-        `effect` is `check_synthesis_effect`'s result for the same write;
-        an `ineffective` verdict counts as a synthesis failure (the question
-        stays OPEN, `patch_applied` stays False) even though the module check
-        passed. Recording the module evidence is idempotent: the effect check
-        may already have put it on the log.
-        """
+                        effect: Optional[Mapping[str, Any]] = None,
+                        strict_effect: bool = False) -> float:
+        """Records a post-synthesis module check and moves the question to RESOLVED if it passed."""
         if state.evidence_by_id(evidence.evidence_id) is None:
             state.record_evidence(evidence, self.authority)
-        # The next synthesis attempt is prompted with the hypothesis' evidence;
-        # a failed module check must be in it even if the evidence was built
-        # without the hypothesis id.
         if evidence.evidence_id not in hypothesis.evidence_ids:
             hypothesis.evidence_ids.append(evidence.evidence_id)
         if not evidence.matched_prediction:
             hypothesis.synthesis_failures += 1
             return 0.0
-        if effect is not None and str(effect.get("verdict", "")) == EFFECT_INEFFECTIVE:
-            hypothesis.synthesis_failures += 1
-            return 0.0
+        if effect is not None:
+            verdict = str(effect.get("verdict", ""))
+            bad = (verdict != EFFECT_EFFECTIVE) if strict_effect else (verdict == EFFECT_INEFFECTIVE)
+            if bad:
+                hypothesis.synthesis_failures += 1
+                return 0.0
         hypothesis.patch_applied = True
         state.set_question_status(question.question_id, Q_RESOLVED, self.authority)
         return state.lower_uncertainty(question.question_id, RESOLVED_FLOOR, self.authority)
@@ -1027,6 +1046,9 @@ class EvidenceGatekeeper:
         if int(listing.get("exit_code", -1)) != 0:
             return []
         found: List[str] = []
+        dir_fallback: List[str] = []
+        sub_dirs = [d.lower() for d in parts[:-1] if d.lower() not in ("src", "lib")]
+        deepest_dir = sub_dirs[-1] if len(sub_dirs) >= 2 else ""
         for line in str(listing.get("stdout", "")).splitlines():
             path = line.strip()
             if not path.endswith(".py") or path == rel:
@@ -1045,7 +1067,12 @@ class EvidenceGatekeeper:
                 match = stem_l in tokens or (len(stem_l) >= 4 and stem_l in name.lower())
             if match:
                 found.append(path)
+            elif deepest_dir and deepest_dir in [d.lower() for d in dirs]:
+                dir_fallback.append(path)
         found.sort(key=lambda p: (len(p), p))
+        if not found and dir_fallback:
+            dir_fallback.sort(key=lambda p: (len(p), p))
+            return dir_fallback[:limit]
         return found[:limit]
 
     def _repo_tests_argv(self, rel: str) -> Tuple[List[str], List[str], str]:
@@ -1059,7 +1086,13 @@ class EvidenceGatekeeper:
         files = self._proximity_tests(rel)
         if not files:
             return [], [], "none"
-        return [self.python, "-m", "pytest", "-x", "-q", "--no-header", "-p", "no:cacheprovider", *files], files, "proximity"
+        parts = [p for p in rel.split("/") if p]
+        stem = parts[-1][:-3] if parts and parts[-1].endswith(".py") else ""
+        extra_args: List[str] = []
+        if stem and re.match(r"^[A-Za-z]{1,4}\d{2,4}$", stem) and not any(stem.lower() in f.lower() for f in files):
+            extra_args = ["-k", stem]
+        return [self.python, "-m", "pytest", "-x", "-q", "--no-header", "-p", "no:cacheprovider",
+                *extra_args, *files], files, "proximity"
 
     @staticmethod
     def failing_test_ids(text: str) -> List[str]:

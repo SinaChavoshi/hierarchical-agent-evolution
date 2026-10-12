@@ -1330,6 +1330,10 @@ class HierarchicalCompanyRunner:
         """
         return (question.module or (self._required_modules[0] if self._required_modules else "")).lstrip("./")
 
+    def _secondary_targets(self, question: Question, hypothesis: Hypothesis, primary: str) -> List[str]:
+        """Collaborator module paths referenced by `question` or `hypothesis` (excluding `primary`)."""
+        return []
+
     def _synthesize_patch_adapter(self, agent: AgentGenome, objective: str):
         """System 1 adapter: turn a SUPPORTED hypothesis into the *smallest change* to its module.
 
@@ -1421,10 +1425,43 @@ class HierarchicalCompanyRunner:
                 f"  EVIDENCE:\n" + ("\n".join(evidence_lines) or "  (none recorded)") + "\n\n"
                 f"Oracle failure being answered: {question.source_failure or question.text}\n"
             )
+            prior_attempts = list(getattr(hypothesis, "synthesis_attempts", None) or [])
+            if prior_attempts:
+                att_lines = [
+                    "\nPREVIOUS REVERTED SYNTHESIS ATTEMPT(S) ON THIS HYPOTHESIS — DO NOT REPEAT THIS EDIT:"
+                ]
+                for att in prior_attempts[-2:]:
+                    att_lines.append(
+                        f"- Attempt #{att.get('attempt')} on {att.get('paths')} FAILED at {att.get('stage')}: "
+                        f"{att.get('detail')}"
+                    )
+                    if att.get("diff"):
+                        att_lines.append(f"  Rejected diff (reverted):\n```diff\n{att['diff']}\n```")
+                    if att.get("diagnostics"):
+                        att_lines.append(f"  Failure output / traceback:\n```\n{att['diagnostics']}\n```")
+                att_lines.append(
+                    "CRITICAL RETRY DIRECTIVE: Do NOT re-emit the rejected patch above. Address the exact compiler, "
+                    "import, test regression, or unhandled edge-case shown in the failure diagnostics.\n"
+                )
+                finding += "\n".join(att_lines)
+
             focus_hint = f"{hypothesis.claim}\n{hypothesis.mechanism}\n{hypothesis.probe_code}"
+            sec_targets = self._secondary_targets(question, hypothesis, target)
+            collab_blocks: List[str] = []
+            for sec_path in sec_targets[:2]:
+                sec_read = self.workspace.read_file(sec_path)
+                sec_src = sec_read.get("content", "") if sec_read.get("status") in ("ok", "success") else ""
+                if sec_src and len(sec_src) < 120000:
+                    sec_excerpt = "\n".join(sec_src.splitlines()[:90])
+                    collab_blocks.append(
+                        f"COLLABORATOR MODULE `{sec_path}` (can be edited via `secondary_edits` if coupled changes "
+                        f"across `{target}` + `{sec_path}` are required):\n```python\n{sec_excerpt}\n```"
+                    )
+            collab_section = ("\n\n" + "\n\n".join(collab_blocks)) if collab_blocks else ""
             context = (
                 f"{state.summary(question.question_id)}\n\n"
                 f"{self._get_focused_module_context(target, objective, focus_hint=focus_hint)}"
+                f"{collab_section}"
             )
             current = self.workspace.read_file(target)
             source = current.get("content", "") if current.get("status") in ("ok", "success") else ""
@@ -1435,24 +1472,95 @@ class HierarchicalCompanyRunner:
                 source = ""
             before = self._module_fingerprint(target)
 
-            def commit(new_source: str, mode: str, summary: str) -> Tuple[Optional[Dict[str, Any]], bool]:
-                """Writes a rung's result. Returns `(result, no_op)`: the result dict when the
-                fingerprint moved; otherwise None with a note -- `no_op` when the workspace
-                accepted the write but the whitespace-normalised fingerprint did not change."""
+            def commit(
+                new_source: str,
+                mode: str,
+                summary: str,
+                extra_prev: Optional[Dict[str, str]] = None,
+                extra_written: Optional[Dict[str, str]] = None,
+            ) -> Tuple[Optional[Dict[str, Any]], bool]:
+                """Writes a rung's result (plus any coordinated collaborator edits)."""
                 w_res = self.workspace.write_file(target, new_source)
                 after = self._module_fingerprint(target)
                 if w_res.get("status") in ("ok", "success"):
                     if after and after != before:
+                        prev_sources: Dict[str, str] = {target: source} if source else {}
+                        written_sources: Dict[str, str] = {target: new_source}
+                        all_paths: List[str] = [target]
+                        for sp, s_prev in (extra_prev or {}).items():
+                            if sp and sp != target:
+                                prev_sources[sp] = s_prev
+                        for sp, s_new in (extra_written or {}).items():
+                            if sp and sp != target:
+                                sw = self.workspace.write_file(sp, s_new)
+                                if sw.get("status") in ("ok", "success"):
+                                    written_sources[sp] = s_new
+                                    all_paths.append(sp)
                         with self._code_build_lock:
                             self._code_written_this_run = True
-                            self._written_modules_this_run.add(target)
+                            for p_written in all_paths:
+                                self._written_modules_this_run.add(p_written)
                         print(f"[epistemic] {self.genome.company_id} {executor.role}: {summary[:220]}", flush=True)
-                        return result(written=True, path=target, summary=summary[:400], mode=mode), False
+                        return result(
+                            written=True,
+                            path=target,
+                            paths=all_paths,
+                            previous_sources=prev_sources,
+                            written_sources=written_sources,
+                            summary=summary[:400],
+                            mode=mode,
+                        ), False
                     notes.append(f"{mode} write changed nothing (whitespace-only edit)")
                     return None, True
                 notes.append(f"{mode} write refused: {str(w_res.get('status'))[:60]} "
                              f"{str(w_res.get('message') or w_res.get('error') or '')[:120]}".strip())
                 return None, False
+
+            def _apply_plan_with_secondary(
+                cand_plan: RepairPlan,
+            ) -> Tuple[Optional[str], str, Dict[str, str], Dict[str, str]]:
+                p_src, p_note = apply_repair_plan(source, cand_plan)
+                if p_src is None:
+                    return None, p_note, {}, {}
+                sec_prev_map: Dict[str, str] = {}
+                sec_written_map: Dict[str, str] = {}
+                sec_notes: List[str] = []
+                for sec in cand_plan.secondary_edits:
+                    sec_target = (sec.path or "").strip().lstrip("./")
+                    sub_plan = RepairPlan(
+                        function=sec.function,
+                        rationale=cand_plan.rationale,
+                        old_lines=sec.old_lines,
+                        new_lines=sec.new_lines,
+                        hypothesis_id=cand_plan.hypothesis_id,
+                    )
+                    if not sec_target or sec_target == target:
+                        updated, s_note = apply_repair_plan(p_src, sub_plan)
+                        if updated is not None:
+                            p_src = updated
+                            sec_notes.append(f"+hunk({sec.function}): {s_note}")
+                        else:
+                            sec_notes.append(f"secondary hunk skipped ({s_note})")
+                    else:
+                        base_text = sec_written_map.get(sec_target)
+                        if base_text is None:
+                            s_read = self.workspace.read_file(sec_target)
+                            if s_read.get("status") not in ("ok", "success"):
+                                sec_notes.append(f"collaborator `{sec_target}` unreadable")
+                                continue
+                            base_text = s_read.get("content", "")
+                            if not base_text or len(base_text) >= 200000:
+                                continue
+                            sec_prev_map[sec_target] = base_text
+                        updated_sec, s_note = apply_repair_plan(base_text, sub_plan)
+                        if updated_sec is not None:
+                            sec_written_map[sec_target] = updated_sec
+                            sec_notes.append(f"+collab({sec_target}:{sec.function})")
+                        else:
+                            sec_prev_map.pop(sec_target, None)
+                            sec_notes.append(f"collab `{sec_target}` skipped ({s_note})")
+                full_note = p_note + (f" [{', '.join(sec_notes)}]" if sec_notes else "")
+                return p_src, full_note, sec_prev_map, sec_written_map
 
             plan: Optional[RepairPlan] = None
             plan_note = ""        # why rung 1 did not apply, for rung 2's prompt and rung 3's anchor
@@ -1460,15 +1568,16 @@ class HierarchicalCompanyRunner:
             rewrite = None
             fn_noop = False
             if source:
-                # Rung 1: an anchored plan, applied by the runner.
+                # Rung 1: an anchored plan (with optional secondary hunks / collaborator edits), applied by runner.
                 plan_prompt = (
                     f"EPISTEMIC MOVE: SYNTHESIZE -- plan the smallest repair of `{target}` that fixes this mechanism.\n\n"
                     f"{finding}\n"
-                    "Reply with a REPAIR_PLAN packet: `function` (where the change lands), `rationale` (one sentence), "
-                    "`old_lines` (the exact lines of the CURRENT module to replace -- copied verbatim, including "
-                    "indentation, 1-40 consecutive lines, enough to be unique in the file) and `new_lines` (the lines "
-                    "that replace them, same indentation). The runner applies the edit mechanically: if `old_lines` is "
-                    "not found verbatim exactly once, the plan is discarded. Do not restate the whole module. "
+                    "Reply with a REPAIR_PLAN packet: `function` (where the primary change lands), `rationale` (one "
+                    "sentence), `old_lines` (the exact lines of the CURRENT module to replace -- copied verbatim with "
+                    "exact indentation, NO line-number prefixes, 1-40 consecutive lines unique in the file), "
+                    "`new_lines` (replacement lines, same indentation), and `secondary_edits` (`[]` when one hunk "
+                    "suffices, or up to 3 additional coordinated `{path, function, old_lines, new_lines}` hunks in "
+                    f"`{target}` or a collaborator module when fixing sibling methods/collaborators together). "
                     "`new_lines` MUST differ from `old_lines`. Mechanisms under RULED OUT were falsified by evidence; "
                     f"do not address them. Set `hypothesis_id` to \"{hypothesis.hypothesis_id}\"."
                 )
@@ -1482,10 +1591,13 @@ class HierarchicalCompanyRunner:
                 if plan is None:
                     notes.append("no usable plan")
                 else:
-                    new_source, note = apply_repair_plan(source, plan)
+                    new_source, note, s_prev, s_written = _apply_plan_with_secondary(plan)
                     if new_source is not None:
-                        done, plan_noop = commit(new_source, "plan",
-                                                 f"anchored edit in `{plan.function or '?'}`: {note}; {plan.rationale}")
+                        done, plan_noop = commit(
+                            new_source, "plan",
+                            f"anchored edit in `{plan.function or '?'}`: {note}; {plan.rationale}",
+                            extra_prev=s_prev, extra_written=s_written,
+                        )
                         if done is not None:
                             return done
                         plan_note = notes[-1]
@@ -1493,6 +1605,42 @@ class HierarchicalCompanyRunner:
                         plan_note = note
                         plan_noop = note.startswith("plan is a no-op") or note == "edit leaves the module unchanged"
                         notes.append(f"plan not applicable: {note}")
+                        # V11 Rung 1b: if anchor missed on a large (> module_rewrite_max_chars) module where Rung 3 rewrite is disabled
+                        m_win = re.search(r"closest is lines (\d+)-(\d+)", note or "")
+                        large_only = self.module_rewrite_max_chars is not None and len(source) > int(self.module_rewrite_max_chars)
+                        if m_win and not plan_noop and large_only:
+                            w_lo, w_hi = int(m_win.group(1)), int(m_win.group(2))
+                            s_lines = source.split("\n")
+                            slice_lo = max(1, w_lo - 15)
+                            slice_hi = min(len(s_lines), w_hi + 15)
+                            exact_window = "\n".join(s_lines[slice_lo - 1:slice_hi])
+                            reanchor_prompt = (
+                                f"EPISTEMIC MOVE: SYNTHESIZE (EXACT WINDOW RE-ANCHOR for `{target}`).\n\n"
+                                f"Your REPAIR_PLAN missed its anchor ({note}). Here are the EXACT UNNUMBERED lines "
+                                f"{slice_lo}-{slice_hi} of `{target}`:\n```python\n{exact_window}\n```\n\n"
+                                f"Re-emit the REPAIR_PLAN copying `old_lines` VERBATIM (character-for-character) "
+                                f"from the block above, with `new_lines` applying: {plan.rationale}\n"
+                                f"Set `hypothesis_id` to \"{hypothesis.hypothesis_id}\"."
+                            )
+                            try:
+                                raw_re = self._execute_agent(
+                                    executor, reanchor_prompt, context=finding,
+                                    response_format=V6_REPAIR_PLAN_SCHEMA, max_tokens=2500
+                                )
+                                plan_re = parse_repair_plan(raw_re) if raw_re else None
+                                if plan_re is not None:
+                                    ns_re, note_re, sp_re, sw_re = _apply_plan_with_secondary(plan_re)
+                                    if ns_re is not None:
+                                        done_re, _ = commit(
+                                            ns_re, "plan",
+                                            f"re-anchored edit in `{plan_re.function or '?'}`: {note_re}; "
+                                            f"{plan_re.rationale}",
+                                            extra_prev=sp_re, extra_written=sw_re,
+                                        )
+                                        if done_re is not None:
+                                            return done_re
+                            except Exception as exc:
+                                notes.append(f"re-anchor call failed: {type(exc).__name__}")
 
                 # Rung 2: one definition, rewritten whole and spliced in by the runner.
                 definitions = list_definitions(source)
@@ -1594,7 +1742,14 @@ class HierarchicalCompanyRunner:
                                                      target_path=target)
             after = self._module_fingerprint(target)
             if after and after != before:
-                return result(written=True, path=target, summary=f"{mode}: {str(summary)[:300]}", mode=mode)
+                post_read = self.workspace.read_file(target)
+                post_src = post_read.get("content", "") if post_read.get("status") in ("ok", "success") else ""
+                return result(
+                    written=True, path=target, paths=[target],
+                    previous_sources={target: source} if source else {},
+                    written_sources={target: post_src} if post_src else {},
+                    summary=f"{mode}: {str(summary)[:300]}", mode=mode,
+                )
             if not missing:
                 notes.append("rewrite re-emitted identical content; no second attempt")
                 return result(written=False, path=target, mode="none",

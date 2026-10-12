@@ -261,6 +261,8 @@ class EpistemicPolicyGene(_Model):
     # V10: virtual loss per untested hypothesis + utility boost for deepen moves.
     ab_pending_loss: float = 0.0
     ab_deepen_boost: float = 0.0
+    # V11: reject crashing / inconclusive post-synthesis effect runs instead of keeping them.
+    strict_probe_inversion: bool = False
     role_bindings: Dict[str, str] = field(
         default_factory=lambda: dict(DEFAULT_EPISTEMIC_ROLE_BINDINGS))
     extra: Dict[str, Any] = field(default_factory=dict)
@@ -282,6 +284,8 @@ class EpistemicPolicyGene(_Model):
             out.pop("ab_pending_loss", None)
         if abs(float(self.ab_deepen_boost)) < 1e-12:
             out.pop("ab_deepen_boost", None)
+        if not self.strict_probe_inversion:
+            out.pop("strict_probe_inversion", None)
         return out
 
     def __post_init__(self) -> None:
