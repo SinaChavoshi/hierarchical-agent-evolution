@@ -1,0 +1,5 @@
+{
+ "instance_id": "marshmallow-code__marshmallow-1164",
+ "model_name_or_path": "hae-v10-ab/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/src/marshmallow/fields.py b/src/marshmallow/fields.py\nindex ce5eeec5..3e49a5fc 100755\n--- a/src/marshmallow/fields.py\n+++ b/src/marshmallow/fields.py\n@@ -443,6 +443,8 @@ class Nested(Field):\n         schema = self.schema\n         if nested_obj is None:\n             return None\n+        if self.many and not isinstance(nested_obj, list):\n+            nested_obj = list(nested_obj)\n         if not self.__updated_fields:\n             schema._update_fields(obj=nested_obj, many=self.many)\n             self.__updated_fields = True\n"
+}

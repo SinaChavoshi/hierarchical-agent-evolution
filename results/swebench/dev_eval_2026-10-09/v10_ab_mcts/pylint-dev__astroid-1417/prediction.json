@@ -1,0 +1,5 @@
+{
+ "instance_id": "pylint-dev__astroid-1417",
+ "model_name_or_path": "hae-v10-ab/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/astroid/decorators.py b/astroid/decorators.py\nindex aff91e0c..92cc38d3 100644\n--- a/astroid/decorators.py\n+++ b/astroid/decorators.py\n@@ -70,10 +70,15 @@ class cachedproperty:\n     __slots__ = (\"wrapped\",)\n \n     def __init__(self, wrapped):\n+        if sys.version_info >= (3, 8):\n+            warnings.warn(\n+                'Use functools.cached_property instead of astroid.decorators.cachedproperty',\n+                DeprecationWarning,\n+            )\n         try:\n             wrapped.__name__\n         except AttributeError as exc:\n-            raise TypeError(f\"{wrapped} must have a __name__ attribute\") from exc\n+            raise TypeError(f'{wrapped} must have a __name__ attribute') from exc\n         self.wrapped = wrapped\n \n     @property\n"
+}
