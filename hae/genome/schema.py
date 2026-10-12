@@ -197,6 +197,9 @@ EPISTEMIC_POLICY_BOUNDS: Dict[str, tuple] = {
     "frontier_size": (1, 8, True),
     # V9 (AB-MCTS): pseudo-count tau of every Beta prior, Beta(1 + tau*p, 1 + tau*(1-p)).
     "ab_prior_strength": (0.5, 32.0, False),
+    # V10 (Empirical AB-MCTS): virtual Beta loss per untested hypothesis + deepen utility boost.
+    "ab_pending_loss": (0.0, 10.0, False),
+    "ab_deepen_boost": (0.0, 1.0, False),
 }
 
 # V9: how the epistemic loop picks its next move. "puct" is the V6-V8 loop
@@ -255,6 +258,9 @@ class EpistemicPolicyGene(_Model):
     # every Beta prior under AB-MCTS and is ignored under PUCT.
     search_algorithm: str = "puct"
     ab_prior_strength: float = DEFAULT_AB_PRIOR_STRENGTH
+    # V10: virtual loss per untested hypothesis + utility boost for deepen moves.
+    ab_pending_loss: float = 0.0
+    ab_deepen_boost: float = 0.0
     role_bindings: Dict[str, str] = field(
         default_factory=lambda: dict(DEFAULT_EPISTEMIC_ROLE_BINDINGS))
     extra: Dict[str, Any] = field(default_factory=dict)
@@ -272,6 +278,10 @@ class EpistemicPolicyGene(_Model):
             out.pop("search_algorithm", None)
             if abs(float(self.ab_prior_strength) - DEFAULT_AB_PRIOR_STRENGTH) < 1e-12:
                 out.pop("ab_prior_strength", None)
+        if abs(float(self.ab_pending_loss)) < 1e-12:
+            out.pop("ab_pending_loss", None)
+        if abs(float(self.ab_deepen_boost)) < 1e-12:
+            out.pop("ab_deepen_boost", None)
         return out
 
     def __post_init__(self) -> None:

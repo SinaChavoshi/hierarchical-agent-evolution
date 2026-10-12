@@ -288,7 +288,12 @@ class EpistemicSearchLoop:
         # for it. Under "puct" nothing below mentions it except the gates.
         self.ab: Optional[AdaptiveBranchingController] = None
         if str(getattr(policy, "search_algorithm", "puct")) == "ab_mcts":
-            self.ab = AdaptiveBranchingController(float(getattr(policy, "ab_prior_strength", 4.0)), self.rng)
+            self.ab = AdaptiveBranchingController(
+                float(getattr(policy, "ab_prior_strength", 4.0)),
+                self.rng,
+                pending_loss=float(getattr(policy, "ab_pending_loss", 0.0)),
+                deepen_boost=float(getattr(policy, "ab_deepen_boost", 0.0)),
+            )
             self.stats["search_algorithm"] = "ab_mcts"
 
     # ------------------------------------------------------------------ #

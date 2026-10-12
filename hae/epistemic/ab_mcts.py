@@ -142,6 +142,7 @@ class BetaArm:
     tau: float
     wins: float = 0.0
     losses: float = 0.0
+    virtual_losses: float = 0.0
     pulls: int = 0
     observations: int = 0
     last_theta: float = 0.0
@@ -157,7 +158,7 @@ class BetaArm:
 
     @property
     def beta(self) -> float:
-        return 1.0 + self.tau * (1.0 - clamp01(self.prior_mean)) + self.losses
+        return 1.0 + self.tau * (1.0 - clamp01(self.prior_mean)) + self.losses + self.virtual_losses
 
     @property
     def mean(self) -> float:
@@ -185,8 +186,11 @@ class BetaArm:
 class AdaptiveBranchingController:
     """Keeps the Beta arms of every question the loop touched and picks the next move."""
 
-    def __init__(self, prior_strength: float, rng: random.Random) -> None:
+    def __init__(self, prior_strength: float, rng: random.Random,
+                 pending_loss: float = 0.0, deepen_boost: float = 0.0) -> None:
         self.tau = max(0.0, float(prior_strength))
+        self.pending_loss = max(0.0, float(pending_loss))
+        self.deepen_boost = max(0.0, float(deepen_boost))
         self.rng = rng
         self._arms: Dict[Tuple[str, str, str], BetaArm] = {}
         self.gen_empty: Dict[str, int] = {}
@@ -238,20 +242,27 @@ class AdaptiveBranchingController:
         """The arm set A(q) for this step. Order is deterministic (ties break on it)."""
         qid = q.question_id
         hyps = state.hypotheses_for(qid)
+        untested = [h for h in hyps if h.status == UNVERIFIED]
+        v_loss = self.pending_loss * float(len(untested))
         arms: List[BetaArm] = []
-        for h in hyps:
-            if h.status == UNVERIFIED:
-                arms.append(self.arm(qid, ARM_EXPERIMENT, h.hypothesis_id, h.prior))
+        for h in untested:
+            arms.append(self.arm(qid, ARM_EXPERIMENT, h.hypothesis_id,
+                                 clamp01(h.prior + self.deepen_boost), live_prior=True))
         for h in hyps:
             if h.status == SUPPORTED and not h.patch_applied and h.synthesis_failures < MAX_SYNTHESIS_FAILURES:
-                arms.append(self.arm(qid, ARM_SYNTHESIZE, h.hypothesis_id, h.posterior, live_prior=True))
+                arms.append(self.arm(qid, ARM_SYNTHESIZE, h.hypothesis_id,
+                                     clamp01(h.posterior + self.deepen_boost), live_prior=True))
         if not self.gen_exhausted(qid):
             probers = [r for r in (org.active_roles if org is not None else []) if r.can("probe")]
             if probers:
                 for r in probers:
-                    arms.append(self.arm(qid, ARM_GEN_HYPOTHESIS, r.role_id, self.role_gen_prior(r, org)))
+                    a = self.arm(qid, ARM_GEN_HYPOTHESIS, r.role_id, self.role_gen_prior(r, org))
+                    a.virtual_losses = v_loss
+                    arms.append(a)
             else:
-                arms.append(self.arm(qid, ARM_GEN_HYPOTHESIS, "", UNNAMED_GEN_PRIOR))
+                a = self.arm(qid, ARM_GEN_HYPOTHESIS, "", UNNAMED_GEN_PRIOR)
+                a.virtual_losses = v_loss
+                arms.append(a)
         if recruit_eligible and org is not None:
             arms.append(self.arm(qid, ARM_GEN_SPECIALIST, CEO_IDENT, org.recruit_prior(), live_prior=True))
         return arms

@@ -38,6 +38,7 @@ GRADE_SCRIPT = os.path.join(REPO_ROOT, "scripts", "grade_in_testbed.py")
 DEFAULT_POLICIES: List[Tuple[str, str, str]] = [
     ("v8_puct", "configs/genomes/v8_smoke_swebench_firm_0.json", "hae-v8-puct/nvidia-Qwen3.8-Flash-Next-NVFP4"),
     ("v9_ab_mcts", "configs/genomes/v9_ab_mcts_swebench_firm_0.json", "hae-v9-ab/nvidia-Qwen3.8-Flash-Next-NVFP4"),
+    ("v10_ab_mcts", "configs/genomes/v10_ab_mcts_swebench_firm_0.json", "hae-v10-ab/nvidia-Qwen3.8-Flash-Next-NVFP4"),
 ]
 
 
@@ -282,7 +283,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--budget-moves", type=int, default=30)
     ap.add_argument("--max-iterations", type=int, default=2)
     ap.add_argument("--screen-only", action="store_true", help="Only run the --gold / --none validity screen")
-    ap.add_argument("--policies", nargs="*", choices=["v8_puct", "v9_ab_mcts"], default=["v8_puct", "v9_ab_mcts"])
+    ap.add_argument("--policies", nargs="*", choices=["v8_puct", "v9_ab_mcts", "v10_ab_mcts"], default=["v8_puct", "v9_ab_mcts"])
     ap.add_argument("--keep-pods", action="store_true", help="Do not delete temporary testbed pods after finishing an instance")
     ap.add_argument("--context", default=DEFAULT_CONTEXT)
     ap.add_argument("--nodepool", default="firm-pool")
@@ -309,6 +310,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         with lock:
             if args.valid_target is not None and valid_count[0] >= args.valid_target:
                 return
+        cached_screen = os.path.join(args.out_root, "screen", iid, "screen.json")
+        if os.path.exists(cached_screen):
+            try:
+                scr = json.load(open(cached_screen, "r", encoding="utf-8"))
+                if not scr.get("valid"):
+                    with lock:
+                        screen_rows.append(scr)
+                        print(json.dumps({"event": "screen", **scr}), flush=True)
+                    return
+            except Exception:
+                pass
         pod, created, err = ensure_pod(iid, args.context, nodepool=args.nodepool)
         if err:
             row = {"instance_id": iid, "valid": False, "reason": f"pod_error: {err}"}

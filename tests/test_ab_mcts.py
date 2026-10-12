@@ -748,6 +748,23 @@ class SingleHypothesisAdapterTests(unittest.TestCase):
         self.assertIn("probe refused:", lines[2])
         self.assertEqual(HierarchicalCompanyRunner._probe_outcomes_block(self.state, "q_other"), "")
 
+    def test_v10_virtual_loss_and_deepen_boost(self):
+        state = EpistemicState("task")
+        q = state.add_question("bug?", "mypkg/calc.py", 0.9)
+        ctrl = AdaptiveBranchingController(4.0, random.Random(7), pending_loss=1.5, deepen_boost=0.2)
+        # 0 untested hypotheses -> virtual_losses on gen arm is 0.0
+        arms0 = ctrl.candidate_arms(q, state, org=None, recruit_eligible=False)
+        gen0 = [a for a in arms0 if a.kind == ARM_GEN_HYPOTHESIS][0]
+        self.assertAlmostEqual(gen0.virtual_losses, 0.0)
+        # Add 2 untested hypotheses -> virtual_losses on gen arm is 3.0, and experiment prior is boosted by +0.2
+        h1 = state.add_hypothesis(q.question_id, "claim1", "mech1", 0.5, "print('ok')", {"exit_code": 0}, proposed_by="t")
+        state.add_hypothesis(q.question_id, "claim2", "mech2", 0.4, "print('ok')", {"exit_code": 0}, proposed_by="t")
+        arms2 = ctrl.candidate_arms(q, state, org=None, recruit_eligible=False)
+        gen2 = [a for a in arms2 if a.kind == ARM_GEN_HYPOTHESIS][0]
+        exp1 = [a for a in arms2 if a.kind == ARM_EXPERIMENT and a.ident == h1.hypothesis_id][0]
+        self.assertAlmostEqual(gen2.virtual_losses, 3.0)
+        self.assertAlmostEqual(exp1.prior_mean, 0.7)
+
 
 if __name__ == "__main__":
     unittest.main()
