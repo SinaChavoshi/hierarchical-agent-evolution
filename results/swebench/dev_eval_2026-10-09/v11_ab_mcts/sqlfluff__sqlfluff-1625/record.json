@@ -1,0 +1,2411 @@
+{
+ "authored_files": [
+  "src/sqlfluff/rules/L031.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 380.38,
+ "epistemic_audit": {
+  "budget_moves": 30,
+  "calibration_brier": 0.0025,
+  "calibration_tested": 2,
+  "delta_u_total": 0.98,
+  "duplicate_rejections": 0,
+  "evidence": 11,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 2,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 1,
+  "hypotheses": 2,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 2,
+  "hypotheses_tested": 2,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "19fcde00e2a52ee10c3d1885c9a5a878092b1fd8df8db238a3cc5fe8ec48cc3b",
+  "low_prior_wins": 0,
+  "moves_used": 8,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 2,
+  "proposed_total": 2,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 0,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 0.02,
+  "resolved_fraction": 0.98,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "all_resolved",
+  "syntheses": 3,
+  "syntheses_verified": 1,
+  "tabu_rejections": 0,
+  "token_usage": 55523,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v11_ab_mcts_swebench_firm_0",
+  "counters": {
+   "e": 11,
+   "h": 2,
+   "q": 1
+  },
+  "created_at": 1791851456.802,
+  "evidence_log": [
+   {
+    "command": "python .hae/probe_h1.py",
+    "created_at": 1791851542.788,
+    "detail": "prediction held: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on non-join query"
+    },
+    "question_id": "q1",
+    "sha256": "5cb06b8d5da325a155163d7821b75c74eff2f80164c88865fae740c07b9e67ee",
+    "stderr": "command terminated with exit code 1\n",
+    "stdout": "BUG: L031 triggered on non-join query\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L031.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed)",
+    "created_at": 1791851613.267,
+    "detail": "module check failed at repo_tests: proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.28s",
+    "evidence_id": "e2",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "07aac9c6dd53cdbba839c06ccece49a2d611ddfdf5a20731f490c6cc6f990ab4",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L031.py\n\n[import] IMPORT_OK sqlfluff.rules.L031\n\n[static_check] no undefined names (201 lines)\n[repo_tests] proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.28s\n     ('L031', 7, 19)\nE         ('L031', 8, 16)\nE         Use -v to get more diff\n\nsrc/sqlfluff/testing/rules.py:122: AssertionError\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED test/rules/std_test.py::test__rules__std_file[L031-aliases_in_join_error.sql-violations22]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 49 deselected, 1 warning in 0.28s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L031.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed)",
+    "created_at": 1791851696.83,
+    "detail": "module check failed at repo_tests: proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.26s",
+    "evidence_id": "e3",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "b21ece141a91abb4208cd534758fd9273cd3a08a9cc76c00c3a8dd32e1858839",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L031.py\n\n[import] IMPORT_OK sqlfluff.rules.L031\n\n[static_check] no undefined names (201 lines)\n[repo_tests] proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.26s\n     ('L031', 7, 19)\nE         ('L031', 8, 16)\nE         Use -v to get more diff\n\nsrc/sqlfluff/testing/rules.py:122: AssertionError\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED test/rules/std_test.py::test__rules__std_file[L031-aliases_in_join_error.sql-violations22]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 49 deselected, 1 warning in 0.26s\n"
+   },
+   {
+    "command": "python .hae/probe_h2.py",
+    "created_at": 1791851740.246,
+    "detail": "prediction held: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+    "evidence_id": "e4",
+    "exit_code": 1,
+    "hypothesis_id": "h2",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on non-join query"
+    },
+    "question_id": "q1",
+    "sha256": "a0974dae91a68bfc252f1507a1c6f62f1dceb6730f5c647139155ec63e5652e1",
+    "stderr": "command terminated with exit code 1\n",
+    "stdout": "BUG: L031 triggered on non-join query\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L031.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed)",
+    "created_at": 1791851823.968,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e5",
+    "exit_code": 0,
+    "hypothesis_id": "h2",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "012b0d9a91e25e1a241cd2c34b0f3c6de65e11f143dfbf59e267136945dc6f57",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L031.py\n\n[import] IMPORT_OK sqlfluff.rules.L031\n\n[static_check] no undefined names (227 lines)\n[repo_tests] proximity tests passed: test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py\n.                                                                        [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n1 passed, 49 deselected, 1 warning in 0.22s\n"
+   },
+   {
+    "command": "post-synthesis re-run: python .hae/probe_h2.py",
+    "created_at": 1791851825.822,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+    "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "h2",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on non-join query"
+    },
+    "question_id": "q1",
+    "sha256": "92fe61c147ef28ee73b877c4bfc03615503a80094a56d5ef2ccb8e59cb72ae97",
+    "stderr": "",
+    "stdout": "OK\n"
+   },
+   {
+    "command": "post-synthesis re-run: python .hae/probe_h1.py",
+    "created_at": 1791851827.624,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+    "evidence_id": "e7",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on non-join query"
+    },
+    "question_id": "q1",
+    "sha256": "7b2335a6b607977509802dcec868c8f593645c9f6f7d94e4cf5cf24f51090e06",
+    "stderr": "",
+    "stdout": "OK\n"
+   },
+   {
+    "command": "post-synthesis effect check: supported probes re-run after the write (NOT the hidden tests)",
+    "created_at": 1791851827.625,
+    "detail": "post-synthesis effect check: effective -- 2/2 re-run probe(s) no longer reproduce the bug (h2, h1)",
+    "evidence_id": "e8",
+    "exit_code": 0,
+    "hypothesis_id": "h2",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "ed9404f54f2b40f75b178f83df4014eb0ee26485d809d2105323e2e7ff700c6a",
+    "stderr": "",
+    "stdout": "h2 (q1): completed=True matched=False exit=0 bug_no_longer_reproduces=True\nh1 (q1): completed=True matched=False exit=0 bug_no_longer_reproduces=True"
+   },
+   {
+    "command": "python .hae/probe_h1.py",
+    "created_at": 1791851830.703,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+    "evidence_id": "e9",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on non-join query"
+    },
+    "question_id": "q1",
+    "sha256": "b4034059a8b9d9966a41bf5e77e2fd7afcdf32ac6f7c62e36d990b291d6486d3",
+    "stderr": "",
+    "stdout": "OK\n"
+   },
+   {
+    "command": "python .hae/probe_h2.py",
+    "created_at": 1791851832.499,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+    "evidence_id": "e10",
+    "exit_code": 0,
+    "hypothesis_id": "h2",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on non-join query"
+    },
+    "question_id": "q1",
+    "sha256": "1cb594c6394902cd7aff80c6346376afbb104021153354618d54fe66e106316e",
+    "stderr": "",
+    "stdout": "OK\n"
+   },
+   {
+    "command": "self-oracle: reproduction probe re-run after patch (NOT the hidden tests)",
+    "created_at": 1791851832.5,
+    "detail": "self-oracle, iteration 1: resolved (2/2 reproduction probe(s) no longer reproduce the bug)",
+    "evidence_id": "e11",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "oracle",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "8cd07f89b587fd86634d111347b68474b77b025ce0f825442d4593656f407397",
+    "stderr": "",
+    "stdout": "h1: completed=True matched=False exit=0 bug_no_longer_reproduces=True\nh2: completed=True matched=False exit=0 bug_no_longer_reproduces=True"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "The rule L031 incorrectly flags table aliases in simple SELECT statements without JOINs because it fails to verify the presence of a JOIN clause before evaluating aliases in the FROM clause.",
+    "created_at": 1791851540.869,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1",
+     "e2",
+     "e3",
+     "e7",
+     "e9"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "In `_eval`, the rule collects `from_expression_elements` from the `from_clause` and passes them to `_lint_aliases_in_join`. The `_lint_aliases_in_join` method iterates over these elements and flags any alias found, regardless of whether a `join_clause` exists.",
+    "mechanism_signature": "_eval _lint_aliases_in_join alia alias before clause collect element evaluat exist flag found from_clause from_expression_elements incorrect iterat join join_clause l031 over pass presence regardless rule select simple statement table them verify whether without",
+    "patch_applied": false,
+    "posterior": 0.985,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on non-join query"
+    },
+    "prior": 0.95,
+    "probe_code": "from sqlfluff.core import Linter, FluffConfig\nsql = 'SELECT a.[hello] FROM mytable AS a'\ncfg = FluffConfig(overrides={'dialect': 'tsql'})\nlinter = Linter(config=cfg)\nresult = linter.lint_string(sql)\nviolations = [v for v in result.violations if v.rule_code() == 'L031']\nif violations:\n    print('BUG: L031 triggered on non-join query')\n    exit(1)\nelse:\n    print('OK')\n    exit(0)",
+    "probe_rejections": 0,
+    "proposed_by": "Docs & CLI Behaviour Specialist",
+    "question_id": "q1",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "status": "SUPPORTED",
+    "synthesis_attempts": [
+     {
+      "attempt": 1,
+      "detail": "module check failed at repo_tests: proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.28s",
+      "diagnostics": "[repo_tests] command terminated with exit code 1\n\n[py_compile] COMPILE_OK src/sqlfluff/rules/L031.py\n\n[import] IMPORT_OK sqlfluff.rules.L031\n\n[static_check] no undefined names (201 lines)\n[repo_tests] proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.28s\n     ('L031', 7, 19)\nE         ('L031', 8, 16)\nE         Use -v to get more diff\n\nsrc/sqlfluff/testing/rules.py:122: AssertionError\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED test/rules/std_test.py::test__rules__std_file[L031-aliases_in_join_error.sql-violations22]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 49 deselected, 1 warning in 0.28s",
+      "diff": "--- a/src/sqlfluff/rules/L031.py\n+++ b/src/sqlfluff/rules/L031.py\n@@ -48,48 +48,30 @@\n \n     def _eval(self, segment, **kwargs):\n-        \"\"\"Identify aliases in from clause and join conditions.\n-\n-        Find base table, table expressions in join, and other expressions in select clause\n-        and decide if it's needed to report them.\n-        \"\"\"\n-        if segment.is_type(\"select_statement\"):\n-            # A buffer for all table expressions in join conditions\n+        if segment.is_type('select_statement'):\n+            from_clause_segment = segment.get_child('from_clause')\n+            if not from_clause_segment:\n+                return None\n+            join_clause_segment = segment.get_child('join_clause')\n+            if not join_clause_segment:\n+                return None\n             from_expression_elements = []\n             column_reference_segments = []\n-\n-            from_clause_segment = segment.get_child(\"from_clause\")\n-\n-            if not from_clause_segment:\n-                return None\n-\n-            from_expression = from_clause_segment.get_child(\"from_expression\")\n+            from_expression = from_clause_segment.get_child('from_expression')\n             from_expression_element = None\n             if from_expression:\n-                from_expression_element = from_expression.get_child(\n-                    \"from_expression_element\"\n-                )\n-\n+                from_expression_element = from_expression.get_child('from_expression_element')\n             if not from_expression_element:\n                 return None\n-            from_expression_element = from_expression_element.get_child(\n-                \"table_expression\"\n-            )\n-\n-            # Find base table\n+            from_expression_element = from_expression_element.get_child('table_expression')\n             base_table = None\n             if from_expression_element:\n-                base_table = from_expression_element.get_child(\"object_reference\")\n-\n+                base_table = from_expression_element.get_child('object_reference')\n             from_clause_index = segment.segments.index(from_clause_segment)\n             from_clause_and_after = segment.segments[from_clause_index:]\n-\n             for clause in from_clause_and_after:\n-                for from_expression_element in clause.recursive_crawl(\n-                    \"from_expression_element\"\n-             ",
+      "paths": [
+       "src/sqlfluff/rules/L031.py"
+      ],
+      "stage": "module_check"
+     },
+     {
+      "attempt": 2,
+      "detail": "module check failed at repo_tests: proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.26s",
+      "diagnostics": "[repo_tests] command terminated with exit code 1\n\n[py_compile] COMPILE_OK src/sqlfluff/rules/L031.py\n\n[import] IMPORT_OK sqlfluff.rules.L031\n\n[static_check] no undefined names (201 lines)\n[repo_tests] proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.26s\n     ('L031', 7, 19)\nE         ('L031', 8, 16)\nE         Use -v to get more diff\n\nsrc/sqlfluff/testing/rules.py:122: AssertionError\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED test/rules/std_test.py::test__rules__std_file[L031-aliases_in_join_error.sql-violations22]\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 49 deselected, 1 warning in 0.26s",
+      "diff": "--- a/src/sqlfluff/rules/L031.py\n+++ b/src/sqlfluff/rules/L031.py\n@@ -48,48 +48,30 @@\n \n     def _eval(self, segment, **kwargs):\n-        \"\"\"Identify aliases in from clause and join conditions.\n-\n-        Find base table, table expressions in join, and other expressions in select clause\n-        and decide if it's needed to report them.\n-        \"\"\"\n-        if segment.is_type(\"select_statement\"):\n-            # A buffer for all table expressions in join conditions\n+        if segment.is_type('select_statement'):\n+            from_clause_segment = segment.get_child('from_clause')\n+            if not from_clause_segment:\n+                return None\n+            join_clause_segment = segment.get_child('join_clause')\n+            if not join_clause_segment:\n+                return None\n             from_expression_elements = []\n             column_reference_segments = []\n-\n-            from_clause_segment = segment.get_child(\"from_clause\")\n-\n-            if not from_clause_segment:\n-                return None\n-\n-            from_expression = from_clause_segment.get_child(\"from_expression\")\n+            from_expression = from_clause_segment.get_child('from_expression')\n             from_expression_element = None\n             if from_expression:\n-                from_expression_element = from_expression.get_child(\n-                    \"from_expression_element\"\n-                )\n-\n+                from_expression_element = from_expression.get_child('from_expression_element')\n             if not from_expression_element:\n                 return None\n-            from_expression_element = from_expression_element.get_child(\n-                \"table_expression\"\n-            )\n-\n-            # Find base table\n+            from_expression_element = from_expression_element.get_child('table_expression')\n             base_table = None\n             if from_expression_element:\n-                base_table = from_expression_element.get_child(\"object_reference\")\n-\n+                base_table = from_expression_element.get_child('object_reference')\n             from_clause_index = segment.segments.index(from_clause_segment)\n             from_clause_and_after = segment.segments[from_clause_index:]\n-\n             for clause in from_clause_and_after:\n-                for from_expression_element in clause.recursive_crawl(\n-                    \"from_expression_element\"\n-             ",
+      "paths": [
+       "src/sqlfluff/rules/L031.py"
+      ],
+      "stage": "module_check"
+     }
+    ],
+    "synthesis_failures": 2,
+    "value_sum": 0.95,
+    "visits": 1
+   },
+   {
+    "claim": "Rule L031's `_lint_aliases_in_join` method unconditionally reports violations for any table alias found in the FROM clause, failing to check if the query actually contains a JOIN clause before flag.",
+    "created_at": 1791851738.38,
+    "epoch": 0,
+    "evidence_ids": [
+     "e4",
+     "e5",
+     "e6",
+     "e8",
+     "e10"
+    ],
+    "hypothesis_id": "h2",
+    "last_rejection": "",
+    "mechanism": "The rule collects all `from_expression_element` segments from the FROM clause and subsequent clauses. It then iterates through these elements in `_lint_aliases_in_join`. If an element has an `alias_expression`, it creates a `LintResult` with the description 'A",
+    "mechanism_signature": "_lint_aliases_in_join actual alia alias_expression before check claus clause collect contain creat description element flag found from_expression_element iterat join l031 lintresult query report rule segment subsequent table through unconditional violation",
+    "patch_applied": true,
+    "posterior": 0.985,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: L031 triggered on non-join query"
+    },
+    "prior": 0.95,
+    "probe_code": "import sys\nfrom sqlfluff.core import Linter, FluffConfig\nfrom sqlfluff.core.rules import get_ruleset\n\ndef test_l031_no_join():\n    sql = 'SELECT a.[hello] FROM mytable AS a'\n    config = FluffConfig(overrides={'dialect': 'tsql'})\n    linter = Linter(config=config)\n    result = linter.lint_string(sql)\n    violations = [v for v in result.violations if v.rule_code() == 'L031']\n    if violations:\n        print('BUG: L031 triggered on non-join query')\n        sys.exit(1)\n    else:\n        print('OK')\n        sys.exit(0)\n\nif __name__ == '__main__':\n    test_l031_no_join()",
+    "probe_rejections": 0,
+    "proposed_by": "Issue Reproducer",
+    "question_id": "q1",
+    "role_id": "r_issue_reproducer_swebench",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 1
+   }
+  ],
+  "move_log": [
+   {
+    "agent_role": "Docs & CLI Behaviour Specialist",
+    "created_at": 1791851540.869,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.547589,
+     "ab_y": 0.0,
+     "head_v": 0.370193
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 1.0,
+     "module_isolation": 1.0,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 0.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 1,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q1",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "state_hash_after": "56c91115e8bb6358978579220902bd1e5408d1d6c639ae1214b519a85e8ee48d",
+    "state_hash_before": "098d400cb90896d2b7610bfd7210b3511d7e91ee557d0b0240b7bfe2b2044859",
+    "value_after": 0.08,
+    "value_before": 0.06
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791851542.788,
+    "delta_u": 0.95,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.857143,
+     "ab_theta": 0.984999,
+     "ab_y": 1.0,
+     "head_v": 0.384021
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 1.0,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.1,
+     "supported_ratio": 0.0,
+     "untested_ratio": 1.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 2,
+    "move_type": "run_experiment",
+    "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+    "question_id": "q1",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "state_hash_after": "ee9b159d6254917ddd7ef3879e0a03cd28e76e817038076d370d79322d47e7a6",
+    "state_hash_before": "56c91115e8bb6358978579220902bd1e5408d1d6c639ae1214b519a85e8ee48d",
+    "value_after": 0.706,
+    "value_before": 0.076
+   },
+   {
+    "agent_role": "Docs & CLI Behaviour Specialist",
+    "created_at": 1791851615.134,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.714286,
+     "ab_theta": 0.661304,
+     "ab_y": 0.0,
+     "head_v": 0.219771
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.05,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.95,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 3,
+    "move_type": "synthesize",
+    "note": "src/sqlfluff/rules/L031.py [function]: module check failed at repo_tests: proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.28s; reverted to pre-synthesis module",
+    "question_id": "q1",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "state_hash_after": "2028d3feb2ed99761aaeed95706c6d70f85cc4c0043d47e9f00577e5bc20d9a4",
+    "state_hash_before": "ee9b159d6254917ddd7ef3879e0a03cd28e76e817038076d370d79322d47e7a6",
+    "value_after": 0.71,
+    "value_before": 0.71
+   },
+   {
+    "agent_role": "Docs & CLI Behaviour Specialist",
+    "created_at": 1791851698.899,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.625,
+     "ab_theta": 0.75072,
+     "ab_y": 0.0,
+     "head_v": 0.210365
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.05,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.95,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.1,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 4,
+    "move_type": "synthesize",
+    "note": "src/sqlfluff/rules/L031.py [function]: module check failed at repo_tests: proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.26s; reverted to pre-synthesis module",
+    "question_id": "q1",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "state_hash_after": "7dde4e5404176fd6f1453dc57e83a892e10dde41d0aacfa2eaf886c01cf844f8",
+    "state_hash_before": "2028d3feb2ed99761aaeed95706c6d70f85cc4c0043d47e9f00577e5bc20d9a4",
+    "value_after": 0.706,
+    "value_before": 0.706
+   },
+   {
+    "agent_role": "SQL AST & Dialect Parser Specialist",
+    "created_at": 1791851714.214,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.261234,
+     "ab_theta": 0.480646,
+     "ab_y": 0.0,
+     "head_v": 0.201257,
+     "recruit_prior": 0.141851,
+     "stall_counter": 2.0,
+     "unmatched_modules": 1.0
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.05,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.95,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.2,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 5,
+    "move_type": "recruit_specialist",
+    "note": "recruited SQL AST & Dialect Parser Specialist [synthesized] (stall=2, unmatched=1; tags: sqlfluff, ast, parser, tsql, dialect, rule): no library role overlaps the gaps (6 candidate(s)); synthesized by CEO: The current team lacks deep knowledge of sqlfluff's internal AST representation and dialect-sp",
+    "question_id": "q1",
+    "role_id": "r_sql_ast_dialect_parser_specialist",
+    "state_hash_after": "7dde4e5404176fd6f1453dc57e83a892e10dde41d0aacfa2eaf886c01cf844f8",
+    "state_hash_before": "7dde4e5404176fd6f1453dc57e83a892e10dde41d0aacfa2eaf886c01cf844f8",
+    "value_after": 0.702,
+    "value_before": 0.702
+   },
+   {
+    "agent_role": "Issue Reproducer",
+    "created_at": 1791851738.38,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.250172,
+     "ab_y": 0.0,
+     "head_v": 0.192447
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.05,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.95,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.3,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 6,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q1",
+    "role_id": "r_issue_reproducer_swebench",
+    "state_hash_after": "c58f6c8af452fe84d871a9b63d213f16f32f09c278aeafe71339a5bb38edd1c8",
+    "state_hash_before": "7dde4e5404176fd6f1453dc57e83a892e10dde41d0aacfa2eaf886c01cf844f8",
+    "value_after": 0.668,
+    "value_before": 0.698
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791851740.247,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.785714,
+     "ab_theta": 0.972469,
+     "ab_y": 0.5,
+     "head_v": 0.195444
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.05,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.95,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.4,
+     "supported_ratio": 0.5,
+     "untested_ratio": 0.5
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h2",
+    "move_index": 7,
+    "move_type": "run_experiment",
+    "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+    "question_id": "q1",
+    "role_id": "r_issue_reproducer_swebench",
+    "state_hash_after": "ef74141ba51177b87abb132cd7f7c7251510fe72637b23a2f4a63aa6ab79bfa4",
+    "state_hash_before": "c58f6c8af452fe84d871a9b63d213f16f32f09c278aeafe71339a5bb38edd1c8",
+    "value_after": 0.694,
+    "value_before": 0.664
+   },
+   {
+    "agent_role": "Docs & CLI Behaviour Specialist",
+    "created_at": 1791851827.625,
+    "delta_u": 0.03,
+    "extra": {
+     "ab_arms": 7.0,
+     "ab_mean": 0.79,
+     "ab_theta": 0.989089,
+     "ab_y": 0.53,
+     "head_v": 0.175715
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.05,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.95,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.5,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h2",
+    "move_index": 8,
+    "move_type": "synthesize",
+    "note": "src/sqlfluff/rules/L031.py [function]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (2/2 re-run probe(s) no longer reproduce the bug)",
+    "question_id": "q1",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "state_hash_after": "b8fd2ee491acd2d225773acd4fc2859fb9249939151d271f234f86ca9b4e623a",
+    "state_hash_before": "ef74141ba51177b87abb132cd7f7c7251510fe72637b23a2f4a63aa6ab79bfa4",
+    "value_after": 0.768,
+    "value_before": 0.69
+   }
+  ],
+  "questions": [
+   {
+    "created_at": 1791851458.245,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1",
+     "h2"
+    ],
+    "hypothesis_rounds": 2,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "src/sqlfluff/rules/L031.py",
+    "question_id": "q1",
+    "source_failure": "TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present",
+    "source_failure_key": "swebench:sqlfluff__sqlfluff-1625",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present -- ## Expected Behaviour Both of these queries should pass, the only difference is the addition of a table alias 'a': 1/ no alias ``` SELECT [hello] FROM mytable ``` 2/ same query with alias ``` SELECT a.[hello] FROM mytable AS a ``` ## Observed Behaviour 1/ passes 2/ fails with: L031: Avoid using aliases in join condition. But there is no join condition :-) ## Steps to Reproduce Lint queries above ## Dialect TSQL ## Version sqlfluff 0.6.9 Python 3.6.9 ## Configuration N/A",
+    "uncertainty": 0.02
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "19fcde00e2a52ee10c3d1885c9a5a878092b1fd8df8db238a3cc5fe8ec48cc3b"
+ },
+ "epistemic_searches": [
+  {
+   "delta_u_total": 0.98,
+   "iteration": 1,
+   "moves_used": 8,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "cli",
+       "argparse",
+       "option",
+       "flag",
+       "command",
+       "config",
+       "configuration",
+       "documentation",
+       "docs",
+       "help",
+       "output",
+       "console",
+       "logging",
+       "warning",
+       "deprecationwarning",
+       "pylint",
+       "flake8",
+       "requests",
+       "http",
+       "session",
+       "header",
+       "url",
+       "matplotlib",
+       "figure",
+       "axes",
+       "pyplot",
+       "xarray",
+       "dataset"
+      ],
+      "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Docs & CLI Behaviour Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_docs_cli_behaviour_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "reproduce",
+       "reproduction",
+       "minimal",
+       "example",
+       "issue",
+       "actual",
+       "behaviour",
+       "behavior",
+       "traceback",
+       "regression"
+      ],
+      "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Issue Reproducer",
+      "origin": "seed:swebench",
+      "role_id": "r_issue_reproducer_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     },
+     {
+      "backstory": "Expert in SQL dialect parsing and AST traversal within the sqlfluff ecosystem. Specializes in debugging rules that depend on specific node types (e.g., `table_reference`, `join_clause`) and how dialect-specific grammar definitions (like TSQL) map to these nodes. Has extensive experience fixing false positives in linting rules caused by incorrect node matching or missing context checks.",
+      "cost_per_move": 1.0,
+      "created_generation": 17,
+      "domain_tags": [
+       "sqlfluff",
+       "ast",
+       "parser",
+       "tsql",
+       "dialect",
+       "rule",
+       "l031",
+       "node"
+      ],
+      "goal": "Analyze the TSQL dialect's Abstract Syntax Tree (AST) structure to determine how `FROM` clauses with aliases are parsed and why rule L031 incorrectly identifies them as join conditions.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "SQL AST & Dialect Parser Specialist",
+      "origin": "recruited:v11_ab_mcts_swebench_firm_0:g17:m5",
+      "rationale": "The current team lacks deep knowledge of sqlfluff's internal AST representation and dialect-specific parsing behaviors. The issue is not about API contracts, ORM models, or CLI usage, but rather how the parser constructs the tree for TSQL `FROM` clauses with aliases and how rule L031 traverses this.",
+      "role_id": "r_sql_ast_dialect_parser_specialist",
+      "source": "synthesized",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.7,
+      "tools_enabled": true,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [
+     {
+      "move_index": 5,
+      "name": "SQL AST & Dialect Parser Specialist",
+      "prior": 0.0998,
+      "reason": "stall=2, unmatched=1",
+      "role_id": "r_sql_ast_dialect_parser_specialist",
+      "source": "synthesized",
+      "stall_counter": 2,
+      "unmatched_modules": [
+       "src/sqlfluff/rules/L031.py"
+      ]
+     }
+    ],
+    "recruit_prior": 0.018,
+    "stall_counter": 0,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_docs_cli_behaviour_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.98,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 4
+     },
+     "r_issue_reproducer_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_sql_ast_dialect_parser_specialist": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": 5,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     }
+    },
+    "unmatched_modules": []
+   },
+   "stats": {
+    "ab_mcts": {
+     "algorithm": "ab_mcts",
+     "arms": {
+      "q1": [
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_api_contract_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_data_model_orm_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 3.2,
+        "beta": 3.8,
+        "ident": "r_docs_cli_behaviour_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.4571,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         1.0
+        ]
+       },
+       {
+        "alpha": 2.7,
+        "beta": 4.3,
+        "ident": "r_issue_reproducer_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3857,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         0.5
+        ]
+       },
+       {
+        "alpha": 1.1172,
+        "beta": 4.8828,
+        "ident": "ceo",
+        "kind": "gen_specialist",
+        "mean": 0.1862,
+        "observations": 0,
+        "prior_mean": 0.0293,
+        "pulls": 1,
+        "rewards": []
+       },
+       {
+        "alpha": 6.0,
+        "beta": 1.0,
+        "ident": "h1",
+        "kind": "experiment",
+        "mean": 0.8571,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         1.0
+        ]
+       },
+       {
+        "alpha": 5.0,
+        "beta": 3.0,
+        "ident": "h1",
+        "kind": "synthesize",
+        "mean": 0.625,
+        "observations": 2,
+        "prior_mean": 1.0,
+        "pulls": 2,
+        "rewards": [
+         0.0,
+         0.0
+        ]
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_sql_ast_dialect_parser_specialist",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 5.5,
+        "beta": 1.5,
+        "ident": "h2",
+        "kind": "experiment",
+        "mean": 0.7857,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         0.5
+        ]
+       },
+       {
+        "alpha": 5.53,
+        "beta": 1.47,
+        "ident": "h2",
+        "kind": "synthesize",
+        "mean": 0.79,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         0.53
+        ]
+       }
+      ]
+     },
+     "counts": {
+      "deepen_experiment": 2,
+      "deepen_synthesize": 3,
+      "gen_empty_draws": 0,
+      "gen_exhausted_questions": 0,
+      "steps": 8,
+      "widen_hypothesis": 2,
+      "widen_specialist": 1,
+      "widest_question": 2
+     },
+     "gen_empty": {
+      "q1": 0
+     },
+     "prior_strength": 4.0,
+     "trace": [
+      {
+       "chosen": "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.074728,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.342002,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.547589,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.251049,
+        "gen_specialist:ceo": 0.045801
+       },
+       "mean": 0.366667,
+       "move_index": 1,
+       "question_id": "q1",
+       "theta": 0.547589,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h1",
+       "draws": {
+        "experiment:h1": 0.984999,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.290378,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.386423,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.235061,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.411883,
+        "gen_specialist:ceo": 0.148068
+       },
+       "mean": 0.857143,
+       "move_index": 2,
+       "question_id": "q1",
+       "theta": 0.984999,
+       "y": 1.0
+      },
+      {
+       "chosen": "synthesize:h1",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.145519,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.629113,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.350715,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.508262,
+        "gen_specialist:ceo": 0.150978,
+        "synthesize:h1": 0.661304
+       },
+       "mean": 0.714286,
+       "move_index": 3,
+       "question_id": "q1",
+       "theta": 0.661304,
+       "y": 0.0
+      },
+      {
+       "chosen": "synthesize:h1",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.356023,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.42854,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.406556,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.337613,
+        "gen_specialist:ceo": 0.046236,
+        "synthesize:h1": 0.75072
+       },
+       "mean": 0.625,
+       "move_index": 4,
+       "question_id": "q1",
+       "theta": 0.75072,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_specialist:ceo",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.181348,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.438609,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.380168,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.284602,
+        "gen_specialist:ceo": 0.480646
+       },
+       "mean": 0.261234,
+       "move_index": 5,
+       "question_id": "q1",
+       "theta": 0.480646,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_hypothesis:r_issue_reproducer_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.172516,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.159379,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.227988,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.250172,
+        "gen_hypothesis:r_sql_ast_dialect_parser_specialist": 0.234782
+       },
+       "mean": 0.366667,
+       "move_index": 6,
+       "question_id": "q1",
+       "theta": 0.250172,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h2",
+       "draws": {
+        "experiment:h2": 0.972469,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.151541,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.488847,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.40239,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.168012,
+        "gen_hypothesis:r_sql_ast_dialect_parser_specialist": 0.239204
+       },
+       "mean": 0.785714,
+       "move_index": 7,
+       "question_id": "q1",
+       "theta": 0.972469,
+       "y": 0.5
+      },
+      {
+       "chosen": "synthesize:h2",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.379357,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.315267,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.77239,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.184653,
+        "gen_hypothesis:r_sql_ast_dialect_parser_specialist": 0.303355,
+        "gen_specialist:ceo": 0.107807,
+        "synthesize:h2": 0.989089
+       },
+       "mean": 0.79,
+       "move_index": 8,
+       "question_id": "q1",
+       "theta": 0.989089,
+       "y": 0.53
+      }
+     ]
+    },
+    "budget_moves": 30,
+    "delta_u_by_role": {
+     "r_docs_cli_behaviour_specialist_swebench": 0.98,
+     "r_issue_reproducer_swebench": 0.0
+    },
+    "duplicate_rejections": 0,
+    "experiments": 2,
+    "falsified": 0,
+    "forced_low_prior_picks": 0,
+    "forced_low_prior_wins": 0,
+    "frontier_admissions": 1,
+    "hypotheses_accepted": 2,
+    "inconclusive": 0,
+    "moves_by_role": {
+     "r_docs_cli_behaviour_specialist_swebench": 5,
+     "r_issue_reproducer_swebench": 2
+    },
+    "moves_used": 8,
+    "prior_head_loaded": true,
+    "prior_head_steered": 0,
+    "probe_repairs": 0,
+    "proposal_rounds": 2,
+    "proposer_errors": 0,
+    "questions_asked": 0,
+    "questions_deferred": 0,
+    "recruit_declined": 0,
+    "recruits": 1,
+    "recruits_from_library": 0,
+    "recruits_synthesized": 1,
+    "rejected_probes": 0,
+    "roles_routed": true,
+    "search_algorithm": "ab_mcts",
+    "stop_reason": "all_resolved",
+    "supported": 2,
+    "syntheses": 3,
+    "syntheses_by_function": 3,
+    "syntheses_reverted": 2,
+    "syntheses_unwritten": 0,
+    "syntheses_verified": 1,
+    "synthesis_seconds": 219.706,
+    "tabu_rejections": 0,
+    "value_head_loaded": true
+   },
+   "stop_reason": "all_resolved",
+   "synthesized_paths": [
+    "src/sqlfluff/rules/L031.py"
+   ],
+   "trajectory": [
+    {
+     "agent_role": "Docs & CLI Behaviour Specialist",
+     "created_at": 1791851540.869,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.547589,
+      "ab_y": 0.0,
+      "head_v": 0.370193
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 1.0,
+      "module_isolation": 1.0,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 0.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 1,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q1",
+     "role_id": "r_docs_cli_behaviour_specialist_swebench",
+     "state_hash_after": "56c91115e8bb6358978579220902bd1e5408d1d6c639ae1214b519a85e8ee48d",
+     "state_hash_before": "098d400cb90896d2b7610bfd7210b3511d7e91ee557d0b0240b7bfe2b2044859",
+     "value_after": 0.08,
+     "value_before": 0.06
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791851542.788,
+     "delta_u": 0.95,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.857143,
+      "ab_theta": 0.984999,
+      "ab_y": 1.0,
+      "head_v": 0.384021
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 1.0,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.1,
+      "supported_ratio": 0.0,
+      "untested_ratio": 1.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 2,
+     "move_type": "run_experiment",
+     "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+     "question_id": "q1",
+     "role_id": "r_docs_cli_behaviour_specialist_swebench",
+     "state_hash_after": "ee9b159d6254917ddd7ef3879e0a03cd28e76e817038076d370d79322d47e7a6",
+     "state_hash_before": "56c91115e8bb6358978579220902bd1e5408d1d6c639ae1214b519a85e8ee48d",
+     "value_after": 0.706,
+     "value_before": 0.076
+    },
+    {
+     "agent_role": "Docs & CLI Behaviour Specialist",
+     "created_at": 1791851615.134,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.714286,
+      "ab_theta": 0.661304,
+      "ab_y": 0.0,
+      "head_v": 0.219771
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.05,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.95,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 3,
+     "move_type": "synthesize",
+     "note": "src/sqlfluff/rules/L031.py [function]: module check failed at repo_tests: proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.28s; reverted to pre-synthesis module",
+     "question_id": "q1",
+     "role_id": "r_docs_cli_behaviour_specialist_swebench",
+     "state_hash_after": "2028d3feb2ed99761aaeed95706c6d70f85cc4c0043d47e9f00577e5bc20d9a4",
+     "state_hash_before": "ee9b159d6254917ddd7ef3879e0a03cd28e76e817038076d370d79322d47e7a6",
+     "value_after": 0.71,
+     "value_before": 0.71
+    },
+    {
+     "agent_role": "Docs & CLI Behaviour Specialist",
+     "created_at": 1791851698.899,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.625,
+      "ab_theta": 0.75072,
+      "ab_y": 0.0,
+      "head_v": 0.210365
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.05,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.95,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.1,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 4,
+     "move_type": "synthesize",
+     "note": "src/sqlfluff/rules/L031.py [function]: module check failed at repo_tests: proximity tests failed (exit 1): test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py -- 1 failed, 49 deselected, 1 warning in 0.26s; reverted to pre-synthesis module",
+     "question_id": "q1",
+     "role_id": "r_docs_cli_behaviour_specialist_swebench",
+     "state_hash_after": "7dde4e5404176fd6f1453dc57e83a892e10dde41d0aacfa2eaf886c01cf844f8",
+     "state_hash_before": "2028d3feb2ed99761aaeed95706c6d70f85cc4c0043d47e9f00577e5bc20d9a4",
+     "value_after": 0.706,
+     "value_before": 0.706
+    },
+    {
+     "agent_role": "SQL AST & Dialect Parser Specialist",
+     "created_at": 1791851714.214,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.261234,
+      "ab_theta": 0.480646,
+      "ab_y": 0.0,
+      "head_v": 0.201257,
+      "recruit_prior": 0.141851,
+      "stall_counter": 2.0,
+      "unmatched_modules": 1.0
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.05,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.95,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.2,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 5,
+     "move_type": "recruit_specialist",
+     "note": "recruited SQL AST & Dialect Parser Specialist [synthesized] (stall=2, unmatched=1; tags: sqlfluff, ast, parser, tsql, dialect, rule): no library role overlaps the gaps (6 candidate(s)); synthesized by CEO: The current team lacks deep knowledge of sqlfluff's internal AST representation and dialect-sp",
+     "question_id": "q1",
+     "role_id": "r_sql_ast_dialect_parser_specialist",
+     "state_hash_after": "7dde4e5404176fd6f1453dc57e83a892e10dde41d0aacfa2eaf886c01cf844f8",
+     "state_hash_before": "7dde4e5404176fd6f1453dc57e83a892e10dde41d0aacfa2eaf886c01cf844f8",
+     "value_after": 0.702,
+     "value_before": 0.702
+    },
+    {
+     "agent_role": "Issue Reproducer",
+     "created_at": 1791851738.38,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.250172,
+      "ab_y": 0.0,
+      "head_v": 0.192447
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.05,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.95,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.3,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 6,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q1",
+     "role_id": "r_issue_reproducer_swebench",
+     "state_hash_after": "c58f6c8af452fe84d871a9b63d213f16f32f09c278aeafe71339a5bb38edd1c8",
+     "state_hash_before": "7dde4e5404176fd6f1453dc57e83a892e10dde41d0aacfa2eaf886c01cf844f8",
+     "value_after": 0.668,
+     "value_before": 0.698
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791851740.247,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.785714,
+      "ab_theta": 0.972469,
+      "ab_y": 0.5,
+      "head_v": 0.195444
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.05,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.95,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.4,
+      "supported_ratio": 0.5,
+      "untested_ratio": 0.5
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h2",
+     "move_index": 7,
+     "move_type": "run_experiment",
+     "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+     "question_id": "q1",
+     "role_id": "r_issue_reproducer_swebench",
+     "state_hash_after": "ef74141ba51177b87abb132cd7f7c7251510fe72637b23a2f4a63aa6ab79bfa4",
+     "state_hash_before": "c58f6c8af452fe84d871a9b63d213f16f32f09c278aeafe71339a5bb38edd1c8",
+     "value_after": 0.694,
+     "value_before": 0.664
+    },
+    {
+     "agent_role": "Docs & CLI Behaviour Specialist",
+     "created_at": 1791851827.625,
+     "delta_u": 0.03,
+     "extra": {
+      "ab_arms": 7.0,
+      "ab_mean": 0.79,
+      "ab_theta": 0.989089,
+      "ab_y": 0.53,
+      "head_v": 0.175715
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.05,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.95,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.5,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h2",
+     "move_index": 8,
+     "move_type": "synthesize",
+     "note": "src/sqlfluff/rules/L031.py [function]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (2/2 re-run probe(s) no longer reproduce the bug)",
+     "question_id": "q1",
+     "role_id": "r_docs_cli_behaviour_specialist_swebench",
+     "state_hash_after": "b8fd2ee491acd2d225773acd4fc2859fb9249939151d271f234f86ca9b4e623a",
+     "state_hash_before": "ef74141ba51177b87abb132cd7f7c7251510fe72637b23a2f4a63aa6ab79bfa4",
+     "value_after": 0.768,
+     "value_before": 0.69
+    }
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v11_ab_mcts_swebench_firm_0",
+ "instance_id": "sqlfluff__sqlfluff-1625",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.91,
+  "estimated_cost_usd": 0.0088,
+  "flash_count": 26,
+  "flash_input_tokens": 48929,
+  "flash_output_tokens": 4377,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 1925,
+  "pro_output_tokens": 292,
+  "total_tokens": 55523
+ },
+ "org": {
+  "active_roles": [
+   {
+    "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "api",
+     "signature",
+     "kwargs",
+     "args",
+     "deprecation",
+     "deprecated",
+     "backwards",
+     "compatibility",
+     "contract",
+     "interface",
+     "public",
+     "default",
+     "argument",
+     "parameter"
+    ],
+    "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "API-Contract Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_api_contract_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "django",
+     "orm",
+     "queryset",
+     "model",
+     "models",
+     "migration",
+     "migrations",
+     "field",
+     "fields",
+     "sql",
+     "database",
+     "sqlalchemy",
+     "serializer",
+     "foreignkey",
+     "compiler",
+     "expression",
+     "annotation",
+     "subquery",
+     "admin",
+     "forms"
+    ],
+    "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Data-Model & ORM Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "cli",
+     "argparse",
+     "option",
+     "flag",
+     "command",
+     "config",
+     "configuration",
+     "documentation",
+     "docs",
+     "help",
+     "output",
+     "console",
+     "logging",
+     "warning",
+     "deprecationwarning",
+     "pylint",
+     "flake8",
+     "requests",
+     "http",
+     "session",
+     "header",
+     "url",
+     "matplotlib",
+     "figure",
+     "axes",
+     "pyplot",
+     "xarray",
+     "dataset"
+    ],
+    "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Docs & CLI Behaviour Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "reproduce",
+     "reproduction",
+     "minimal",
+     "example",
+     "issue",
+     "actual",
+     "behaviour",
+     "behavior",
+     "traceback",
+     "regression"
+    ],
+    "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+    "kind": "probe",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Issue Reproducer",
+    "origin": "seed:swebench",
+    "role_id": "r_issue_reproducer_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": false,
+    "uses": 0
+   },
+   {
+    "backstory": "Expert in SQL dialect parsing and AST traversal within the sqlfluff ecosystem. Specializes in debugging rules that depend on specific node types (e.g., `table_reference`, `join_clause`) and how dialect-specific grammar definitions (like TSQL) map to these nodes. Has extensive experience fixing false positives in linting rules caused by incorrect node matching or missing context checks.",
+    "cost_per_move": 1.0,
+    "created_generation": 17,
+    "domain_tags": [
+     "sqlfluff",
+     "ast",
+     "parser",
+     "tsql",
+     "dialect",
+     "rule",
+     "l031",
+     "node"
+    ],
+    "goal": "Analyze the TSQL dialect's Abstract Syntax Tree (AST) structure to determine how `FROM` clauses with aliases are parsed and why rule L031 incorrectly identifies them as join conditions.",
+    "kind": "probe",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "SQL AST & Dialect Parser Specialist",
+    "origin": "recruited:v11_ab_mcts_swebench_firm_0:g17:m5",
+    "rationale": "The current team lacks deep knowledge of sqlfluff's internal AST representation and dialect-specific parsing behaviors. The issue is not about API contracts, ORM models, or CLI usage, but rather how the parser constructs the tree for TSQL `FROM` clauses with aliases and how rule L031 traverses this.",
+    "role_id": "r_sql_ast_dialect_parser_specialist",
+    "source": "synthesized",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.7,
+    "tools_enabled": true,
+    "uses": 0
+   }
+  ],
+  "policy": {
+   "enabled": true,
+   "exploration_c": 0.25,
+   "headcount_lambda": 0.05,
+   "max_active_roles": 6,
+   "max_initial_roles": 4,
+   "min_initial_roles": 2,
+   "optimistic_prior": 0.3,
+   "recruit_bias": -2.0,
+   "recruit_cooldown_moves": 3,
+   "recruit_mode": "both",
+   "recruit_w_headcount": 0.4,
+   "recruit_w_stall": 0.5,
+   "recruit_w_unmatched": 0.8,
+   "stall_delta_u": 0.05,
+   "stall_moves": 4,
+   "temperature": 0.0
+  },
+  "recruit_log": [
+   {
+    "move_index": 5,
+    "name": "SQL AST & Dialect Parser Specialist",
+    "prior": 0.0998,
+    "reason": "stall=2, unmatched=1",
+    "role_id": "r_sql_ast_dialect_parser_specialist",
+    "source": "synthesized",
+    "stall_counter": 2,
+    "unmatched_modules": [
+     "src/sqlfluff/rules/L031.py"
+    ]
+   }
+  ],
+  "recruit_prior": 0.018,
+  "stall_counter": 0,
+  "stats": {
+   "r_api_contract_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   },
+   "r_data_model_orm_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   },
+   "r_docs_cli_behaviour_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.98,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 1,
+    "syntheses_written": 1,
+    "untestable": 0,
+    "visits": 4
+   },
+   "r_issue_reproducer_swebench": {
+    "consecutive_stalls": 1,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 1,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 1
+   },
+   "r_sql_ast_dialect_parser_specialist": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": 5,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   }
+  },
+  "unmatched_modules": []
+ },
+ "org_history": [
+  {
+   "audit": {
+    "candidates": 364,
+    "chosen": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_docs_cli_behaviour_specialist_swebench",
+     "r_issue_reproducer_swebench"
+    ],
+    "iteration": 1,
+    "lambda_eff": 0.0668,
+    "library_size": 10,
+    "library_source": "genome",
+    "scores": {
+     "r_api_contract_specialist_swebench": 0.15,
+     "r_data_model_orm_specialist_swebench": 0.15,
+     "r_docs_cli_behaviour_specialist_swebench": 0.1554,
+     "r_issue_reproducer_swebench": 0.18,
+     "r_minimal_diff_synthesiser_swebench": 0.15,
+     "r_numerics_symbolic_specialist_swebench": 0.15,
+     "r_parsing_grammar_specialist_swebench": 0.15,
+     "r_regression_guard_swebench": 0.15,
+     "r_test_suite_analyst_swebench": 0.15,
+     "r_traceback_localiser_swebench": 0.15
+    },
+    "task": {
+     "complexity": 0.1635,
+     "has_assertion": false,
+     "has_import_error": false,
+     "n_exception_classes": 0,
+     "n_failures": 0,
+     "n_modules": 1,
+     "n_paths_mentioned": 1,
+     "source": "problem_statement",
+     "statement_chars": 635,
+     "tags": [
+      "sqlfluff",
+      "rules",
+      "l031",
+      "tsql",
+      "incorrectly",
+      "triggers",
+      "avoid",
+      "using",
+      "aliases",
+      "join",
+      "condition",
+      "present",
+      "behaviour",
+      "both",
+      "these",
+      "queries",
+      "pass",
+      "only",
+      "difference",
+      "addition",
+      "table",
+      "alias",
+      "select",
+      "hello",
+      "mytable",
+      "same",
+      "query",
+      "observed",
+      "passes",
+      "fails",
+      "steps",
+      "reproduce",
+      "lint",
+      "above",
+      "dialect",
+      "version",
+      "configuration"
+     ]
+    },
+    "team": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_docs_cli_behaviour_specialist_swebench",
+     "r_issue_reproducer_swebench"
+    ],
+    "team_names": [
+     "API-Contract Specialist",
+     "Data-Model & ORM Specialist",
+     "Docs & CLI Behaviour Specialist",
+     "Issue Reproducer"
+    ],
+    "v_org": 0.3681
+   },
+   "iteration": 1,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "cli",
+       "argparse",
+       "option",
+       "flag",
+       "command",
+       "config",
+       "configuration",
+       "documentation",
+       "docs",
+       "help",
+       "output",
+       "console",
+       "logging",
+       "warning",
+       "deprecationwarning",
+       "pylint",
+       "flake8",
+       "requests",
+       "http",
+       "session",
+       "header",
+       "url",
+       "matplotlib",
+       "figure",
+       "axes",
+       "pyplot",
+       "xarray",
+       "dataset"
+      ],
+      "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Docs & CLI Behaviour Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_docs_cli_behaviour_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "reproduce",
+       "reproduction",
+       "minimal",
+       "example",
+       "issue",
+       "actual",
+       "behaviour",
+       "behavior",
+       "traceback",
+       "regression"
+      ],
+      "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Issue Reproducer",
+      "origin": "seed:swebench",
+      "role_id": "r_issue_reproducer_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     },
+     {
+      "backstory": "Expert in SQL dialect parsing and AST traversal within the sqlfluff ecosystem. Specializes in debugging rules that depend on specific node types (e.g., `table_reference`, `join_clause`) and how dialect-specific grammar definitions (like TSQL) map to these nodes. Has extensive experience fixing false positives in linting rules caused by incorrect node matching or missing context checks.",
+      "cost_per_move": 1.0,
+      "created_generation": 17,
+      "domain_tags": [
+       "sqlfluff",
+       "ast",
+       "parser",
+       "tsql",
+       "dialect",
+       "rule",
+       "l031",
+       "node"
+      ],
+      "goal": "Analyze the TSQL dialect's Abstract Syntax Tree (AST) structure to determine how `FROM` clauses with aliases are parsed and why rule L031 incorrectly identifies them as join conditions.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "SQL AST & Dialect Parser Specialist",
+      "origin": "recruited:v11_ab_mcts_swebench_firm_0:g17:m5",
+      "rationale": "The current team lacks deep knowledge of sqlfluff's internal AST representation and dialect-specific parsing behaviors. The issue is not about API contracts, ORM models, or CLI usage, but rather how the parser constructs the tree for TSQL `FROM` clauses with aliases and how rule L031 traverses this.",
+      "role_id": "r_sql_ast_dialect_parser_specialist",
+      "source": "synthesized",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.7,
+      "tools_enabled": true,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [
+     {
+      "move_index": 5,
+      "name": "SQL AST & Dialect Parser Specialist",
+      "prior": 0.0998,
+      "reason": "stall=2, unmatched=1",
+      "role_id": "r_sql_ast_dialect_parser_specialist",
+      "source": "synthesized",
+      "stall_counter": 2,
+      "unmatched_modules": [
+       "src/sqlfluff/rules/L031.py"
+      ]
+     }
+    ],
+    "recruit_prior": 0.018,
+    "stall_counter": 0,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_docs_cli_behaviour_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.98,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 4
+     },
+     "r_issue_reproducer_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_sql_ast_dialect_parser_specialist": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": 5,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     }
+    },
+    "unmatched_modules": []
+   }
+  }
+ ],
+ "prediction_chars": 3262,
+ "swebench": {
+  "base_commit": "14e1a23a3166b9a645a16de96f694c77a5d4abb7",
+  "budget_moves": 30,
+  "changed_files": [
+   "src/sqlfluff/rules/L031.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "sqlfluff__sqlfluff-1625",
+  "iterations": [
+   {
+    "iteration": 1,
+    "moves_used": 8,
+    "org": {
+     "recruits": 1,
+     "stall": 0,
+     "team": [
+      "r_api_contract_specialist_swebench",
+      "r_data_model_orm_specialist_swebench",
+      "r_docs_cli_behaviour_specialist_swebench",
+      "r_issue_reproducer_swebench",
+      "r_sql_ast_dialect_parser_specialist"
+     ],
+     "unmatched": []
+    },
+    "patched": true,
+    "recheck": {
+     "bug_gone_hypotheses": [
+      "h1",
+      "h2"
+     ],
+     "evidence_id": "e11",
+     "probes_rerun": 2,
+     "reopened": [],
+     "resolved": [
+      "q1"
+     ],
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "all_resolved",
+    "synthesized_paths": [
+     "src/sqlfluff/rules/L031.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "src/sqlfluff/rules/L031.py",
+    "rationale": "The issue explicitly reports incorrect behavior for rule L031 ('Avoid using aliases in join condition'), which is implemented in this specific rule module.",
+    "resolved": "src/sqlfluff/rules/L031.py"
+   }
+  ],
+  "moves_used": 8,
+  "patch_chars": 3262,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "sqlfluff",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 60.0,
+    "duration_s": 60.66,
+    "mode": "proximity",
+    "reason": "whole suite did not finish within 60s",
+    "target": "test"
+   },
+   "tried": [
+    "sqlfluff"
+   ]
+  },
+  "repo": "sqlfluff/sqlfluff",
+  "reproduction": [
+   {
+    "bug_gone_hypotheses": [
+     "h1",
+     "h2"
+    ],
+    "evidence_id": "e11",
+    "probes_rerun": 2,
+    "reopened": [],
+    "reruns": [
+     {
+      "bug_no_longer_reproduces": true,
+      "completed": true,
+      "detail": "prediction failed: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+      "evidence_id": "e9",
+      "exit_code": 0,
+      "hypothesis_id": "h1",
+      "matched_prediction": false
+     },
+     {
+      "bug_no_longer_reproduces": true,
+      "completed": true,
+      "detail": "prediction failed: exit_code==1; stdout contains 'BUG: L031 triggered on non-join query'",
+      "evidence_id": "e10",
+      "exit_code": 0,
+      "hypothesis_id": "h2",
+      "matched_prediction": false
+     }
+    ],
+    "resolved": [
+     "q1"
+    ],
+    "verdict": "resolved"
+   }
+  ],
+  "resolved_by_self_oracle": true,
+  "root_module": "src/sqlfluff/rules/L031.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [],
+   "failure": "TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present",
+   "paths": [
+    "src/sqlfluff/rules/L031.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "resolved",
+  "task_features": {
+   "complexity": 0.1635,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 635,
+   "tags": [
+    "sqlfluff",
+    "rules",
+    "l031",
+    "tsql",
+    "incorrectly",
+    "triggers",
+    "avoid",
+    "using",
+    "aliases",
+    "join",
+    "condition",
+    "present",
+    "behaviour",
+    "both",
+    "these",
+    "queries",
+    "pass",
+    "only",
+    "difference",
+    "addition",
+    "table",
+    "alias",
+    "select",
+    "hello",
+    "mytable",
+    "same",
+    "query",
+    "observed",
+    "passes",
+    "fails",
+    "steps",
+    "reproduce",
+    "lint",
+    "above",
+    "dialect",
+    "version",
+    "configuration"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 5
+ },
+ "task": {
+  "base_commit": "14e1a23a3166b9a645a16de96f694c77a5d4abb7",
+  "created_at": "2021-10-13T11:35:29Z",
+  "environment_setup_commit": "67023b85c41d23d6c6d69812a41b207c4f8a9331",
+  "hints_text": "",
+  "instance_id": "sqlfluff__sqlfluff-1625",
+  "problem_statement": "TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present\n## Expected Behaviour\r\n\r\nBoth of these queries should pass, the only difference is the addition of a table alias 'a':\r\n\r\n1/ no alias\r\n\r\n```\r\nSELECT [hello]\r\nFROM\r\n    mytable\r\n```\r\n\r\n2/ same query with alias\r\n\r\n```\r\nSELECT a.[hello]\r\nFROM\r\n    mytable AS a\r\n```\r\n\r\n## Observed Behaviour\r\n\r\n1/ passes\r\n2/ fails with: L031: Avoid using aliases in join condition.\r\n\r\nBut there is no join condition :-)\r\n\r\n## Steps to Reproduce\r\n\r\nLint queries above\r\n\r\n## Dialect\r\n\r\nTSQL\r\n\r\n## Version\r\n\r\nsqlfluff 0.6.9\r\nPython 3.6.9\r\n\r\n## Configuration\r\n\r\nN/A\n",
+  "repo": "sqlfluff/sqlfluff",
+  "version": "0.6"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 10,
+  "thought_tokens": 0
+ },
+ "token_usage": 55523,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

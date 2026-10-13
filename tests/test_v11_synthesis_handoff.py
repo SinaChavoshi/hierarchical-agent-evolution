@@ -189,6 +189,48 @@ class V11SynthesisHandoffTests(unittest.TestCase):
         self.assertFalse(h.patch_applied)
         self.assertEqual(q.status, Q_OPEN)
 
+    def test_elided_class_docstring_and_json_escape_preservation(self):
+        src = (
+            "class cachedproperty:\n"
+            '    """Docstring line 1.\n'
+            '    Docstring line 2.\n'
+            '    """\n\n'
+            '    __slots__ = ("wrapped",)\n\n'
+            "    def __init__(self, wrapped):\n"
+            "        self.wrapped = wrapped\n\n"
+            "    @property\n"
+            "    def __doc__(self):\n"
+            '        return "\\n%s" % (self.wrapped.__doc__ or "")\n'
+        )
+        old_lines = [
+            "class cachedproperty:",
+            "    def __init__(self, wrapped):",
+            "        self.wrapped = wrapped",
+            "",
+            "    @property",
+            "    def __doc__(self):",
+            '        return "n%s" % (self.wrapped.__doc__ or "")',
+        ]
+        new_lines = old_lines + [
+            "",
+            "if sys.version_info >= (3, 8):",
+            "    from functools import cached_property",
+            "else:",
+            "    cached_property = cachedproperty",
+        ]
+        plan = RepairPlan(
+            function="cachedproperty",
+            rationale="alias cached_property on Python >= 3.8",
+            old_lines=old_lines,
+            new_lines=new_lines,
+        )
+        res, _note = apply_repair_plan(src, plan)
+        self.assertIsNotNone(res)
+        self.assertIn('__slots__ = ("wrapped",)', res)
+        self.assertIn('"\\n%s"', res)
+        self.assertIn("\nif sys.version_info >= (3, 8):\n", res)
+        self.assertNotIn("    class cachedproperty:", res)
+
 
 if __name__ == "__main__":
     unittest.main()

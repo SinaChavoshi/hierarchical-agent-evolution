@@ -248,10 +248,20 @@ class AdaptiveBranchingController:
         for h in untested:
             arms.append(self.arm(qid, ARM_EXPERIMENT, h.hypothesis_id,
                                  clamp01(h.prior + self.deepen_boost), live_prior=True))
-        for h in hyps:
-            if h.status == SUPPORTED and not h.patch_applied and h.synthesis_failures < MAX_SYNTHESIS_FAILURES:
-                arms.append(self.arm(qid, ARM_SYNTHESIZE, h.hypothesis_id,
-                                     clamp01(h.posterior + self.deepen_boost), live_prior=True))
+        tested_on_q = sum(1 for h in hyps if h.status != UNVERIFIED)
+        probers_avail = [r for r in (org.active_roles if org is not None else []) if r.can("probe")]
+        corroborated = (
+            bool(getattr(q, "parent_question_id", None))
+            or tested_on_q >= 2
+            or self.gen_exhausted(qid)
+            or org is None
+            or len(probers_avail) < 2
+        )
+        if corroborated:
+            for h in hyps:
+                if h.status == SUPPORTED and not h.patch_applied and h.synthesis_failures < MAX_SYNTHESIS_FAILURES:
+                    arms.append(self.arm(qid, ARM_SYNTHESIZE, h.hypothesis_id,
+                                         clamp01(h.posterior + self.deepen_boost), live_prior=True))
         if not self.gen_exhausted(qid):
             probers = [r for r in (org.active_roles if org is not None else []) if r.can("probe")]
             if probers:

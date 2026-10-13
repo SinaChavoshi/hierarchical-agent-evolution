@@ -1,0 +1,5 @@
+{
+ "instance_id": "marshmallow-code__marshmallow-1359",
+ "model_name_or_path": "hae-v11-ab/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/src/marshmallow/fields.py b/src/marshmallow/fields.py\nindex 0b18e7dd..f20e0f2f 100644\n--- a/src/marshmallow/fields.py\n+++ b/src/marshmallow/fields.py\n@@ -1112,11 +1112,11 @@ class DateTime(Field):\n \n     def _bind_to_schema(self, field_name, schema):\n         super()._bind_to_schema(field_name, schema)\n-        self.format = (\n-            self.format\n-            or getattr(schema.opts, self.SCHEMA_OPTS_VAR_NAME)\n-            or self.DEFAULT_FORMAT\n-        )\n+        if not self.format:\n+            if hasattr(schema, 'opts'):\n+                self.format = getattr(schema.opts, self.SCHEMA_OPTS_VAR_NAME, None)\n+            if not self.format:\n+                self.format = self.DEFAULT_FORMAT\n \n     def _serialize(self, value, attr, obj, **kwargs):\n         if value is None:\n"
+}

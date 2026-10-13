@@ -1238,6 +1238,20 @@ class HierarchicalCompanyRunner:
             else:
                 header = f"EPISTEMIC MOVE: PROPOSE {k} MUTUALLY-EXCLUSIVE HYPOTHESES for question {question.question_id}.\n"
                 rule_2 = "2. Hypotheses must be mutually exclusive, and at least one must be a mechanism you consider UNLIKELY.\n"
+            existing_supported = [
+                sh for sh in state.hypotheses_for(question.question_id)
+                if sh.status == "SUPPORTED"
+            ]
+            if existing_supported:
+                covered = "; ".join(f"[{sh.hypothesis_id}] {sh.claim}" for sh in existing_supported[:3])
+                rule_2 += (
+                    f"CRITICAL MULTI-REQUIREMENT RULE: Mechanism(s) ALREADY CONFIRMED (`SUPPORTED`) on this question: "
+                    f"{covered}. DO NOT re-propose or re-test the same mechanism or probe assertion! Inspect the full "
+                    "issue specification and target module carefully for ANY OTHER requirement, warning/deprecation "
+                    "behaviour, secondary method/caller, or edge case requested by the issue that is NOT YET covered "
+                    "by the confirmed hypothesis(es) above, and write a distinct probe specifically testing that "
+                    "additional requirement.\n"
+                )
             prompt = (
                 header +
                 f"QUESTION: {question.text}\n"
@@ -1425,6 +1439,21 @@ class HierarchicalCompanyRunner:
                 f"  EVIDENCE:\n" + ("\n".join(evidence_lines) or "  (none recorded)") + "\n\n"
                 f"Oracle failure being answered: {question.source_failure or question.text}\n"
             )
+            co_hyps = [
+                sh for sh in state.hypotheses_for(question.question_id)
+                if sh.status == "SUPPORTED" and sh.hypothesis_id != hypothesis.hypothesis_id and not sh.patch_applied
+            ]
+            if co_hyps:
+                finding += (
+                    "\nCO-SUPPORTED SIBLING HYPOTHESIS(ES) ON THIS SAME QUESTION "
+                    "(YOUR PATCH MUST SATISFY ALL OF THEM TOGETHER BEFORE THE QUESTION CAN RESOLVE):\n"
+                    + "\n".join(
+                        f"  - [{sh.hypothesis_id}] CLAIM: {sh.claim}\n    MECHANISM: {sh.mechanism}\n"
+                        f"    PROBE:\n```python\n{sh.probe_code}\n```"
+                        for sh in co_hyps[:3]
+                    )
+                    + "\n"
+                )
             prior_attempts = list(getattr(hypothesis, "synthesis_attempts", None) or [])
             if prior_attempts:
                 att_lines = [
@@ -1570,14 +1599,16 @@ class HierarchicalCompanyRunner:
             if source:
                 # Rung 1: an anchored plan (with optional secondary hunks / collaborator edits), applied by runner.
                 plan_prompt = (
-                    f"EPISTEMIC MOVE: SYNTHESIZE -- plan the smallest repair of `{target}` that fixes this mechanism.\n\n"
+                    f"EPISTEMIC MOVE: SYNTHESIZE -- plan the smallest complete repair of `{target}` that fixes this mechanism.\n\n"
                     f"{finding}\n"
                     "Reply with a REPAIR_PLAN packet: `function` (where the primary change lands), `rationale` (one "
-                    "sentence), `old_lines` (the exact lines of the CURRENT module to replace -- copied verbatim with "
-                    "exact indentation, NO line-number prefixes, 1-40 consecutive lines unique in the file), "
-                    "`new_lines` (replacement lines, same indentation), and `secondary_edits` (`[]` when one hunk "
-                    "suffices, or up to 3 additional coordinated `{path, function, old_lines, new_lines}` hunks in "
-                    f"`{target}` or a collaborator module when fixing sibling methods/collaborators together). "
+                    "sentence), `old_lines` (the exact contiguous lines of the CURRENT module to replace -- copied "
+                    "verbatim with exact indentation, NO omitted docstrings/lines, NO line-number prefixes, 1-40 "
+                    "consecutive lines unique in the file), `new_lines` (replacement lines, same indentation; in JSON "
+                    "strings, double-escape Python backslashes like `\\\\n`, `\\\\Z`, `\\\\s`, `\\\\\"`), and "
+                    "`secondary_edits` (`[]` when one hunk suffices, or up to 3 additional coordinated "
+                    "`{path, function, old_lines, new_lines}` hunks in `{target}` or a collaborator module whenever "
+                    "sibling methods/classes in the same module share the same unguarded call site or pattern). "
                     "`new_lines` MUST differ from `old_lines`. Mechanisms under RULED OUT were falsified by evidence; "
                     f"do not address them. Set `hypothesis_id` to \"{hypothesis.hypothesis_id}\"."
                 )

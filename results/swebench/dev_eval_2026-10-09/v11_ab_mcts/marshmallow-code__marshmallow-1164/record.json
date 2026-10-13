@@ -1,0 +1,3297 @@
+{
+ "authored_files": [
+  "src/marshmallow/fields.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 356.9,
+ "epistemic_audit": {
+  "budget_moves": 30,
+  "calibration_brier": 0.6185,
+  "calibration_tested": 5,
+  "delta_u_total": 1.78,
+  "duplicate_rejections": 0,
+  "evidence": 10,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 5,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 3,
+  "hypotheses": 5,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 4,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 5,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 2.6,
+  "ledger_hash": "a1a3b06b3b307f75b7a4f6bae12d043f8f75531ac2417c154d0bf8a6601379b0",
+  "low_prior_wins": 0,
+  "moves_used": 15,
+  "overconfident_falsified": 4,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 8,
+  "proposed_total": 8,
+  "questions": 3,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 2,
+  "questions_open": 2,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 0.82,
+  "resolved_fraction": 0.684615,
+  "ruled_out": 4,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "stagnation",
+  "syntheses": 1,
+  "syntheses_verified": 1,
+  "tabu_rejections": 3,
+  "token_usage": 62942,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v11_ab_mcts_swebench_firm_0",
+  "counters": {
+   "e": 10,
+   "h": 5,
+   "q": 3,
+   "ro": 4
+  },
+  "created_at": 1791850281.212,
+  "evidence_log": [
+   {
+    "command": "python .hae/probe_h1.py",
+    "created_at": 1791850320.943,
+    "detail": "prediction held: exit_code==1; stdout contains 'BUG: First element eaten'",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: First element eaten"
+    },
+    "question_id": "q1",
+    "sha256": "2d347ba952a6f32ee79defa0c7940784624b6e7f75fc91875589902304531f24",
+    "stderr": "command terminated with exit code 1\n",
+    "stdout": "BUG: First element eaten\n"
+   },
+   {
+    "command": "verify_module src/marshmallow/fields.py (in place via kubectl:default/swebench-tb-marshmallow-code-marshmallow-1164/testbed:/testbed)",
+    "created_at": 1791850442.519,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e2",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "a55e76500017cf7b657619e4dbbf5d809ba3b4572c9c6e1f33573c9ed297e2ff",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/marshmallow/fields.py\n\n[import] IMPORT_OK marshmallow.fields\n\n[static_check] no undefined names (1303 lines)\n[repo_tests] whole suite passed: tests/ (whole suite, 0 baseline failure(s))\n      [ 78%]\ntests/test_utils.py ....................................                 [ 83%]\ntests/test_validate.py ................................................. [ 89%]\n........................................................................ [ 99%]\n......                                                                   [100%]\n\n=============================== warnings summary ===============================\nsrc/marshmallow/__init__.py:19\n  /testbed/src/marshmallow/__init__.py:19: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.\n    __version_info__ = tuple(LooseVersion(__version__).version)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 772 passed, 1 warning in 1.02s ========================\n"
+   },
+   {
+    "command": "post-synthesis re-run: python .hae/probe_h1.py",
+    "created_at": 1791850443.94,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: First element eaten'",
+    "evidence_id": "e3",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: First element eaten"
+    },
+    "question_id": "q1",
+    "sha256": "ba49b0314893bfeef5718a6bcf6034f16c1799dc532538920cb99e5bd36b1b0c",
+    "stderr": "",
+    "stdout": "OK: All elements present\n"
+   },
+   {
+    "command": "post-synthesis effect check: supported probes re-run after the write (NOT the hidden tests)",
+    "created_at": 1791850443.94,
+    "detail": "post-synthesis effect check: effective -- 1/1 re-run probe(s) no longer reproduce the bug (h1)",
+    "evidence_id": "e4",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "521e6913af4036b9dc37999eb74bcdc12f3b680c0cf68f61c743e37f073c70b9",
+    "stderr": "",
+    "stdout": "h1 (q1): completed=True matched=False exit=0 bug_no_longer_reproduces=True"
+   },
+   {
+    "command": "python .hae/probe_h2.py",
+    "created_at": 1791850467.911,
+    "detail": "prediction failed: stdout contains 'BUG: Generator consumed'",
+    "evidence_id": "e5",
+    "exit_code": 0,
+    "hypothesis_id": "h2",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0,
+     "expect_stdout_contains": "BUG: Generator consumed"
+    },
+    "question_id": "q2",
+    "sha256": "161d0d86021005da2daf2768fde48137a0a8b637272ab7f64349519b7059984f",
+    "stderr": "",
+    "stdout": "OK\n"
+   },
+   {
+    "command": "python .hae/probe_h3.py",
+    "created_at": 1791850494.591,
+    "detail": "prediction failed: stdout contains 'BUG: Generator consumed partially or incorrectly'",
+    "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "h3",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0,
+     "expect_stdout_contains": "BUG: Generator consumed partially or incorrectly"
+    },
+    "question_id": "q3",
+    "sha256": "7c0feb27aff4f1d7477be536c09e6a22dfc4d53d6815bd05094526e9e0f1f218",
+    "stderr": "",
+    "stdout": "is_iterable_but_not_string: True\ndump_result: {'os': [{'i': 1}, {'i': 0}]}\nOK: Generator handled correctly\n"
+   },
+   {
+    "command": "python .hae/probe_h4.py",
+    "created_at": 1791850610.672,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: Generator consumed'",
+    "evidence_id": "e7",
+    "exit_code": 0,
+    "hypothesis_id": "h4",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: Generator consumed"
+    },
+    "question_id": "q2",
+    "sha256": "b80f8bb1795e435a49b310b39ead2f2beb51de086bda718f4ecafd9a9f2d0488",
+    "stderr": "",
+    "stdout": "OK\n"
+   },
+   {
+    "command": "python .hae/probe_h5.py",
+    "created_at": 1791850629.582,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: Generator consumed partially'",
+    "evidence_id": "e8",
+    "exit_code": 0,
+    "hypothesis_id": "h5",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: Generator consumed partially"
+    },
+    "question_id": "q3",
+    "sha256": "38e9b39c9e2b38ff7258a470190b17a6517f7fd5a111b2a55f3e11b23d9b10ef",
+    "stderr": "",
+    "stdout": "OK\n"
+   },
+   {
+    "command": "python .hae/probe_h1.py",
+    "created_at": 1791850633.531,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: First element eaten'",
+    "evidence_id": "e9",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: First element eaten"
+    },
+    "question_id": "q1",
+    "sha256": "45d5e03b31d5701023595fafce3e957dc697c8808c17678bef139acee0e905f1",
+    "stderr": "",
+    "stdout": "OK: All elements present\n"
+   },
+   {
+    "command": "self-oracle: reproduction probe re-run after patch (NOT the hidden tests)",
+    "created_at": 1791850633.531,
+    "detail": "self-oracle, iteration 1: resolved (1/1 reproduction probe(s) no longer reproduce the bug)",
+    "evidence_id": "e10",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "oracle",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "f2f4db00959c7f61845e803717a90e2944e82156273c7bf93e788bdb6b6eaace",
+    "stderr": "",
+    "stdout": "h1: completed=True matched=False exit=0 bug_no_longer_reproduces=True"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "In `Nested._serialize`, when `many=True`, the code iterates over `nested_obj` (which may be a generator) to collect items for `schema.dump` or `schema._update_fields`. If the implementation uses a `if",
+    "created_at": 1791850319.469,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1",
+     "e2",
+     "e3",
+     "e4",
+     "e9"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "The `Nested._serialize` method consumes the first element of the `nested_obj` generator to check for emptiness or type validity (e.g., via `next()` or a `for` loop that breaks early) before passing the remaining elements to the nested schema's serialization/ds",
+    "mechanism_signature": "_serialize _update_fields before break check collect consum dump ear element emptiness first generator implementation item iterat loop many nest nested_obj next over pass remain schema serialization true type uses validity via",
+    "patch_applied": true,
+    "posterior": 0.955,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: First element eaten"
+    },
+    "prior": 0.85,
+    "probe_code": "import sys\nfrom marshmallow import Schema, fields\n\nclass O(Schema):\n    i = fields.Int()\n\nclass P(Schema):\n    os = fields.Nested(O, many=True)\n\ndef gen():\n    yield {'i': 1}\n    yield {'i': 0}\n\np = P()\nresult = p.dump({'os': gen()})\n\nif result.data['os'] == [{'i': 0}]:\n    print('BUG: First element eaten')\n    sys.exit(1)\nelif result.data['os'] == [{'i': 1}, {'i': 0}]:\n    print('OK: All elements present')\n    sys.exit(0)\nelse:\n    print('UNKNOWN: ' + str(result.data['os']))\n    sys.exit(2)",
+    "probe_rejections": 0,
+    "proposed_by": "Data-Model & ORM Specialist",
+    "question_id": "q1",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.95,
+    "visits": 1
+   },
+   {
+    "claim": "In `Nested._serialize`, the `many=True` branch iterates over `nested_obj` to check for `missing_` values. If `nested_obj` is a generator, this iteration consumes the first element. The subsequent call",
+    "created_at": 1791850466.493,
+    "epoch": 0,
+    "evidence_ids": [
+     "e5"
+    ],
+    "hypothesis_id": "h2",
+    "last_rejection": "",
+    "mechanism": "In `Nested._serialize`, the `many=True` branch iterates over `nested_obj` to check for `missing_` values. If `nested_obj` is a generator, this iteration consumes the first element. The subsequent call to `schema.dump` receives the exhausted generator (or the `",
+    "mechanism_signature": "_serialize branch call check consum dump element exhaust first generator iterat iteration many missing_ nest nested_obj over receiv schema subsequent true",
+    "patch_applied": false,
+    "posterior": 0.0,
+    "prediction": {
+     "expect_exit_code": 0,
+     "expect_stdout_contains": "BUG: Generator consumed"
+    },
+    "prior": 0.95,
+    "probe_code": "from marshmallow import Schema, fields\nclass O(Schema):\n    i = fields.Int()\nclass P(Schema):\n    os = fields.Nested(O, many=True)\ndef gen():\n    yield {'i': 1}\n    yield {'i': 0}\np = P()\nresult = p.dump({'os': gen()})\nif result.data['os'] != [{'i': 1}, {'i': 0}]:\n    print('BUG: Generator consumed')\nelse:\n    print('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "Data-Model & ORM Specialist",
+    "question_id": "q2",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "status": "FALSIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.4,
+    "visits": 1
+   },
+   {
+    "claim": "In `Schema.dump`, the check `if many and utils.is_iterable_but_not_string(obj)` fails to convert a generator to a list because `is_iterable_but_not_string` returns False for generators, causing the un",
+    "created_at": 1791850493.095,
+    "epoch": 0,
+    "evidence_ids": [
+     "e6"
+    ],
+    "hypothesis_id": "h3",
+    "last_rejection": "",
+    "mechanism": "The `utils.is_iterable_but_not_string` utility function likely checks for `__iter__` but not `__next__` or `__getitem__`, or explicitly excludes generators, causing the `many=True` path in `dump` to skip the `list(obj)` conversion. This leaves `obj` as a lazy",
+    "mechanism_signature": "__getitem__ __iter__ __next__ caus check conversion convert dump exclud explicit false generator is_iterable_but_not_string lazy leav like list many obj path schema skip true util utility",
+    "patch_applied": false,
+    "posterior": 0.0,
+    "prediction": {
+     "expect_exit_code": 0,
+     "expect_stdout_contains": "BUG: Generator consumed partially or incorrectly"
+    },
+    "prior": 0.85,
+    "probe_code": "from marshmallow import Schema, fields\nimport marshmallow.utils as utils\n\ndef gen():\n    yield {'i': 1}\n    yield {'i': 0}\n\nclass O(Schema):\n    i = fields.Int()\n\nclass P(Schema):\n    os = fields.Nested(O, many=True)\n\ng = gen()\nprint('is_iterable_but_not_string:', utils.is_iterable_but_not_string(g))\n\np = P()\nresult = p.dump({'os': g})\nprint('dump_result:', result.data)\n\nif len(result.data['os']) != 2:\n    print('BUG: Generator consumed partially or incorrectly')\nelse:\n    print('OK: Generator handled correctly')",
+    "probe_rejections": 0,
+    "proposed_by": "Issue Reproducer",
+    "question_id": "q3",
+    "role_id": "r_issue_reproducer_swebench",
+    "status": "FALSIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.4,
+    "visits": 1
+   },
+   {
+    "claim": "In `Nested._serialize`, the `many=True` branch calls `schema.dump(nested_obj)`. If `nested_obj` is a generator, `schema.dump` internally iterates it to check for `missing_` values (or similar pre-pass",
+    "created_at": 1791850609.225,
+    "epoch": 0,
+    "evidence_ids": [
+     "e7"
+    ],
+    "hypothesis_id": "h4",
+    "last_rejection": "",
+    "mechanism": "In `Nested._serialize`, the `many=True` branch calls `schema.dump(nested_obj)`. If `nested_obj` is a generator, `schema.dump` internally iterates it to check for `missing_` values (or similar pre-pass logic in `Schema.dump`/`_update_fields`), consuming the `__",
+    "mechanism_signature": "_serialize _update_fields branch call check consum dump generator internal iterat logic many missing_ nest nested_obj pass pre schema similar true",
+    "patch_applied": false,
+    "posterior": 0.0,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: Generator consumed"
+    },
+    "prior": 0.85,
+    "probe_code": "from marshmallow import Schema, fields\n\nclass O(Schema):\n    i = fields.Int()\n\nclass P(Schema):\n    os = fields.Nested(O, many=True)\n\ndef gen():\n    yield {'i': 1}\n    yield {'i': 0}\n\np = P()\nresult = p.dump({'os': gen()})\n\nif result.data['os'] == [{'i': 0}]:\n    print('BUG: Generator consumed')\n    exit(1)\nelse:\n    print('OK')\n    exit(0)",
+    "probe_rejections": 0,
+    "proposed_by": "Data-Model & ORM Specialist",
+    "question_id": "q2",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "status": "FALSIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 1
+   },
+   {
+    "claim": "The reported behaviour arises in `Schema.__filter_fields` (called by `_update_fields`), where `obj[0]` is accessed to determine field filtering when `many=True`. If `obj` is a generator (passed from `",
+    "created_at": 1791850628.115,
+    "epoch": 0,
+    "evidence_ids": [
+     "e8"
+    ],
+    "hypothesis_id": "h5",
+    "last_rejection": "",
+    "mechanism": "In `Schema.__filter_fields`, when `many=True`, the code executes `obj_type = type(obj[0])` to inspect the first element for field filtering. If `obj` is a generator (passed from `fields.Nested.serialize` without being cast to a list), this access consumes the",
+    "mechanism_signature": "__filter_fields _update_fields access aris behaviour call cast consum determine element execut field filter first generator inspect list many nest obj obj_type pass report schema serialize true type without",
+    "patch_applied": false,
+    "posterior": 0.0,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: Generator consumed partially"
+    },
+    "prior": 0.85,
+    "probe_code": "from marshmallow import Schema, fields\nclass O(Schema):\n    i = fields.Int()\nclass P(Schema):\n    os = fields.Nested(O, many=True)\ndef gen():\n    yield {'i': 1}\n    yield {'i': 0}\np = P()\nres = p.dump({'os': gen()})\nif len(res.data['os']) != 2:\n    print('BUG: Generator consumed partially')\n    exit(1)\nelse:\n    print('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "Docs & CLI Behaviour Specialist",
+    "question_id": "q3",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "status": "FALSIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 1
+   }
+  ],
+  "move_log": [
+   {
+    "agent_role": "Data-Model & ORM Specialist",
+    "created_at": 1791850319.47,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.45543,
+     "ab_y": 0.0,
+     "head_v": 0.450962
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 0.866667,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 0.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 1,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q1",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "state_hash_after": "1bd1764eb52b34ef6f70743eed9166bc37a09a89ac4f4bfc10dc16c5e4c71daa",
+    "state_hash_before": "8625dbcdf15eecc2e6adcce9e8631bba2508ea3a31554efa700f4f5757eae190",
+    "value_after": 0.056667,
+    "value_before": 0.05
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791850320.943,
+    "delta_u": 0.95,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.857143,
+     "ab_theta": 0.832696,
+     "ab_y": 1.0,
+     "head_v": 0.550889
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 0.866667,
+     "module_isolation": 0.5,
+     "open_without_options": 0.666667,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.1,
+     "supported_ratio": 0.0,
+     "untested_ratio": 1.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 2,
+    "move_type": "run_experiment",
+    "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: First element eaten'",
+    "question_id": "q1",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "state_hash_after": "ca138a37db365bd2a69d4ce7ba5a239ba0d7ac8f721c02bcf624a70f1eede2b0",
+    "state_hash_before": "1bd1764eb52b34ef6f70743eed9166bc37a09a89ac4f4bfc10dc16c5e4c71daa",
+    "value_after": 0.331898,
+    "value_before": 0.052667
+   },
+   {
+    "agent_role": "Data-Model & ORM Specialist",
+    "created_at": 1791850443.94,
+    "delta_u": 0.03,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.79,
+     "ab_theta": 0.991076,
+     "ab_y": 0.53,
+     "head_v": 0.436728
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.55,
+     "module_isolation": 0.5,
+     "open_without_options": 0.666667,
+     "resolved_fraction": 0.365385,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 3,
+    "move_type": "synthesize",
+    "note": "src/marshmallow/fields.py [plan]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (1/1 re-run probe(s) no longer reproduce the bug)",
+    "question_id": "q1",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "state_hash_after": "0f3e199190bf58704125415356c36bedc8ad030e123d2b9bbe311a59bb289ef9",
+    "state_hash_before": "ca138a37db365bd2a69d4ce7ba5a239ba0d7ac8f721c02bcf624a70f1eede2b0",
+    "value_after": 0.36282,
+    "value_before": 0.335898
+   },
+   {
+    "agent_role": "Data-Model & ORM Specialist",
+    "created_at": 1791850466.494,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.398776,
+     "ab_y": 0.0,
+     "head_v": 0.563343
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.8,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.376923,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 4,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q2",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "state_hash_after": "b0e3195f71e265a1c2db893f2a6426866a91b02a6684b45cb0ede65ef414afef",
+    "state_hash_before": "0f3e199190bf58704125415356c36bedc8ad030e123d2b9bbe311a59bb289ef9",
+    "value_after": 0.34282,
+    "value_before": 0.36282
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791850467.912,
+    "delta_u": 0.4,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.771429,
+     "ab_theta": 0.929941,
+     "ab_y": 0.4,
+     "head_v": 0.50432
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.8,
+     "module_isolation": 0.5,
+     "open_without_options": 0.5,
+     "resolved_fraction": 0.376923,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.1,
+     "supported_ratio": 0.5,
+     "untested_ratio": 0.5
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h2",
+    "move_index": 5,
+    "move_type": "run_experiment",
+    "note": "FALSIFIED: prediction failed: stdout contains 'BUG: Generator consumed'",
+    "question_id": "q2",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "state_hash_after": "e3f084e174953694c93d79e7abe49f2d1ab2427029785bf0d15b31217d67d768",
+    "state_hash_before": "b0e3195f71e265a1c2db893f2a6426866a91b02a6684b45cb0ede65ef414afef",
+    "value_after": 0.441128,
+    "value_before": 0.33882
+   },
+   {
+    "agent_role": "Issue Reproducer",
+    "created_at": 1791850493.095,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.64497,
+     "ab_y": 0.0,
+     "head_v": 0.419195
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.6,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.530769,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.5,
+     "stagnation": 0.0,
+     "supported_ratio": 0.5,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 6,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q3",
+    "role_id": "r_issue_reproducer_swebench",
+    "state_hash_after": "ef6f663add579af12239cee138bc6b6e4a349901e09b352997b588ea8a4c9bd2",
+    "state_hash_before": "e3f084e174953694c93d79e7abe49f2d1ab2427029785bf0d15b31217d67d768",
+    "value_after": 0.438461,
+    "value_before": 0.445128
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791850494.592,
+    "delta_u": 0.4,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.771429,
+     "ab_theta": 0.838193,
+     "ab_y": 0.4,
+     "head_v": 0.394615
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.6,
+     "module_isolation": 0.5,
+     "open_without_options": 0.5,
+     "resolved_fraction": 0.530769,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.333333,
+     "stagnation": 0.1,
+     "supported_ratio": 0.333333,
+     "untested_ratio": 0.333333
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h3",
+    "move_index": 7,
+    "move_type": "run_experiment",
+    "note": "FALSIFIED: prediction failed: stdout contains 'BUG: Generator consumed partially or incorrectly'",
+    "question_id": "q3",
+    "role_id": "r_issue_reproducer_swebench",
+    "state_hash_after": "4e453c6e244d422506fefce58d282f6c7fa2a95eb7d59eceac43204a2b6337b3",
+    "state_hash_before": "ef6f663add579af12239cee138bc6b6e4a349901e09b352997b588ea8a4c9bd2",
+    "value_after": 0.530102,
+    "value_before": 0.434461
+   },
+   {
+    "agent_role": "API-Contract Specialist",
+    "created_at": 1791850515.752,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.314286,
+     "ab_theta": 0.710263,
+     "ab_y": 0.0,
+     "head_v": 0.357601
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.666667,
+     "stagnation": 0.0,
+     "supported_ratio": 0.333333,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 8,
+    "move_type": "propose_hypothesis",
+    "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q2",
+    "role_id": "r_api_contract_specialist_swebench",
+    "state_hash_after": "6491fb1b79946a0aa5528b414fa96b449ff7da328855de679e35279827ccb044",
+    "state_hash_before": "4e453c6e244d422506fefce58d282f6c7fa2a95eb7d59eceac43204a2b6337b3",
+    "value_after": 0.534102,
+    "value_before": 0.534102
+   },
+   {
+    "agent_role": "Docs & CLI Behaviour Specialist",
+    "created_at": 1791850536.703,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.314286,
+     "ab_theta": 0.446929,
+     "ab_y": 0.0,
+     "head_v": 0.344902
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.666667,
+     "stagnation": 0.1,
+     "supported_ratio": 0.333333,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 9,
+    "move_type": "propose_hypothesis",
+    "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q2",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "state_hash_after": "0beeba66e9128e38bce957456bdcd440c936ca7af29ccce8ec45ea7801afdb62",
+    "state_hash_before": "6491fb1b79946a0aa5528b414fa96b449ff7da328855de679e35279827ccb044",
+    "value_after": 0.530102,
+    "value_before": 0.530102
+   },
+   {
+    "agent_role": "Marshmallow Internals Specialist",
+    "created_at": 1791850548.243,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 1.0,
+     "ab_mean": 0.246135,
+     "ab_theta": 0.353266,
+     "ab_y": 0.0,
+     "head_v": 0.332421,
+     "recruit_prior": 0.119203,
+     "stall_counter": 0.0,
+     "unmatched_modules": 2.0
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.666667,
+     "stagnation": 0.2,
+     "supported_ratio": 0.333333,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 10,
+    "move_type": "recruit_specialist",
+    "note": "recruited Marshmallow Internals Specialist [synthesized] (stall=0, unmatched=2; tags: marshmallow, fields, schema, generator, iterator, serialization): no library role overlaps the gaps (6 candidate(s)); synthesized by CEO: The current team lacks specific knowledge of marshmallow's internal field se",
+    "question_id": "q2",
+    "role_id": "r_marshmallow_internals_specialist",
+    "state_hash_after": "0beeba66e9128e38bce957456bdcd440c936ca7af29ccce8ec45ea7801afdb62",
+    "state_hash_before": "0beeba66e9128e38bce957456bdcd440c936ca7af29ccce8ec45ea7801afdb62",
+    "value_after": 0.526102,
+    "value_before": 0.526102
+   },
+   {
+    "agent_role": "Issue Reproducer",
+    "created_at": 1791850579.337,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.314286,
+     "ab_theta": 0.545952,
+     "ab_y": 0.0,
+     "head_v": 0.320172
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.666667,
+     "stagnation": 0.3,
+     "supported_ratio": 0.333333,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 11,
+    "move_type": "propose_hypothesis",
+    "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q2",
+    "role_id": "r_issue_reproducer_swebench",
+    "state_hash_after": "e5a9aca3513d5b0939b7be64281fec9f5bcaf99d3bc99c606e362f6259cb7fa0",
+    "state_hash_before": "0beeba66e9128e38bce957456bdcd440c936ca7af29ccce8ec45ea7801afdb62",
+    "value_after": 0.522102,
+    "value_before": 0.522102
+   },
+   {
+    "agent_role": "Data-Model & ORM Specialist",
+    "created_at": 1791850609.225,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.371429,
+     "ab_theta": 0.679382,
+     "ab_y": 0.0,
+     "head_v": 0.308165
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.666667,
+     "stagnation": 0.4,
+     "supported_ratio": 0.333333,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 12,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q2",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "state_hash_after": "a4a6a4bb41b20e4e24522f904b10904f97683cc70f8463cec1e0a418f013ddf6",
+    "state_hash_before": "e5a9aca3513d5b0939b7be64281fec9f5bcaf99d3bc99c606e362f6259cb7fa0",
+    "value_after": 0.516436,
+    "value_before": 0.518102
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791850610.672,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 7.0,
+     "ab_mean": 0.714286,
+     "ab_theta": 0.952209,
+     "ab_y": 0.0,
+     "head_v": 0.284333
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 0.5,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.5,
+     "stagnation": 0.5,
+     "supported_ratio": 0.25,
+     "untested_ratio": 0.25
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h4",
+    "move_index": 13,
+    "move_type": "run_experiment",
+    "note": "FALSIFIED: prediction failed: exit_code==1; stdout contains 'BUG: Generator consumed'",
+    "question_id": "q2",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "state_hash_after": "8aedf0e8028693b1ccbf852d2621dcbf1cbb1544ef3bc21c8bca182aa44336ea",
+    "state_hash_before": "a4a6a4bb41b20e4e24522f904b10904f97683cc70f8463cec1e0a418f013ddf6",
+    "value_after": 0.512436,
+    "value_before": 0.512436
+   },
+   {
+    "agent_role": "Docs & CLI Behaviour Specialist",
+    "created_at": 1791850628.116,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.757612,
+     "ab_y": 0.0,
+     "head_v": 0.268853
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.75,
+     "stagnation": 0.6,
+     "supported_ratio": 0.25,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 14,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q3",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "state_hash_after": "dcce82811f5ac29e07f1ca3f05e0f3657aacbbfe879e729d619e565390fad7f7",
+    "state_hash_before": "8aedf0e8028693b1ccbf852d2621dcbf1cbb1544ef3bc21c8bca182aa44336ea",
+    "value_after": 0.509436,
+    "value_before": 0.508436
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791850629.583,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 7.0,
+     "ab_mean": 0.714286,
+     "ab_theta": 0.919014,
+     "ab_y": 0.0,
+     "head_v": 0.242623
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.4,
+     "module_isolation": 0.5,
+     "open_without_options": 0.5,
+     "resolved_fraction": 0.684615,
+     "resolved_ratio": 0.333333,
+     "ruled_out_ratio": 0.6,
+     "stagnation": 0.7,
+     "supported_ratio": 0.2,
+     "untested_ratio": 0.2
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h5",
+    "move_index": 15,
+    "move_type": "run_experiment",
+    "note": "FALSIFIED: prediction failed: exit_code==1; stdout contains 'BUG: Generator consumed partially'",
+    "question_id": "q3",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "state_hash_after": "5a487eb8142f94db37fb768be0265a7f772b7937029ec0af39f3a1575713bdd2",
+    "state_hash_before": "dcce82811f5ac29e07f1ca3f05e0f3657aacbbfe879e729d619e565390fad7f7",
+    "value_after": 0.503436,
+    "value_before": 0.505436
+   }
+  ],
+  "questions": [
+   {
+    "created_at": 1791850282.533,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 1,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "src/marshmallow/fields.py",
+    "question_id": "q1",
+    "source_failure": "2.x: Nested(many=True) eats first element from generator value when dumping",
+    "source_failure_key": "swebench:marshmallow-code__marshmallow-1164",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: 2.x: Nested(many=True) eats first element from generator value when dumping -- As reproduced in Python 3.6.8: ```py from marshmallow import Schema, fields class O(Schema): i = fields.Int() class P(Schema): os = fields.Nested(O, many=True) def gen(): yield {'i': 1} yield {'i': 0} p = P() p.dump({'os': gen()}) # MarshalResult(data={'os': [{'i': 0}]}, errors={}) ``` Problematic code is here: https://github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/fields.py#L447 And here: https://github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/schema.py#L832 The easiest solution would be to cast `nested_obj` to list before calling `schema._update_f...",
+    "uncertainty": 0.02
+   },
+   {
+    "created_at": 1791850282.533,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h2",
+     "h4"
+    ],
+    "hypothesis_rounds": 5,
+    "initial_uncertainty": 0.8,
+    "location": "",
+    "module": "src/marshmallow/fields.py",
+    "question_id": "q2",
+    "source_failure": "",
+    "source_failure_key": "swebench:marshmallow-code__marshmallow-1164:src/marshmallow/fields.py",
+    "source_failure_tag": "swebench",
+    "status": "EXHAUSTED",
+    "text": "Where in `src/marshmallow/fields.py` does the reported behaviour arise? The issue says: \"from marshmallow import Schema, fields\" | \"i = fields.Int()\" | \"os = fields.Nested(O, many=True)\"",
+    "uncertainty": 0.4
+   },
+   {
+    "created_at": 1791850282.533,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h3",
+     "h5"
+    ],
+    "hypothesis_rounds": 2,
+    "initial_uncertainty": 0.8,
+    "location": "",
+    "module": "src/marshmallow/schema.py",
+    "question_id": "q3",
+    "source_failure": "",
+    "source_failure_key": "swebench:marshmallow-code__marshmallow-1164:src/marshmallow/schema.py",
+    "source_failure_tag": "swebench",
+    "status": "EXHAUSTED",
+    "text": "Where in `src/marshmallow/schema.py` does the reported behaviour arise? The issue says: \"https://github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/schema.py#L832\" | \"The easiest solution would be to cast `nested_obj` to list before calling `schema._update_fields`, just like a normal Schema with `many=True` does.\"",
+    "uncertainty": 0.4
+   }
+  ],
+  "ruled_out": [
+   {
+    "belief_id": "ro1",
+    "claim": "In `Nested._serialize`, the `many=True` branch iterates over `nested_obj` to check for `missing_` values. If `nested_obj` is a generator, this iteration consumes the first element. The subsequent call",
+    "created_at": 1791850467.911,
+    "epoch": 0,
+    "hypothesis_id": "h2",
+    "killing_evidence_id": "e5",
+    "mechanism_signature": "_serialize branch call check consum dump element exhaust first generator iterat iteration many missing_ nest nested_obj over receiv schema subsequent true",
+    "question_id": "q2"
+   },
+   {
+    "belief_id": "ro2",
+    "claim": "In `Schema.dump`, the check `if many and utils.is_iterable_but_not_string(obj)` fails to convert a generator to a list because `is_iterable_but_not_string` returns False for generators, causing the un",
+    "created_at": 1791850494.591,
+    "epoch": 0,
+    "hypothesis_id": "h3",
+    "killing_evidence_id": "e6",
+    "mechanism_signature": "__getitem__ __iter__ __next__ caus check conversion convert dump exclud explicit false generator is_iterable_but_not_string lazy leav like list many obj path schema skip true util utility",
+    "question_id": "q3"
+   },
+   {
+    "belief_id": "ro3",
+    "claim": "In `Nested._serialize`, the `many=True` branch calls `schema.dump(nested_obj)`. If `nested_obj` is a generator, `schema.dump` internally iterates it to check for `missing_` values (or similar pre-pass",
+    "created_at": 1791850610.672,
+    "epoch": 0,
+    "hypothesis_id": "h4",
+    "killing_evidence_id": "e7",
+    "mechanism_signature": "_serialize _update_fields branch call check consum dump generator internal iterat logic many missing_ nest nested_obj pass pre schema similar true",
+    "question_id": "q2"
+   },
+   {
+    "belief_id": "ro4",
+    "claim": "The reported behaviour arises in `Schema.__filter_fields` (called by `_update_fields`), where `obj[0]` is accessed to determine field filtering when `many=True`. If `obj` is a generator (passed from `",
+    "created_at": 1791850629.582,
+    "epoch": 0,
+    "hypothesis_id": "h5",
+    "killing_evidence_id": "e8",
+    "mechanism_signature": "__filter_fields _update_fields access aris behaviour call cast consum determine element execut field filter first generator inspect list many nest obj obj_type pass report schema serialize true type without",
+    "question_id": "q3"
+   }
+  ],
+  "settled_knowledge": [],
+  "state_hash": "a1a3b06b3b307f75b7a4f6bae12d043f8f75531ac2417c154d0bf8a6601379b0"
+ },
+ "epistemic_searches": [
+  {
+   "delta_u_total": 1.78,
+   "iteration": 1,
+   "moves_used": 15,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "cli",
+       "argparse",
+       "option",
+       "flag",
+       "command",
+       "config",
+       "configuration",
+       "documentation",
+       "docs",
+       "help",
+       "output",
+       "console",
+       "logging",
+       "warning",
+       "deprecationwarning",
+       "pylint",
+       "flake8",
+       "requests",
+       "http",
+       "session",
+       "header",
+       "url",
+       "matplotlib",
+       "figure",
+       "axes",
+       "pyplot",
+       "xarray",
+       "dataset"
+      ],
+      "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Docs & CLI Behaviour Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_docs_cli_behaviour_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "reproduce",
+       "reproduction",
+       "minimal",
+       "example",
+       "issue",
+       "actual",
+       "behaviour",
+       "behavior",
+       "traceback",
+       "regression"
+      ],
+      "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Issue Reproducer",
+      "origin": "seed:swebench",
+      "role_id": "r_issue_reproducer_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     },
+     {
+      "backstory": "Deep expertise in the marshmallow library internals, specifically the serialization pipeline and field processing logic. Has previously debugged complex generator and iterator handling issues within Python serialization frameworks, focusing on state preservation during multi-pass validation and serialization.",
+      "cost_per_move": 1.0,
+      "created_generation": 17,
+      "domain_tags": [
+       "marshmallow",
+       "fields",
+       "schema",
+       "generator",
+       "iterator",
+       "serialization",
+       "nested"
+      ],
+      "goal": "To diagnose and resolve the generator consumption bug in `Nested._serialize` by analyzing the internal iteration logic of `marshmallow.fields` and `marshmallow.schema`.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Marshmallow Internals Specialist",
+      "origin": "recruited:v11_ab_mcts_swebench_firm_0:g17:m10",
+      "rationale": "The current team lacks specific knowledge of marshmallow's internal field serialization mechanics. The API-Contract Specialist focuses on signatures and kwargs, not internal iteration behavior. The Data-Model Specialist focuses on ORM/QuerySet interactions, not generator consumption in serialization",
+      "role_id": "r_marshmallow_internals_specialist",
+      "source": "synthesized",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.7,
+      "tools_enabled": true,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [
+     {
+      "move_index": 10,
+      "name": "Marshmallow Internals Specialist",
+      "prior": 0.0832,
+      "reason": "stall=0, unmatched=2",
+      "role_id": "r_marshmallow_internals_specialist",
+      "source": "synthesized",
+      "stall_counter": 0,
+      "unmatched_modules": [
+       "github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/schema.py",
+       "src/marshmallow/schema.py"
+      ]
+     }
+    ],
+    "recruit_prior": 0.0474,
+    "stall_counter": 2,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 1.38,
+      "falsified": 2,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 4
+     },
+     "r_docs_cli_behaviour_specialist_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 0.0,
+      "falsified": 1,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_issue_reproducer_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.4,
+      "falsified": 1,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_marshmallow_internals_specialist": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": 10,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     }
+    },
+    "unmatched_modules": []
+   },
+   "stats": {
+    "ab_mcts": {
+     "algorithm": "ab_mcts",
+     "arms": {
+      "q1": [
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_api_contract_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 3.2,
+        "beta": 3.8,
+        "ident": "r_data_model_orm_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.4571,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         1.0
+        ]
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_docs_cli_behaviour_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_issue_reproducer_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 1.4768,
+        "beta": 4.5232,
+        "ident": "ceo",
+        "kind": "gen_specialist",
+        "mean": 0.2461,
+        "observations": 0,
+        "prior_mean": 0.1192,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 6.0,
+        "beta": 1.0,
+        "ident": "h1",
+        "kind": "experiment",
+        "mean": 0.8571,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         1.0
+        ]
+       },
+       {
+        "alpha": 5.53,
+        "beta": 1.47,
+        "ident": "h1",
+        "kind": "synthesize",
+        "mean": 0.79,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         0.53
+        ]
+       }
+      ],
+      "q2": [
+       {
+        "alpha": 2.2,
+        "beta": 6.3,
+        "ident": "r_api_contract_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.2588,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         0.0
+        ]
+       },
+       {
+        "alpha": 2.6,
+        "beta": 6.9,
+        "ident": "r_data_model_orm_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.2737,
+        "observations": 2,
+        "prior_mean": 0.3,
+        "pulls": 2,
+        "rewards": [
+         0.4,
+         0.0
+        ]
+       },
+       {
+        "alpha": 2.2,
+        "beta": 6.3,
+        "ident": "r_docs_cli_behaviour_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.2588,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         0.0
+        ]
+       },
+       {
+        "alpha": 2.2,
+        "beta": 6.3,
+        "ident": "r_issue_reproducer_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.2588,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         0.0
+        ]
+       },
+       {
+        "alpha": 1.0719,
+        "beta": 4.9281,
+        "ident": "ceo",
+        "kind": "gen_specialist",
+        "mean": 0.1787,
+        "observations": 0,
+        "prior_mean": 0.018,
+        "pulls": 1,
+        "rewards": []
+       },
+       {
+        "alpha": 5.4,
+        "beta": 1.6,
+        "ident": "h2",
+        "kind": "experiment",
+        "mean": 0.7714,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         0.4
+        ]
+       },
+       {
+        "alpha": 2.2,
+        "beta": 5.3,
+        "ident": "r_marshmallow_internals_specialist",
+        "kind": "gen_hypothesis",
+        "mean": 0.2933,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 5.0,
+        "beta": 2.0,
+        "ident": "h4",
+        "kind": "experiment",
+        "mean": 0.7143,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         0.0
+        ]
+       }
+      ],
+      "q3": [
+       {
+        "alpha": 2.2,
+        "beta": 5.3,
+        "ident": "r_api_contract_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.2933,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 2.2,
+        "beta": 5.3,
+        "ident": "r_data_model_orm_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.2933,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 2.2,
+        "beta": 6.3,
+        "ident": "r_docs_cli_behaviour_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.2588,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         0.0
+        ]
+       },
+       {
+        "alpha": 2.6,
+        "beta": 5.9,
+        "ident": "r_issue_reproducer_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3059,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         0.4
+        ]
+       },
+       {
+        "alpha": 1.1172,
+        "beta": 4.8828,
+        "ident": "ceo",
+        "kind": "gen_specialist",
+        "mean": 0.1862,
+        "observations": 0,
+        "prior_mean": 0.0293,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 5.4,
+        "beta": 1.6,
+        "ident": "h3",
+        "kind": "experiment",
+        "mean": 0.7714,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         0.4
+        ]
+       },
+       {
+        "alpha": 2.2,
+        "beta": 5.3,
+        "ident": "r_marshmallow_internals_specialist",
+        "kind": "gen_hypothesis",
+        "mean": 0.2933,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 5.0,
+        "beta": 2.0,
+        "ident": "h5",
+        "kind": "experiment",
+        "mean": 0.7143,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         0.0
+        ]
+       }
+      ]
+     },
+     "counts": {
+      "deepen_experiment": 5,
+      "deepen_synthesize": 1,
+      "gen_empty_draws": 3,
+      "gen_exhausted_questions": 1,
+      "steps": 15,
+      "widen_hypothesis": 8,
+      "widen_specialist": 1,
+      "widest_question": 2
+     },
+     "gen_empty": {
+      "q1": 0,
+      "q2": 0,
+      "q3": 0
+     },
+     "prior_strength": 4.0,
+     "trace": [
+      {
+       "chosen": "gen_hypothesis:r_data_model_orm_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.280632,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.45543,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.246693,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.117657,
+        "gen_specialist:ceo": 0.381304
+       },
+       "mean": 0.366667,
+       "move_index": 1,
+       "question_id": "q1",
+       "theta": 0.45543,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h1",
+       "draws": {
+        "experiment:h1": 0.832696,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.142093,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.402572,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.318699,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.085194,
+        "gen_specialist:ceo": 0.394349
+       },
+       "mean": 0.857143,
+       "move_index": 2,
+       "question_id": "q1",
+       "theta": 0.832696,
+       "y": 1.0
+      },
+      {
+       "chosen": "synthesize:h1",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.47421,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.316835,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.332409,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.191362,
+        "gen_specialist:ceo": 0.05669,
+        "synthesize:h1": 0.991076
+       },
+       "mean": 0.79,
+       "move_index": 3,
+       "question_id": "q1",
+       "theta": 0.991076,
+       "y": 0.53
+      },
+      {
+       "chosen": "gen_hypothesis:r_data_model_orm_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.378769,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.398776,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.063412,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.099134,
+        "gen_specialist:ceo": 0.208921
+       },
+       "mean": 0.366667,
+       "move_index": 4,
+       "question_id": "q2",
+       "theta": 0.398776,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h2",
+       "draws": {
+        "experiment:h2": 0.929941,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.157569,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.054908,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.413622,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.15618,
+        "gen_specialist:ceo": 0.192302
+       },
+       "mean": 0.771429,
+       "move_index": 5,
+       "question_id": "q2",
+       "theta": 0.929941,
+       "y": 0.4
+      },
+      {
+       "chosen": "gen_hypothesis:r_issue_reproducer_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.336569,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.152371,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.217955,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.64497,
+        "gen_specialist:ceo": 0.126005
+       },
+       "mean": 0.366667,
+       "move_index": 6,
+       "question_id": "q3",
+       "theta": 0.64497,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h3",
+       "draws": {
+        "experiment:h3": 0.838193,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.657183,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.156291,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.436843,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.255141,
+        "gen_specialist:ceo": 0.255204
+       },
+       "mean": 0.771429,
+       "move_index": 7,
+       "question_id": "q3",
+       "theta": 0.838193,
+       "y": 0.4
+      },
+      {
+       "chosen": "gen_hypothesis:r_api_contract_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.710263,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.465728,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.306434,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.275512,
+        "gen_specialist:ceo": 0.241829
+       },
+       "mean": 0.314286,
+       "move_index": 8,
+       "question_id": "q2",
+       "theta": 0.710263,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.255642,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.200213,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.446929,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.05745,
+        "gen_specialist:ceo": 0.196728
+       },
+       "mean": 0.314286,
+       "move_index": 9,
+       "question_id": "q2",
+       "theta": 0.446929,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_specialist:ceo",
+       "draws": {
+        "gen_specialist:ceo": 0.353266
+       },
+       "mean": 0.246135,
+       "move_index": 10,
+       "question_id": "q2",
+       "theta": 0.353266,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_hypothesis:r_issue_reproducer_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.198241,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.198178,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.303972,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.545952,
+        "gen_hypothesis:r_marshmallow_internals_specialist": 0.20196
+       },
+       "mean": 0.314286,
+       "move_index": 11,
+       "question_id": "q2",
+       "theta": 0.545952,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_hypothesis:r_data_model_orm_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.248623,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.679382,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.563228,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.228217,
+        "gen_hypothesis:r_marshmallow_internals_specialist": 0.477553
+       },
+       "mean": 0.371429,
+       "move_index": 12,
+       "question_id": "q2",
+       "theta": 0.679382,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h4",
+       "draws": {
+        "experiment:h4": 0.952209,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.097576,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.323482,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.430277,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.300791,
+        "gen_hypothesis:r_marshmallow_internals_specialist": 0.128067,
+        "gen_specialist:ceo": 0.028634
+       },
+       "mean": 0.714286,
+       "move_index": 13,
+       "question_id": "q2",
+       "theta": 0.952209,
+       "y": 0.0
+      },
+      {
+       "chosen": "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.4135,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.402115,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.757612,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.470274,
+        "gen_hypothesis:r_marshmallow_internals_specialist": 0.46099,
+        "gen_specialist:ceo": 0.347935
+       },
+       "mean": 0.366667,
+       "move_index": 14,
+       "question_id": "q3",
+       "theta": 0.757612,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h5",
+       "draws": {
+        "experiment:h5": 0.919014,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.076131,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.208002,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.270427,
+        "gen_hypothesis:r_issue_reproducer_swebench": 0.315119,
+        "gen_hypothesis:r_marshmallow_internals_specialist": 0.432752,
+        "gen_specialist:ceo": 0.058194
+       },
+       "mean": 0.714286,
+       "move_index": 15,
+       "question_id": "q3",
+       "theta": 0.919014,
+       "y": 0.0
+      }
+     ]
+    },
+    "budget_moves": 30,
+    "delta_u_by_role": {
+     "r_api_contract_specialist_swebench": 0.0,
+     "r_data_model_orm_specialist_swebench": 1.38,
+     "r_docs_cli_behaviour_specialist_swebench": 0.0,
+     "r_issue_reproducer_swebench": 0.4
+    },
+    "duplicate_rejections": 0,
+    "experiments": 5,
+    "falsified": 4,
+    "forced_low_prior_picks": 0,
+    "forced_low_prior_wins": 0,
+    "frontier_admissions": 3,
+    "hypotheses_accepted": 5,
+    "inconclusive": 0,
+    "moves_by_role": {
+     "r_api_contract_specialist_swebench": 1,
+     "r_data_model_orm_specialist_swebench": 7,
+     "r_docs_cli_behaviour_specialist_swebench": 3,
+     "r_issue_reproducer_swebench": 3
+    },
+    "moves_used": 15,
+    "prior_head_loaded": true,
+    "prior_head_steered": 0,
+    "probe_repairs": 0,
+    "proposal_rounds": 8,
+    "proposer_errors": 0,
+    "questions_asked": 0,
+    "questions_deferred": 0,
+    "recruit_declined": 0,
+    "recruits": 1,
+    "recruits_from_library": 0,
+    "recruits_synthesized": 1,
+    "rejected_probes": 0,
+    "roles_routed": true,
+    "search_algorithm": "ab_mcts",
+    "stop_reason": "stagnation",
+    "supported": 1,
+    "syntheses": 1,
+    "syntheses_by_plan": 1,
+    "syntheses_unwritten": 0,
+    "syntheses_verified": 1,
+    "synthesis_seconds": 116.768,
+    "tabu_rejections": 3,
+    "value_head_loaded": true
+   },
+   "stop_reason": "stagnation",
+   "synthesized_paths": [
+    "src/marshmallow/fields.py"
+   ],
+   "trajectory": [
+    {
+     "agent_role": "Data-Model & ORM Specialist",
+     "created_at": 1791850319.47,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.45543,
+      "ab_y": 0.0,
+      "head_v": 0.450962
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 0.866667,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 0.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 1,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q1",
+     "role_id": "r_data_model_orm_specialist_swebench",
+     "state_hash_after": "1bd1764eb52b34ef6f70743eed9166bc37a09a89ac4f4bfc10dc16c5e4c71daa",
+     "state_hash_before": "8625dbcdf15eecc2e6adcce9e8631bba2508ea3a31554efa700f4f5757eae190",
+     "value_after": 0.056667,
+     "value_before": 0.05
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791850320.943,
+     "delta_u": 0.95,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.857143,
+      "ab_theta": 0.832696,
+      "ab_y": 1.0,
+      "head_v": 0.550889
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 0.866667,
+      "module_isolation": 0.5,
+      "open_without_options": 0.666667,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.1,
+      "supported_ratio": 0.0,
+      "untested_ratio": 1.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 2,
+     "move_type": "run_experiment",
+     "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: First element eaten'",
+     "question_id": "q1",
+     "role_id": "r_data_model_orm_specialist_swebench",
+     "state_hash_after": "ca138a37db365bd2a69d4ce7ba5a239ba0d7ac8f721c02bcf624a70f1eede2b0",
+     "state_hash_before": "1bd1764eb52b34ef6f70743eed9166bc37a09a89ac4f4bfc10dc16c5e4c71daa",
+     "value_after": 0.331898,
+     "value_before": 0.052667
+    },
+    {
+     "agent_role": "Data-Model & ORM Specialist",
+     "created_at": 1791850443.94,
+     "delta_u": 0.03,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.79,
+      "ab_theta": 0.991076,
+      "ab_y": 0.53,
+      "head_v": 0.436728
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.55,
+      "module_isolation": 0.5,
+      "open_without_options": 0.666667,
+      "resolved_fraction": 0.365385,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 3,
+     "move_type": "synthesize",
+     "note": "src/marshmallow/fields.py [plan]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (1/1 re-run probe(s) no longer reproduce the bug)",
+     "question_id": "q1",
+     "role_id": "r_data_model_orm_specialist_swebench",
+     "state_hash_after": "0f3e199190bf58704125415356c36bedc8ad030e123d2b9bbe311a59bb289ef9",
+     "state_hash_before": "ca138a37db365bd2a69d4ce7ba5a239ba0d7ac8f721c02bcf624a70f1eede2b0",
+     "value_after": 0.36282,
+     "value_before": 0.335898
+    },
+    {
+     "agent_role": "Data-Model & ORM Specialist",
+     "created_at": 1791850466.494,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.398776,
+      "ab_y": 0.0,
+      "head_v": 0.563343
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.8,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.376923,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 4,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q2",
+     "role_id": "r_data_model_orm_specialist_swebench",
+     "state_hash_after": "b0e3195f71e265a1c2db893f2a6426866a91b02a6684b45cb0ede65ef414afef",
+     "state_hash_before": "0f3e199190bf58704125415356c36bedc8ad030e123d2b9bbe311a59bb289ef9",
+     "value_after": 0.34282,
+     "value_before": 0.36282
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791850467.912,
+     "delta_u": 0.4,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.771429,
+      "ab_theta": 0.929941,
+      "ab_y": 0.4,
+      "head_v": 0.50432
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.8,
+      "module_isolation": 0.5,
+      "open_without_options": 0.5,
+      "resolved_fraction": 0.376923,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.1,
+      "supported_ratio": 0.5,
+      "untested_ratio": 0.5
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h2",
+     "move_index": 5,
+     "move_type": "run_experiment",
+     "note": "FALSIFIED: prediction failed: stdout contains 'BUG: Generator consumed'",
+     "question_id": "q2",
+     "role_id": "r_data_model_orm_specialist_swebench",
+     "state_hash_after": "e3f084e174953694c93d79e7abe49f2d1ab2427029785bf0d15b31217d67d768",
+     "state_hash_before": "b0e3195f71e265a1c2db893f2a6426866a91b02a6684b45cb0ede65ef414afef",
+     "value_after": 0.441128,
+     "value_before": 0.33882
+    },
+    {
+     "agent_role": "Issue Reproducer",
+     "created_at": 1791850493.095,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.64497,
+      "ab_y": 0.0,
+      "head_v": 0.419195
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.6,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.530769,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.5,
+      "stagnation": 0.0,
+      "supported_ratio": 0.5,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 6,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q3",
+     "role_id": "r_issue_reproducer_swebench",
+     "state_hash_after": "ef6f663add579af12239cee138bc6b6e4a349901e09b352997b588ea8a4c9bd2",
+     "state_hash_before": "e3f084e174953694c93d79e7abe49f2d1ab2427029785bf0d15b31217d67d768",
+     "value_after": 0.438461,
+     "value_before": 0.445128
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791850494.592,
+     "delta_u": 0.4,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.771429,
+      "ab_theta": 0.838193,
+      "ab_y": 0.4,
+      "head_v": 0.394615
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.6,
+      "module_isolation": 0.5,
+      "open_without_options": 0.5,
+      "resolved_fraction": 0.530769,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.333333,
+      "stagnation": 0.1,
+      "supported_ratio": 0.333333,
+      "untested_ratio": 0.333333
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h3",
+     "move_index": 7,
+     "move_type": "run_experiment",
+     "note": "FALSIFIED: prediction failed: stdout contains 'BUG: Generator consumed partially or incorrectly'",
+     "question_id": "q3",
+     "role_id": "r_issue_reproducer_swebench",
+     "state_hash_after": "4e453c6e244d422506fefce58d282f6c7fa2a95eb7d59eceac43204a2b6337b3",
+     "state_hash_before": "ef6f663add579af12239cee138bc6b6e4a349901e09b352997b588ea8a4c9bd2",
+     "value_after": 0.530102,
+     "value_before": 0.434461
+    },
+    {
+     "agent_role": "API-Contract Specialist",
+     "created_at": 1791850515.752,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.314286,
+      "ab_theta": 0.710263,
+      "ab_y": 0.0,
+      "head_v": 0.357601
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.666667,
+      "stagnation": 0.0,
+      "supported_ratio": 0.333333,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 8,
+     "move_type": "propose_hypothesis",
+     "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q2",
+     "role_id": "r_api_contract_specialist_swebench",
+     "state_hash_after": "6491fb1b79946a0aa5528b414fa96b449ff7da328855de679e35279827ccb044",
+     "state_hash_before": "4e453c6e244d422506fefce58d282f6c7fa2a95eb7d59eceac43204a2b6337b3",
+     "value_after": 0.534102,
+     "value_before": 0.534102
+    },
+    {
+     "agent_role": "Docs & CLI Behaviour Specialist",
+     "created_at": 1791850536.703,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.314286,
+      "ab_theta": 0.446929,
+      "ab_y": 0.0,
+      "head_v": 0.344902
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.666667,
+      "stagnation": 0.1,
+      "supported_ratio": 0.333333,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 9,
+     "move_type": "propose_hypothesis",
+     "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q2",
+     "role_id": "r_docs_cli_behaviour_specialist_swebench",
+     "state_hash_after": "0beeba66e9128e38bce957456bdcd440c936ca7af29ccce8ec45ea7801afdb62",
+     "state_hash_before": "6491fb1b79946a0aa5528b414fa96b449ff7da328855de679e35279827ccb044",
+     "value_after": 0.530102,
+     "value_before": 0.530102
+    },
+    {
+     "agent_role": "Marshmallow Internals Specialist",
+     "created_at": 1791850548.243,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 1.0,
+      "ab_mean": 0.246135,
+      "ab_theta": 0.353266,
+      "ab_y": 0.0,
+      "head_v": 0.332421,
+      "recruit_prior": 0.119203,
+      "stall_counter": 0.0,
+      "unmatched_modules": 2.0
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.666667,
+      "stagnation": 0.2,
+      "supported_ratio": 0.333333,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 10,
+     "move_type": "recruit_specialist",
+     "note": "recruited Marshmallow Internals Specialist [synthesized] (stall=0, unmatched=2; tags: marshmallow, fields, schema, generator, iterator, serialization): no library role overlaps the gaps (6 candidate(s)); synthesized by CEO: The current team lacks specific knowledge of marshmallow's internal field se",
+     "question_id": "q2",
+     "role_id": "r_marshmallow_internals_specialist",
+     "state_hash_after": "0beeba66e9128e38bce957456bdcd440c936ca7af29ccce8ec45ea7801afdb62",
+     "state_hash_before": "0beeba66e9128e38bce957456bdcd440c936ca7af29ccce8ec45ea7801afdb62",
+     "value_after": 0.526102,
+     "value_before": 0.526102
+    },
+    {
+     "agent_role": "Issue Reproducer",
+     "created_at": 1791850579.337,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.314286,
+      "ab_theta": 0.545952,
+      "ab_y": 0.0,
+      "head_v": 0.320172
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.666667,
+      "stagnation": 0.3,
+      "supported_ratio": 0.333333,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 11,
+     "move_type": "propose_hypothesis",
+     "note": "0 accepted, 0 repaired, 1 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q2",
+     "role_id": "r_issue_reproducer_swebench",
+     "state_hash_after": "e5a9aca3513d5b0939b7be64281fec9f5bcaf99d3bc99c606e362f6259cb7fa0",
+     "state_hash_before": "0beeba66e9128e38bce957456bdcd440c936ca7af29ccce8ec45ea7801afdb62",
+     "value_after": 0.522102,
+     "value_before": 0.522102
+    },
+    {
+     "agent_role": "Data-Model & ORM Specialist",
+     "created_at": 1791850609.225,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.371429,
+      "ab_theta": 0.679382,
+      "ab_y": 0.0,
+      "head_v": 0.308165
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.666667,
+      "stagnation": 0.4,
+      "supported_ratio": 0.333333,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 12,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q2",
+     "role_id": "r_data_model_orm_specialist_swebench",
+     "state_hash_after": "a4a6a4bb41b20e4e24522f904b10904f97683cc70f8463cec1e0a418f013ddf6",
+     "state_hash_before": "e5a9aca3513d5b0939b7be64281fec9f5bcaf99d3bc99c606e362f6259cb7fa0",
+     "value_after": 0.516436,
+     "value_before": 0.518102
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791850610.672,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 7.0,
+      "ab_mean": 0.714286,
+      "ab_theta": 0.952209,
+      "ab_y": 0.0,
+      "head_v": 0.284333
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 0.5,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.5,
+      "stagnation": 0.5,
+      "supported_ratio": 0.25,
+      "untested_ratio": 0.25
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h4",
+     "move_index": 13,
+     "move_type": "run_experiment",
+     "note": "FALSIFIED: prediction failed: exit_code==1; stdout contains 'BUG: Generator consumed'",
+     "question_id": "q2",
+     "role_id": "r_data_model_orm_specialist_swebench",
+     "state_hash_after": "8aedf0e8028693b1ccbf852d2621dcbf1cbb1544ef3bc21c8bca182aa44336ea",
+     "state_hash_before": "a4a6a4bb41b20e4e24522f904b10904f97683cc70f8463cec1e0a418f013ddf6",
+     "value_after": 0.512436,
+     "value_before": 0.512436
+    },
+    {
+     "agent_role": "Docs & CLI Behaviour Specialist",
+     "created_at": 1791850628.116,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.757612,
+      "ab_y": 0.0,
+      "head_v": 0.268853
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.75,
+      "stagnation": 0.6,
+      "supported_ratio": 0.25,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 14,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q3",
+     "role_id": "r_docs_cli_behaviour_specialist_swebench",
+     "state_hash_after": "dcce82811f5ac29e07f1ca3f05e0f3657aacbbfe879e729d619e565390fad7f7",
+     "state_hash_before": "8aedf0e8028693b1ccbf852d2621dcbf1cbb1544ef3bc21c8bca182aa44336ea",
+     "value_after": 0.509436,
+     "value_before": 0.508436
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791850629.583,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 7.0,
+      "ab_mean": 0.714286,
+      "ab_theta": 0.919014,
+      "ab_y": 0.0,
+      "head_v": 0.242623
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.4,
+      "module_isolation": 0.5,
+      "open_without_options": 0.5,
+      "resolved_fraction": 0.684615,
+      "resolved_ratio": 0.333333,
+      "ruled_out_ratio": 0.6,
+      "stagnation": 0.7,
+      "supported_ratio": 0.2,
+      "untested_ratio": 0.2
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h5",
+     "move_index": 15,
+     "move_type": "run_experiment",
+     "note": "FALSIFIED: prediction failed: exit_code==1; stdout contains 'BUG: Generator consumed partially'",
+     "question_id": "q3",
+     "role_id": "r_docs_cli_behaviour_specialist_swebench",
+     "state_hash_after": "5a487eb8142f94db37fb768be0265a7f772b7937029ec0af39f3a1575713bdd2",
+     "state_hash_before": "dcce82811f5ac29e07f1ca3f05e0f3657aacbbfe879e729d619e565390fad7f7",
+     "value_after": 0.503436,
+     "value_before": 0.505436
+    }
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-marshmallow-code-marshmallow-1164/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v11_ab_mcts_swebench_firm_0",
+ "instance_id": "marshmallow-code__marshmallow-1164",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.91,
+  "estimated_cost_usd": 0.009,
+  "flash_count": 26,
+  "flash_input_tokens": 56468,
+  "flash_output_tokens": 4414,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 1831,
+  "pro_output_tokens": 229,
+  "total_tokens": 62942
+ },
+ "org": {
+  "active_roles": [
+   {
+    "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "api",
+     "signature",
+     "kwargs",
+     "args",
+     "deprecation",
+     "deprecated",
+     "backwards",
+     "compatibility",
+     "contract",
+     "interface",
+     "public",
+     "default",
+     "argument",
+     "parameter"
+    ],
+    "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "API-Contract Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_api_contract_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "django",
+     "orm",
+     "queryset",
+     "model",
+     "models",
+     "migration",
+     "migrations",
+     "field",
+     "fields",
+     "sql",
+     "database",
+     "sqlalchemy",
+     "serializer",
+     "foreignkey",
+     "compiler",
+     "expression",
+     "annotation",
+     "subquery",
+     "admin",
+     "forms"
+    ],
+    "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Data-Model & ORM Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "cli",
+     "argparse",
+     "option",
+     "flag",
+     "command",
+     "config",
+     "configuration",
+     "documentation",
+     "docs",
+     "help",
+     "output",
+     "console",
+     "logging",
+     "warning",
+     "deprecationwarning",
+     "pylint",
+     "flake8",
+     "requests",
+     "http",
+     "session",
+     "header",
+     "url",
+     "matplotlib",
+     "figure",
+     "axes",
+     "pyplot",
+     "xarray",
+     "dataset"
+    ],
+    "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Docs & CLI Behaviour Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "reproduce",
+     "reproduction",
+     "minimal",
+     "example",
+     "issue",
+     "actual",
+     "behaviour",
+     "behavior",
+     "traceback",
+     "regression"
+    ],
+    "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+    "kind": "probe",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Issue Reproducer",
+    "origin": "seed:swebench",
+    "role_id": "r_issue_reproducer_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": false,
+    "uses": 0
+   },
+   {
+    "backstory": "Deep expertise in the marshmallow library internals, specifically the serialization pipeline and field processing logic. Has previously debugged complex generator and iterator handling issues within Python serialization frameworks, focusing on state preservation during multi-pass validation and serialization.",
+    "cost_per_move": 1.0,
+    "created_generation": 17,
+    "domain_tags": [
+     "marshmallow",
+     "fields",
+     "schema",
+     "generator",
+     "iterator",
+     "serialization",
+     "nested"
+    ],
+    "goal": "To diagnose and resolve the generator consumption bug in `Nested._serialize` by analyzing the internal iteration logic of `marshmallow.fields` and `marshmallow.schema`.",
+    "kind": "probe",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Marshmallow Internals Specialist",
+    "origin": "recruited:v11_ab_mcts_swebench_firm_0:g17:m10",
+    "rationale": "The current team lacks specific knowledge of marshmallow's internal field serialization mechanics. The API-Contract Specialist focuses on signatures and kwargs, not internal iteration behavior. The Data-Model Specialist focuses on ORM/QuerySet interactions, not generator consumption in serialization",
+    "role_id": "r_marshmallow_internals_specialist",
+    "source": "synthesized",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.7,
+    "tools_enabled": true,
+    "uses": 0
+   }
+  ],
+  "policy": {
+   "enabled": true,
+   "exploration_c": 0.25,
+   "headcount_lambda": 0.05,
+   "max_active_roles": 6,
+   "max_initial_roles": 4,
+   "min_initial_roles": 2,
+   "optimistic_prior": 0.3,
+   "recruit_bias": -2.0,
+   "recruit_cooldown_moves": 3,
+   "recruit_mode": "both",
+   "recruit_w_headcount": 0.4,
+   "recruit_w_stall": 0.5,
+   "recruit_w_unmatched": 0.8,
+   "stall_delta_u": 0.05,
+   "stall_moves": 4,
+   "temperature": 0.0
+  },
+  "recruit_log": [
+   {
+    "move_index": 10,
+    "name": "Marshmallow Internals Specialist",
+    "prior": 0.0832,
+    "reason": "stall=0, unmatched=2",
+    "role_id": "r_marshmallow_internals_specialist",
+    "source": "synthesized",
+    "stall_counter": 0,
+    "unmatched_modules": [
+     "github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/schema.py",
+     "src/marshmallow/schema.py"
+    ]
+   }
+  ],
+  "recruit_prior": 0.0474,
+  "stall_counter": 2,
+  "stats": {
+   "r_api_contract_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   },
+   "r_data_model_orm_specialist_swebench": {
+    "consecutive_stalls": 1,
+    "cumulative_delta_u": 1.38,
+    "falsified": 2,
+    "recruited_at_move": -1,
+    "supported": 1,
+    "syntheses_written": 1,
+    "untestable": 0,
+    "visits": 4
+   },
+   "r_docs_cli_behaviour_specialist_swebench": {
+    "consecutive_stalls": 1,
+    "cumulative_delta_u": 0.0,
+    "falsified": 1,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 1
+   },
+   "r_issue_reproducer_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.4,
+    "falsified": 1,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 1
+   },
+   "r_marshmallow_internals_specialist": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": 10,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   }
+  },
+  "unmatched_modules": []
+ },
+ "org_history": [
+  {
+   "audit": {
+    "candidates": 364,
+    "chosen": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_docs_cli_behaviour_specialist_swebench",
+     "r_issue_reproducer_swebench"
+    ],
+    "iteration": 1,
+    "lambda_eff": 0.0511,
+    "library_size": 10,
+    "library_source": "genome",
+    "scores": {
+     "r_api_contract_specialist_swebench": 0.15,
+     "r_data_model_orm_specialist_swebench": 0.1575,
+     "r_docs_cli_behaviour_specialist_swebench": 0.15,
+     "r_issue_reproducer_swebench": 0.15,
+     "r_minimal_diff_synthesiser_swebench": 0.15,
+     "r_numerics_symbolic_specialist_swebench": 0.15,
+     "r_parsing_grammar_specialist_swebench": 0.15,
+     "r_regression_guard_swebench": 0.15,
+     "r_test_suite_analyst_swebench": 0.15,
+     "r_traceback_localiser_swebench": 0.15
+    },
+    "task": {
+     "complexity": 0.4787,
+     "has_assertion": false,
+     "has_import_error": false,
+     "n_exception_classes": 0,
+     "n_failures": 0,
+     "n_modules": 4,
+     "n_paths_mentioned": 4,
+     "source": "problem_statement",
+     "statement_chars": 787,
+     "tags": [
+      "marshmallow",
+      "fields",
+      "schema",
+      "nested",
+      "many",
+      "eats",
+      "first",
+      "element",
+      "generator",
+      "value",
+      "dumping",
+      "reproduced",
+      "int",
+      "gen",
+      "yield",
+      "dump",
+      "marshalresult",
+      "data",
+      "errors",
+      "problematic",
+      "code",
+      "here",
+      "https",
+      "github",
+      "com",
+      "blob",
+      "src",
+      "l447",
+      "l832",
+      "easiest",
+      "solution",
+      "cast",
+      "nested_obj",
+      "list",
+      "before",
+      "calling"
+     ]
+    },
+    "team": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_docs_cli_behaviour_specialist_swebench",
+     "r_issue_reproducer_swebench"
+    ],
+    "team_names": [
+     "API-Contract Specialist",
+     "Data-Model & ORM Specialist",
+     "Docs & CLI Behaviour Specialist",
+     "Issue Reproducer"
+    ],
+    "v_org": 0.4032
+   },
+   "iteration": 1,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "cli",
+       "argparse",
+       "option",
+       "flag",
+       "command",
+       "config",
+       "configuration",
+       "documentation",
+       "docs",
+       "help",
+       "output",
+       "console",
+       "logging",
+       "warning",
+       "deprecationwarning",
+       "pylint",
+       "flake8",
+       "requests",
+       "http",
+       "session",
+       "header",
+       "url",
+       "matplotlib",
+       "figure",
+       "axes",
+       "pyplot",
+       "xarray",
+       "dataset"
+      ],
+      "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Docs & CLI Behaviour Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_docs_cli_behaviour_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Will not debug a bug that has not been reproduced. Writes the smallest script that fails the way the issue says, and keeps it as the first regression check.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "reproduce",
+       "reproduction",
+       "minimal",
+       "example",
+       "issue",
+       "actual",
+       "behaviour",
+       "behavior",
+       "traceback",
+       "regression"
+      ],
+      "goal": "Turn the problem statement into a minimal, runnable reproduction whose output shows the reported behaviour, before any fix is attempted.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Issue Reproducer",
+      "origin": "seed:swebench",
+      "role_id": "r_issue_reproducer_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": false,
+      "uses": 0
+     },
+     {
+      "backstory": "Deep expertise in the marshmallow library internals, specifically the serialization pipeline and field processing logic. Has previously debugged complex generator and iterator handling issues within Python serialization frameworks, focusing on state preservation during multi-pass validation and serialization.",
+      "cost_per_move": 1.0,
+      "created_generation": 17,
+      "domain_tags": [
+       "marshmallow",
+       "fields",
+       "schema",
+       "generator",
+       "iterator",
+       "serialization",
+       "nested"
+      ],
+      "goal": "To diagnose and resolve the generator consumption bug in `Nested._serialize` by analyzing the internal iteration logic of `marshmallow.fields` and `marshmallow.schema`.",
+      "kind": "probe",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Marshmallow Internals Specialist",
+      "origin": "recruited:v11_ab_mcts_swebench_firm_0:g17:m10",
+      "rationale": "The current team lacks specific knowledge of marshmallow's internal field serialization mechanics. The API-Contract Specialist focuses on signatures and kwargs, not internal iteration behavior. The Data-Model Specialist focuses on ORM/QuerySet interactions, not generator consumption in serialization",
+      "role_id": "r_marshmallow_internals_specialist",
+      "source": "synthesized",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.7,
+      "tools_enabled": true,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [
+     {
+      "move_index": 10,
+      "name": "Marshmallow Internals Specialist",
+      "prior": 0.0832,
+      "reason": "stall=0, unmatched=2",
+      "role_id": "r_marshmallow_internals_specialist",
+      "source": "synthesized",
+      "stall_counter": 0,
+      "unmatched_modules": [
+       "github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/schema.py",
+       "src/marshmallow/schema.py"
+      ]
+     }
+    ],
+    "recruit_prior": 0.0474,
+    "stall_counter": 2,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 1.38,
+      "falsified": 2,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 4
+     },
+     "r_docs_cli_behaviour_specialist_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 0.0,
+      "falsified": 1,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_issue_reproducer_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.4,
+      "falsified": 1,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_marshmallow_internals_specialist": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": 10,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     }
+    },
+    "unmatched_modules": []
+   }
+  }
+ ],
+ "prediction_chars": 542,
+ "swebench": {
+  "base_commit": "1e26d14facab213df5009300b997481aa43df80a",
+  "budget_moves": 30,
+  "changed_files": [
+   "src/marshmallow/fields.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-marshmallow-code-marshmallow-1164/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "marshmallow-code__marshmallow-1164",
+  "iterations": [
+   {
+    "iteration": 1,
+    "moves_used": 15,
+    "org": {
+     "recruits": 1,
+     "stall": 2,
+     "team": [
+      "r_api_contract_specialist_swebench",
+      "r_data_model_orm_specialist_swebench",
+      "r_docs_cli_behaviour_specialist_swebench",
+      "r_issue_reproducer_swebench",
+      "r_marshmallow_internals_specialist"
+     ],
+     "unmatched": []
+    },
+    "patched": true,
+    "recheck": {
+     "bug_gone_hypotheses": [
+      "h1"
+     ],
+     "evidence_id": "e10",
+     "probes_rerun": 1,
+     "reopened": [],
+     "resolved": [
+      "q1"
+     ],
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "stagnation",
+    "synthesized_paths": [
+     "src/marshmallow/fields.py"
+    ]
+   }
+  ],
+  "locate": [],
+  "moves_used": 15,
+  "patch_chars": 542,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "marshmallow",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 60.0,
+    "duration_s": 3.59,
+    "mode": "whole_suite",
+    "reason": "",
+    "summary": "======================== 772 passed, 1 warning in 1.86s ========================",
+    "target": "tests",
+    "timeout_s": 60.0
+   },
+   "tried": [
+    "marshmallow"
+   ]
+  },
+  "repo": "marshmallow-code/marshmallow",
+  "reproduction": [
+   {
+    "bug_gone_hypotheses": [
+     "h1"
+    ],
+    "evidence_id": "e10",
+    "probes_rerun": 1,
+    "reopened": [],
+    "reruns": [
+     {
+      "bug_no_longer_reproduces": true,
+      "completed": true,
+      "detail": "prediction failed: exit_code==1; stdout contains 'BUG: First element eaten'",
+      "evidence_id": "e9",
+      "exit_code": 0,
+      "hypothesis_id": "h1",
+      "matched_prediction": false
+     }
+    ],
+    "resolved": [
+     "q1"
+    ],
+    "verdict": "resolved"
+   }
+  ],
+  "resolved_by_self_oracle": true,
+  "root_module": "src/marshmallow/fields.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [
+    "src/marshmallow/fields.py",
+    "src/marshmallow/schema.py"
+   ],
+   "failure": "2.x: Nested(many=True) eats first element from generator value when dumping",
+   "paths": [
+    "src/marshmallow/fields.py",
+    "src/marshmallow/schema.py"
+   ],
+   "primary_module": "src/marshmallow/fields.py",
+   "root_question_id": "q1",
+   "sub_question_ids": [
+    "q2",
+    "q3"
+   ]
+  },
+  "stop": "resolved",
+  "task_features": {
+   "complexity": 0.4787,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 4,
+   "n_paths_mentioned": 4,
+   "source": "problem_statement",
+   "statement_chars": 787,
+   "tags": [
+    "marshmallow",
+    "fields",
+    "schema",
+    "nested",
+    "many",
+    "eats",
+    "first",
+    "element",
+    "generator",
+    "value",
+    "dumping",
+    "reproduced",
+    "int",
+    "gen",
+    "yield",
+    "dump",
+    "marshalresult",
+    "data",
+    "errors",
+    "problematic",
+    "code",
+    "here",
+    "https",
+    "github",
+    "com",
+    "blob",
+    "src",
+    "l447",
+    "l832",
+    "easiest",
+    "solution",
+    "cast",
+    "nested_obj",
+    "list",
+    "before",
+    "calling"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 1
+ },
+ "task": {
+  "base_commit": "1e26d14facab213df5009300b997481aa43df80a",
+  "created_at": "2019-03-01T17:03:05Z",
+  "environment_setup_commit": "1e26d14facab213df5009300b997481aa43df80a",
+  "hints_text": "",
+  "instance_id": "marshmallow-code__marshmallow-1164",
+  "problem_statement": "2.x: Nested(many=True) eats first element from generator value when dumping\nAs reproduced in Python 3.6.8:\r\n\r\n```py\r\nfrom marshmallow import Schema, fields\r\n\r\nclass O(Schema):\r\n    i = fields.Int()\r\n\r\nclass P(Schema):\r\n    os = fields.Nested(O, many=True)\r\n\r\ndef gen():\r\n    yield {'i': 1}\r\n    yield {'i': 0}\r\n\r\np = P()\r\np.dump({'os': gen()})\r\n# MarshalResult(data={'os': [{'i': 0}]}, errors={})\r\n```\r\n\r\nProblematic code is here:\r\n\r\nhttps://github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/fields.py#L447\r\n\r\nAnd here:\r\n\r\nhttps://github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/schema.py#L832\r\n\r\nThe easiest solution would be to cast `nested_obj` to list before calling `schema._update_fields`, just like a normal Schema with `many=True` does.\n",
+  "repo": "marshmallow-code/marshmallow",
+  "version": "2.18"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 11,
+  "thought_tokens": 0
+ },
+ "token_usage": 62942,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

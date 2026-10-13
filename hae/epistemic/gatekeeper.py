@@ -743,7 +743,7 @@ class EvidenceGatekeeper:
             else:
                 if was_gone and completed and ev.matched_prediction:
                     regressed.append(h.hypothesis_id)
-                if not completed or int(ev.exit_code) != 0:
+                if not completed or (not ev.matched_prediction and int(ev.exit_code) != 0):
                     crashed.append(h.hypothesis_id)
                 if not (completed and ev.matched_prediction):
                     unsettled += 1

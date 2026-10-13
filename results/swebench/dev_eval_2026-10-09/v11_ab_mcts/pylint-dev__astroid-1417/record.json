@@ -1,0 +1,1890 @@
+{
+ "authored_files": [
+  "astroid/decorators.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 82.62,
+ "epistemic_audit": {
+  "budget_moves": 30,
+  "calibration_brier": 0.0125,
+  "calibration_tested": 2,
+  "delta_u_total": 0.98,
+  "duplicate_rejections": 0,
+  "evidence": 9,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 2,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 1,
+  "hypotheses": 2,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 2,
+  "hypotheses_tested": 2,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "c2decaa99a08bf6730bd392eedaae3e71d5c494c8041940b6f87592b07a288cd",
+  "low_prior_wins": 0,
+  "moves_used": 5,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 2,
+  "proposed_total": 2,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 0,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 0.02,
+  "resolved_fraction": 0.98,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "all_resolved",
+  "syntheses": 1,
+  "syntheses_verified": 1,
+  "tabu_rejections": 0,
+  "token_usage": 19759,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v11_ab_mcts_swebench_firm_0",
+  "counters": {
+   "e": 9,
+   "h": 2,
+   "q": 1
+  },
+  "created_at": 1791856783.602,
+  "evidence_log": [
+   {
+    "command": "python .hae/probe_h1.py",
+    "created_at": 1791856817.296,
+    "detail": "prediction held: exit_code==1; stdout contains 'BUG: cached_property missing'",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: cached_property missing"
+    },
+    "question_id": "q1",
+    "sha256": "0c4e4afd09287c97438daa2a72ebddc0d269c45be1e21271b91f0e87edb1769c",
+    "stderr": "command terminated with exit code 1\n",
+    "stdout": "BUG: cached_property missing\n"
+   },
+   {
+    "command": "python .hae/probe_h2.py",
+    "created_at": 1791856820.49,
+    "detail": "prediction held: exit_code==1; stdout contains 'BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8'",
+    "evidence_id": "e2",
+    "exit_code": 1,
+    "hypothesis_id": "h2",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8"
+    },
+    "question_id": "q1",
+    "sha256": "46293a436d106c43a06f321201dd7cb05e304047e857730fa7302f2243b626fe",
+    "stderr": "command terminated with exit code 1\n",
+    "stdout": "BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8\n"
+   },
+   {
+    "command": "verify_module astroid/decorators.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-1417/testbed:/testbed)",
+    "created_at": 1791856853.763,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e3",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "084cdfd380996ef5be2da4fa45cd137c607d98d50ee0fe0111082491ff9fb387",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK astroid/decorators.py\n\n[import] IMPORT_OK astroid.decorators\n\n[static_check] no undefined names (241 lines)\n[repo_tests] whole suite passed: tests/ (whole suite, 0 baseline failure(s))\nonWarning: cachedproperty is deprecated, use functools.cached_property instead\n    def blockstart_tolineno(self):\n\nastroid/objects.py:49\n  /testbed/astroid/objects.py:49: DeprecationWarning: cachedproperty is deprecated, use functools.cached_property instead\n    def _proxied(self):  # pylint: disable=method-hidden\n\nastroid/objects.py:118\n  /testbed/astroid/objects.py:118: DeprecationWarning: cachedproperty is deprecated, use functools.cached_property instead\n    def _proxied(self):\n\nastroid/objects.py:222\n  /testbed/astroid/objects.py:222: DeprecationWarning: cachedproperty is deprecated, use functools.cached_property instead\n    def special_attributes(self):\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n1260 passed, 70 skipped, 15 xfailed, 22 warnings in 17.39s\n"
+   },
+   {
+    "command": "post-synthesis re-run: python .hae/probe_h1.py",
+    "created_at": 1791856855.377,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: cached_property missing'",
+    "evidence_id": "e4",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: cached_property missing"
+    },
+    "question_id": "q1",
+    "sha256": "0a3c1f4cc74427f25e8bb5d299adb85efd6e319437776dfe066fc6b3564f44e1",
+    "stderr": "",
+    "stdout": "OK: cached_property present\n"
+   },
+   {
+    "command": "post-synthesis re-run: python .hae/probe_h2.py",
+    "created_at": 1791856856.969,
+    "detail": "prediction held: exit_code==1; stdout contains 'BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8'",
+    "evidence_id": "e5",
+    "exit_code": 1,
+    "hypothesis_id": "h2",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8"
+    },
+    "question_id": "q1",
+    "sha256": "a08e591ee45043ca80cb04d0395b1e7ba13ce1045843cb22d3bb4c2883f5c713",
+    "stderr": "/testbed/.hae/probe_h2.py:9: DeprecationWarning: cachedproperty is deprecated, use functools.cached_property instead\n  def prop(self):\ncommand terminated with exit code 1\n",
+    "stdout": "BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8\n"
+   },
+   {
+    "command": "post-synthesis effect check: supported probes re-run after the write (NOT the hidden tests)",
+    "created_at": 1791856856.969,
+    "detail": "post-synthesis effect check: effective -- 1/2 re-run probe(s) no longer reproduce the bug (h1)",
+    "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "c67eceaf84c50b7cacf46ae5a33c8d78271b83fadda5ff8bbe243bf32109fe90",
+    "stderr": "",
+    "stdout": "h1 (q1): completed=True matched=False exit=0 bug_no_longer_reproduces=True\nh2 (q1): completed=True matched=True exit=1 bug_no_longer_reproduces=False"
+   },
+   {
+    "command": "python .hae/probe_h1.py",
+    "created_at": 1791856859.908,
+    "detail": "prediction failed: exit_code==1; stdout contains 'BUG: cached_property missing'",
+    "evidence_id": "e7",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: cached_property missing"
+    },
+    "question_id": "q1",
+    "sha256": "29ac3dfbcb34eaeb33c6d820d1b0d8e28e26e0fb66075e77d596588841765047",
+    "stderr": "",
+    "stdout": "OK: cached_property present\n"
+   },
+   {
+    "command": "python .hae/probe_h2.py",
+    "created_at": 1791856861.461,
+    "detail": "prediction held: exit_code==1; stdout contains 'BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8'",
+    "evidence_id": "e8",
+    "exit_code": 1,
+    "hypothesis_id": "h2",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8"
+    },
+    "question_id": "q1",
+    "sha256": "83aa251bf26c0cd073a2737989a30f0122a82dd242625b7bf47ba7c2bc75e472",
+    "stderr": "/testbed/.hae/probe_h2.py:9: DeprecationWarning: cachedproperty is deprecated, use functools.cached_property instead\n  def prop(self):\ncommand terminated with exit code 1\n",
+    "stdout": "BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8\n"
+   },
+   {
+    "command": "self-oracle: reproduction probe re-run after patch (NOT the hidden tests)",
+    "created_at": 1791856861.461,
+    "detail": "self-oracle, iteration 1: resolved (1/2 reproduction probe(s) no longer reproduce the bug)",
+    "evidence_id": "e9",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "oracle",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "df58cb89a9f02df801865bccef6bcc63cbf188565a43263fe2d527d68c41c80a",
+    "stderr": "",
+    "stdout": "h1: completed=True matched=False exit=0 bug_no_longer_reproduces=True\nh2: completed=True matched=True exit=1 bug_no_longer_reproduces=False"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "The module `astroid/decorators.py` defines a custom `cachedproperty` class and does not import or alias `functools.cached_property`, causing failures when code expects the standard library descriptor.",
+    "created_at": 1791856814.999,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1",
+     "e3",
+     "e4",
+     "e6",
+     "e7"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "Missing import/alias of `functools.cached_property` in `astroid/decorators.py`.",
+    "mechanism_signature": "alia astroid cached_property cachedproperty caus custom decorator defin descriptor expect failur functool import library miss standard",
+    "patch_applied": true,
+    "posterior": 0.985,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: cached_property missing"
+    },
+    "prior": 0.95,
+    "probe_code": "import sys\nimport astroid.decorators\nif sys.version_info >= (3, 8):\n    if not hasattr(astroid.decorators, 'cached_property'):\n        print('BUG: cached_property missing')\n        sys.exit(1)\n    else:\n        print('OK: cached_property present')\n        sys.exit(0)\nelse:\n    print('SKIP: Python < 3.8')\n    sys.exit(0)",
+    "probe_rejections": 0,
+    "proposed_by": "Data-Model & ORM Specialist",
+    "question_id": "q1",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.95,
+    "visits": 1
+   },
+   {
+    "claim": "The `cachedproperty` class in `astroid/decorators.py` lacks a deprecation warning mechanism, violating the API contract requirement to warn users on Python >= 3.8 when the custom implementation is not",
+    "created_at": 1791856818.933,
+    "epoch": 0,
+    "evidence_ids": [
+     "e2",
+     "e5",
+     "e8"
+    ],
+    "hypothesis_id": "h2",
+    "last_rejection": "",
+    "mechanism": "The `cachedproperty` class definition in `astroid/decorators.py` does not emit a `DeprecationWarning` upon instantiation or usage when `sys.version_info >= (3, 8)`, failing to signal the migration path to `functools.cached_property` as requested in the issue.",
+    "mechanism_signature": "api astroid cached_property cachedproperty contract custom decorator definition deprecation deprecationwarn emit functool implementation instantiation issue lack mechanism migration path python request requirement signal sys upon usage user version_info violat warn",
+    "patch_applied": false,
+    "posterior": 0.955,
+    "prediction": {
+     "expect_exit_code": 1,
+     "expect_stdout_contains": "BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8"
+    },
+    "prior": 0.85,
+    "probe_code": "import sys\nimport warnings\nimport astroid.decorators\nif sys.version_info < (3, 8):\n    print('SKIP: Python < 3.8')\n    sys.exit(0)\nclass TestClass:\n    @astroid.decorators.cachedproperty\n    def prop(self):\n        return 42\nwith warnings.catch_warnings(record=True) as w:\n    warnings.simplefilter('always')\n    obj = TestClass()\n    _ = obj.prop\n    deprecation_warnings = [x for x in w if issubclass(x.category, DeprecationWarning)]\n    if not deprecation_warnings:\n        print('BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8')\n        sys.exit(1)\n    else:\n        print('OK: DeprecationWarning emitted')\n        sys.exit(0)",
+    "probe_rejections": 0,
+    "proposed_by": "API-Contract Specialist",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 1
+   }
+  ],
+  "move_log": [
+   {
+    "agent_role": "Data-Model & ORM Specialist",
+    "created_at": 1791856815.0,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 4.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.639299,
+     "ab_y": 0.0,
+     "head_v": 0.370193
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 1.0,
+     "module_isolation": 1.0,
+     "open_without_options": 1.0,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 0.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 1,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q1",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "state_hash_after": "df6440e57b901d39633259c1d9e5c6a9a5a53df0d56556156d2b813c0055cb6a",
+    "state_hash_before": "51dbf34786ec604abe01d7ba9a8a3752e64f8b73f90c89a22c6c99c748723cde",
+    "value_after": 0.08,
+    "value_before": 0.06
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791856817.297,
+    "delta_u": 0.95,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.857143,
+     "ab_theta": 0.802531,
+     "ab_y": 1.0,
+     "head_v": 0.384021
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.0,
+     "mean_open_uncertainty": 1.0,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.0,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.1,
+     "supported_ratio": 0.0,
+     "untested_ratio": 1.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 2,
+    "move_type": "run_experiment",
+    "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: cached_property missing'",
+    "question_id": "q1",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "state_hash_after": "956e54963d70e44c00be69b68b4204e69f33bda21f356da879e5c6c2b12e5a6e",
+    "state_hash_before": "df6440e57b901d39633259c1d9e5c6a9a5a53df0d56556156d2b813c0055cb6a",
+    "value_after": 0.706,
+    "value_before": 0.076
+   },
+   {
+    "agent_role": "API-Contract Specialist",
+    "created_at": 1791856818.934,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 4.0,
+     "ab_mean": 0.366667,
+     "ab_theta": 0.576212,
+     "ab_y": 0.0,
+     "head_v": 0.219771
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.05,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.95,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.0,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "",
+    "move_index": 3,
+    "move_type": "propose_hypothesis",
+    "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "state_hash_after": "86e0ef978304ab72113548f82369895e975791b1958687d0347e5e9d971398fb",
+    "state_hash_before": "956e54963d70e44c00be69b68b4204e69f33bda21f356da879e5c6c2b12e5a6e",
+    "value_after": 0.68,
+    "value_before": 0.71
+   },
+   {
+    "agent_role": "EvidenceGatekeeper",
+    "created_at": 1791856820.491,
+    "delta_u": 0.0,
+    "extra": {
+     "ab_arms": 5.0,
+     "ab_mean": 0.785714,
+     "ab_theta": 0.971112,
+     "ab_y": 0.5,
+     "head_v": 0.239102
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 0.5,
+     "mean_open_uncertainty": 0.05,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.95,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.1,
+     "supported_ratio": 0.5,
+     "untested_ratio": 0.5
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h2",
+    "move_index": 4,
+    "move_type": "run_experiment",
+    "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8'",
+    "question_id": "q1",
+    "role_id": "r_api_contract_specialist_swebench",
+    "state_hash_after": "f09326e102a1e45d71d3546edd419f2b7f0960c04054c8eb96c78c71ae22adf5",
+    "state_hash_before": "86e0ef978304ab72113548f82369895e975791b1958687d0347e5e9d971398fb",
+    "value_after": 0.706,
+    "value_before": 0.676
+   },
+   {
+    "agent_role": "Data-Model & ORM Specialist",
+    "created_at": 1791856856.97,
+    "delta_u": 0.03,
+    "extra": {
+     "ab_arms": 6.0,
+     "ab_mean": 0.79,
+     "ab_theta": 0.989185,
+     "ab_y": 0.53,
+     "head_v": 0.201257
+    },
+    "features": {
+     "certified_ratio": 0.0,
+     "evidence_density": 1.0,
+     "mean_open_uncertainty": 0.05,
+     "module_isolation": 1.0,
+     "open_without_options": 0.0,
+     "resolved_fraction": 0.95,
+     "resolved_ratio": 0.0,
+     "ruled_out_ratio": 0.0,
+     "stagnation": 0.2,
+     "supported_ratio": 1.0,
+     "untested_ratio": 0.0
+    },
+    "forced_low_prior": false,
+    "hypothesis_id": "h1",
+    "move_index": 5,
+    "move_type": "synthesize",
+    "note": "astroid/decorators.py [plan]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (1/2 re-run probe(s) no longer reproduce the bug)",
+    "question_id": "q1",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "state_hash_after": "319ce54c36f196b7fdf5e7dfbec861141124f189ad4f9120f797a8b73ed13d63",
+    "state_hash_before": "f09326e102a1e45d71d3546edd419f2b7f0960c04054c8eb96c78c71ae22adf5",
+    "value_after": 0.78,
+    "value_before": 0.702
+   }
+  ],
+  "questions": [
+   {
+    "created_at": 1791856784.913,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1",
+     "h2"
+    ],
+    "hypothesis_rounds": 2,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "astroid/decorators.py",
+    "question_id": "q1",
+    "source_failure": "Replace `cachedproperty` with `functools.cached_property` (>= 3.8)",
+    "source_failure_key": "swebench:pylint-dev__astroid-1417",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: Replace `cachedproperty` with `functools.cached_property` (>= 3.8) -- I thought about this PR recently again. Typing `cachedproperty` might not work, but it can be replaced with `functools.cached_property`. We only need to `sys` guard it for `< 3.8`. This should work ```py if sys.version_info >= (3, 8): from functools import cached_property else: from astroid.decorators import cachedproperty as cached_property ``` Additionally, the deprecation warning can be limited to `>= 3.8`. _Originally posted by @cdce8p in https://github.com/PyCQA/astroid/issues/1243#issuecomment-1052834322_",
+    "uncertainty": 0.02
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "c2decaa99a08bf6730bd392eedaae3e71d5c494c8041940b6f87592b07a288cd"
+ },
+ "epistemic_searches": [
+  {
+   "delta_u_total": 0.98,
+   "iteration": 1,
+   "moves_used": 5,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "cli",
+       "argparse",
+       "option",
+       "flag",
+       "command",
+       "config",
+       "configuration",
+       "documentation",
+       "docs",
+       "help",
+       "output",
+       "console",
+       "logging",
+       "warning",
+       "deprecationwarning",
+       "pylint",
+       "flake8",
+       "requests",
+       "http",
+       "session",
+       "header",
+       "url",
+       "matplotlib",
+       "figure",
+       "axes",
+       "pyplot",
+       "xarray",
+       "dataset"
+      ],
+      "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Docs & CLI Behaviour Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_docs_cli_behaviour_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Two lines beat twenty. Reads the surrounding code first and leaves it as found.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "patch",
+       "diff",
+       "minimal",
+       "fix",
+       "search",
+       "replace",
+       "edit",
+       "refactor"
+      ],
+      "goal": "Produce the smallest search/replace diff that makes a supported hypothesis true, with no collateral edits, formatting churn or renamed names.",
+      "kind": "synthesis",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Minimal-Diff Synthesiser",
+      "origin": "seed:swebench",
+      "role_id": "r_minimal_diff_synthesiser_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.2,
+      "tools_enabled": true,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [],
+    "recruit_prior": 0.0573,
+    "stall_counter": 0,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.98,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 2
+     },
+     "r_docs_cli_behaviour_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_minimal_diff_synthesiser_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     }
+    },
+    "unmatched_modules": [
+     "astroid/decorators.py"
+    ]
+   },
+   "stats": {
+    "ab_mcts": {
+     "algorithm": "ab_mcts",
+     "arms": {
+      "q1": [
+       {
+        "alpha": 2.7,
+        "beta": 4.3,
+        "ident": "r_api_contract_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3857,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         0.5
+        ]
+       },
+       {
+        "alpha": 3.2,
+        "beta": 3.8,
+        "ident": "r_data_model_orm_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.4571,
+        "observations": 1,
+        "prior_mean": 0.3,
+        "pulls": 1,
+        "rewards": [
+         1.0
+        ]
+       },
+       {
+        "alpha": 2.2,
+        "beta": 3.8,
+        "ident": "r_docs_cli_behaviour_specialist_swebench",
+        "kind": "gen_hypothesis",
+        "mean": 0.3667,
+        "observations": 0,
+        "prior_mean": 0.3,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 1.3645,
+        "beta": 4.6355,
+        "ident": "ceo",
+        "kind": "gen_specialist",
+        "mean": 0.2274,
+        "observations": 0,
+        "prior_mean": 0.0911,
+        "pulls": 0,
+        "rewards": []
+       },
+       {
+        "alpha": 6.0,
+        "beta": 1.0,
+        "ident": "h1",
+        "kind": "experiment",
+        "mean": 0.8571,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         1.0
+        ]
+       },
+       {
+        "alpha": 5.5,
+        "beta": 1.5,
+        "ident": "h2",
+        "kind": "experiment",
+        "mean": 0.7857,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         0.5
+        ]
+       },
+       {
+        "alpha": 5.53,
+        "beta": 1.47,
+        "ident": "h1",
+        "kind": "synthesize",
+        "mean": 0.79,
+        "observations": 1,
+        "prior_mean": 1.0,
+        "pulls": 1,
+        "rewards": [
+         0.53
+        ]
+       },
+       {
+        "alpha": 5.0,
+        "beta": 1.0,
+        "ident": "h2",
+        "kind": "synthesize",
+        "mean": 0.8333,
+        "observations": 0,
+        "prior_mean": 1.0,
+        "pulls": 0,
+        "rewards": []
+       }
+      ]
+     },
+     "counts": {
+      "deepen_experiment": 2,
+      "deepen_synthesize": 1,
+      "gen_empty_draws": 0,
+      "gen_exhausted_questions": 0,
+      "steps": 5,
+      "widen_hypothesis": 2,
+      "widen_specialist": 0,
+      "widest_question": 2
+     },
+     "gen_empty": {
+      "q1": 0
+     },
+     "prior_strength": 4.0,
+     "trace": [
+      {
+       "chosen": "gen_hypothesis:r_data_model_orm_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.19819,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.639299,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.082639,
+        "gen_specialist:ceo": 0.236978
+       },
+       "mean": 0.366667,
+       "move_index": 1,
+       "question_id": "q1",
+       "theta": 0.639299,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h1",
+       "draws": {
+        "experiment:h1": 0.802531,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.451223,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.325357,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.340334,
+        "gen_specialist:ceo": 0.018486
+       },
+       "mean": 0.857143,
+       "move_index": 2,
+       "question_id": "q1",
+       "theta": 0.802531,
+       "y": 1.0
+      },
+      {
+       "chosen": "gen_hypothesis:r_api_contract_specialist_swebench",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.576212,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.473522,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.246065,
+        "gen_specialist:ceo": 0.374904
+       },
+       "mean": 0.366667,
+       "move_index": 3,
+       "question_id": "q1",
+       "theta": 0.576212,
+       "y": 0.0
+      },
+      {
+       "chosen": "experiment:h2",
+       "draws": {
+        "experiment:h2": 0.971112,
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.165594,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.224331,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.053486,
+        "gen_specialist:ceo": 0.149247
+       },
+       "mean": 0.785714,
+       "move_index": 4,
+       "question_id": "q1",
+       "theta": 0.971112,
+       "y": 0.5
+      },
+      {
+       "chosen": "synthesize:h1",
+       "draws": {
+        "gen_hypothesis:r_api_contract_specialist_swebench": 0.240887,
+        "gen_hypothesis:r_data_model_orm_specialist_swebench": 0.513917,
+        "gen_hypothesis:r_docs_cli_behaviour_specialist_swebench": 0.3978,
+        "gen_specialist:ceo": 0.65227,
+        "synthesize:h1": 0.989185,
+        "synthesize:h2": 0.400085
+       },
+       "mean": 0.79,
+       "move_index": 5,
+       "question_id": "q1",
+       "theta": 0.989185,
+       "y": 0.53
+      }
+     ]
+    },
+    "budget_moves": 30,
+    "delta_u_by_role": {
+     "r_api_contract_specialist_swebench": 0.0,
+     "r_data_model_orm_specialist_swebench": 0.98
+    },
+    "duplicate_rejections": 0,
+    "experiments": 2,
+    "falsified": 0,
+    "forced_low_prior_picks": 0,
+    "forced_low_prior_wins": 0,
+    "frontier_admissions": 1,
+    "hypotheses_accepted": 2,
+    "inconclusive": 0,
+    "moves_by_role": {
+     "r_api_contract_specialist_swebench": 2,
+     "r_data_model_orm_specialist_swebench": 3
+    },
+    "moves_used": 5,
+    "prior_head_loaded": true,
+    "prior_head_steered": 0,
+    "probe_repairs": 0,
+    "proposal_rounds": 2,
+    "proposer_errors": 0,
+    "questions_asked": 0,
+    "questions_deferred": 0,
+    "recruit_declined": 0,
+    "recruits": 0,
+    "recruits_from_library": 0,
+    "recruits_synthesized": 0,
+    "rejected_probes": 0,
+    "roles_routed": true,
+    "search_algorithm": "ab_mcts",
+    "stop_reason": "all_resolved",
+    "supported": 2,
+    "syntheses": 1,
+    "syntheses_by_plan": 1,
+    "syntheses_unwritten": 0,
+    "syntheses_verified": 1,
+    "synthesis_seconds": 7.874,
+    "tabu_rejections": 0,
+    "value_head_loaded": true
+   },
+   "stop_reason": "all_resolved",
+   "synthesized_paths": [
+    "astroid/decorators.py"
+   ],
+   "trajectory": [
+    {
+     "agent_role": "Data-Model & ORM Specialist",
+     "created_at": 1791856815.0,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 4.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.639299,
+      "ab_y": 0.0,
+      "head_v": 0.370193
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 1.0,
+      "module_isolation": 1.0,
+      "open_without_options": 1.0,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 0.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 1,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q1",
+     "role_id": "r_data_model_orm_specialist_swebench",
+     "state_hash_after": "df6440e57b901d39633259c1d9e5c6a9a5a53df0d56556156d2b813c0055cb6a",
+     "state_hash_before": "51dbf34786ec604abe01d7ba9a8a3752e64f8b73f90c89a22c6c99c748723cde",
+     "value_after": 0.08,
+     "value_before": 0.06
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791856817.297,
+     "delta_u": 0.95,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.857143,
+      "ab_theta": 0.802531,
+      "ab_y": 1.0,
+      "head_v": 0.384021
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.0,
+      "mean_open_uncertainty": 1.0,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.0,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.1,
+      "supported_ratio": 0.0,
+      "untested_ratio": 1.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 2,
+     "move_type": "run_experiment",
+     "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: cached_property missing'",
+     "question_id": "q1",
+     "role_id": "r_data_model_orm_specialist_swebench",
+     "state_hash_after": "956e54963d70e44c00be69b68b4204e69f33bda21f356da879e5c6c2b12e5a6e",
+     "state_hash_before": "df6440e57b901d39633259c1d9e5c6a9a5a53df0d56556156d2b813c0055cb6a",
+     "value_after": 0.706,
+     "value_before": 0.076
+    },
+    {
+     "agent_role": "API-Contract Specialist",
+     "created_at": 1791856818.934,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 4.0,
+      "ab_mean": 0.366667,
+      "ab_theta": 0.576212,
+      "ab_y": 0.0,
+      "head_v": 0.219771
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.05,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.95,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.0,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "",
+     "move_index": 3,
+     "move_type": "propose_hypothesis",
+     "note": "1 accepted, 0 repaired, 0 tabu, 0 duplicate of 1 proposed",
+     "question_id": "q1",
+     "role_id": "r_api_contract_specialist_swebench",
+     "state_hash_after": "86e0ef978304ab72113548f82369895e975791b1958687d0347e5e9d971398fb",
+     "state_hash_before": "956e54963d70e44c00be69b68b4204e69f33bda21f356da879e5c6c2b12e5a6e",
+     "value_after": 0.68,
+     "value_before": 0.71
+    },
+    {
+     "agent_role": "EvidenceGatekeeper",
+     "created_at": 1791856820.491,
+     "delta_u": 0.0,
+     "extra": {
+      "ab_arms": 5.0,
+      "ab_mean": 0.785714,
+      "ab_theta": 0.971112,
+      "ab_y": 0.5,
+      "head_v": 0.239102
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 0.5,
+      "mean_open_uncertainty": 0.05,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.95,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.1,
+      "supported_ratio": 0.5,
+      "untested_ratio": 0.5
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h2",
+     "move_index": 4,
+     "move_type": "run_experiment",
+     "note": "SUPPORTED: prediction held: exit_code==1; stdout contains 'BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8'",
+     "question_id": "q1",
+     "role_id": "r_api_contract_specialist_swebench",
+     "state_hash_after": "f09326e102a1e45d71d3546edd419f2b7f0960c04054c8eb96c78c71ae22adf5",
+     "state_hash_before": "86e0ef978304ab72113548f82369895e975791b1958687d0347e5e9d971398fb",
+     "value_after": 0.706,
+     "value_before": 0.676
+    },
+    {
+     "agent_role": "Data-Model & ORM Specialist",
+     "created_at": 1791856856.97,
+     "delta_u": 0.03,
+     "extra": {
+      "ab_arms": 6.0,
+      "ab_mean": 0.79,
+      "ab_theta": 0.989185,
+      "ab_y": 0.53,
+      "head_v": 0.201257
+     },
+     "features": {
+      "certified_ratio": 0.0,
+      "evidence_density": 1.0,
+      "mean_open_uncertainty": 0.05,
+      "module_isolation": 1.0,
+      "open_without_options": 0.0,
+      "resolved_fraction": 0.95,
+      "resolved_ratio": 0.0,
+      "ruled_out_ratio": 0.0,
+      "stagnation": 0.2,
+      "supported_ratio": 1.0,
+      "untested_ratio": 0.0
+     },
+     "forced_low_prior": false,
+     "hypothesis_id": "h1",
+     "move_index": 5,
+     "move_type": "synthesize",
+     "note": "astroid/decorators.py [plan]: module check passed: py_compile, import, static_check, repo_tests; effect: effective (1/2 re-run probe(s) no longer reproduce the bug)",
+     "question_id": "q1",
+     "role_id": "r_data_model_orm_specialist_swebench",
+     "state_hash_after": "319ce54c36f196b7fdf5e7dfbec861141124f189ad4f9120f797a8b73ed13d63",
+     "state_hash_before": "f09326e102a1e45d71d3546edd419f2b7f0960c04054c8eb96c78c71ae22adf5",
+     "value_after": 0.78,
+     "value_before": 0.702
+    }
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-pylint-dev-astroid-1417/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v11_ab_mcts_swebench_firm_0",
+ "instance_id": "pylint-dev__astroid-1417",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.98,
+  "estimated_cost_usd": 0.0018,
+  "flash_count": 26,
+  "flash_input_tokens": 18373,
+  "flash_output_tokens": 1386,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 19759
+ },
+ "org": {
+  "active_roles": [
+   {
+    "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "api",
+     "signature",
+     "kwargs",
+     "args",
+     "deprecation",
+     "deprecated",
+     "backwards",
+     "compatibility",
+     "contract",
+     "interface",
+     "public",
+     "default",
+     "argument",
+     "parameter"
+    ],
+    "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "API-Contract Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_api_contract_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "django",
+     "orm",
+     "queryset",
+     "model",
+     "models",
+     "migration",
+     "migrations",
+     "field",
+     "fields",
+     "sql",
+     "database",
+     "sqlalchemy",
+     "serializer",
+     "foreignkey",
+     "compiler",
+     "expression",
+     "annotation",
+     "subquery",
+     "admin",
+     "forms"
+    ],
+    "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Data-Model & ORM Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_data_model_orm_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "cli",
+     "argparse",
+     "option",
+     "flag",
+     "command",
+     "config",
+     "configuration",
+     "documentation",
+     "docs",
+     "help",
+     "output",
+     "console",
+     "logging",
+     "warning",
+     "deprecationwarning",
+     "pylint",
+     "flake8",
+     "requests",
+     "http",
+     "session",
+     "header",
+     "url",
+     "matplotlib",
+     "figure",
+     "axes",
+     "pyplot",
+     "xarray",
+     "dataset"
+    ],
+    "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+    "kind": "both",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Docs & CLI Behaviour Specialist",
+    "origin": "seed:swebench",
+    "role_id": "r_docs_cli_behaviour_specialist_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.3,
+    "tools_enabled": true,
+    "uses": 0
+   },
+   {
+    "backstory": "Two lines beat twenty. Reads the surrounding code first and leaves it as found.",
+    "cost_per_move": 1.0,
+    "created_generation": 0,
+    "domain_tags": [
+     "patch",
+     "diff",
+     "minimal",
+     "fix",
+     "search",
+     "replace",
+     "edit",
+     "refactor"
+    ],
+    "goal": "Produce the smallest search/replace diff that makes a supported hypothesis true, with no collateral edits, formatting churn or renamed names.",
+    "kind": "synthesis",
+    "mean_delta_u": 0.0,
+    "model_tier": "worker",
+    "name": "Minimal-Diff Synthesiser",
+    "origin": "seed:swebench",
+    "role_id": "r_minimal_diff_synthesiser_swebench",
+    "support_rate": 0.0,
+    "tasks_resolved": 0,
+    "temperature": 0.2,
+    "tools_enabled": true,
+    "uses": 0
+   }
+  ],
+  "policy": {
+   "enabled": true,
+   "exploration_c": 0.25,
+   "headcount_lambda": 0.05,
+   "max_active_roles": 6,
+   "max_initial_roles": 4,
+   "min_initial_roles": 2,
+   "optimistic_prior": 0.3,
+   "recruit_bias": -2.0,
+   "recruit_cooldown_moves": 3,
+   "recruit_mode": "both",
+   "recruit_w_headcount": 0.4,
+   "recruit_w_stall": 0.5,
+   "recruit_w_unmatched": 0.8,
+   "stall_delta_u": 0.05,
+   "stall_moves": 4,
+   "temperature": 0.0
+  },
+  "recruit_log": [],
+  "recruit_prior": 0.0573,
+  "stall_counter": 0,
+  "stats": {
+   "r_api_contract_specialist_swebench": {
+    "consecutive_stalls": 1,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 1,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 1
+   },
+   "r_data_model_orm_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.98,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 1,
+    "syntheses_written": 1,
+    "untestable": 0,
+    "visits": 2
+   },
+   "r_docs_cli_behaviour_specialist_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   },
+   "r_minimal_diff_synthesiser_swebench": {
+    "consecutive_stalls": 0,
+    "cumulative_delta_u": 0.0,
+    "falsified": 0,
+    "recruited_at_move": -1,
+    "supported": 0,
+    "syntheses_written": 0,
+    "untestable": 0,
+    "visits": 0
+   }
+  },
+  "unmatched_modules": [
+   "astroid/decorators.py"
+  ]
+ },
+ "org_history": [
+  {
+   "audit": {
+    "candidates": 364,
+    "chosen": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_docs_cli_behaviour_specialist_swebench",
+     "r_minimal_diff_synthesiser_swebench"
+    ],
+    "iteration": 1,
+    "lambda_eff": 0.067,
+    "library_size": 10,
+    "library_source": "genome",
+    "scores": {
+     "r_api_contract_specialist_swebench": 0.1607,
+     "r_data_model_orm_specialist_swebench": 0.15,
+     "r_docs_cli_behaviour_specialist_swebench": 0.1554,
+     "r_issue_reproducer_swebench": 0.15,
+     "r_minimal_diff_synthesiser_swebench": 0.1687,
+     "r_numerics_symbolic_specialist_swebench": 0.15,
+     "r_parsing_grammar_specialist_swebench": 0.15,
+     "r_regression_guard_swebench": 0.15,
+     "r_test_suite_analyst_swebench": 0.15,
+     "r_traceback_localiser_swebench": 0.15
+    },
+    "task": {
+     "complexity": 0.1604,
+     "has_assertion": false,
+     "has_import_error": false,
+     "n_exception_classes": 0,
+     "n_failures": 0,
+     "n_modules": 1,
+     "n_paths_mentioned": 1,
+     "source": "problem_statement",
+     "statement_chars": 604,
+     "tags": [
+      "astroid",
+      "decorators",
+      "replace",
+      "cachedproperty",
+      "functools",
+      "cached_property",
+      "thought",
+      "about",
+      "recently",
+      "again",
+      "typing",
+      "might",
+      "work",
+      "can",
+      "replaced",
+      "only",
+      "need",
+      "sys",
+      "guard",
+      "version_info",
+      "else",
+      "additionally",
+      "deprecation",
+      "warning",
+      "limited",
+      "_originally",
+      "posted",
+      "cdce8p",
+      "https",
+      "github",
+      "com",
+      "pycqa",
+      "issues",
+      "issuecomment"
+     ]
+    },
+    "team": [
+     "r_api_contract_specialist_swebench",
+     "r_data_model_orm_specialist_swebench",
+     "r_docs_cli_behaviour_specialist_swebench",
+     "r_minimal_diff_synthesiser_swebench"
+    ],
+    "team_names": [
+     "API-Contract Specialist",
+     "Data-Model & ORM Specialist",
+     "Docs & CLI Behaviour Specialist",
+     "Minimal-Diff Synthesiser"
+    ],
+    "v_org": 0.3669
+   },
+   "iteration": 1,
+   "org": {
+    "active_roles": [
+     {
+      "backstory": "Library maintainer by instinct: every public name is a promise to a downstream user, and a fix that breaks a promise is a new bug.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "api",
+       "signature",
+       "kwargs",
+       "args",
+       "deprecation",
+       "deprecated",
+       "backwards",
+       "compatibility",
+       "contract",
+       "interface",
+       "public",
+       "default",
+       "argument",
+       "parameter"
+      ],
+      "goal": "Decide what the public interface promises -- signatures, defaults, keyword handling, deprecation paths -- and keep a fix inside that contract.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "API-Contract Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_api_contract_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Has read the Django and SQLAlchemy query compilers. Knows that an alias, an annotation and a subquery each have their own rules.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "django",
+       "orm",
+       "queryset",
+       "model",
+       "models",
+       "migration",
+       "migrations",
+       "field",
+       "fields",
+       "sql",
+       "database",
+       "sqlalchemy",
+       "serializer",
+       "foreignkey",
+       "compiler",
+       "expression",
+       "annotation",
+       "subquery",
+       "admin",
+       "forms"
+      ],
+      "goal": "Resolve bugs in model definitions, query construction, migrations, serialisation and SQL compilation.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Data-Model & ORM Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_data_model_orm_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Reads the docs and the --help text as part of the specification; checks that an error message or warning says what the issue asks for.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "cli",
+       "argparse",
+       "option",
+       "flag",
+       "command",
+       "config",
+       "configuration",
+       "documentation",
+       "docs",
+       "help",
+       "output",
+       "console",
+       "logging",
+       "warning",
+       "deprecationwarning",
+       "pylint",
+       "flake8",
+       "requests",
+       "http",
+       "session",
+       "header",
+       "url",
+       "matplotlib",
+       "figure",
+       "axes",
+       "pyplot",
+       "xarray",
+       "dataset"
+      ],
+      "goal": "Resolve bugs in command-line handling, configuration, logging, warnings and documented behaviour, keeping the user-visible output exactly as the issue expects.",
+      "kind": "both",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Docs & CLI Behaviour Specialist",
+      "origin": "seed:swebench",
+      "role_id": "r_docs_cli_behaviour_specialist_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.3,
+      "tools_enabled": true,
+      "uses": 0
+     },
+     {
+      "backstory": "Two lines beat twenty. Reads the surrounding code first and leaves it as found.",
+      "cost_per_move": 1.0,
+      "created_generation": 0,
+      "domain_tags": [
+       "patch",
+       "diff",
+       "minimal",
+       "fix",
+       "search",
+       "replace",
+       "edit",
+       "refactor"
+      ],
+      "goal": "Produce the smallest search/replace diff that makes a supported hypothesis true, with no collateral edits, formatting churn or renamed names.",
+      "kind": "synthesis",
+      "mean_delta_u": 0.0,
+      "model_tier": "worker",
+      "name": "Minimal-Diff Synthesiser",
+      "origin": "seed:swebench",
+      "role_id": "r_minimal_diff_synthesiser_swebench",
+      "support_rate": 0.0,
+      "tasks_resolved": 0,
+      "temperature": 0.2,
+      "tools_enabled": true,
+      "uses": 0
+     }
+    ],
+    "policy": {
+     "enabled": true,
+     "exploration_c": 0.25,
+     "headcount_lambda": 0.05,
+     "max_active_roles": 6,
+     "max_initial_roles": 4,
+     "min_initial_roles": 2,
+     "optimistic_prior": 0.3,
+     "recruit_bias": -2.0,
+     "recruit_cooldown_moves": 3,
+     "recruit_mode": "both",
+     "recruit_w_headcount": 0.4,
+     "recruit_w_stall": 0.5,
+     "recruit_w_unmatched": 0.8,
+     "stall_delta_u": 0.05,
+     "stall_moves": 4,
+     "temperature": 0.0
+    },
+    "recruit_log": [],
+    "recruit_prior": 0.0573,
+    "stall_counter": 0,
+    "stats": {
+     "r_api_contract_specialist_swebench": {
+      "consecutive_stalls": 1,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 1
+     },
+     "r_data_model_orm_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.98,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 1,
+      "syntheses_written": 1,
+      "untestable": 0,
+      "visits": 2
+     },
+     "r_docs_cli_behaviour_specialist_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     },
+     "r_minimal_diff_synthesiser_swebench": {
+      "consecutive_stalls": 0,
+      "cumulative_delta_u": 0.0,
+      "falsified": 0,
+      "recruited_at_move": -1,
+      "supported": 0,
+      "syntheses_written": 0,
+      "untestable": 0,
+      "visits": 0
+     }
+    },
+    "unmatched_modules": [
+     "astroid/decorators.py"
+    ]
+   }
+  }
+ ],
+ "prediction_chars": 1223,
+ "swebench": {
+  "base_commit": "da745538c7236028a22cdf0405f6829fcf6886bc",
+  "budget_moves": 30,
+  "changed_files": [
+   "astroid/decorators.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-pylint-dev-astroid-1417/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "pylint-dev__astroid-1417",
+  "iterations": [
+   {
+    "iteration": 1,
+    "moves_used": 5,
+    "org": {
+     "recruits": 0,
+     "stall": 0,
+     "team": [
+      "r_api_contract_specialist_swebench",
+      "r_data_model_orm_specialist_swebench",
+      "r_docs_cli_behaviour_specialist_swebench",
+      "r_minimal_diff_synthesiser_swebench"
+     ],
+     "unmatched": [
+      "astroid/decorators.py"
+     ]
+    },
+    "patched": true,
+    "recheck": {
+     "bug_gone_hypotheses": [
+      "h1"
+     ],
+     "evidence_id": "e9",
+     "probes_rerun": 2,
+     "reopened": [],
+     "resolved": [
+      "q1"
+     ],
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "all_resolved",
+    "synthesized_paths": [
+     "astroid/decorators.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "astroid/decorators.py",
+    "rationale": "The issue explicitly requests replacing the custom `cachedproperty` decorator with `functools.cached_property` for Python >= 3.8, and `astroid/decorators.py` is the module where this custom decorator is defined and exported.",
+    "resolved": "astroid/decorators.py"
+   }
+  ],
+  "moves_used": 5,
+  "patch_chars": 1223,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "astroid",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 60.0,
+    "duration_s": 25.38,
+    "mode": "whole_suite",
+    "reason": "",
+    "summary": "1260 passed, 70 skipped, 15 xfailed, 1 warning in 20.05s",
+    "target": "tests",
+    "timeout_s": 76.1
+   },
+   "tried": [
+    "astroid"
+   ]
+  },
+  "repo": "pylint-dev/astroid",
+  "reproduction": [
+   {
+    "bug_gone_hypotheses": [
+     "h1"
+    ],
+    "evidence_id": "e9",
+    "probes_rerun": 2,
+    "reopened": [],
+    "reruns": [
+     {
+      "bug_no_longer_reproduces": true,
+      "completed": true,
+      "detail": "prediction failed: exit_code==1; stdout contains 'BUG: cached_property missing'",
+      "evidence_id": "e7",
+      "exit_code": 0,
+      "hypothesis_id": "h1",
+      "matched_prediction": false
+     },
+     {
+      "bug_no_longer_reproduces": false,
+      "completed": true,
+      "detail": "prediction held: exit_code==1; stdout contains 'BUG: No DeprecationWarning emitted for cachedproperty on Python >= 3.8'",
+      "evidence_id": "e8",
+      "exit_code": 1,
+      "hypothesis_id": "h2",
+      "matched_prediction": true
+     }
+    ],
+    "resolved": [
+     "q1"
+    ],
+    "verdict": "resolved"
+   }
+  ],
+  "resolved_by_self_oracle": true,
+  "root_module": "astroid/decorators.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [],
+   "failure": "Replace `cachedproperty` with `functools.cached_property` (>= 3.8)",
+   "paths": [
+    "astroid/decorators.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "resolved",
+  "task_features": {
+   "complexity": 0.1604,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 604,
+   "tags": [
+    "astroid",
+    "decorators",
+    "replace",
+    "cachedproperty",
+    "functools",
+    "cached_property",
+    "thought",
+    "about",
+    "recently",
+    "again",
+    "typing",
+    "might",
+    "work",
+    "can",
+    "replaced",
+    "only",
+    "need",
+    "sys",
+    "guard",
+    "version_info",
+    "else",
+    "additionally",
+    "deprecation",
+    "warning",
+    "limited",
+    "_originally",
+    "posted",
+    "cdce8p",
+    "https",
+    "github",
+    "com",
+    "pycqa",
+    "issues",
+    "issuecomment"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 1
+ },
+ "task": {
+  "base_commit": "da745538c7236028a22cdf0405f6829fcf6886bc",
+  "created_at": "2022-03-01T18:24:29Z",
+  "environment_setup_commit": "da745538c7236028a22cdf0405f6829fcf6886bc",
+  "hints_text": "",
+  "instance_id": "pylint-dev__astroid-1417",
+  "problem_statement": "Replace `cachedproperty` with `functools.cached_property` (>= 3.8)\nI thought about this PR recently again. Typing `cachedproperty` might not work, but it can be replaced with `functools.cached_property`. We only need to `sys` guard it for `< 3.8`. This should work\r\n```py\r\nif sys.version_info >= (3, 8):\r\n    from functools import cached_property\r\nelse:\r\n    from astroid.decorators import cachedproperty as cached_property\r\n```\r\n\r\nAdditionally, the deprecation warning can be limited to `>= 3.8`.\r\n\r\n_Originally posted by @cdce8p in https://github.com/PyCQA/astroid/issues/1243#issuecomment-1052834322_\n",
+  "repo": "pylint-dev/astroid",
+  "version": "2.10"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 4,
+  "thought_tokens": 0
+ },
+ "token_usage": 19759,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

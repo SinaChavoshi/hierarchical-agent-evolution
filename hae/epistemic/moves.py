@@ -405,26 +405,54 @@ def _closest_windows(src_lines: List[str], old: List[str]) -> Tuple[int, float, 
     return best, best_ratio, runner_up
 
 
+_DEF_HEADER_LINE_RE = re.compile(r"^(\s*)(?:async\s+def|def|class)\s+([A-Za-z_]\w*)\b")
+
+
+def _apply_line_edit_to_source_line(src_line: str, old_line: str, new_line: str, indent_prefix: Optional[str] = None) -> str:
+    """Projects `old_line -> new_line` edits onto `src_line`, preserving raw Python escapes
+    (`\\`, `\"`, `\n`, octal escapes) that JSON string decoding in `old_line` / `new_line` stripped.
+    Operates strictly on `.lstrip()` bodies so leading indentation comes cleanly from `indent_prefix`.
+    """
+    prefix = indent_prefix if indent_prefix is not None else (src_line[:len(src_line) - len(src_line.lstrip())])
+    s_body = src_line.lstrip()
+    o_body = old_line.lstrip()
+    n_body = new_line.lstrip()
+    if not n_body:
+        return ""
+    if o_body == s_body or "\\" not in s_body:
+        return prefix + n_body
+    sm_src = difflib.SequenceMatcher(None, o_body, s_body, autojunk=False)
+    blocks = sm_src.get_matching_blocks()
+
+    def map_pos(o_idx: int) -> int:
+        prev_o, prev_s = 0, 0
+        for bo, bs, bsz in blocks:
+            if o_idx < bo:
+                if bo == prev_o:
+                    return prev_s
+                frac = (o_idx - prev_o) / float(bo - prev_o)
+                return prev_s + round(frac * (bs - prev_s))
+            if o_idx <= bo + bsz:
+                return bs + (o_idx - bo)
+            prev_o, prev_s = bo + bsz, bs + bsz
+        return len(s_body)
+
+    out_parts: List[str] = []
+    sm_edit = difflib.SequenceMatcher(None, o_body, n_body, autojunk=False)
+    for tag, o1, o2, n1, n2 in sm_edit.get_opcodes():
+        if tag == "equal":
+            out_parts.append(s_body[map_pos(o1):map_pos(o2)])
+        else:
+            out_parts.append(n_body[n1:n2])
+    return prefix + "".join(out_parts)
+
+
 def apply_repair_plan(source: str, plan: RepairPlan) -> Tuple[Optional[str], str]:
     """Applies the plan to `source` when its anchor is unambiguous.
 
     Returns `(new_source, note)`; `new_source` is None when the anchor was not
-    found or matched more than once. Four match strategies, strictest first:
-    exact text; lines compared with trailing whitespace stripped; lines
-    compared with their common indentation removed (the replacement is then
-    re-indented to the anchor's indentation); and a *fuzzy* window match for
-    anchors the model quoted with small drift (a renamed variable, a dropped
-    comment, a reflowed argument list): every same-length window is compared
-    with the anchor as rstripped, dedented text by
-    `difflib.SequenceMatcher(...).ratio()`, and the best window is accepted
-    only if its ratio is >= `FUZZY_ANCHOR_MIN_RATIO` (0.92) AND it beats the
-    best non-overlapping window by `FUZZY_ANCHOR_MIN_MARGIN` (0.05), i.e. it
-    is unique. The fuzzy strategy re-indents like the dedent one and says so
-    in its note (`fuzzy match, ratio 0.95`). When nothing matches, the note
-    names the closest window (`anchor not found; closest is lines 40-44
-    (ratio 0.71)`) so the next synthesis step can be told where the model was
-    aiming. A plan whose new text equals its old text is a no-op and is
-    refused here, before it costs a write.
+    found or matched more than once, or when the resulting splice breaks AST syntax
+    or nests a duplicate `ClassName.ClassName` definition.
     """
     if plan.new_text == plan.old_text:
         return None, "plan is a no-op (new_lines == old_lines)"
@@ -434,22 +462,122 @@ def apply_repair_plan(source: str, plan: RepairPlan) -> Tuple[Optional[str], str
     if n == 0 or n > len(src_lines):
         return None, "anchor longer than the module"
 
+    src_parses = True
+    orig_defs: set = set()
+    try:
+        ast.parse(source)
+        orig_defs = {d[0] for d in list_definitions(source)}
+    except (SyntaxError, ValueError):
+        src_parses = False
+
     def find(norm) -> List[int]:
         target = norm(old)
         return [i for i in range(len(src_lines) - n + 1) if norm(src_lines[i:i + n]) == target]
 
-    def splice(i: int, reindent: bool, label: str) -> Tuple[Optional[str], str]:
-        new_lines = list(plan.new_lines)
-        if reindent:
-            window = src_lines[i:i + n]
-            indents = [len(ln) - len(ln.lstrip()) for ln in window if ln.strip()]
-            anchor_indent = " " * (min(indents) if indents else 0)
-            new_lines = [(anchor_indent + ln) if ln.strip() else "" for ln in _strip_common_indent(new_lines)]
-        out = src_lines[:i] + new_lines + src_lines[i + n:]
+    def splice(
+        i: int,
+        reindent: bool,
+        label: str,
+        span_end_override: Optional[int] = None,
+    ) -> Tuple[Optional[str], str]:
+        span_end = span_end_override if span_end_override is not None else (i + n)
+        if not reindent:
+            new_lines = list(plan.new_lines)
+            span_start = i
+        else:
+            span_start = i
+            m_old = _DEF_HEADER_LINE_RE.match(old[0]) if old else None
+            elided_header_lines: List[str] = []
+            if m_old:
+                sym = m_old.group(2)
+                m_win = _DEF_HEADER_LINE_RE.match(src_lines[i])
+                if not (m_win and m_win.group(2) == sym):
+                    for h_idx in range(i - 1, max(-1, i - 55), -1):
+                        m_up = _DEF_HEADER_LINE_RE.match(src_lines[h_idx])
+                        if m_up and m_up.group(2) == sym:
+                            span_start = h_idx
+                            elided_header_lines = src_lines[h_idx + 1 : i]
+                            break
+
+            win = [ln.rstrip() for ln in src_lines[span_start : span_end]]
+            sm_old_win = difflib.SequenceMatcher(
+                None,
+                [ln.strip() for ln in old],
+                [ln.strip() for ln in win],
+                autojunk=False,
+            )
+            old_to_win: Dict[int, int] = {}
+            for tag, i1, i2, j1, j2 in sm_old_win.get_opcodes():
+                if tag == "equal":
+                    for k in range(i2 - i1):
+                        old_to_win[i1 + k] = j1 + k
+                elif tag == "replace" and (i2 - i1) == (j2 - j1):
+                    for k in range(i2 - i1):
+                        if difflib.SequenceMatcher(None, old[i1 + k], win[j1 + k]).ratio() >= 0.80:
+                            old_to_win[i1 + k] = j1 + k
+
+            ref_line = src_lines[span_start]
+            if ref_line.strip():
+                anchor_indent = " " * (len(ref_line) - len(ref_line.lstrip()))
+            else:
+                indents = [len(ln) - len(ln.lstrip()) for ln in win if ln.strip()]
+                anchor_indent = " " * (min(indents) if indents else 0)
+            old_base_indent = min((len(ln) - len(ln.lstrip()) for ln in old if ln.strip()), default=0)
+
+            def _reindent_line(ln: str) -> str:
+                if not ln.strip():
+                    return ""
+                rel = max(0, (len(ln) - len(ln.lstrip())) - old_base_indent)
+                return anchor_indent + (" " * rel) + ln.lstrip()
+
+            sm_old_new = difflib.SequenceMatcher(None, old, plan.new_lines, autojunk=False)
+            new_lines = []
+            for tag, i1, i2, j1, j2 in sm_old_new.get_opcodes():
+                if tag == "equal":
+                    for k in range(i2 - i1):
+                        old_idx = i1 + k
+                        if old_idx in old_to_win:
+                            new_lines.append(win[old_to_win[old_idx]])
+                        else:
+                            new_lines.append(_reindent_line(plan.new_lines[j1 + k]))
+                        if old_idx == 0 and elided_header_lines:
+                            new_lines.extend(elided_header_lines)
+                else:
+                    if i1 == 0 and elided_header_lines and j2 > j1:
+                        new_lines.append(_reindent_line(plan.new_lines[j1]))
+                        new_lines.extend(elided_header_lines)
+                        for idx_off, ln in enumerate(plan.new_lines[j1 + 1 : j2], 1):
+                            if (i1 + idx_off) < i2 and (i1 + idx_off) in old_to_win:
+                                src_cand = win[old_to_win[i1 + idx_off]]
+                                new_lines.append(_apply_line_edit_to_source_line(src_cand, old[i1 + idx_off], ln))
+                            else:
+                                new_lines.append(_reindent_line(ln))
+                    elif tag == "replace" and (i2 - i1) == (j2 - j1):
+                        for k in range(i2 - i1):
+                            if (i1 + k) in old_to_win:
+                                src_cand = win[old_to_win[i1 + k]]
+                                new_lines.append(_apply_line_edit_to_source_line(src_cand, old[i1 + k], plan.new_lines[j1 + k]))
+                            else:
+                                new_lines.append(_reindent_line(plan.new_lines[j1 + k]))
+                    else:
+                        for ln in plan.new_lines[j1:j2]:
+                            new_lines.append(_reindent_line(ln))
+
+        out = src_lines[:span_start] + new_lines + src_lines[span_end:]
         new_source = "\n".join(out)
         if new_source == source:
             return None, "edit leaves the module unchanged"
-        return new_source, f"replaced {n} line(s) at line {i + 1} ({label}) with {len(new_lines)}"
+        if src_parses:
+            try:
+                ast.parse(new_source)
+            except SyntaxError as exc:
+                return None, f"result does not parse after repair-plan splice: {exc.msg} (line {exc.lineno})"
+            for d_name, _s, _e in list_definitions(new_source):
+                if d_name not in orig_defs:
+                    parts = d_name.split(".")
+                    if len(parts) >= 2 and parts[-1] == parts[-2]:
+                        return None, f"refused self-nested duplicate definition `{d_name}`"
+        return new_source, f"replaced {span_end - span_start} line(s) at line {span_start + 1} ({label}) with {len(new_lines)}"
 
     strategies = (
         ("exact", lambda lines: list(lines), False),
@@ -462,6 +590,24 @@ def apply_repair_plan(source: str, plan: RepairPlan) -> Tuple[Optional[str], str
             return None, f"anchor is ambiguous ({len(hits)} matches, {label})"
         if len(hits) == 1:
             return splice(hits[0], reindent, f"{label} match")
+
+    # Elided docstring/preamble check when old[0] is a class/def header and old[1:] matches body:
+    m_hdr = _DEF_HEADER_LINE_RE.match(old[0]) if len(old) >= 2 else None
+    if m_hdr:
+        body_old = old[1:]
+        body_n = len(body_old)
+        if 0 < body_n <= len(src_lines):
+            b_best, b_ratio, b_runner = _closest_windows(src_lines, body_old)
+            if b_ratio >= FUZZY_ANCHOR_MIN_RATIO and b_runner < b_ratio - FUZZY_ANCHOR_MIN_MARGIN:
+                for h_idx in range(b_best - 1, max(-1, b_best - 55), -1):
+                    m_up = _DEF_HEADER_LINE_RE.match(src_lines[h_idx])
+                    if m_up and m_up.group(2) == m_hdr.group(2):
+                        return splice(
+                            b_best,
+                            True,
+                            f"elided-header match, ratio {b_ratio:.2f}",
+                            span_end_override=b_best + body_n,
+                        )
 
     best, ratio, runner_up = _closest_windows(src_lines, old)
     where = f"lines {best + 1}-{best + n} (ratio {ratio:.2f})"
