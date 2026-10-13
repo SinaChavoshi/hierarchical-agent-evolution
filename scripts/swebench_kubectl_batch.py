@@ -284,7 +284,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--budget-moves", type=int, default=30)
     ap.add_argument("--max-iterations", type=int, default=2)
     ap.add_argument("--screen-only", action="store_true", help="Only run the --gold / --none validity screen")
-    ap.add_argument("--policies", nargs="*", choices=["v8_puct", "v9_ab_mcts", "v10_ab_mcts"], default=["v8_puct", "v9_ab_mcts"])
+    ap.add_argument("--policies", nargs="*", choices=[p[0] for p in DEFAULT_POLICIES], default=["v8_puct", "v9_ab_mcts"])
     ap.add_argument("--keep-pods", action="store_true", help="Do not delete temporary testbed pods after finishing an instance")
     ap.add_argument("--context", default=DEFAULT_CONTEXT)
     ap.add_argument("--nodepool", default="firm-pool")
