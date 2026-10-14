@@ -1,0 +1,581 @@
+{
+ "authored_files": [],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 1685.8,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.0225,
+  "calibration_tested": 1,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 1,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 1,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 1,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "147895ab44146c587be8781458c02954a52d07179aa86272ee5c0460d3292aaf",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 1,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 1,
+  "questions_resolved": 0,
+  "remaining_uncertainty": 0.15,
+  "resolved_fraction": 0.85,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 374002,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v12_agentic_swebench_firm_0",
+  "counters": {
+   "e": 1,
+   "h": 1,
+   "q": 1
+  },
+  "created_at": 1791952038.231,
+  "evidence_log": [
+   {
+    "command": "mkdir -p /testbed/.hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nimport pydicom\nfrom pydicom import charset\n\njapanese_pn = u\"\uff94\uff8f\uff80\uff9e^\uff80\uff9b\uff73=\u5c71\u7530^\u592a\u90ce=\u3084\u307e\u3060^\u305f\u308d\u3046\"\nspecific_character_sets = [\"ISO 2022 IR 13",
+    "created_at": 1791952393.729,
+    "detail": "agentic reproduction probe reproduced bug",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "question_id": "q1",
+    "sha256": "c9a944f6a7a86fd27a378af4e84a9b6990080bddece7897ec88733a749d6fb30",
+    "stderr": "Traceback (most recent call last):\n  File \".hae/reproduce_issue.py\", line 18, in <module>\n    assert actual_encoded == expect_encoded, \"MISMATCH\"\nAssertionError: MISMATCH\ncommand terminated with exit code 1\n",
+    "stdout": "encodings: ['shift_jis', 'iso2022_jp']\nactual: b'\\xd4\\xcf\\xc0\\xde^\\xc0\\xdb\\xb3=\\x8eR\\x93c^\\x91\\xbe\\x98Y=\\x82\\xe2\\x82\\xdc\\x82\\xbe^\\x82\\xbd\\x82\\xeb\\x82\\xa4'\nexpect: b'\\xd4\\xcf\\xc0\\xde^\\xc0\\xdb\\xb3=\\x1b$B;3ED\\x1b(J^\\x1b$BB@O:\\x1b(J=\\x1b$B$d$^$@\\x1b(J^\\x1b$B$?$m$&\\x1b(J'\n"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
+    "created_at": 1791952393.729,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "encodings: ['shift_jis', 'iso2022_jp'] actual: b'\\xd4\\xcf\\xc0\\xde^\\xc0\\xdb\\xb3=\\x8eR\\x93c^\\x91\\xbe\\x98Y=\\x82\\xe2\\x82\\xdc\\x82\\xbe^\\x82\\xbd\\x82\\xeb\\x82\\xa4' expect: b'\\xd4\\xcf\\xc0\\xde^\\xc0\\xdb\\xb3=\\x1b$B;3ED\\x1b(J^\\x1b$BB@O:\\x1b(J=\\x1b$B$d$^$@\\x1b(J^\\x1b$B$?$m$&\\x1b(J' Traceback (most recent call las",
+    "mechanism_signature": "call encoding exit expect hae iso2022_jp issue las recent reproduc reproduce_issue reproduction script shift_jis standalone traceback x1b x82 x8er x91 x93c x98y xa4 xb3 xbd xbe xc0 xcf xd4 xdb xdc xde xe2 xeb",
+    "patch_applied": false,
+    "posterior": 0.92,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "prior": 0.85,
+    "probe_code": "import pydicom\nfrom pydicom import charset\n\njapanese_pn = u\"\uff94\uff8f\uff80\uff9e^\uff80\uff9b\uff73=\u5c71\u7530^\u592a\u90ce=\u3084\u307e\u3060^\u305f\u308d\u3046\"\nspecific_character_sets = [\"ISO 2022 IR 13\", \"ISO 2022 IR 87\"]\nexpect_encoded = (\n    b\"\\xd4\\xcf\\xc0\\xde\\x5e\\xc0\\xdb\\xb3\\x3d\\x1b\\x24\\x42\\x3b\\x33\"\n    b\"\\x45\\x44\\x1b\\x28\\x4a\\x5e\\x1b\\x24\\x42\\x42\\x40\\x4f\\x3a\\x1b\"\n    b\"\\x28\\x4a\\x3d\\x1b\\x24\\x42\\x24\\x64\\x24\\x5e\\x24\\x40\\x1b\\x28\"\n    b\"\\x4a\\x5e\\x1b\\x24\\x42\\x24\\x3f\\x24\\x6d\\x24\\x26\\x1b\\x28\\x4a\"\n)\n\npython_encodings = charset.convert_encodings(specific_character_sets)\nprint(\"encodings:\", python_encodings)\nactual_encoded = charset.encode_string(japanese_pn, python_encodings)\nprint(\"actual:\", actual_encoded)\nprint(\"expect:\", expect_encoded)\nassert actual_encoded == expect_encoded, \"MISMATCH\"\n\n# round trip\ndecoded = charset.decode_string(actual_encoded, python_encodings, set(b'^='))\nprint(\"decoded:\", decoded)\nassert decoded == japanese_pn, \"ROUNDTRIP MISMATCH\"\nprint(\"OK\")\n",
+    "probe_rejections": 0,
+    "proposed_by": "AgenticReproductionSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1791952039.491,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "pydicom/charset.py",
+    "question_id": "q1",
+    "source_failure": "Wrong encoding occurs if the value 1 of SpecificCharacterSets is ISO 2022 IR 13.",
+    "source_failure_key": "swebench:pydicom__pydicom-863",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Reproduce the reported behaviour: Wrong encoding occurs if the value 1 of SpecificCharacterSets is ISO 2022 IR 13. -- <!-- Instructions For Filing a Bug: https://github.com/pydicom/pydicom/blob/master/CONTRIBUTING.md#filing-bugs --> #### Description All Japanese characters are encoded into shift_jis if the value 1 of SpecificCharacterSets (0x0008, 0x0005) is ISO 2022 IR 13. #### Steps/Code to Reproduce The japanese_pn and expect_encoded in the following code came from [H.3.2 Value 1 of Attribute Specific Character Set (0008,0005) is ISO 2022 IR 13.](http://dicom.nema.org/medical/dicom/2015b/output/chtml/part05/sect_H.3.2.html) ```py import pydicom japanese_pn = u\"\uff94\uff8f\uff80\uff9e^\uff80\uff9b\uff73=\u5c71\u7530^\u592a\u90ce=\u3084\u307e\u3060^\u305f\u308d\u3046\" specific_character_set...",
+    "uncertainty": 0.15
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "147895ab44146c587be8781458c02954a52d07179aa86272ee5c0460d3292aaf"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 30,
+   "stats": {
+    "best_checkpoint": null,
+    "checkpoints_recorded": 0,
+    "mode": "v12_agentic"
+   },
+   "stop_reason": "budget_exhausted",
+   "synthesized_paths": []
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-pydicom-pydicom-863/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v12_agentic_swebench_firm_0",
+ "instance_id": "pydicom__pydicom-863",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.6,
+  "estimated_cost_usd": 0.0397,
+  "flash_count": 26,
+  "flash_input_tokens": 322141,
+  "flash_output_tokens": 51861,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 374002
+ },
+ "prediction_chars": 0,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"ISO 2022 IR 13\\|ISO 2022 IR 87\\|convert_encodings\\|def encode_string\" pydicom/charset.py | head -50",
+    "elapsed_s": 5.14,
+    "reasoning_chars": 65,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 3.82,
+    "path": "pydicom/charset.py",
+    "range": [
+     1,
+     120
+    ],
+    "reasoning_chars": 53,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 4.71,
+    "path": "pydicom/charset.py",
+    "range": [
+     250,
+     440
+    ],
+    "reasoning_chars": 67,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 158.59,
+    "error": "Empty response from model.",
+    "reasoning_chars": 10933,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git log --oneline -5 -- pydicom/charset.py && git log --all --oneline | head -20",
+    "elapsed_s": 3.74,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls pydicom/tests/ | head -40 && git grep -n \"IR 13\\|shift_jis\\|iso2022\" pydicom/tests/test_charset.py | head -60",
+    "elapsed_s": 132.77,
+    "reasoning_chars": 8313,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nimport pydicom\nfrom pydicom import charset\n\njapanese_pn = u\"\uff94\uff8f\uff80\uff9e^\uff80\uff9b\uff73=\u5c71\u7530^\u592a\u90ce=\u3084\u307e\u3060^\u305f\u308d\u3046\"\nspecific_character_sets = [\"ISO 2022 IR 13\", \"ISO 2022 IR 87\"]\nexpect_encoded = (\n    b\"\\xd4\\xcf\\xc0\\xde\\x5e\\xc0\\xdb\\xb3\\x3d\\x1b\\x24\\x42\\x3b\\x",
+    "elapsed_s": 23.95,
+    "reasoning_chars": 31,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 1,120p pydicom/tests/test_charset.py",
+    "elapsed_s": 60.37,
+    "reasoning_chars": 3721,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -n \"ENCODED_NAMES\\|def test_encode\\|encode_string\\|chrH32\\|chrH31\" pydicom/tests/test_charset.py",
+    "elapsed_s": 6.95,
+    "reasoning_chars": 110,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 9
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 156.23,
+    "error": "Empty response from model.",
+    "reasoning_chars": 10547,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 340,420p pydicom/tests/test_charset.py",
+    "elapsed_s": 4.0,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 11
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 6.2,
+    "path": "pydicom/charset.py",
+    "range": [
+     256,
+     400
+    ],
+    "reasoning_chars": 85,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 12
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 156.03,
+    "error": "Empty response from model.",
+    "reasoning_chars": 8908,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 13
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 1,60p pydicom/charset.py && sed -n 505,571p pydicom/charset.py",
+    "elapsed_s": 5.01,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 14
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'EOF'\nv = u\"\uff94\uff8f\uff80\uff9e^\uff80\uff9b\uff73=\u5c71\u7530^\u592a\u90ce=\u3084\u307e\u3060^\u305f\u308d\u3046\"\nfor enc in ('shift_jis','iso2022_jp','iso8859'):\n    print(enc)\n    for ch in v:\n        try:\n            b = ch.encode(enc)\n            print('  ', repr(ch), b)\n        except UnicodeError as e:\n            print('  ', repr(ch), 'FAIL',",
+    "elapsed_s": 52.8,
+    "reasoning_chars": 2878,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 15
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'EOF'\nv = u\"\uff94\uff8f\uff80\uff9e^\uff80\uff9b\uff73=\u5c71\u7530^\u592a\u90ce=\u3084\u307e\u3060^\u305f\u308d\u3046\"\nfor enc in ('shift_jis','iso2022_jp'):\n    print(enc)\n    i = 0\n    while i < len(v):\n        try:\n            b = v[i].encode(enc)\n            print('  ', i, repr(v[i]), b)\n        except UnicodeError as e:\n            print('  ', i, re",
+    "elapsed_s": 31.6,
+    "reasoning_chars": 1694,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 16
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'EOF'\nv = u\"\uff94\uff8f\uff80\uff9e^\uff80\uff9b\uff73=\u5c71\u7530^\u592a\u90ce=\u3084\u307e\u3060^\u305f\u308d\u3046\"\nfor enc in ('shift_jis','iso2022_jp'):\n    print(enc)\n    for i, ch in enumerate(v):\n        try:\n            b = ch.encode(enc)\n        except Exception as e:\n            b = 'FAIL'\n        print('  ', i, repr(ch), b)\nEOF",
+    "elapsed_s": 17.97,
+    "reasoning_chars": 790,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 17
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/charmap.py\n# -*- coding: utf-8 -*-\nv = u\"\uff94\uff8f\uff80\uff9e^\uff80\uff9b\uff73=\u5c71\u7530^\u592a\u90ce=\u3084\u307e\u3060^\u305f\u308d\u3046\"\nfor enc in ('shift_jis', 'iso2022_jp'):\n    print(enc)\n    for i, ch in enumerate(v):\n        try:\n            b = ch.encode(enc)\n        except Exception:\n            b = 'FAIL'\n        prin",
+    "elapsed_s": 38.69,
+    "reasoning_chars": 1770,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 18
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 156.43,
+    "error": "Empty response from model.",
+    "reasoning_chars": 10291,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 19
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 60,130p pydicom/charset.py",
+    "elapsed_s": 3.8,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 20
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 285,385p pydicom/charset.py",
+    "elapsed_s": 105.05,
+    "reasoning_chars": 6324,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 21
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls && git log --oneline -3 && ls .hae/ 2>/dev/null",
+    "elapsed_s": 4.23,
+    "reasoning_chars": 79,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls .hae/ 2>/dev/null; wc -l pydicom/charset.py; git grep -n \"def \" pydicom/charset.py",
+    "elapsed_s": 4.69,
+    "reasoning_chars": 35,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 4.48,
+    "path": "/testbed/pydicom/charset.py",
+    "range": [
+     256,
+     390
+    ],
+    "reasoning_chars": 74,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 5.28,
+    "path": "/testbed/pydicom/charset.py",
+    "range": [
+     1,
+     100
+    ],
+    "reasoning_chars": 99,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 159.12,
+    "error": "Empty response from model.",
+    "reasoning_chars": 11550,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat .hae/reproduce_issue.py",
+    "elapsed_s": 2.8,
+    "reasoning_chars": 0,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 159.4,
+    "error": "Empty response from model.",
+    "reasoning_chars": 10541,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - <<'EOF'\nimport pydicom.charset as cs\nencs = cs.convert_encodings([\"ISO 2022 IR 13\", \"ISO 2022 IR 87\"])\nprint(encs)\nprint(cs.ENCODINGS_TO_CODES)\nprint(cs.handled_encodings)\nEOF",
+    "elapsed_s": 5.52,
+    "reasoning_chars": 0,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"encode_string\\|_encode_string_parts\" -- pydicom/tests | head -60",
+    "elapsed_s": 101.78,
+    "reasoning_chars": 6307,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 9
+   }
+  ],
+  "base_commit": "b4b44acbf1ddcaf03df16210aac46cb3a8acd6b9",
+  "best_checkpoint": null,
+  "budget_moves": 30,
+  "changed_files": [],
+  "executor": "kubectl:default/swebench-tb-pydicom-pydicom-863/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "pydicom__pydicom-863",
+  "iterations": [
+   {
+    "best_checkpoint": null,
+    "iteration": 1,
+    "moves_used": 30,
+    "patched": false,
+    "recheck": {
+     "verdict": "unresolved"
+    },
+    "resolved_this_iteration": [],
+    "stop_reason": "budget_exhausted",
+    "synthesized_paths": []
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "pydicom/charset.py",
+    "rationale": "The issue explicitly calls `pydicom.charset.convert_encodings` and `pydicom.charset.encode_string`, and the incorrect encoding behavior for ISO 2022 IR 13 (JIS X 0201 Kana) alongside ISO 2022 IR 87 (JIS X 0208) is handled by the character set conversion and encoding logic within this module.",
+    "resolved": "pydicom/charset.py"
+   }
+  ],
+  "moves_used": 30,
+  "patch_chars": 0,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "pydicom",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 15.0,
+    "duration_s": null,
+    "mode": "proximity",
+    "reason": "no tests/, test/ or testing/ directory",
+    "target": ""
+   },
+   "tried": [
+    "pydicom"
+   ]
+  },
+  "repo": "pydicom/pydicom",
+  "reproduction": [],
+  "resolved_by_self_oracle": false,
+  "root_module": "pydicom/charset.py",
+  "root_question_id": "q1",
+  "root_status": "OPEN",
+  "seed": {
+   "candidates": [],
+   "failure": "Wrong encoding occurs if the value 1 of SpecificCharacterSets is ISO 2022 IR 13.",
+   "paths": [
+    "pydicom/charset.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "budget_exhausted",
+  "task_features": {
+   "complexity": 0.4857,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 1,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 3190,
+   "tags": [
+    "pydicom",
+    "charset",
+    "attributeerror",
+    "wrong",
+    "encoding",
+    "occurs",
+    "value",
+    "specificcharactersets",
+    "iso",
+    "instructions",
+    "filing",
+    "bug",
+    "https",
+    "github",
+    "com",
+    "blob",
+    "master",
+    "contributing",
+    "bugs",
+    "description",
+    "all",
+    "japanese",
+    "characters",
+    "encoded",
+    "shift_jis",
+    "x0008",
+    "x0005",
+    "steps",
+    "code",
+    "reproduce",
+    "japanese_pn",
+    "expect_encoded",
+    "following",
+    "came",
+    "attribute",
+    "specific",
+    "character",
+    "set",
+    "http",
+    "dicom",
+    "nema",
+    "org",
+    "medical",
+    "output",
+    "chtml",
+    "part05",
+    "sect_h",
+    "html",
+    "specific_character_sets"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "b4b44acbf1ddcaf03df16210aac46cb3a8acd6b9",
+  "created_at": "2019-06-15T15:09:57Z",
+  "environment_setup_commit": "b4b44acbf1ddcaf03df16210aac46cb3a8acd6b9",
+  "hints_text": "",
+  "instance_id": "pydicom__pydicom-863",
+  "problem_statement": "Wrong encoding occurs if the value 1 of SpecificCharacterSets is ISO 2022 IR 13.\n<!-- Instructions For Filing a Bug: https://github.com/pydicom/pydicom/blob/master/CONTRIBUTING.md#filing-bugs -->\r\n\r\n#### Description\r\nAll Japanese characters are encoded into shift_jis if the value 1 of SpecificCharacterSets (0x0008, 0x0005) is  ISO 2022 IR 13.\r\n\r\n#### Steps/Code to Reproduce\r\nThe japanese_pn and expect_encoded in the following code came from \r\n[H.3.2 Value 1 of Attribute Specific Character Set (0008,0005) is ISO 2022 IR 13.](http://dicom.nema.org/medical/dicom/2015b/output/chtml/part05/sect_H.3.2.html)\r\n\r\n```py\r\nimport pydicom\r\n\r\njapanese_pn = u\"\uff94\uff8f\uff80\uff9e^\uff80\uff9b\uff73=\u5c71\u7530^\u592a\u90ce=\u3084\u307e\u3060^\u305f\u308d\u3046\"\r\nspecific_character_sets = [\"ISO 2022 IR 13\", \"ISO 2022 IR 87\"]\r\nexpect_encoded = (\r\n    b\"\\xd4\\xcf\\xc0\\xde\\x5e\\xc0\\xdb\\xb3\\x3d\\x1b\\x24\\x42\\x3b\\x33\"\r\n    b\"\\x45\\x44\\x1b\\x28\\x4a\\x5e\\x1b\\x24\\x42\\x42\\x40\\x4f\\x3a\\x1b\"\r\n    b\"\\x28\\x4a\\x3d\\x1b\\x24\\x42\\x24\\x64\\x24\\x5e\\x24\\x40\\x1b\\x28\"\r\n    b\"\\x4a\\x5e\\x1b\\x24\\x42\\x24\\x3f\\x24\\x6d\\x24\\x26\\x1b\\x28\\x4a\"\r\n)\r\n\r\npython_encodings = pydicom.charset.convert_encodings(specific_character_sets)\r\nactual_encoded = pydicom.charset.encode_string(japanese_pn, python_encodings)\r\n\r\nprint(\"actual:{}\".format(actual_encoded))\r\nprint(\"expect:{}\".format(expect_encoded))\r\n```\r\n<!--\r\nExample:\r\n```py\r\nfrom io import BytesIO\r\nfrom pydicom import dcmread\r\n\r\nbytestream = b'\\x02\\x00\\x02\\x00\\x55\\x49\\x16\\x00\\x31\\x2e\\x32\\x2e\\x38\\x34\\x30\\x2e\\x31' \\\r\n             b'\\x30\\x30\\x30\\x38\\x2e\\x35\\x2e\\x31\\x2e\\x31\\x2e\\x39\\x00\\x02\\x00\\x10\\x00' \\\r\n             b'\\x55\\x49\\x12\\x00\\x31\\x2e\\x32\\x2e\\x38\\x34\\x30\\x2e\\x31\\x30\\x30\\x30\\x38' \\\r\n             b'\\x2e\\x31\\x2e\\x32\\x00\\x20\\x20\\x10\\x00\\x02\\x00\\x00\\x00\\x01\\x00\\x20\\x20' \\\r\n             b'\\x20\\x00\\x06\\x00\\x00\\x00\\x4e\\x4f\\x52\\x4d\\x41\\x4c'\r\n\r\nfp = BytesIO(bytestream)\r\nds = dcmread(fp, force=True)\r\n\r\nprint(ds.PatientID)\r\n```\r\nIf the code is too long, feel free to put it in a public gist and link\r\nit in the issue: https://gist.github.com\r\n\r\nWhen possible use pydicom testing examples to reproduce the errors. Otherwise, provide\r\nan anonymous version of the data in order to replicate the errors.\r\n-->\r\n\r\n#### Expected Results\r\n<!-- Please paste or describe the expected results.\r\nExample: No error is thrown and the name of the patient is printed.-->\r\n```\r\nb'\\xd4\\xcf\\xc0\\xde^\\xc0\\xdb\\xb3=\\x1b$B;3ED\\x1b(J^\\x1b$BB@O:\\x1b(J=\\x1b$B$d$^$@\\x1b(J^\\x1b$B$?$m$&\\x1b(J'\r\n```\r\n\r\n#### Actual Results\r\n<!-- Please paste or specifically describe the actual output or traceback.\r\n(Use %xmode to deactivate ipython's trace beautifier)\r\nExample: ```AttributeError: 'FileDataset' object has no attribute 'PatientID'```\r\n-->\r\n```\r\nb'\\xd4\\xcf\\xc0\\xde^\\xc0\\xdb\\xb3=\\x8eR\\x93c^\\x91\\xbe\\x98Y=\\x82\\xe2\\x82\\xdc\\x82\\xbe^\\x82\\xbd\\x82\\xeb\\x82\\xa4'\r\n```\r\n\r\n#### Versions\r\n<!--\r\nPlease run the following snippet and paste the output below.\r\nimport platform; print(platform.platform())\r\nimport sys; print(\"Python\", sys.version)\r\nimport pydicom; print(\"pydicom\", pydicom.__version__)\r\n-->\r\n```\r\nLinux-4.15.0-50-generic-x86_64-with-debian-buster-sid\r\nPython 3.6.8 |Anaconda, Inc.| (default, Dec 30 2018, 01:22:34)\r\n[GCC 7.3.0]\r\npydicom 1.2.2\r\n```\r\n\r\n<!-- Thanks for contributing! -->\r\n\n",
+  "repo": "pydicom/pydicom",
+  "version": "1.2"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 31,
+  "thought_tokens": 23805
+ },
+ "token_usage": 374002,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

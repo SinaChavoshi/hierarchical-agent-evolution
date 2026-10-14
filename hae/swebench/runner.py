@@ -543,6 +543,111 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
 
         total_budget = int(budget_moves if budget_moves is not None else policy.search_budget_moves)
         remaining = total_budget
+        is_v12_agentic = bool(
+            (policy.extra or {}).get("v12_agentic")
+            or str(getattr(policy, "search_policy", "") or "").lower() == "v12_agentic"
+        )
+        if is_v12_agentic:
+            from hae.swebench.agentic import AgenticSweEngine
+
+            candidate_mods: List[str] = []
+            if root.module:
+                candidate_mods.append(root.module)
+            for p in seed.get("paths", []):
+                if p and p not in candidate_mods:
+                    candidate_mods.append(p)
+            for loc_entry in self.locate_log:
+                for p in (loc_entry.get("candidates") or []):
+                    if p and p not in candidate_mods:
+                        candidate_mods.append(p)
+
+            engine = AgenticSweEngine(
+                runner=self,
+                task=self.task,
+                executor=self.executor,
+                gatekeeper=gatekeeper,
+                state=state,
+                logger=lambda m: print(m, flush=True),
+            )
+            ag_res = engine.run(candidate_modules=candidate_mods, budget_moves=total_budget)
+            moves_used = int(ag_res.get("moves_used", 0))
+            remaining = max(0, total_budget - moves_used)
+            stop = str(ag_res.get("stop_reason") or "resolved_by_agentic_gatekeeper")
+            resolved = bool(ag_res.get("resolved_by_self_oracle"))
+            last_search = {
+                "iteration": 1,
+                "moves_used": moves_used,
+                "stop_reason": stop,
+                "synthesized_paths": list(ag_res.get("synthesized_paths") or []),
+                "stats": {
+                    "mode": "v12_agentic",
+                    "checkpoints_recorded": ag_res.get("checkpoints_recorded", 0),
+                    "best_checkpoint": ag_res.get("best_checkpoint"),
+                },
+            }
+            self.epistemic_searches.append(last_search)
+            self._merge_search_stats(last_search["stats"])
+            self.iteration_log.append({
+                "iteration": 1,
+                "moves_used": moves_used,
+                "stop_reason": stop,
+                "synthesized_paths": list(ag_res.get("synthesized_paths") or []),
+                "patched": bool(ag_res.get("patch_chars", 0) > 0),
+                "resolved_this_iteration": [root.question_id] if resolved else [],
+                "recheck": {"verdict": "resolved" if resolved else "unresolved"},
+                "best_checkpoint": ag_res.get("best_checkpoint"),
+            })
+            prediction = export_prediction(self.executor, self.task, self.model_name)
+            swe_block = {
+                "instance_id": self.task.instance_id,
+                "repo": self.task.repo,
+                "base_commit": self.task.base_commit,
+                "executor": self.executor.describe(),
+                "root_question_id": root.question_id,
+                "root_module": root.module,
+                "root_status": root.status,
+                "resolved_by_self_oracle": resolved,
+                "stop": stop,
+                "iterations": self.iteration_log,
+                "budget_moves": total_budget,
+                "moves_used": moves_used,
+                "seed": seed,
+                "locate": self.locate_log,
+                "task_features": features.to_dict(),
+                "reproduction": self.reproduction_log,
+                "patch_chars": len(prediction["model_patch"]),
+                "changed_files": self.executor.changed_files(),
+                "workspace_writes": len(self.workspace.writes),
+                "workspace_refusals": self.workspace.refused,
+                "hints_included": bool(self.task.hints_text),
+                "preflight": preflight,
+                "agentic_trajectory": ag_res.get("trajectory", []),
+                "best_checkpoint": ag_res.get("best_checkpoint"),
+            }
+            deliverable = self._epistemic_deliverable(state, last_search, 1)
+            deliverable += (
+                f"\n\n### SWE-bench V12 Agentic {self.task.instance_id}\n```json\n"
+                f"{json.dumps({k: v for k, v in swe_block.items() if k not in ('reproduction', 'seed', 'agentic_trajectory')}, indent=1)}\n```"
+            )
+            briefs = {
+                "swebench": json.dumps({
+                    "instance_id": self.task.instance_id,
+                    "resolved_by_self_oracle": resolved,
+                    "stop": stop,
+                    "moves_used": moves_used,
+                })
+            }
+            deliverable, bundle = self._append_workspace_files(deliverable)
+            extra_v12: Dict[str, Any] = {
+                "epistemic_ledger": state.to_dict(),
+                "epistemic_search": last_search,
+                "epistemic_searches": list(self.epistemic_searches),
+                "epistemic_iteration": 1,
+                "swebench": swe_block,
+                "prediction": prediction,
+            }
+            return self._finalize_run_output(start_time, deliverable, briefs, bundle, extra=extra_v12)
+
         heads = load_policy_heads(policy.extra, logger=lambda m: print(f"[epistemic] {self.genome.company_id} {m}", flush=True))
         last_hash = self._diff_hash()
         last_search: Dict[str, Any] = {}

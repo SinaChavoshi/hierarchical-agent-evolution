@@ -1,0 +1,655 @@
+{
+ "authored_files": [
+  "pydicom/encaps.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 1753.53,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.0225,
+  "calibration_tested": 1,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 2,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 1,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 1,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.8,
+  "ledger_hash": "1e1ad83412dcb7671507fc81f738c0f53247197831ded07662eb682b14f2c100",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 1,
+  "questions": 2,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 2,
+  "questions_resolved": 0,
+  "remaining_uncertainty": 0.95,
+  "resolved_fraction": 0.472222,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 418312,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v12_agentic_swebench_firm_0",
+  "counters": {
+   "e": 2,
+   "h": 1,
+   "q": 2
+  },
+  "created_at": 1791952041.127,
+  "evidence_log": [
+   {
+    "command": "cd /testbed && cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nfrom pydicom import dcmread\nfrom pydicom.encaps import generate_pixel_data_frame, generate_pixel_data\nfrom pydicom.data import get_testda",
+    "created_at": 1791952919.485,
+    "detail": "agentic reproduction probe reproduced bug",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "question_id": "q1",
+    "sha256": "d586512e19b3c952e6da830e0772582a3313a154916eb0e2b2bad019f4a5cc7f",
+    "stderr": "Traceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 10, in <module>\n    assert len(frames) == ds.NumberOfFrames, \"expected %d frames, got %d\" % (ds.NumberOfFrames, len(frames))\nAssertionError: expected 10 frames, got 1\ncommand terminated with exit code 1\n",
+    "stdout": "NumberOfFrames: 10\nnum frames from generate_pixel_data_frame: 1\n"
+   },
+   {
+    "command": "verify_module pydicom/encaps.py (in place via kubectl:default/swebench-tb-pydicom-pydicom-997/testbed:/testbed)",
+    "created_at": 1791953458.915,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e2",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "7fce5077b26d536463cb93457fa1946c70aba31b27184cdfec60c2eca0d23e79",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK pydicom/encaps.py\n\n[import] IMPORT_OK pydicom.encaps\n\n[static_check] no undefined names (586 lines)\n[repo_tests] proximity tests passed: pydicom/tests/test_encaps.py\n........................................................                 [100%]\n56 passed in 0.36s\n"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
+    "created_at": 1791952919.485,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "NumberOfFrames: 10 num frames from generate_pixel_data_frame: 1 Traceback (most recent call last): File \"/testbed/.hae/reproduce_issue.py\", line 10, in <module> assert len(frames) == ds.NumberOfFrames, \"expected %d frames, got %d\" % (ds.NumberOfFrames, len(frames)) AssertionError: expected 10",
+    "mechanism_signature": "assertionerror call exit file fram generate_pixel_data_frame got hae issue last len num numberoffram recent reproduc reproduce_issue reproduction script standalone testb traceback",
+    "patch_applied": false,
+    "posterior": 0.92,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "prior": 0.85,
+    "probe_code": "from pydicom import dcmread\nfrom pydicom.encaps import generate_pixel_data_frame, generate_pixel_data\nfrom pydicom.data import get_testdata_files\n\nfpath = get_testdata_files('emri_small_jpeg_2k_lossless.dcm')[0]\nds = dcmread(fpath)\nprint(\"NumberOfFrames:\", ds.NumberOfFrames)\nframes = list(generate_pixel_data_frame(ds.PixelData))\nprint(\"num frames from generate_pixel_data_frame:\", len(frames))\nassert len(frames) == ds.NumberOfFrames, \"expected %d frames, got %d\" % (ds.NumberOfFrames, len(frames))\n\nframes2 = list(generate_pixel_data(ds.PixelData))\nprint(\"num frames from generate_pixel_data:\", len(frames2))\nassert len(frames2) == ds.NumberOfFrames\nprint(\"OK\")\n",
+    "probe_rejections": 0,
+    "proposed_by": "AgenticReproductionSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1791952042.43,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "pydicom/encaps.py",
+    "question_id": "q1",
+    "source_failure": "Generators in encaps don't handle single fragment per frame correctly with no BOT value",
+    "source_failure_key": "swebench:pydicom__pydicom-997",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Reproduce the reported behaviour: Generators in encaps don't handle single fragment per frame correctly with no BOT value -- #### Description Generators in `encaps.py` handling of encapsulated pixel data incorrect when the Basic Offset Table has no value and each frame is a single fragment. #### Steps/Code to Reproduce ```python from pydicom import dcmread from pydicom.encaps import generate_pixel_data_frame fpath = 'pydicom/data/test_files/emri_small_jpeg_2k_lossless.dcm' ds = dcmread(fpath) ds.NumberOfFrames # 10 frame_generator = generate_pixel_data_frame(ds.PixelData) next(frame_generator) next(frame_generator) # StopIteration raised ``` #### Expected Results All 10 frames of the pixel data should be accessible....",
+    "uncertainty": 0.15
+   },
+   {
+    "created_at": 1791952042.43,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 0.8,
+    "location": "",
+    "module": "pydicom/encaps.py",
+    "question_id": "q2",
+    "source_failure": "",
+    "source_failure_key": "swebench:pydicom__pydicom-997:pydicom/encaps.py",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Where in `pydicom/encaps.py` does the reported behaviour arise? The issue says: \"Generators in encaps don't handle single fragment per frame correctly with no BOT value\" | \"Generators in `encaps.py` handling of encapsulated pixel data incorrect when the Basic Offset Table has no value and each frame is a single fragment.\" | \"from pydicom.encaps import generate_pixel_data_frame\"",
+    "uncertainty": 0.8
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "1e1ad83412dcb7671507fc81f738c0f53247197831ded07662eb682b14f2c100"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 28,
+   "stats": {
+    "best_checkpoint": {
+     "changed_files": [
+      "pydicom/encaps.py"
+     ],
+     "note": "- Gatekeeper `verify_module('pydicom/encaps.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):",
+     "rank_key": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 21
+    },
+    "checkpoints_recorded": 2,
+    "mode": "v12_agentic"
+   },
+   "stop_reason": "best_checkpoint_restored",
+   "synthesized_paths": [
+    "pydicom/encaps.py"
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-pydicom-pydicom-997/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v12_agentic_swebench_firm_0",
+ "instance_id": "pydicom__pydicom-997",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.56,
+  "estimated_cost_usd": 0.0439,
+  "flash_count": 26,
+  "flash_input_tokens": 362608,
+  "flash_output_tokens": 55704,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 418312
+ },
+ "prediction_chars": 1373,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def generate_pixel_data_frame\\|def generate_pixel_data\\|def get_frame\\|def get_nr_frames\\|def parse_basic_offset_table\\|def defragment_data\\|def fragment_frame\" pydicom/encaps.py",
+    "elapsed_s": 7.34,
+    "reasoning_chars": 56,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 3.64,
+    "path": "pydicom/encaps.py",
+    "range": [
+     1,
+     260
+    ],
+    "reasoning_chars": 44,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 4.16,
+    "path": "pydicom/encaps.py",
+    "range": [
+     243,
+     310
+    ],
+    "reasoning_chars": 25,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls pydicom/tests/ && git grep -n \"generate_pixel_data\\b\\|generate_pixel_data(\" pydicom/ --include=*.py | head -50",
+    "elapsed_s": 116.77,
+    "reasoning_chars": 7836,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def test\" pydicom/tests/test_encaps.py",
+    "elapsed_s": 6.18,
+    "reasoning_chars": 93,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 6.49,
+    "path": "pydicom/tests/test_encaps.py",
+    "range": [
+     210,
+     520
+    ],
+    "reasoning_chars": 216,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 68.7,
+    "path": "pydicom/tests/test_encaps.py",
+    "range": [
+     1,
+     100
+    ],
+    "reasoning_chars": 5314,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 155.02,
+    "error": "Empty response from model.",
+    "reasoning_chars": 10272,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"JP2K_10FRAME_NOBOT\\|generate_pixel_data_frame\\|generate_pixel_data(\" pydicom/tests/test_encaps.py",
+    "elapsed_s": 4.57,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 9
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 153.76,
+    "error": "Empty response from model.",
+    "reasoning_chars": 10487,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def get_frame\\b\\|def get_nr_frames\\b\\|def get_frame_offsets\\b\" pydicom/encaps.py",
+    "elapsed_s": 4.43,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 11
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 140.77,
+    "path": "pydicom/encaps.py",
+    "range": [
+     176,
+     280
+    ],
+    "reasoning_chars": 8561,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 12
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 159.39,
+    "error": "Empty response from model.",
+    "reasoning_chars": 11009,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 13
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nfrom pydicom import dcmread\nfrom pydicom.encaps import generate_pixel_data_frame, generate_pixel_data\nfrom pydicom.data import get_testdata_files\n\nfpath = get_testdata_files('emri_small_jpeg_2k_lossless.dcm')[0]\nds = dcmread(fpath)\nprint",
+    "elapsed_s": 13.83,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 14
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 11.17,
+    "path": "pydicom/tests/test_encaps.py",
+    "range": [
+     250,
+     512
+    ],
+    "reasoning_chars": 550,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 15
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git log --oneline --all | head -5; echo ---; git grep -n \"generate_pixel_data_frame\\|generate_pixel_data(\" -- pydicom/pixel_data_handlers pydicom/encaps.py pydicom/dataset.py | head -30",
+    "elapsed_s": 151.46,
+    "reasoning_chars": 9870,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 16
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 157.54,
+    "error": "Empty response from model.",
+    "reasoning_chars": 10947,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 17
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"generate_pixel_data_frame\\|generate_pixel_data(\" -- pydicom/pixel_data_handlers pydicom/dataset.py pydicom/filereader.py pydicom/encaps.py | head -40",
+    "elapsed_s": 5.06,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 18
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 160.33,
+    "error": "Empty response from model.",
+    "reasoning_chars": 10706,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 19
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 23.52,
+    "path": "pydicom/encaps.py",
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 20
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 6.21,
+    "path": "pydicom/encaps.py",
+    "range": [
+     203,
+     285
+    ],
+    "reasoning_chars": 148,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 21
+   },
+   {
+    "action": "bash",
+    "command": "cat /testbed/.hae/reproduce_issue.py 2>/dev/null; echo \"---\"; git -C /testbed diff --stat; echo \"---\"; git -C /testbed log --oneline -1",
+    "elapsed_s": 5.79,
+    "reasoning_chars": 260,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "sed -n 1,80p /testbed/pydicom/encaps.py",
+    "elapsed_s": 2.18,
+    "reasoning_chars": 57,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "sed -n 80,260p /testbed/pydicom/encaps.py",
+    "elapsed_s": 2.67,
+    "reasoning_chars": 97,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "sed -n 260,320p /testbed/pydicom/encaps.py; echo \"=== callers ===\"; git grep -n \"generate_pixel_data\" -- '*.py' | grep -v \"tests/test_encaps\"",
+    "elapsed_s": 4.47,
+    "reasoning_chars": 123,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "git grep -n \"nr_frames\\|generate_pixel_data\" -- pydicom/tests/test_encaps.py | head -60",
+    "elapsed_s": 9.16,
+    "reasoning_chars": 622,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "sed -n 215,520p /testbed/pydicom/tests/test_encaps.py",
+    "elapsed_s": 113.42,
+    "reasoning_chars": 7547,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 151.39,
+    "error": "Empty response from model.",
+    "reasoning_chars": 10159,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 7
+   }
+  ],
+  "base_commit": "41e984c8df5533805ae13cbcf419e6c5f63da30c",
+  "best_checkpoint": {
+   "changed_files": [
+    "pydicom/encaps.py"
+   ],
+   "note": "- Gatekeeper `verify_module('pydicom/encaps.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):",
+   "rank_key": [
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    0
+   ],
+   "specialist": "PrimaryRepairSpecialist",
+   "turn": 21
+  },
+  "budget_moves": 30,
+  "changed_files": [
+   "pydicom/encaps.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-pydicom-pydicom-997/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "pydicom__pydicom-997",
+  "iterations": [
+   {
+    "best_checkpoint": {
+     "changed_files": [
+      "pydicom/encaps.py"
+     ],
+     "note": "- Gatekeeper `verify_module('pydicom/encaps.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):",
+     "rank_key": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 21
+    },
+    "iteration": 1,
+    "moves_used": 28,
+    "patched": true,
+    "recheck": {
+     "verdict": "unresolved"
+    },
+    "resolved_this_iteration": [],
+    "stop_reason": "best_checkpoint_restored",
+    "synthesized_paths": [
+     "pydicom/encaps.py"
+    ]
+   }
+  ],
+  "locate": [],
+  "moves_used": 28,
+  "patch_chars": 1373,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "pydicom",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 15.0,
+    "duration_s": null,
+    "mode": "proximity",
+    "reason": "no tests/, test/ or testing/ directory",
+    "target": ""
+   },
+   "tried": [
+    "pydicom"
+   ]
+  },
+  "repo": "pydicom/pydicom",
+  "reproduction": [],
+  "resolved_by_self_oracle": false,
+  "root_module": "pydicom/encaps.py",
+  "root_question_id": "q1",
+  "root_status": "OPEN",
+  "seed": {
+   "candidates": [
+    "encaps.py"
+   ],
+   "failure": "Generators in encaps don't handle single fragment per frame correctly with no BOT value",
+   "paths": [
+    "pydicom/encaps.py"
+   ],
+   "primary_module": "pydicom/encaps.py",
+   "root_question_id": "q1",
+   "sub_question_ids": [
+    "q2"
+   ]
+  },
+  "stop": "best_checkpoint_restored",
+  "task_features": {
+   "complexity": 0.3309,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 2,
+   "n_paths_mentioned": 2,
+   "source": "problem_statement",
+   "statement_chars": 1309,
+   "tags": [
+    "pydicom",
+    "encaps",
+    "generators",
+    "don",
+    "handle",
+    "single",
+    "fragment",
+    "per",
+    "frame",
+    "correctly",
+    "bot",
+    "value",
+    "description",
+    "handling",
+    "encapsulated",
+    "pixel",
+    "data",
+    "incorrect",
+    "basic",
+    "offset",
+    "table",
+    "each",
+    "steps",
+    "code",
+    "reproduce",
+    "dcmread",
+    "generate_pixel_data_frame",
+    "fpath",
+    "test_files",
+    "emri_small_jpeg_2k_lossless",
+    "dcm",
+    "numberofframes",
+    "frame_generator",
+    "pixeldata",
+    "next",
+    "stopiteration",
+    "raised",
+    "results",
+    "all",
+    "frames",
+    "accessible",
+    "actual"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "41e984c8df5533805ae13cbcf419e6c5f63da30c",
+  "created_at": "2019-12-19T01:02:16Z",
+  "environment_setup_commit": "7241f5d9db0de589b230bb84212fbb643a7c86c3",
+  "hints_text": "",
+  "instance_id": "pydicom__pydicom-997",
+  "problem_statement": "Generators in encaps don't handle single fragment per frame correctly with no BOT value\n#### Description\r\nGenerators in `encaps.py` handling of encapsulated pixel data incorrect when the Basic Offset Table has no value and each frame is a single fragment.\r\n\r\n#### Steps/Code to Reproduce\r\n```python\r\nfrom pydicom import dcmread\r\nfrom pydicom.encaps import generate_pixel_data_frame\r\n\r\nfpath = 'pydicom/data/test_files/emri_small_jpeg_2k_lossless.dcm'\r\nds = dcmread(fpath)\r\nds.NumberOfFrames  # 10\r\nframe_generator = generate_pixel_data_frame(ds.PixelData)\r\nnext(frame_generator)\r\nnext(frame_generator) # StopIteration raised\r\n```\r\n\r\n#### Expected Results\r\nAll 10 frames of the pixel data should be accessible.\r\n\r\n#### Actual Results\r\nOnly the first frame is accessible.\n[MRG] Some pixel handlers will not decode multiple fragments per frame\n\r\n\r\nAdded test cases to demonstrate failures for jpeg ls with multiple fragments per frame.  The test files were created with dcmtk 3.6.1 using dcmcjpls +fs 1. One file has an offset table, the other does not.\r\n\r\n#### Reference Issue\r\nSee #685 \r\n\r\n\r\n#### What does this implement/fix? Explain your changes.\r\nThese test cases show that the pixel decoders (jpeg and jpeg_ls most likely) will not handle multiple fragments per frame.\r\n\r\nNo fix yet...\r\n\r\nAny suggestions?\n",
+  "repo": "pydicom/pydicom",
+  "version": "1.3"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 28,
+  "thought_tokens": 26242
+ },
+ "token_usage": 418312,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

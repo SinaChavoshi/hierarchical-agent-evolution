@@ -1,0 +1,5 @@
+{
+ "instance_id": "pylint-dev__astroid-946",
+ "model_name_or_path": "hae-v12-agentic/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/astroid/builder.py b/astroid/builder.py\nindex 6a7f79ce..ee33109a 100644\n--- a/astroid/builder.py\n+++ b/astroid/builder.py\n@@ -240,6 +240,12 @@ class AstroidBuilder(raw_building.InspectBuilder):\n                         iattrs = inferred.instance_attrs\n                         if not _can_assign_attr(inferred, node.attrname):\n                             continue\n+                        if inferred.qname() == \"builtins.object\":\n+                            # Assigning attributes on plain ``object`` instances\n+                            # should not pollute the attributes of every other\n+                            # instance, as ``object`` is in the MRO of\n+                            # essentially all the classes.\n+                            continue\n                     elif isinstance(inferred, bases.Instance):\n                         # Const, Tuple or other containers that inherit from\n                         # `Instance`\n"
+}

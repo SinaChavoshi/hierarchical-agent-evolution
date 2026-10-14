@@ -1,0 +1,655 @@
+{
+ "authored_files": [
+  "src/sqlfluff/rules/L031.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 1767.76,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.0225,
+  "calibration_tested": 1,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 3,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 1,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 1,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "699add17a097e81ec192bd885a00199652c80174a9cc0bb898f20d8d0c3ce687",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 1,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 0,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 0.02,
+  "resolved_fraction": 0.98,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 296731,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v12_agentic_swebench_firm_0",
+  "counters": {
+   "e": 3,
+   "h": 1,
+   "q": 1
+  },
+  "created_at": 1791953907.709,
+  "evidence_log": [
+   {
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom sqlfluff.core import Linter, FluffConfig\n\ndef lint(q, dialect=\"ansi\"):\n    cfg = FluffConfig(overrides={\"dialect\": dialect})\n    lnt",
+    "created_at": 1791954289.278,
+    "detail": "agentic reproduction probe reproduced bug",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "question_id": "q1",
+    "sha256": "919dbe0a1e0c827355b9a688344c68daa6d01b3c521d54bc444623e2ef76a60e",
+    "stderr": "Traceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 21, in <module>\n    assert lint(q2, \"tsql\") == [], \"q2 should pass (no join present)\"\nAssertionError: q2 should pass (no join present)\ncommand terminated with exit code 1\n",
+    "stdout": "q1 (no alias): []\nq2 (alias, no join): [('L031', 'Avoid using aliases in join condition')]\nansi single-table alias: [('L009', 'Files must end with a trailing newline.'), ('L025', \"Alias 'a' is never used in SELECT statement.\"), ('L031', 'Avoid using aliases in join condition')]\nansi join aliases: [('L009', 'Files must end with a trailing newline.'), ('L010', 'Keywords must be consistently upper case.'), ('L010', 'Keywords must be consistently upper case.'), ('L010', 'Keywords must be consistently upper case.'), ('L031', 'Avoid using aliases in join condition'), ('L031', 'Avoid using aliases in join condition')]\nansi self join: [('L009', 'Files must end with a trailing newline.'), ('L036', 'Select targets should be on a new line unless there is only one select target.')]\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L031.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed)",
+    "created_at": 1791955110.158,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e2",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "d539c6dfed26ff4e45234e3fa7c010369eb06774c193f1948b663818d059a919",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L031.py\n\n[import] IMPORT_OK sqlfluff.rules.L031\n\n[static_check] no undefined names (230 lines)\n[repo_tests] proximity tests passed: test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py\n.                                                                        [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n1 passed, 49 deselected, 1 warning in 0.22s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L031.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed)",
+    "created_at": 1791955658.689,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e3",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "0cf9c380bc0515eddbd75ba0ebf5a51c1f4bd1920b4b89d6da0601a48d1455ba",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L031.py\n\n[import] IMPORT_OK sqlfluff.rules.L031\n\n[static_check] no undefined names (230 lines)\n[repo_tests] proximity tests passed: test/rules/std_test.py test/rules/std_L003_test.py test/rules/std_L007_test.py\n.                                                                        [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n1 passed, 49 deselected, 1 warning in 0.23s\n"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
+    "created_at": 1791954289.277,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "onsistently upper case.'), ('L010', 'Keywords must be consistently upper case.'), ('L031', 'Avoid using aliases in join condition'), ('L031', 'Avoid using aliases in join condition')] ansi self join: [('L009', 'Files must end with a trailing newline.'), ('L036', 'Select targets should be on a new li",
+    "mechanism_signature": "alias ansi avoid case condition consistent end exit fil hae issue join keyword l009 l010 l031 l036 new newline onsistent reproduc reproduce_issue reproduction script select self standalone target trail upper using",
+    "patch_applied": false,
+    "posterior": 0.92,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "prior": 0.85,
+    "probe_code": "from sqlfluff.core import Linter, FluffConfig\n\ndef lint(q, dialect=\"ansi\"):\n    cfg = FluffConfig(overrides={\"dialect\": dialect})\n    lnt = Linter(config=cfg)\n    res = lnt.lint_string(q)\n    return [(v.rule_code(), v.description) for v in res.violations]\n\n# Issue reproduction (TSQL)\nq1 = \"SELECT [hello]\\nFROM\\n    mytable\\n\"\nq2 = \"SELECT a.[hello]\\nFROM\\n    mytable AS a\\n\"\nprint(\"q1 (no alias):\", lint(q1, \"tsql\"))\nprint(\"q2 (alias, no join):\", lint(q2, \"tsql\"))\n\n# Existing behaviour that must be preserved\nprint(\"ansi single-table alias:\", lint(\"select b from tbl as a\", \"ansi\"))\nprint(\"ansi join aliases:\", lint(\"SELECT u.id FROM users as u JOIN customers as c on u.id = c.user_id\", \"ansi\"))\nprint(\"ansi self join:\", lint(\"select x.a, x_2.b from x left join x as x_2 on x.foreign_key = x.foreign_key\", \"ansi\"))\n\nassert lint(q1, \"tsql\") == [], \"q1 should pass\"\nassert lint(q2, \"tsql\") == [], \"q2 should pass (no join present)\"\nassert lint(\"select b from tbl as a\", \"ansi\") != [], \"single-table alias should still be flagged\"\nassert lint(\"SELECT u.id FROM users as u JOIN customers as c on u.id = c.user_id\", \"ansi\") != [], \"join aliases should be flagged\"\nassert lint(\"select x.a, x_2.b from x left join x as x_2 on x.foreign_key = x.foreign_key\", \"ansi\") == [], \"self-join should pass\"\nprint(\"ALL ASSERTIONS PASSED\")\n",
+    "probe_rejections": 0,
+    "proposed_by": "AgenticReproductionSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1791953909.036,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "src/sqlfluff/rules/L031.py",
+    "question_id": "q1",
+    "source_failure": "TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present",
+    "source_failure_key": "swebench:sqlfluff__sqlfluff-1625",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present -- ## Expected Behaviour Both of these queries should pass, the only difference is the addition of a table alias 'a': 1/ no alias ``` SELECT [hello] FROM mytable ``` 2/ same query with alias ``` SELECT a.[hello] FROM mytable AS a ``` ## Observed Behaviour 1/ passes 2/ fails with: L031: Avoid using aliases in join condition. But there is no join condition :-) ## Steps to Reproduce Lint queries above ## Dialect TSQL ## Version sqlfluff 0.6.9 Python 3.6.9 ## Configuration N/A",
+    "uncertainty": 0.02
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "699add17a097e81ec192bd885a00199652c80174a9cc0bb898f20d8d0c3ce687"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 29,
+   "stats": {
+    "best_checkpoint": {
+     "changed_files": [
+      "src/sqlfluff/rules/L031.py"
+     ],
+     "note": "- Gatekeeper `verify_module('src/sqlfluff/rules/L031.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 21
+    },
+    "checkpoints_recorded": 4,
+    "mode": "v12_agentic"
+   },
+   "stop_reason": "resolved_by_agentic_gatekeeper",
+   "synthesized_paths": [
+    "src/sqlfluff/rules/L031.py"
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v12_agentic_swebench_firm_0",
+ "instance_id": "sqlfluff__sqlfluff-1625",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.65,
+  "estimated_cost_usd": 0.0346,
+  "flash_count": 26,
+  "flash_input_tokens": 241791,
+  "flash_output_tokens": 54940,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 296731
+ },
+ "prediction_chars": 1082,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "view_file",
+    "elapsed_s": 4.32,
+    "path": "src/sqlfluff/rules/L031.py",
+    "range": [
+     1,
+     200
+    ],
+    "reasoning_chars": 62,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git log --oneline -5 && echo \"---\" && find . -path ./node_modules -prune -o -name \"*.yml\" -print | grep -i l031",
+    "elapsed_s": 26.32,
+    "reasoning_chars": 1750,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls test/fixtures/rules/std_rule_cases/ | head -50 && echo \"---\" && grep -n \"L031\" -r test/ --include=*.yml --include=*.py | head -20",
+    "elapsed_s": 5.16,
+    "reasoning_chars": 39,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 53.42,
+    "path": "test/fixtures/rules/std_rule_cases/L031.yml",
+    "range": [
+     1,
+     200
+    ],
+    "reasoning_chars": 4475,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae && cd /testbed && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom sqlfluff.core import Linter, FluffConfig\n\ncfg = FluffConfig(overrides={\"dialect\": \"tsql\"})\nlnt = Linter(config=cfg)\n\nq1 = \"SELECT [hello]\\nFROM\\n    mytable\\n\"\nq2 = \"SELECT a.[hello]\\nFROM\\n    mytable AS a",
+    "elapsed_s": 61.91,
+    "reasoning_chars": 2843,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 158.0,
+    "error": "Empty response from model.",
+    "reasoning_chars": 12447,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom sqlfluff.core import Linter, FluffConfig\n\ndef lint(q, dialect=\"ansi\"):\n    cfg = FluffConfig(overrides={\"dialect\": dialect})\n    lnt = Linter(config=cfg)\n    res = lnt.lint_string(q)\n    return [(v.rule_code(), v.description) for v ",
+    "elapsed_s": 29.63,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -rn \"1625\" --include=* . 2>/dev/null | grep -v \".git/\" | head -20; echo \"---FIX OUTPUT---\"; cat << 'EOF' > /testbed/.hae/fixout.py\nfrom sqlfluff.core import Linter, FluffConfig\ncfg = FluffConfig(overrides={\"dialect\": \"tsql\"})\nlnt = Linter(config=cfg)\nq = \"SELECT a.[hello]\\nFROM\\n",
+    "elapsed_s": 155.97,
+    "reasoning_chars": 10865,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 158.06,
+    "error": "Empty response from model.",
+    "reasoning_chars": 12299,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/fixout.py\nfrom sqlfluff.core import Linter, FluffConfig\ncfg = FluffConfig(overrides={\"dialect\": \"tsql\"})\nlnt = Linter(config=cfg)\nq = \"SELECT a.[hello]\\nFROM\\n    mytable AS a\\n\"\nparsed = lnt.parse_string(q)\nvs = lnt.lint_parsed(parsed, config=cfg)\nprint(\"",
+    "elapsed_s": 10.91,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/fixout.py\nfrom sqlfluff.core import Linter, FluffConfig\ncfg = FluffConfig(overrides={\"dialect\": \"tsql\"})\nlnt = Linter(config=cfg)\nfor q in [\"SELECT a.[hello]\\nFROM\\n    mytable AS a\\n\",\n          \"SELECT a.hello\\nFROM\\n    mytable AS a\\n\"]:\n    res = lnt.l",
+    "elapsed_s": 11.24,
+    "reasoning_chars": 44,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 11
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 16.81,
+    "path": "src/sqlfluff/rules/L031.py",
+    "range": [
+     1,
+     120
+    ],
+    "reasoning_chars": 1110,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 12
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -n \"^test_\\|^issue_\\|^[a-z_]*:\" test/fixtures/rules/std_rule_cases/L031.yml",
+    "elapsed_s": 22.18,
+    "reasoning_chars": 1520,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 13
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 69.27,
+    "path": "test/fixtures/rules/std_rule_cases/L031.yml",
+    "range": [
+     78,
+     125
+    ],
+    "reasoning_chars": 4616,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 14
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 152.29,
+    "error": "Empty response from model.",
+    "reasoning_chars": 11375,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 15
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 16.39,
+    "path": "src/sqlfluff/rules/L031.py",
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 16
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python /testbed/.hae/reproduce_issue.py; echo \"=== PYTEST ===\"; python -m pytest test/rules/yaml_test_cases_test.py -k \"L031\" -q 2>&1 | tail -30",
+    "elapsed_s": 16.68,
+    "reasoning_chars": 708,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 17
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 31.32,
+    "path": "src/sqlfluff/rules/L031.py",
+    "reasoning_chars": 967,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 18
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/tree.py\nfrom sqlfluff.core import Linter, FluffConfig\ncfg = FluffConfig(overrides={\"dialect\": \"ansi\"})\nlnt = Linter(config=cfg)\nq = \"SELECT u.id FROM users as u JOIN customers as c on u.id = c.user_id\\n\"\np = lnt.parse_string(q)\nprint(p.tree.stringify())\nEO",
+    "elapsed_s": 18.45,
+    "reasoning_chars": 832,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 19
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python /testbed/.hae/reproduce_issue.py; echo \"=== L031 YAML TESTS ===\"; python -m pytest test/rules/yaml_test_cases_test.py -k \"L031\" -q 2>&1 | tail -15",
+    "elapsed_s": 15.24,
+    "reasoning_chars": 893,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 20
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom sqlfluff.core import Linter, FluffConfig\n\ndef l031(q, dialect=\"ansi\"):\n    cfg = FluffConfig(overrides={\"dialect\": dialect})\n    res = Linter(config=cfg).lint_string(q)\n    return [v.description for v in res.violations if v.rule_cod",
+    "elapsed_s": 38.58,
+    "reasoning_chars": 866,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 21
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git diff && echo \"=====L031=====\" && cat src/sqlfluff/rules/L031.py",
+    "elapsed_s": 4.52,
+    "reasoning_chars": 101,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 1
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 3.99,
+    "error": "No valid tool block found in your response. Emit EXACTLY ONE markdown fenced tool block per turn: ```bash ... ```, ```view_file ... ```, ```str_replace ... ```, or ```submit ... ```.",
+    "reasoning_chars": 120,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 2
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 4.04,
+    "path": "src/sqlfluff/rules/L031.py",
+    "range": [
+     80,
+     140
+    ],
+    "reasoning_chars": 123,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls test/fixtures/rules/std_rule_cases/ | head -50 && echo ==== && cat test/fixtures/rules/std_rule_cases/L031.yml 2>/dev/null | head -120",
+    "elapsed_s": 22.93,
+    "reasoning_chars": 1512,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && /opt/miniconda3/envs/testbed/bin/python -m pytest test/rules/yaml_test_cases_test.py -k \"L031\" -q 2>&1 | tail -30",
+    "elapsed_s": 128.01,
+    "reasoning_chars": 10495,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git stash && /opt/miniconda3/envs/testbed/bin/python -c \"\nfrom sqlfluff.core import Linter, FluffConfig\nsql1='SELECT [hello]\\nFROM\\n    mytable\\n'\nsql2='SELECT a.[hello]\\nFROM\\n    mytable AS a\\n'\nsql3='SELECT a.hello\\nFROM\\n    mytable AS a\\n'\nsql4='select b from tbl as a'\nfor s in (",
+    "elapsed_s": 105.85,
+    "reasoning_chars": 8946,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '100,200p' test/fixtures/rules/std_rule_cases/L031.yml && echo \"=== git log ===\" && git log --oneline -3",
+    "elapsed_s": 139.57,
+    "reasoning_chars": 10817,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && /opt/miniconda3/envs/testbed/bin/python -c \"\nfrom sqlfluff.core import Linter, FluffConfig\nfor dialect in ('tsql','ansi'):\n    for s in ['SELECT a.[hello]\\nFROM\\n    mytable AS a\\n', 'select b from tbl as a']:\n        cfg=FluffConfig(overrides={'dialect':dialect})\n        parsed=Linte",
+    "elapsed_s": 102.86,
+    "reasoning_chars": 7021,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 8
+   }
+  ],
+  "base_commit": "14e1a23a3166b9a645a16de96f694c77a5d4abb7",
+  "best_checkpoint": {
+   "changed_files": [
+    "src/sqlfluff/rules/L031.py"
+   ],
+   "note": "- Gatekeeper `verify_module('src/sqlfluff/rules/L031.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+   "rank_key": [
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    0
+   ],
+   "specialist": "PrimaryRepairSpecialist",
+   "turn": 21
+  },
+  "budget_moves": 30,
+  "changed_files": [
+   "src/sqlfluff/rules/L031.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-1625/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "sqlfluff__sqlfluff-1625",
+  "iterations": [
+   {
+    "best_checkpoint": {
+     "changed_files": [
+      "src/sqlfluff/rules/L031.py"
+     ],
+     "note": "- Gatekeeper `verify_module('src/sqlfluff/rules/L031.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 21
+    },
+    "iteration": 1,
+    "moves_used": 29,
+    "patched": true,
+    "recheck": {
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "resolved_by_agentic_gatekeeper",
+    "synthesized_paths": [
+     "src/sqlfluff/rules/L031.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "src/sqlfluff/rules/L031.py",
+    "rationale": "The issue explicitly reports that rule L031 is incorrectly triggering, indicating the logic within the L031 rule definition is failing to correctly identify the absence of a join condition when table aliases are present.",
+    "resolved": "src/sqlfluff/rules/L031.py"
+   }
+  ],
+  "moves_used": 29,
+  "patch_chars": 1082,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "sqlfluff",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 15.0,
+    "duration_s": 16.01,
+    "mode": "proximity",
+    "reason": "whole suite did not finish within 15s",
+    "target": "test"
+   },
+   "tried": [
+    "sqlfluff"
+   ]
+  },
+  "repo": "sqlfluff/sqlfluff",
+  "reproduction": [],
+  "resolved_by_self_oracle": true,
+  "root_module": "src/sqlfluff/rules/L031.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [],
+   "failure": "TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present",
+   "paths": [
+    "src/sqlfluff/rules/L031.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "resolved_by_agentic_gatekeeper",
+  "task_features": {
+   "complexity": 0.1635,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 635,
+   "tags": [
+    "sqlfluff",
+    "rules",
+    "l031",
+    "tsql",
+    "incorrectly",
+    "triggers",
+    "avoid",
+    "using",
+    "aliases",
+    "join",
+    "condition",
+    "present",
+    "behaviour",
+    "both",
+    "these",
+    "queries",
+    "pass",
+    "only",
+    "difference",
+    "addition",
+    "table",
+    "alias",
+    "select",
+    "hello",
+    "mytable",
+    "same",
+    "query",
+    "observed",
+    "passes",
+    "fails",
+    "steps",
+    "reproduce",
+    "lint",
+    "above",
+    "dialect",
+    "version",
+    "configuration"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "14e1a23a3166b9a645a16de96f694c77a5d4abb7",
+  "created_at": "2021-10-13T11:35:29Z",
+  "environment_setup_commit": "67023b85c41d23d6c6d69812a41b207c4f8a9331",
+  "hints_text": "",
+  "instance_id": "sqlfluff__sqlfluff-1625",
+  "problem_statement": "TSQL - L031 incorrectly triggers \"Avoid using aliases in join condition\" when no join present\n## Expected Behaviour\r\n\r\nBoth of these queries should pass, the only difference is the addition of a table alias 'a':\r\n\r\n1/ no alias\r\n\r\n```\r\nSELECT [hello]\r\nFROM\r\n    mytable\r\n```\r\n\r\n2/ same query with alias\r\n\r\n```\r\nSELECT a.[hello]\r\nFROM\r\n    mytable AS a\r\n```\r\n\r\n## Observed Behaviour\r\n\r\n1/ passes\r\n2/ fails with: L031: Avoid using aliases in join condition.\r\n\r\nBut there is no join condition :-)\r\n\r\n## Steps to Reproduce\r\n\r\nLint queries above\r\n\r\n## Dialect\r\n\r\nTSQL\r\n\r\n## Version\r\n\r\nsqlfluff 0.6.9\r\nPython 3.6.9\r\n\r\n## Configuration\r\n\r\nN/A\n",
+  "repo": "sqlfluff/sqlfluff",
+  "version": "0.6"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 30,
+  "thought_tokens": 26701
+ },
+ "token_usage": 296731,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

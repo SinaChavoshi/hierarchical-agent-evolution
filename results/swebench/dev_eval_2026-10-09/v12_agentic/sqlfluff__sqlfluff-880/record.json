@@ -1,0 +1,1530 @@
+{
+ "authored_files": [
+  "docs/source/rules.rst",
+  "plugins/sqlfluff-plugin-example/src/example/rules.py",
+  "src/sqlfluff/core/linter.py",
+  "src/sqlfluff/core/rules/base.py",
+  "src/sqlfluff/core/rules/std/L001.py",
+  "src/sqlfluff/core/rules/std/L002.py",
+  "src/sqlfluff/core/rules/std/L003.py",
+  "src/sqlfluff/core/rules/std/L004.py",
+  "src/sqlfluff/core/rules/std/L005.py",
+  "src/sqlfluff/core/rules/std/L006.py",
+  "src/sqlfluff/core/rules/std/L007.py",
+  "src/sqlfluff/core/rules/std/L008.py",
+  "src/sqlfluff/core/rules/std/L009.py",
+  "src/sqlfluff/core/rules/std/L010.py",
+  "src/sqlfluff/core/rules/std/L011.py",
+  "src/sqlfluff/core/rules/std/L013.py",
+  "src/sqlfluff/core/rules/std/L015.py",
+  "src/sqlfluff/core/rules/std/L017.py",
+  "src/sqlfluff/core/rules/std/L018.py",
+  "src/sqlfluff/core/rules/std/L019.py",
+  "src/sqlfluff/core/rules/std/L020.py",
+  "src/sqlfluff/core/rules/std/L021.py",
+  "src/sqlfluff/core/rules/std/L022.py",
+  "src/sqlfluff/core/rules/std/L023.py",
+  "src/sqlfluff/core/rules/std/L029.py",
+  "src/sqlfluff/core/rules/std/L031.py",
+  "src/sqlfluff/core/rules/std/L032.py",
+  "src/sqlfluff/core/rules/std/L033.py",
+  "src/sqlfluff/core/rules/std/L034.py",
+  "src/sqlfluff/core/rules/std/L035.py",
+  "src/sqlfluff/core/rules/std/L036.py",
+  "src/sqlfluff/core/rules/std/L037.py",
+  "src/sqlfluff/core/rules/std/L038.py",
+  "src/sqlfluff/core/rules/std/L039.py",
+  "src/sqlfluff/core/rules/std/L041.py",
+  "src/sqlfluff/core/rules/std/L042.py",
+  "src/sqlfluff/core/rules/std/L043.py",
+  "src/sqlfluff/core/rules/std/L044.py",
+  "src/sqlfluff/core/rules/std/L045.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 1848.22,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.0225,
+  "calibration_tested": 1,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 39,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 1,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 1,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "d3ee7356f7f230830dcaa75142661aea3e50266dbaf8ef6fb8a69f6554cbb49c",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 1,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 1,
+  "questions_resolved": 0,
+  "remaining_uncertainty": 0.15,
+  "resolved_fraction": 0.85,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 248185,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v12_agentic_swebench_firm_0",
+  "counters": {
+   "e": 39,
+   "h": 1,
+   "q": 1
+  },
+  "created_at": 1791952044.005,
+  "evidence_log": [
+   {
+    "command": "cd /testbed && mkdir -p .hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\n\"\"\"Reproduce: BaseCrawler should be renamed BaseRule (with a deprecated alias).\"\"\"\nimport warnings\n\n\ndef test_baserule_e",
+    "created_at": 1791952431.661,
+    "detail": "agentic reproduction probe reproduced bug",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "question_id": "q1",
+    "sha256": "fae58e5cbb076806abf9f74203c5c61aef234f30c57c53f53ced370c8c106a84",
+    "stderr": "Traceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 37, in <module>\n    test_baserule_exists()\n  File \"/testbed/.hae/reproduce_issue.py\", line 6, in test_baserule_exists\n    from sqlfluff.core.rules.base import BaseRule\nImportError: cannot import name 'BaseRule' from 'sqlfluff.core.rules.base' (/testbed/src/sqlfluff/core/rules/base.py)\ncommand terminated with exit code 1\n",
+    "stdout": ""
+   },
+   {
+    "command": "verify_module plugins/sqlfluff-plugin-example/src/example/rules.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953258.136,
+    "detail": "module check failed at import: command terminated with exit code 1",
+    "evidence_id": "e2",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "d29ffe4a5d7e6ac643402b3b16da8e837e80a16c1314d133ec9b7c4f61521a12",
+    "stderr": "[import]  info_dict = config_info[keyword]\nKeyError: 'forbidden_columns'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"<string>\", line 14, in <module>\n  File \"/opt/miniconda3/envs/testbed/lib/python3.9/importlib/__init__.py\", line 127, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n  File \"<frozen importlib._bootstrap>\", line 1030, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1007, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 986, in _find_and_load_unlocked\n  File \"<frozen importlib._bootstrap>\", line 680, in _load_unlocked\n  File \"<frozen importlib._bootstrap_external>\", line 850, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 228, in _call_with_frames_removed\n  File \"/testbed/plugins/sqlfluff-plugin-example/src/example/rules.py\", line 44, in <module>\n    class Rule_Example_L001(BaseRule):\n  File \"/testbed/src/sqlfluff/core/rules/doc_decorators.py\", line 45, in document_configuration\n    raise KeyError(\nKeyError: \"Config value 'forbidden_columns' for rule Rule_Example_L001 is not configured in `config_info`.\"\ncommand terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK plugins/sqlfluff-plugin-example/src/example/rules.py\n\n[import] "
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953263.932,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e3",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "6e8955775b56d2f75f22f5a7d602b144e7c854ad4e0022236c7c8193595ba7e2",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1329 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 1.15s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/base.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953268.726,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e4",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "2408267f1ff6cc3ee5b81ba738220e0b53024284c82b52f755539d7ceab68e6e",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/base.py\n\n[import] IMPORT_OK sqlfluff.core.rules.base\n\n[static_check] no undefined names (640 lines)\n[repo_tests] proximity tests passed: test/core/templaters/base_test.py test/core/parser/segments_base_test.py\n..................................                                       [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n34 passed, 1 warning in 0.16s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L001.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953272.903,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e5",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "9536d13bc85b1aa2edc39e2d0d17bee3b202e6edf44c130efa06441da15b30b1",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L001.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L001\n\n[static_check] no undefined names (50 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L001.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L002.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953276.33,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "76bdf4e073226f0baa077354c20c572939c54217699bbe4f741b8c1150919920",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L002.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L002\n\n[static_check] no undefined names (64 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L002.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L003.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953279.735,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e7",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "fca332bb8a8c30cfa2f49174ebf449283bb168ea5ca9cdce2856329db52018c7",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L003.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L003\n\n[static_check] no undefined names (578 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L003.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L004.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953285.027,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e8",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "1f73549116bc6662521fff2e4d0e11d475c3bc9cb23a848a165fd43ce7e45d00",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L004.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L004\n\n[static_check] no undefined names (86 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L004.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L005.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953288.387,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e9",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "d999f8816e138159dc682d332daa3ef6befecf3a3294987c844efe6c8e0d949a",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L005.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L005\n\n[static_check] no undefined names (52 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L005.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L006.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953291.802,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e10",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "8978e43444996f216414d6d451e960e05a0fb714fe01c0e30bf0ea9c3e99a842",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L006.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L006\n\n[static_check] no undefined names (142 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L006.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L007.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953295.17,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e11",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "673e5b4cc845995c3fbd8995d59a2589e94e4051eb21afed097df1c99858a83d",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L007.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L007\n\n[static_check] no undefined names (76 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L007.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L008.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953298.527,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e12",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "5f8c0f468d70c270a2acb7efeaa7f351481682a1fcf4907c71e64d6db2838e21",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L008.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L008\n\n[static_check] no undefined names (54 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L008.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L009.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953301.943,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e13",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "b6109352b25c8658a0053b21f0dca78db7524db5e04fa173582196a22834e0b6",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L009.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L009\n\n[static_check] no undefined names (43 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L009.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L010.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953305.325,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e14",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "d3426f5ef0926cd0bb419bca381f6b449ecf6c915445c75a638d2b1304223ce5",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L010.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L010\n\n[static_check] no undefined names (143 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L010.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L011.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953308.714,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e15",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "60a6328fe068723c364edbec88dfef53b6d075232f6fa950f79b806f908c2658",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L011.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L011\n\n[static_check] no undefined names (77 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L011.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L013.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953312.223,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e16",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "5ef64bcd21eb6e516097c888f5c02b8b6f496c9e662a4c9cc81b52d317aed981",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L013.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L013\n\n[static_check] no undefined names (71 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L013.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L015.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953315.603,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e17",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "8cb159adea5afc03c5ed7c378f72fa3862cc04bd0e3a3565b2a66cafcfa2d35a",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L015.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L015\n\n[static_check] no undefined names (85 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L015.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L017.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953318.982,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e18",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "7adbede5f84f1192778322942c7b4c6ca08aee59df6cf676ab7362183825fd95",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L017.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L017\n\n[static_check] no undefined names (67 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L017.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L018.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953322.527,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e19",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "dcab9f7bca8f4513a69579c4b53730ed4d7fb8c8b9bb556a4bd772797b113fbf",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L018.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L018\n\n[static_check] no undefined names (157 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L018.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L019.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953325.976,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e20",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "324820b74489f095a1d9e2fae0518b1f4b9801115a03b1332fadcf32644d0be0",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L019.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L019\n\n[static_check] no undefined names (179 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L019.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L020.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953329.459,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e21",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "d79a426772917660f4d0f8a95581a9b071b60d0c5b577ec737f97fb2c3adeadf",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L020.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L020\n\n[static_check] no undefined names (75 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L020.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L021.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953332.823,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e22",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "7111e4c64fb1af40afc8a38a37e4d170112aa04109539c711619c6fa3f919a1e",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L021.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L021\n\n[static_check] no undefined names (47 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L021.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L022.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953336.375,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e23",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "3923e1cddb9118d7139a3c3562db87cf24aca27a41924a4679b68cf634997a09",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L022.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L022\n\n[static_check] no undefined names (189 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L022.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L023.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953339.879,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e24",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "86fcd728ed5a6536c90630c13fd67c37ddab00fb9872e1ed38c6f26ebf167141",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L023.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L023\n\n[static_check] no undefined names (90 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L023.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L029.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953343.337,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e25",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "4a46238a243ae10a448b7ef80816f672443a3636e67655f2bf6382da5d981d58",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L029.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L029\n\n[static_check] no undefined names (49 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L029.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L031.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953348.937,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e26",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "c2fad9911ad9dcd82202a17da1c489138ad348c2f57a9e4534a17ba6cbf231ad",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L031.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L031\n\n[static_check] no undefined names (162 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L031.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L032.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953352.344,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e27",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "e4c84c949d9f579e7be3ea46c6e36fa26879db935e6d897c37037985fa56ec75",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L032.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L032\n\n[static_check] no undefined names (49 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L032.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L033.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953356.974,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e28",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "cb7f211b24811180477438966e1214f8b1c6b9abe031e341e3a76eec60e089bf",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L033.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L033\n\n[static_check] no undefined names (36 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L033.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L034.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953360.393,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e29",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "4be6ac75b18ee666153f1d7bf52e18aa5813197d1a99a3f656e108e8763943d8",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L034.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L034\n\n[static_check] no undefined names (140 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L034.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L035.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953363.735,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e30",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "213794595f802ea522c62fb12fe4e8bddb1811a26380574604a0b11ce229e324",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L035.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L035\n\n[static_check] no undefined names (69 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L035.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L036.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953367.212,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e31",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "0637482eade9476a4cc42499375839e84d7d2a20dabd2eab2c996516da876c2c",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L036.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L036\n\n[static_check] no undefined names (174 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L036.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L037.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953370.657,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e32",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "b925d2f0479333e3d7257eb6e431bc4ccf6a51037a8bd675d264e64950a9198e",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L037.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L037\n\n[static_check] no undefined names (122 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L037.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L038.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953374.852,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e33",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "e69c875f00b2075daf547246892dc53eb10269d2bb8b519cdf6d29f8fffc8707",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L038.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L038\n\n[static_check] no undefined names (67 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L038.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L039.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953378.659,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e34",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "1c621aa6508d6f1f9778229242d1174261718415340605ec42597d375133300d",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L039.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L039\n\n[static_check] no undefined names (64 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L039.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L041.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953382.948,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e35",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "04724791db46361db3c12a58483ae87d05e82f8bb10dbf2b00d245ba5ff69369",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L041.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L041\n\n[static_check] no undefined names (78 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L041.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L042.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953387.279,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e36",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "c0c3d56f44a86db3216a87ca98c6790ab42a3df34308599a819de9afe7feec13",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L042.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L042\n\n[static_check] no undefined names (83 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L042.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L043.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953390.658,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e37",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "a98f0a835dfee1450ecb215a0fe15865f4cdd92fd2b6b2bc811d1c0965bfde7f",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L043.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L043\n\n[static_check] no undefined names (156 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L043.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L044.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953394.014,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e38",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "ca8b4e729feff9942f8de2ca0014f8ed5912d8443ec64f7f13583c99cd923b8a",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L044.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L044\n\n[static_check] no undefined names (140 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L044.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L045.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed)",
+    "created_at": 1791953397.413,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e39",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "c48f3b79593162314f067e504d40ecde42bffffb6425a62be4a8658e9919889d",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L045.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L045\n\n[static_check] no undefined names (73 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L045.py by the proximity heuristic; step skipped\n"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
+    "created_at": 1791952431.661,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "Traceback (most recent call last): File \"/testbed/.hae/reproduce_issue.py\", line 37, in <module> test_baserule_exists() File \"/testbed/.hae/reproduce_issue.py\", line 6, in test_baserule_exists from sqlfluff.core.rules.base import BaseRule ImportError: cannot import name 'BaseRule' from '",
+    "mechanism_signature": "base baserule call cannot core exit file hae import importerror issue last name recent reproduc reproduce_issue reproduction rul script sqlfluff standalone test_baserule_exists testb traceback",
+    "patch_applied": false,
+    "posterior": 0.92,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "prior": 0.85,
+    "probe_code": "\"\"\"Reproduce: BaseCrawler should be renamed BaseRule (with a deprecated alias).\"\"\"\nimport warnings\n\n\ndef test_baserule_exists():\n    from sqlfluff.core.rules.base import BaseRule\n\n    assert BaseRule.__name__ == \"BaseRule\"\n\n\ndef test_basecrawler_deprecated_alias_still_works():\n    with warnings.catch_warnings(record=True) as w:\n        warnings.simplefilter(\"always\")\n        from sqlfluff.core.rules.base import BaseCrawler\n\n        assert BaseCrawler.__name__ == \"BaseRule\"\n        assert len(w) == 1, [str(x.message) for x in w]\n        assert issubclass(w[0].category, DeprecationWarning)\n        assert \"BaseRule\" in str(w[0].message)\n\n\ndef test_rule_still_lints():\n    from sqlfluff.core import Linter\n    from sqlfluff.core.rules.base import BaseRule\n\n    class Rule_T999(BaseRule):\n        \"\"\"A dummy rule.\"\"\"\n\n        def _eval(self, segment, raw_stack, **kwargs):\n            pass\n\n    linter = Linter(user_rules=[Rule_T999])\n    assert (\"T999\", \"A dummy rule.\") in linter.rule_tuples()\n\n\nif __name__ == \"__main__\":\n    test_baserule_exists()\n    test_basecrawler_deprecated_alias_still_works()\n    test_rule_still_lints()\n    print(\"ALL OK\")\n",
+    "probe_rejections": 0,
+    "proposed_by": "AgenticReproductionSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1791952045.242,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "src/sqlfluff/core/rules/base.py",
+    "question_id": "q1",
+    "source_failure": "Rename BaseCrawler class as BaseRule to be clearer, avoid confusion with analysis helper classes, e.g. SelectCrawler",
+    "source_failure_key": "swebench:sqlfluff__sqlfluff-880",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Reproduce the reported behaviour: Rename BaseCrawler class as BaseRule to be clearer, avoid confusion with analysis helper classes, e.g. SelectCrawler -- Discussed here: https://github.com/sqlfluff/sqlfluff/pull/779#pullrequestreview-604167034",
+    "uncertainty": 0.15
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "d3ee7356f7f230830dcaa75142661aea3e50266dbaf8ef6fb8a69f6554cbb49c"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 29,
+   "stats": {
+    "best_checkpoint": {
+     "changed_files": [
+      "docs/source/rules.rst",
+      "plugins/sqlfluff-plugin-example/src/example/rules.py",
+      "src/sqlfluff/core/linter.py",
+      "src/sqlfluff/core/rules/base.py",
+      "src/sqlfluff/core/rules/std/L001.py",
+      "src/sqlfluff/core/rules/std/L002.py",
+      "src/sqlfluff/core/rules/std/L003.py",
+      "src/sqlfluff/core/rules/std/L004.py",
+      "src/sqlfluff/core/rules/std/L005.py",
+      "src/sqlfluff/core/rules/std/L006.py",
+      "src/sqlfluff/core/rules/std/L007.py",
+      "src/sqlfluff/core/rules/std/L008.py",
+      "src/sqlfluff/core/rules/std/L009.py",
+      "src/sqlfluff/core/rules/std/L010.py",
+      "src/sqlfluff/core/rules/std/L011.py",
+      "src/sqlfluff/core/rules/std/L013.py",
+      "src/sqlfluff/core/rules/std/L015.py",
+      "src/sqlfluff/core/rules/std/L017.py",
+      "src/sqlfluff/core/rules/std/L018.py",
+      "src/sqlfluff/core/rules/std/L019.py",
+      "src/sqlfluff/core/rules/std/L020.py",
+      "src/sqlfluff/core/rules/std/L021.py",
+      "src/sqlfluff/core/rules/std/L022.py",
+      "src/sqlfluff/core/rules/std/L023.py",
+      "src/sqlfluff/core/rules/std/L029.py",
+      "src/sqlfluff/core/rules/std/L031.py",
+      "src/sqlfluff/core/rules/std/L032.py",
+      "src/sqlfluff/core/rules/std/L033.py",
+      "src/sqlfluff/core/rules/std/L034.py",
+      "src/sqlfluff/core/rules/std/L035.py",
+      "src/sqlfluff/core/rules/std/L036.py",
+      "src/sqlfluff/core/rules/std/L037.py",
+      "src/sqlfluff/core/rules/std/L038.py",
+      "src/sqlfluff/core/rules/std/L039.py",
+      "src/sqlfluff/core/rules/std/L041.py",
+      "src/sqlfluff/core/rules/std/L042.py",
+      "src/sqlfluff/core/rules/std/L043.py",
+      "src/sqlfluff/core/rules/std/L044.py",
+      "src/sqlfluff/core/rules/std/L045.py"
+     ],
+     "note": "modified via bash (docs/source/rules.rst, plugins/sqlfluff-plugin-example/src/example/rules.py, src/sqlfluff/core/linter.py, src/sqlfluff/core/rules/base.py, src/sqlfluff/core/rules/std/L001.py, src/sqlfluff/core/rules/std/L002.py, src/sqlfluff/core/rules/std/L003.py, src/sqlfluff/core/rules/std/L004.py, src/sqlfluff/core/rules/std/L005.py, src/sqlfluff/core/rules/std/L006.py, src/sqlfluff/core/rules/std/L007.py, src/sqlfluff/core/rules/std/L008.py, src/sqlfluff/core/rules/std/L009.py, src/sqlfluff/core/rules/std/L010.py, src/sqlfluff/core/rules/std/L011.py, src/sqlfluff/core/rules/std/L013.py, src/sqlfluff/core/rules/std/L015.py, src/sqlfluff/core/rules/std/L017.py, src/sqlfluff/core/rules/std/L018.py, src/sqlfluff/core/rules/std/L019.py, src/sqlfluff/core/rules/std/L020.py, src/sqlfluff/core/rules/std/L021.py, src/sqlfluff/core/rules/std/L022.py, src/sqlfluff/core/rules/std/L023.py, src/sqlfluff/core/rules/std/L029.py, src/sqlfluff/core/rules/std/L031.py, src/sqlfluff/core/rules/std/L032.py, src/sqlfluff/core/rules/std/L033.py, src/sqlfluff/core/rules/std/L034.py, src/sqlfluff/core/rules/std/L035.py, src/sqlfluff/core/rules/std/L036.py, src/sqlfluff/core/rules/std/L037.py, src/sqlfluff/core/rules/std/L038.py, src/sqlfluff/core/rules/std/L039.py, src/sqlfluff/core/rules/std/L041.py, src/sqlfluff/core/rules/std/L042.py, src/sqlfluff/core/rules/std/L043.py, src/sqlfluff/core/rules/std/L044.py, src/sqlfluff/core/rules/std/L045.py)",
+     "rank_key": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      -999
+     ],
+     "specialist": "bash_edit",
+     "turn": 10
+    },
+    "checkpoints_recorded": 4,
+    "mode": "v12_agentic"
+   },
+   "stop_reason": "best_checkpoint_restored",
+   "synthesized_paths": [
+    "docs/source/rules.rst",
+    "plugins/sqlfluff-plugin-example/src/example/rules.py",
+    "src/sqlfluff/core/linter.py",
+    "src/sqlfluff/core/rules/base.py",
+    "src/sqlfluff/core/rules/std/L001.py",
+    "src/sqlfluff/core/rules/std/L002.py",
+    "src/sqlfluff/core/rules/std/L003.py",
+    "src/sqlfluff/core/rules/std/L004.py",
+    "src/sqlfluff/core/rules/std/L005.py",
+    "src/sqlfluff/core/rules/std/L006.py",
+    "src/sqlfluff/core/rules/std/L007.py",
+    "src/sqlfluff/core/rules/std/L008.py",
+    "src/sqlfluff/core/rules/std/L009.py",
+    "src/sqlfluff/core/rules/std/L010.py",
+    "src/sqlfluff/core/rules/std/L011.py",
+    "src/sqlfluff/core/rules/std/L013.py",
+    "src/sqlfluff/core/rules/std/L015.py",
+    "src/sqlfluff/core/rules/std/L017.py",
+    "src/sqlfluff/core/rules/std/L018.py",
+    "src/sqlfluff/core/rules/std/L019.py",
+    "src/sqlfluff/core/rules/std/L020.py",
+    "src/sqlfluff/core/rules/std/L021.py",
+    "src/sqlfluff/core/rules/std/L022.py",
+    "src/sqlfluff/core/rules/std/L023.py",
+    "src/sqlfluff/core/rules/std/L029.py",
+    "src/sqlfluff/core/rules/std/L031.py",
+    "src/sqlfluff/core/rules/std/L032.py",
+    "src/sqlfluff/core/rules/std/L033.py",
+    "src/sqlfluff/core/rules/std/L034.py",
+    "src/sqlfluff/core/rules/std/L035.py",
+    "src/sqlfluff/core/rules/std/L036.py",
+    "src/sqlfluff/core/rules/std/L037.py",
+    "src/sqlfluff/core/rules/std/L038.py",
+    "src/sqlfluff/core/rules/std/L039.py",
+    "src/sqlfluff/core/rules/std/L041.py",
+    "src/sqlfluff/core/rules/std/L042.py",
+    "src/sqlfluff/core/rules/std/L043.py",
+    "src/sqlfluff/core/rules/std/L044.py",
+    "src/sqlfluff/core/rules/std/L045.py"
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v12_agentic_swebench_firm_0",
+ "instance_id": "sqlfluff__sqlfluff-880",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.75,
+  "estimated_cost_usd": 0.0252,
+  "flash_count": 26,
+  "flash_input_tokens": 218883,
+  "flash_output_tokens": 29302,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 248185
+ },
+ "prediction_chars": 26803,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"BaseCrawler\" -- '*.py' | head -80",
+    "elapsed_s": 4.92,
+    "reasoning_chars": 157,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '1,60p' src/sqlfluff/core/rules/base.py && echo ---- && sed -n '170,230p' src/sqlfluff/core/rules/base.py && echo ---- && sed -n '490,620p' src/sqlfluff/core/rules/base.py",
+    "elapsed_s": 8.19,
+    "reasoning_chars": 245,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"DeprecationWarning\\|sfs_warn\\|deprecated\" -- 'src/*.py' | head -40 && echo ---- && ls test/core/rules/ && echo ---- && git grep -rn \"BaseCrawler\" -- 'test/*' 'docs/*' | head -40",
+    "elapsed_s": 39.26,
+    "reasoning_chars": 2419,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls src/sqlfluff/core/ && echo ---- && sed -n '1,60p' test/core/rules/std_test.py && echo ---- && sed -n '195,270p' test/core/rules/std_test.py",
+    "elapsed_s": 82.81,
+    "reasoning_chars": 5269,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 158.25,
+    "error": "Empty response from model.",
+    "reasoning_chars": 10597,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"sfs_warn\\|DeprecationWarning\\|warnings\" -- 'src/*.py' | head -30 && echo ---- && cat src/sqlfluff/core/string_helpers.py",
+    "elapsed_s": 4.49,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && mkdir -p .hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\n\"\"\"Reproduce: BaseCrawler should be renamed BaseRule (with a deprecated alias).\"\"\"\nimport warnings\n\n\ndef test_baserule_exists():\n    from sqlfluff.core.rules.base import BaseRule\n\n    assert BaseRule.__name__ == \"BaseRul",
+    "elapsed_s": 46.02,
+    "reasoning_chars": 1359,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python --version && git grep -ln \"BaseCrawler\" | grep -v \"^test/\"",
+    "elapsed_s": 16.17,
+    "reasoning_chars": 1042,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 17.32,
+    "error": "No valid tool block found in your response. Emit EXACTLY ONE markdown fenced tool block per turn: ```bash ... ```, ```view_file ... ```, ```str_replace ... ```, or ```submit ... ```.",
+    "reasoning_chars": 804,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -l \"BaseCrawler\" -- 'src/*' 'plugins/*' 'docs/*' | xargs sed -i 's/BaseCrawler/BaseRule/g' && git grep -n \"BaseCrawler\" -- 'src/*' 'plugins/*' 'docs/*' | head && git diff --stat | tail -3",
+    "elapsed_s": 5.09,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '175,200p' src/sqlfluff/core/rules/base.py && echo ---- && tail -20 src/sqlfluff/core/rules/base.py && echo ---- && sed -n '1,20p' src/sqlfluff/core/rules/base.py",
+    "elapsed_s": 6.94,
+    "reasoning_chars": 116,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 11
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat >> src/sqlfluff/core/rules/base.py << 'EOF'\n\n\ndef __getattr__(name):\n    \"\"\"Override the default module getattr.\n\n    In a general case, we should aim to get the attribute that is\n    refactored from the old name.\n    \"\"\"\n    if name == \"BaseCrawler\":\n        warnings.warn(\n      ",
+    "elapsed_s": 34.71,
+    "reasoning_chars": 1755,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 12
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'EOF'\nimport re\np = \"src/sqlfluff/core/rules/base.py\"\ns = open(p).read()\ns = s.replace(\"import copy\\nimport logging\\nimport pathlib\\nimport re\\n\", \"import copy\\nimport logging\\nimport pathlib\\nimport re\\nimport warnings\\n\", 1)\nopen(p, \"w\").write(s)\nEOF\nsed -n '16,22p' src/",
+    "elapsed_s": 7.9,
+    "reasoning_chars": 63,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 13
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"BaseCrawler\" | grep -v \"^test/\" ; echo \"----\" ; python -m pytest test/core/rules/std_test.py -q 2>&1 | tail -15",
+    "elapsed_s": 14.2,
+    "reasoning_chars": 585,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 14
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"BaseCrawler\\|BaseRule\" -- 'test/fixtures/*' 'src/sqlfluff/testing/*' 'docs/*' | head -20 && echo ---- && git diff --stat | head -5 && git status --short | head",
+    "elapsed_s": 47.82,
+    "reasoning_chars": 3359,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 15
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest test/core/rules test/core/plugin test/api -q 2>&1 | tail -8",
+    "elapsed_s": 16.37,
+    "reasoning_chars": 1152,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 16
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 3.12,
+    "error": "Empty response from model.",
+    "reasoning_chars": 171,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 17
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls test/core/ && python -m pytest test/core/rules/std_test.py test/core/rules/rule_test_cases_test.py -q 2>&1 | tail -6",
+    "elapsed_s": 2.99,
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 18
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest test/core/plugin_test.py test/core/linter_test.py -q 2>&1 | tail -4 && git stash -q && python -m pytest \"test/core/rules/std_test.py::test__rules__std_file_dbt\" -q 2>&1 | tail -3 && git stash pop -q && git diff --stat | tail -2",
+    "elapsed_s": 11.19,
+    "reasoning_chars": 507,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 19
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest test/core/plugin_test.py test/core/linter_test.py -q 2>&1 | tail -4 && python /testbed/.hae/reproduce_issue.py && git diff --stat | tail -2",
+    "elapsed_s": 5.14,
+    "reasoning_chars": 138,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 20
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest test/core/plugin_test.py -q 2>&1 | grep -E \"Error|assert|plugin\" | head -20",
+    "elapsed_s": 12.43,
+    "reasoning_chars": 645,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 21
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git status && echo \"---HAE---\" && ls -la .hae/ 2>/dev/null && echo \"---GREP BaseCrawler---\" && git grep -n \"BaseCrawler\" | head -100",
+    "elapsed_s": 7.67,
+    "reasoning_chars": 300,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat .hae/reproduce_issue.py && echo \"=== base.py 170-200 ===\" && sed -n '170,200p' src/sqlfluff/core/rules/base.py && echo \"=== base.py 500-580 ===\" && sed -n '500,580p' src/sqlfluff/core/rules/base.py",
+    "elapsed_s": 29.0,
+    "reasoning_chars": 1985,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat setup.cfg | head -60 && echo \"=== pytest.ini/tox ===\" && ls && echo \"=== git log ===\" && git log --oneline -5 && echo \"=== grep DeprecationWarning ===\" && git grep -n \"DeprecationWarning\" | head -20 && echo \"=== grep __getattr__ ===\" && git grep -n \"__getattr__\" | head",
+    "elapsed_s": 63.51,
+    "reasoning_chars": 4424,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '1,60p' setup.cfg && echo \"=== grep DeprecationWarning ===\" && git grep -n \"DeprecationWarning\" | head -20 && echo \"=== grep __getattr__ ===\" && git grep -n \"__getattr__\" | head",
+    "elapsed_s": 6.98,
+    "reasoning_chars": 89,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls && echo \"=== setup.cfg ===\" && sed -n '1,80p' setup.cfg 2>/dev/null; echo \"=== grep DeprecationWarning ===\" && git grep -n \"DeprecationWarning\" | head -20; echo \"=== grep __getattr__ ===\" && git grep -n \"__getattr__\" | head",
+    "elapsed_s": 7.5,
+    "reasoning_chars": 60,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat pytest.ini && echo \"=== tox filterwarnings ===\" && grep -n \"filterwarnings\\|-W \" tox.ini setup.py 2>/dev/null | head && echo \"=== python version ===\" && python -V && echo \"=== base.py head ===\" && sed -n '1,25p' src/sqlfluff/core/rules/base.py",
+    "elapsed_s": 58.46,
+    "reasoning_chars": 3851,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -n -i \"baserule\\|basecrawler\" CHANGELOG.md | head -20 && echo \"=== caching test ===\" && mkdir -p /tmp/mt && printf 'import warnings\\ndef __getattr__(name):\\n    if name == \"Foo\":\\n        warnings.warn(\"Foo deprecated, use Bar\", DeprecationWarning)\\n        return Bar\\n    raise ",
+    "elapsed_s": 97.73,
+    "reasoning_chars": 6381,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -n -i \"crawler\" src/sqlfluff/core/rules/base.py && echo \"=== other src refs to crawler (non-analysis) ===\" && git grep -n -i \"crawler\" -- src/sqlfluff | grep -v \"analysis/\" | grep -v \"rules/base.py\" | head -30 && echo \"=== docs refs ===\" && git grep -n -i \"crawler\" -- docs plugin",
+    "elapsed_s": 83.77,
+    "reasoning_chars": 5382,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 8
+   }
+  ],
+  "base_commit": "12f272627cd263f2acadf2ad976aec4819ee98c3",
+  "best_checkpoint": {
+   "changed_files": [
+    "docs/source/rules.rst",
+    "plugins/sqlfluff-plugin-example/src/example/rules.py",
+    "src/sqlfluff/core/linter.py",
+    "src/sqlfluff/core/rules/base.py",
+    "src/sqlfluff/core/rules/std/L001.py",
+    "src/sqlfluff/core/rules/std/L002.py",
+    "src/sqlfluff/core/rules/std/L003.py",
+    "src/sqlfluff/core/rules/std/L004.py",
+    "src/sqlfluff/core/rules/std/L005.py",
+    "src/sqlfluff/core/rules/std/L006.py",
+    "src/sqlfluff/core/rules/std/L007.py",
+    "src/sqlfluff/core/rules/std/L008.py",
+    "src/sqlfluff/core/rules/std/L009.py",
+    "src/sqlfluff/core/rules/std/L010.py",
+    "src/sqlfluff/core/rules/std/L011.py",
+    "src/sqlfluff/core/rules/std/L013.py",
+    "src/sqlfluff/core/rules/std/L015.py",
+    "src/sqlfluff/core/rules/std/L017.py",
+    "src/sqlfluff/core/rules/std/L018.py",
+    "src/sqlfluff/core/rules/std/L019.py",
+    "src/sqlfluff/core/rules/std/L020.py",
+    "src/sqlfluff/core/rules/std/L021.py",
+    "src/sqlfluff/core/rules/std/L022.py",
+    "src/sqlfluff/core/rules/std/L023.py",
+    "src/sqlfluff/core/rules/std/L029.py",
+    "src/sqlfluff/core/rules/std/L031.py",
+    "src/sqlfluff/core/rules/std/L032.py",
+    "src/sqlfluff/core/rules/std/L033.py",
+    "src/sqlfluff/core/rules/std/L034.py",
+    "src/sqlfluff/core/rules/std/L035.py",
+    "src/sqlfluff/core/rules/std/L036.py",
+    "src/sqlfluff/core/rules/std/L037.py",
+    "src/sqlfluff/core/rules/std/L038.py",
+    "src/sqlfluff/core/rules/std/L039.py",
+    "src/sqlfluff/core/rules/std/L041.py",
+    "src/sqlfluff/core/rules/std/L042.py",
+    "src/sqlfluff/core/rules/std/L043.py",
+    "src/sqlfluff/core/rules/std/L044.py",
+    "src/sqlfluff/core/rules/std/L045.py"
+   ],
+   "note": "modified via bash (docs/source/rules.rst, plugins/sqlfluff-plugin-example/src/example/rules.py, src/sqlfluff/core/linter.py, src/sqlfluff/core/rules/base.py, src/sqlfluff/core/rules/std/L001.py, src/sqlfluff/core/rules/std/L002.py, src/sqlfluff/core/rules/std/L003.py, src/sqlfluff/core/rules/std/L004.py, src/sqlfluff/core/rules/std/L005.py, src/sqlfluff/core/rules/std/L006.py, src/sqlfluff/core/rules/std/L007.py, src/sqlfluff/core/rules/std/L008.py, src/sqlfluff/core/rules/std/L009.py, src/sqlfluff/core/rules/std/L010.py, src/sqlfluff/core/rules/std/L011.py, src/sqlfluff/core/rules/std/L013.py, src/sqlfluff/core/rules/std/L015.py, src/sqlfluff/core/rules/std/L017.py, src/sqlfluff/core/rules/std/L018.py, src/sqlfluff/core/rules/std/L019.py, src/sqlfluff/core/rules/std/L020.py, src/sqlfluff/core/rules/std/L021.py, src/sqlfluff/core/rules/std/L022.py, src/sqlfluff/core/rules/std/L023.py, src/sqlfluff/core/rules/std/L029.py, src/sqlfluff/core/rules/std/L031.py, src/sqlfluff/core/rules/std/L032.py, src/sqlfluff/core/rules/std/L033.py, src/sqlfluff/core/rules/std/L034.py, src/sqlfluff/core/rules/std/L035.py, src/sqlfluff/core/rules/std/L036.py, src/sqlfluff/core/rules/std/L037.py, src/sqlfluff/core/rules/std/L038.py, src/sqlfluff/core/rules/std/L039.py, src/sqlfluff/core/rules/std/L041.py, src/sqlfluff/core/rules/std/L042.py, src/sqlfluff/core/rules/std/L043.py, src/sqlfluff/core/rules/std/L044.py, src/sqlfluff/core/rules/std/L045.py)",
+   "rank_key": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    -999
+   ],
+   "specialist": "bash_edit",
+   "turn": 10
+  },
+  "budget_moves": 30,
+  "changed_files": [
+   "docs/source/rules.rst",
+   "plugins/sqlfluff-plugin-example/src/example/rules.py",
+   "src/sqlfluff/core/linter.py",
+   "src/sqlfluff/core/rules/base.py",
+   "src/sqlfluff/core/rules/std/L001.py",
+   "src/sqlfluff/core/rules/std/L002.py",
+   "src/sqlfluff/core/rules/std/L003.py",
+   "src/sqlfluff/core/rules/std/L004.py",
+   "src/sqlfluff/core/rules/std/L005.py",
+   "src/sqlfluff/core/rules/std/L006.py",
+   "src/sqlfluff/core/rules/std/L007.py",
+   "src/sqlfluff/core/rules/std/L008.py",
+   "src/sqlfluff/core/rules/std/L009.py",
+   "src/sqlfluff/core/rules/std/L010.py",
+   "src/sqlfluff/core/rules/std/L011.py",
+   "src/sqlfluff/core/rules/std/L013.py",
+   "src/sqlfluff/core/rules/std/L015.py",
+   "src/sqlfluff/core/rules/std/L017.py",
+   "src/sqlfluff/core/rules/std/L018.py",
+   "src/sqlfluff/core/rules/std/L019.py",
+   "src/sqlfluff/core/rules/std/L020.py",
+   "src/sqlfluff/core/rules/std/L021.py",
+   "src/sqlfluff/core/rules/std/L022.py",
+   "src/sqlfluff/core/rules/std/L023.py",
+   "src/sqlfluff/core/rules/std/L029.py",
+   "src/sqlfluff/core/rules/std/L031.py",
+   "src/sqlfluff/core/rules/std/L032.py",
+   "src/sqlfluff/core/rules/std/L033.py",
+   "src/sqlfluff/core/rules/std/L034.py",
+   "src/sqlfluff/core/rules/std/L035.py",
+   "src/sqlfluff/core/rules/std/L036.py",
+   "src/sqlfluff/core/rules/std/L037.py",
+   "src/sqlfluff/core/rules/std/L038.py",
+   "src/sqlfluff/core/rules/std/L039.py",
+   "src/sqlfluff/core/rules/std/L041.py",
+   "src/sqlfluff/core/rules/std/L042.py",
+   "src/sqlfluff/core/rules/std/L043.py",
+   "src/sqlfluff/core/rules/std/L044.py",
+   "src/sqlfluff/core/rules/std/L045.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-880/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "sqlfluff__sqlfluff-880",
+  "iterations": [
+   {
+    "best_checkpoint": {
+     "changed_files": [
+      "docs/source/rules.rst",
+      "plugins/sqlfluff-plugin-example/src/example/rules.py",
+      "src/sqlfluff/core/linter.py",
+      "src/sqlfluff/core/rules/base.py",
+      "src/sqlfluff/core/rules/std/L001.py",
+      "src/sqlfluff/core/rules/std/L002.py",
+      "src/sqlfluff/core/rules/std/L003.py",
+      "src/sqlfluff/core/rules/std/L004.py",
+      "src/sqlfluff/core/rules/std/L005.py",
+      "src/sqlfluff/core/rules/std/L006.py",
+      "src/sqlfluff/core/rules/std/L007.py",
+      "src/sqlfluff/core/rules/std/L008.py",
+      "src/sqlfluff/core/rules/std/L009.py",
+      "src/sqlfluff/core/rules/std/L010.py",
+      "src/sqlfluff/core/rules/std/L011.py",
+      "src/sqlfluff/core/rules/std/L013.py",
+      "src/sqlfluff/core/rules/std/L015.py",
+      "src/sqlfluff/core/rules/std/L017.py",
+      "src/sqlfluff/core/rules/std/L018.py",
+      "src/sqlfluff/core/rules/std/L019.py",
+      "src/sqlfluff/core/rules/std/L020.py",
+      "src/sqlfluff/core/rules/std/L021.py",
+      "src/sqlfluff/core/rules/std/L022.py",
+      "src/sqlfluff/core/rules/std/L023.py",
+      "src/sqlfluff/core/rules/std/L029.py",
+      "src/sqlfluff/core/rules/std/L031.py",
+      "src/sqlfluff/core/rules/std/L032.py",
+      "src/sqlfluff/core/rules/std/L033.py",
+      "src/sqlfluff/core/rules/std/L034.py",
+      "src/sqlfluff/core/rules/std/L035.py",
+      "src/sqlfluff/core/rules/std/L036.py",
+      "src/sqlfluff/core/rules/std/L037.py",
+      "src/sqlfluff/core/rules/std/L038.py",
+      "src/sqlfluff/core/rules/std/L039.py",
+      "src/sqlfluff/core/rules/std/L041.py",
+      "src/sqlfluff/core/rules/std/L042.py",
+      "src/sqlfluff/core/rules/std/L043.py",
+      "src/sqlfluff/core/rules/std/L044.py",
+      "src/sqlfluff/core/rules/std/L045.py"
+     ],
+     "note": "modified via bash (docs/source/rules.rst, plugins/sqlfluff-plugin-example/src/example/rules.py, src/sqlfluff/core/linter.py, src/sqlfluff/core/rules/base.py, src/sqlfluff/core/rules/std/L001.py, src/sqlfluff/core/rules/std/L002.py, src/sqlfluff/core/rules/std/L003.py, src/sqlfluff/core/rules/std/L004.py, src/sqlfluff/core/rules/std/L005.py, src/sqlfluff/core/rules/std/L006.py, src/sqlfluff/core/rules/std/L007.py, src/sqlfluff/core/rules/std/L008.py, src/sqlfluff/core/rules/std/L009.py, src/sqlfluff/core/rules/std/L010.py, src/sqlfluff/core/rules/std/L011.py, src/sqlfluff/core/rules/std/L013.py, src/sqlfluff/core/rules/std/L015.py, src/sqlfluff/core/rules/std/L017.py, src/sqlfluff/core/rules/std/L018.py, src/sqlfluff/core/rules/std/L019.py, src/sqlfluff/core/rules/std/L020.py, src/sqlfluff/core/rules/std/L021.py, src/sqlfluff/core/rules/std/L022.py, src/sqlfluff/core/rules/std/L023.py, src/sqlfluff/core/rules/std/L029.py, src/sqlfluff/core/rules/std/L031.py, src/sqlfluff/core/rules/std/L032.py, src/sqlfluff/core/rules/std/L033.py, src/sqlfluff/core/rules/std/L034.py, src/sqlfluff/core/rules/std/L035.py, src/sqlfluff/core/rules/std/L036.py, src/sqlfluff/core/rules/std/L037.py, src/sqlfluff/core/rules/std/L038.py, src/sqlfluff/core/rules/std/L039.py, src/sqlfluff/core/rules/std/L041.py, src/sqlfluff/core/rules/std/L042.py, src/sqlfluff/core/rules/std/L043.py, src/sqlfluff/core/rules/std/L044.py, src/sqlfluff/core/rules/std/L045.py)",
+     "rank_key": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      -999
+     ],
+     "specialist": "bash_edit",
+     "turn": 10
+    },
+    "iteration": 1,
+    "moves_used": 29,
+    "patched": true,
+    "recheck": {
+     "verdict": "unresolved"
+    },
+    "resolved_this_iteration": [],
+    "stop_reason": "best_checkpoint_restored",
+    "synthesized_paths": [
+     "docs/source/rules.rst",
+     "plugins/sqlfluff-plugin-example/src/example/rules.py",
+     "src/sqlfluff/core/linter.py",
+     "src/sqlfluff/core/rules/base.py",
+     "src/sqlfluff/core/rules/std/L001.py",
+     "src/sqlfluff/core/rules/std/L002.py",
+     "src/sqlfluff/core/rules/std/L003.py",
+     "src/sqlfluff/core/rules/std/L004.py",
+     "src/sqlfluff/core/rules/std/L005.py",
+     "src/sqlfluff/core/rules/std/L006.py",
+     "src/sqlfluff/core/rules/std/L007.py",
+     "src/sqlfluff/core/rules/std/L008.py",
+     "src/sqlfluff/core/rules/std/L009.py",
+     "src/sqlfluff/core/rules/std/L010.py",
+     "src/sqlfluff/core/rules/std/L011.py",
+     "src/sqlfluff/core/rules/std/L013.py",
+     "src/sqlfluff/core/rules/std/L015.py",
+     "src/sqlfluff/core/rules/std/L017.py",
+     "src/sqlfluff/core/rules/std/L018.py",
+     "src/sqlfluff/core/rules/std/L019.py",
+     "src/sqlfluff/core/rules/std/L020.py",
+     "src/sqlfluff/core/rules/std/L021.py",
+     "src/sqlfluff/core/rules/std/L022.py",
+     "src/sqlfluff/core/rules/std/L023.py",
+     "src/sqlfluff/core/rules/std/L029.py",
+     "src/sqlfluff/core/rules/std/L031.py",
+     "src/sqlfluff/core/rules/std/L032.py",
+     "src/sqlfluff/core/rules/std/L033.py",
+     "src/sqlfluff/core/rules/std/L034.py",
+     "src/sqlfluff/core/rules/std/L035.py",
+     "src/sqlfluff/core/rules/std/L036.py",
+     "src/sqlfluff/core/rules/std/L037.py",
+     "src/sqlfluff/core/rules/std/L038.py",
+     "src/sqlfluff/core/rules/std/L039.py",
+     "src/sqlfluff/core/rules/std/L041.py",
+     "src/sqlfluff/core/rules/std/L042.py",
+     "src/sqlfluff/core/rules/std/L043.py",
+     "src/sqlfluff/core/rules/std/L044.py",
+     "src/sqlfluff/core/rules/std/L045.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "src/sqlfluff/core/rules/base.py",
+    "rationale": "The BaseCrawler class is defined in the rules base module, which needs to be renamed to BaseRule to resolve the naming confusion described in the issue.",
+    "resolved": "src/sqlfluff/core/rules/base.py"
+   }
+  ],
+  "moves_used": 29,
+  "patch_chars": 26803,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "sqlfluff",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 15.0,
+    "duration_s": 15.59,
+    "mode": "proximity",
+    "reason": "whole suite did not finish within 15s",
+    "target": "test"
+   },
+   "tried": [
+    "sqlfluff"
+   ]
+  },
+  "repo": "sqlfluff/sqlfluff",
+  "reproduction": [],
+  "resolved_by_self_oracle": false,
+  "root_module": "src/sqlfluff/core/rules/base.py",
+  "root_question_id": "q1",
+  "root_status": "OPEN",
+  "seed": {
+   "candidates": [],
+   "failure": "Rename BaseCrawler class as BaseRule to be clearer, avoid confusion with analysis helper classes, e.g. SelectCrawler",
+   "paths": [
+    "src/sqlfluff/core/rules/base.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "best_checkpoint_restored",
+  "task_features": {
+   "complexity": 0.121,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 210,
+   "tags": [
+    "sqlfluff",
+    "rules",
+    "base",
+    "rename",
+    "basecrawler",
+    "baserule",
+    "clearer",
+    "avoid",
+    "confusion",
+    "analysis",
+    "helper",
+    "classes",
+    "selectcrawler",
+    "discussed",
+    "here",
+    "https",
+    "github",
+    "com",
+    "pull",
+    "pullrequestreview"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "12f272627cd263f2acadf2ad976aec4819ee98c3",
+  "created_at": "2021-03-21T01:36:49Z",
+  "environment_setup_commit": "cbdcfb09feb4883de91de142956c3be6ac7f827d",
+  "hints_text": "",
+  "instance_id": "sqlfluff__sqlfluff-880",
+  "problem_statement": "Rename BaseCrawler class as BaseRule to be clearer, avoid confusion with analysis helper classes, e.g. SelectCrawler\nDiscussed here:\r\nhttps://github.com/sqlfluff/sqlfluff/pull/779#pullrequestreview-604167034\r\n\n",
+  "repo": "sqlfluff/sqlfluff",
+  "version": "0.4"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 30,
+  "thought_tokens": 13204
+ },
+ "token_usage": 248185,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

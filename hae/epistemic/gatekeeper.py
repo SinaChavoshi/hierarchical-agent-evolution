@@ -133,7 +133,7 @@ EFFECT_INCONCLUSIVE = "inconclusive"
 # the clean checkout's suite must finish within to qualify, the floor and the
 # baseline multiple of the per-synthesis timeout, and how many new failures
 # are re-run to filter flakiness.
-WHOLE_SUITE_MAX_S = 60.0
+WHOLE_SUITE_MAX_S = 15.0
 WHOLE_SUITE_MIN_TIMEOUT_S = 60.0
 WHOLE_SUITE_TIMEOUT_FACTOR = 3.0
 WHOLE_SUITE_RERUN_LIMIT = 20

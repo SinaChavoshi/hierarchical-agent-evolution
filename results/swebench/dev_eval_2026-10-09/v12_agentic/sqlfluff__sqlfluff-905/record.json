@@ -1,0 +1,542 @@
+{
+ "authored_files": [
+  "src/sqlfluff/core/rules/std/L036.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 1773.52,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.0225,
+  "calibration_tested": 1,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 2,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 1,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 1,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "016c6c2bbf1174f29becc30a45cde7452ef623e698a044553bb487b1b517607b",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 1,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 1,
+  "questions_resolved": 0,
+  "remaining_uncertainty": 0.15,
+  "resolved_fraction": 0.85,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 298014,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v12_agentic_swebench_firm_0",
+  "counters": {
+   "e": 2,
+   "h": 1,
+   "q": 1
+  },
+  "created_at": 1791947602.583,
+  "evidence_log": [
+   {
+    "command": "mkdir -p /testbed/.hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\n\"\"\"Reproduce issue #905: L036 should put all columns on separate lines if any are.\"\"\"\nfrom sqlfluff.core import Linter, FluffC",
+    "created_at": 1791947957.99,
+    "detail": "agentic reproduction probe reproduced bug",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "question_id": "q1",
+    "sha256": "9c3ec6f21d2686ea74027b5d3433885d879ad212e4a1f7208f7614daf7d538cb",
+    "stderr": "Traceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 31, in <module>\n    print(repr(fix(sql1)))\n  File \"/testbed/.hae/reproduce_issue.py\", line 25, in fix\n    parsed, _ = lnt.lint_string(sql, fix=True)\nValueError: too many values to unpack (expected 2)\ncommand terminated with exit code 1\n",
+    "stdout": ""
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/rules/std/L036.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-905/testbed:/testbed)",
+    "created_at": 1791949353.566,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e2",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "7fa9352eed31354d66609032ba6c4600e304f06d9ac56a20f9944f5ba294adf9",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/rules/std/L036.py\n\n[import] IMPORT_OK sqlfluff.core.rules.std.L036\n\n[static_check] no undefined names (202 lines)\n[repo_tests] no test file near src/sqlfluff/core/rules/std/L036.py by the proximity heuristic; step skipped\n"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
+    "created_at": 1791947957.99,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "Traceback (most recent call last): File \"/testbed/.hae/reproduce_issue.py\", line 31, in <module> print(repr(fix(sql1))) File \"/testbed/.hae/reproduce_issue.py\", line 25, in fix parsed, _ = lnt.lint_string(sql, fix=True) ValueError: too many values to unpack (expected 2) command terminate",
+    "mechanism_signature": "call command exit file fix hae issue last lint_string lnt many pars print recent repr reproduc reproduce_issue reproduction script sql sql1 standalone terminate testb too traceback true unpack valueerror",
+    "patch_applied": false,
+    "posterior": 0.92,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "prior": 0.85,
+    "probe_code": "\"\"\"Reproduce issue #905: L036 should put all columns on separate lines if any are.\"\"\"\nfrom sqlfluff.core import Linter, FluffConfig\n\n\ndef lint_and_fix(sql):\n    lnt = Linter(config=FluffConfig(overrides={\"rules\": \"L036\"}))\n    parsed = lnt.parse_string(sql)\n    rules = lnt.get_rules([\"L036\"])\n    lnt.lint(parsed, config=lnt.config, update=True)\n    vs = parsed.tree.recursive_crawl(\"newline\")\n    return parsed\n\n\ndef check(sql, expected_violations):\n    lnt = Linter(config=FluffConfig(overrides={\"rules\": \"L036\"}))\n    parsed = lnt.parse_string(sql)\n    lnt.lint(parsed, config=lnt.config, update=True)\n    n = len([v for v in parsed.violations if v.rule_code() == \"L036\"])\n    print(f\"--- input ---\\n{sql!r}\\nviolations={n} (expected {expected_violations})\")\n    return n\n\n\ndef fix(sql):\n    lnt = Linter(config=FluffConfig(overrides={\"rules\": \"L036\"}))\n    parsed, _ = lnt.lint_string(sql, fix=True)\n    return parsed.tree.raw\n\n\n# Case 1: all targets on one line -> newline before first target (existing behaviour)\nsql1 = \"select a, b, c\\nfrom x\\n\"\nprint(repr(fix(sql1)))\n\n# Case 2: some targets on separate lines, some inline -> should split all\nsql2 = \"select\\n    a, b,\\n    c\\nfrom x\\n\"\nn = check(sql2, 1)\nprint(\"FIXED:\", repr(fix(sql2)))\n\nassert n == 1, f\"BUG: expected 1 L036 violation for {sql2!r}, got {n}\"\nexpected = \"select\\n    a,\\n b,\\n    c\\nfrom x\\n\"\ngot = fix(sql2)\nassert got == expected, f\"BUG: fix produced {got!r}, expected {expected!r}\"\nprint(\"OK\")\n",
+    "probe_rejections": 0,
+    "proposed_by": "AgenticReproductionSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1791947603.935,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "src/sqlfluff/core/rules/std/L036.py",
+    "question_id": "q1",
+    "source_failure": "Enhance rule L036 to put all columns on separate lines if any of them are",
+    "source_failure_key": "swebench:sqlfluff__sqlfluff-905",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Reproduce the reported behaviour: Enhance rule L036 to put all columns on separate lines if any of them are -- The current description is ambiguous, but after discussion, we decided to update the rule and keep the description at least _similar_ to what it is currently.. See discussion on #769.",
+    "uncertainty": 0.15
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "016c6c2bbf1174f29becc30a45cde7452ef623e698a044553bb487b1b517607b"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 21,
+   "stats": {
+    "best_checkpoint": {
+     "changed_files": [
+      "src/sqlfluff/core/rules/std/L036.py"
+     ],
+     "note": "- Gatekeeper `verify_module('src/sqlfluff/core/rules/std/L036.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):",
+     "rank_key": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 21
+    },
+    "checkpoints_recorded": 2,
+    "mode": "v12_agentic"
+   },
+   "stop_reason": "best_checkpoint_restored",
+   "synthesized_paths": [
+    "src/sqlfluff/core/rules/std/L036.py"
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-905/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v12_agentic_swebench_firm_0",
+ "instance_id": "sqlfluff__sqlfluff-905",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.69,
+  "estimated_cost_usd": 0.0309,
+  "flash_count": 26,
+  "flash_input_tokens": 260204,
+  "flash_output_tokens": 37810,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 298014
+ },
+ "prediction_chars": 1823,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat src/sqlfluff/core/rules/std/L036.py",
+    "elapsed_s": 3.33,
+    "reasoning_chars": 67,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls test/core/rules/std/ | head -50 && echo ---- && cat test/core/rules/std/L036_test.py && echo ---- && ls test/fixtures/rules/std/L036* -R 2>/dev/null; find test/fixtures -path \"*L036*\"",
+    "elapsed_s": 11.0,
+    "reasoning_chars": 505,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat test/fixtures/rules/std_rule_cases/L036.yml && echo ---- && git grep -rn \"std_rule_cases\" -- test | head -20",
+    "elapsed_s": 5.17,
+    "reasoning_chars": 55,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "write_file",
+    "elapsed_s": 201.47,
+    "path": ".hae/reproduce_issue.py",
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls -la .hae hae 2>&1 | head -20 && head -5 hae/reproduce_issue.py 2>/dev/null",
+    "elapsed_s": 11.43,
+    "reasoning_chars": 432,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\n\"\"\"Reproduce issue #905: L036 should put all columns on separate lines if any are.\"\"\"\nfrom sqlfluff.core import Linter, FluffConfig\n\n\ndef lint_and_fix(sql):\n    lnt = Linter(config=FluffConfig(overrides={\"rules\": \"L036\"}))\n   ",
+    "elapsed_s": 30.64,
+    "reasoning_chars": 103,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def lint_string\" src/sqlfluff/core/linter.py && git grep -n \"def lint_rendered\\|return .*linted_trees\\|def lint(\" src/sqlfluff/core/linter.py | head -20",
+    "elapsed_s": 5.26,
+    "reasoning_chars": 67,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat test/core/rules/rule_test_cases_test.py && sed -n 1,80p test/core/rules/std_test.py 2>/dev/null | head -60; ls test/core/rules/",
+    "elapsed_s": 5.51,
+    "reasoning_chars": 133,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 1177,1200p src/sqlfluff/core/linter.py && sed -n 1,120p src/sqlfluff/testing/rules.py",
+    "elapsed_s": 9.5,
+    "reasoning_chars": 419,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\n\"\"\"Reproduce issue #905: L036 should put all columns on separate lines if any are.\"\"\"\nimport pytest\nfrom sqlfluff.testing.rules import assert_rule_fail_in_sql, assert_rule_pass_in_sql\n\n\ndef show(title, sql):\n    print(f\"===== ",
+    "elapsed_s": 35.47,
+    "reasoning_chars": 452,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 1200,1290p src/sqlfluff/core/linter.py",
+    "elapsed_s": 164.28,
+    "reasoning_chars": 12164,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 11
+   },
+   {
+    "action": "write_file",
+    "elapsed_s": 191.38,
+    "path": ".hae/reproduce_issue.py",
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 12
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat -A test/fixtures/rules/std_rule_cases/L036.yml | sed -e 's/\\$$//' | head -80",
+    "elapsed_s": 8.35,
+    "reasoning_chars": 296,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 13
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls test/fixtures/linter/autofix/ && grep -rln \"L036\" test/fixtures/ | head -20",
+    "elapsed_s": 123.24,
+    "reasoning_chars": 8800,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 14
+   },
+   {
+    "action": "bash",
+    "command": "find / -name \"L036.py\" -not -path \"/testbed/src/*\" 2>/dev/null | head; find / -name \"*.whl\" -o -name \"sqlfluff-*\" -maxdepth 6 2>/dev/null | grep -i sqlfluff | head",
+    "elapsed_s": 68.29,
+    "reasoning_chars": 4045,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 15
+   },
+   {
+    "action": "write_file",
+    "elapsed_s": 195.14,
+    "path": ".hae/reproduce_issue.py",
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 16
+   },
+   {
+    "action": "write_file",
+    "elapsed_s": 195.24,
+    "path": ".hae/reproduce_issue.py",
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 17
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 89.77,
+    "path": "path: src/sqlfluff/core/rules/std/L036.py",
+    "range": [
+     1,
+     350
+    ],
+    "reasoning_chars": 6562,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 18
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat -n src/sqlfluff/core/rules/std/L036.py",
+    "elapsed_s": 5.01,
+    "reasoning_chars": 120,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 19
+   },
+   {
+    "action": "write_file",
+    "elapsed_s": 203.07,
+    "path": ".hae/reproduce_issue.py",
+    "reasoning_chars": 0,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 20
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'PY'\nimport re\np = \"src/sqlfluff/core/rules/std/L036.py\"\ns = open(p).read()\nold = '''            fixes.append(LintFix(\"create\", select_targets_info.select_targets[0], ins))\n            return LintResult(anchor=segment, fixes=fixes)\n'''\nnew = '''            fixes.append(Lin",
+    "elapsed_s": 31.41,
+    "reasoning_chars": 856,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 21
+   }
+  ],
+  "base_commit": "62e8dc3a148c40c0c28f62b23e943692a3198846",
+  "best_checkpoint": {
+   "changed_files": [
+    "src/sqlfluff/core/rules/std/L036.py"
+   ],
+   "note": "- Gatekeeper `verify_module('src/sqlfluff/core/rules/std/L036.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):",
+   "rank_key": [
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    0
+   ],
+   "specialist": "PrimaryRepairSpecialist",
+   "turn": 21
+  },
+  "budget_moves": 30,
+  "changed_files": [
+   "src/sqlfluff/core/rules/std/L036.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-905/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "sqlfluff__sqlfluff-905",
+  "iterations": [
+   {
+    "best_checkpoint": {
+     "changed_files": [
+      "src/sqlfluff/core/rules/std/L036.py"
+     ],
+     "note": "- Gatekeeper `verify_module('src/sqlfluff/core/rules/std/L036.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):",
+     "rank_key": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 21
+    },
+    "iteration": 1,
+    "moves_used": 21,
+    "patched": true,
+    "recheck": {
+     "verdict": "unresolved"
+    },
+    "resolved_this_iteration": [],
+    "stop_reason": "best_checkpoint_restored",
+    "synthesized_paths": [
+     "src/sqlfluff/core/rules/std/L036.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "src/sqlfluff/core/rules/std/L036.py",
+    "rationale": "The issue explicitly requests an enhancement to rule L036 regarding column line formatting, making its implementation file the direct target for the fix.",
+    "resolved": "src/sqlfluff/core/rules/std/L036.py"
+   }
+  ],
+  "moves_used": 21,
+  "patch_chars": 1823,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "sqlfluff",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 60.0,
+    "duration_s": 60.62,
+    "mode": "proximity",
+    "reason": "whole suite did not finish within 60s",
+    "target": "test"
+   },
+   "tried": [
+    "sqlfluff"
+   ]
+  },
+  "repo": "sqlfluff/sqlfluff",
+  "reproduction": [],
+  "resolved_by_self_oracle": false,
+  "root_module": "src/sqlfluff/core/rules/std/L036.py",
+  "root_question_id": "q1",
+  "root_status": "OPEN",
+  "seed": {
+   "candidates": [],
+   "failure": "Enhance rule L036 to put all columns on separate lines if any of them are",
+   "paths": [
+    "src/sqlfluff/core/rules/std/L036.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "best_checkpoint_restored",
+  "task_features": {
+   "complexity": 0.1258,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 258,
+   "tags": [
+    "sqlfluff",
+    "std",
+    "l036",
+    "enhance",
+    "rule",
+    "put",
+    "all",
+    "columns",
+    "separate",
+    "lines",
+    "any",
+    "them",
+    "current",
+    "description",
+    "ambiguous",
+    "after",
+    "discussion",
+    "decided",
+    "update",
+    "keep",
+    "least",
+    "_similar_",
+    "currently",
+    "see"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "62e8dc3a148c40c0c28f62b23e943692a3198846",
+  "created_at": "2021-03-28T21:22:12Z",
+  "environment_setup_commit": "cbdcfb09feb4883de91de142956c3be6ac7f827d",
+  "hints_text": "",
+  "instance_id": "sqlfluff__sqlfluff-905",
+  "problem_statement": "Enhance rule L036 to put all columns on separate lines if any of them are\nThe current description is ambiguous, but after discussion, we decided to update the rule and keep the description at least _similar_ to what it is currently.. See discussion on #769.\n",
+  "repo": "sqlfluff/sqlfluff",
+  "version": "0.4"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 22,
+  "thought_tokens": 8764
+ },
+ "token_usage": 298014,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

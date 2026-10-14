@@ -1,0 +1,636 @@
+{
+ "authored_files": [
+  "src/marshmallow/fields.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 626.29,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.0225,
+  "calibration_tested": 1,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 3,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 1,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 1,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 2.6,
+  "ledger_hash": "e9ee3b92a7127f3db0f752268fb611fe8cbd233f33b6c3152e351208440b5946",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 1,
+  "questions": 3,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 2,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 1.62,
+  "resolved_fraction": 0.376923,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 184101,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v12_agentic_swebench_firm_0",
+  "counters": {
+   "e": 3,
+   "h": 1,
+   "q": 3
+  },
+  "created_at": 1791943500.826,
+  "evidence_log": [
+   {
+    "command": "mkdir -p /testbed/.hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom marshmallow import Schema, fields\n\n\nclass O(Schema):\n    i = fields.Int()\n\n\nclass P(Schema):\n    os = fields.Nested(O, ma",
+    "created_at": 1791943568.769,
+    "detail": "agentic reproduction probe reproduced bug",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "question_id": "q1",
+    "sha256": "5eb1d4bbf475eb10baa2b7dba5d2b721bbaaa0f5b2a635ca32fbfb9083bc64dc",
+    "stderr": "Traceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 20, in <module>\n    assert result.data == {'os': [{'i': 1}, {'i': 0}]}, result.data\nAssertionError: {'os': [{'i': 0}]}\ncommand terminated with exit code 1\n",
+    "stdout": "MarshalResult(data={'os': [{'i': 0}]}, errors={})\n"
+   },
+   {
+    "command": "verify_module src/marshmallow/fields.py (in place via kubectl:default/swebench-tb-marshmallow-code-marshmallow-1164/testbed:/testbed)",
+    "created_at": 1791943722.323,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e2",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "cc8174d337f4e806ef2a1ae4e9946ee3b32a9cfdce29beea7441694352ebac34",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/marshmallow/fields.py\n\n[import] IMPORT_OK marshmallow.fields\n\n[static_check] no undefined names (1303 lines)\n[repo_tests] whole suite passed: tests/ (whole suite, 0 baseline failure(s))\n      [ 78%]\ntests/test_utils.py ....................................                 [ 83%]\ntests/test_validate.py ................................................. [ 89%]\n........................................................................ [ 99%]\n......                                                                   [100%]\n\n=============================== warnings summary ===============================\nsrc/marshmallow/__init__.py:19\n  /testbed/src/marshmallow/__init__.py:19: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.\n    __version_info__ = tuple(LooseVersion(__version__).version)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 772 passed, 1 warning in 1.03s ========================\n"
+   },
+   {
+    "command": "verify_module src/marshmallow/fields.py (in place via kubectl:default/swebench-tb-marshmallow-code-marshmallow-1164/testbed:/testbed)",
+    "created_at": 1791944110.272,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e3",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "33fc6b85af91ed00f3cfa720e7c4d8ccd6330f2547b15213c0206314e2e69cd1",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/marshmallow/fields.py\n\n[import] IMPORT_OK marshmallow.fields\n\n[static_check] no undefined names (1303 lines)\n[repo_tests] whole suite passed: tests/ (whole suite, 0 baseline failure(s))\n      [ 78%]\ntests/test_utils.py ....................................                 [ 83%]\ntests/test_validate.py ................................................. [ 89%]\n........................................................................ [ 99%]\n......                                                                   [100%]\n\n=============================== warnings summary ===============================\nsrc/marshmallow/__init__.py:19\n  /testbed/src/marshmallow/__init__.py:19: DeprecationWarning: distutils Version classes are deprecated. Use packaging.version instead.\n    __version_info__ = tuple(LooseVersion(__version__).version)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n======================== 772 passed, 1 warning in 0.93s ========================\n"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
+    "created_at": 1791943568.769,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "MarshalResult(data={'os': [{'i': 0}]}, errors={}) Traceback (most recent call last): File \"/testbed/.hae/reproduce_issue.py\", line 20, in <module> assert result.data == {'os': [{'i': 1}, {'i': 0}]}, result.data AssertionError: {'os': [{'i': 0}]} command terminated with exit code 1",
+    "mechanism_signature": "assertionerror call command data error exit file hae issue last marshalresult recent reproduc reproduce_issue reproduction result script standalone terminat testb traceback",
+    "patch_applied": false,
+    "posterior": 0.92,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "prior": 0.85,
+    "probe_code": "from marshmallow import Schema, fields\n\n\nclass O(Schema):\n    i = fields.Int()\n\n\nclass P(Schema):\n    os = fields.Nested(O, many=True)\n\n\ndef gen():\n    yield {'i': 1}\n    yield {'i': 0}\n\n\np = P()\nresult = p.dump({'os': gen()})\nprint(result)\nassert result.data == {'os': [{'i': 1}, {'i': 0}]}, result.data\n\n# also direct nested schema dump with generator\nres = O(many=True).dump(gen())\nassert res.data == [{'i': 1}, {'i': 0}], res.data\n\n# empty generator\ndef empty():\n    return\n    yield\n\nres2 = P().dump({'os': empty()})\nassert res2.data == {'os': []}, res2.data\nassert res2.errors == {}, res2.errors\n\n# list still works\nres3 = P().dump({'os': [{'i': 1}, {'i': 0}]})\nassert res3.data == {'os': [{'i': 1}, {'i': 0}]}, res3.data\n\n# tuple / set\nres4 = P().dump({'os': ({'i': 1}, {'i': 0})})\nassert res4.data == {'os': [{'i': 1}, {'i': 0}]}, res4.data\n\nprint(\"OK\")\n",
+    "probe_rejections": 0,
+    "proposed_by": "AgenticReproductionSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1791943502.064,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "src/marshmallow/fields.py",
+    "question_id": "q1",
+    "source_failure": "2.x: Nested(many=True) eats first element from generator value when dumping",
+    "source_failure_key": "swebench:marshmallow-code__marshmallow-1164",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: 2.x: Nested(many=True) eats first element from generator value when dumping -- As reproduced in Python 3.6.8: ```py from marshmallow import Schema, fields class O(Schema): i = fields.Int() class P(Schema): os = fields.Nested(O, many=True) def gen(): yield {'i': 1} yield {'i': 0} p = P() p.dump({'os': gen()}) # MarshalResult(data={'os': [{'i': 0}]}, errors={}) ``` Problematic code is here: https://github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/fields.py#L447 And here: https://github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/schema.py#L832 The easiest solution would be to cast `nested_obj` to list before calling `schema._update_f...",
+    "uncertainty": 0.02
+   },
+   {
+    "created_at": 1791943502.064,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 0.8,
+    "location": "",
+    "module": "src/marshmallow/fields.py",
+    "question_id": "q2",
+    "source_failure": "",
+    "source_failure_key": "swebench:marshmallow-code__marshmallow-1164:src/marshmallow/fields.py",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Where in `src/marshmallow/fields.py` does the reported behaviour arise? The issue says: \"from marshmallow import Schema, fields\" | \"i = fields.Int()\" | \"os = fields.Nested(O, many=True)\"",
+    "uncertainty": 0.8
+   },
+   {
+    "created_at": 1791943502.064,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 0.8,
+    "location": "",
+    "module": "src/marshmallow/schema.py",
+    "question_id": "q3",
+    "source_failure": "",
+    "source_failure_key": "swebench:marshmallow-code__marshmallow-1164:src/marshmallow/schema.py",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Where in `src/marshmallow/schema.py` does the reported behaviour arise? The issue says: \"https://github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/schema.py#L832\" | \"The easiest solution would be to cast `nested_obj` to list before calling `schema._update_fields`, just like a normal Schema with `many=True` does.\"",
+    "uncertainty": 0.8
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "e9ee3b92a7127f3db0f752268fb611fe8cbd233f33b6c3152e351208440b5946"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 23,
+   "stats": {
+    "best_checkpoint": {
+     "changed_files": [
+      "src/marshmallow/fields.py"
+     ],
+     "note": "- Gatekeeper `verify_module('src/marshmallow/fields.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 12
+    },
+    "checkpoints_recorded": 3,
+    "mode": "v12_agentic"
+   },
+   "stop_reason": "resolved_by_agentic_gatekeeper",
+   "synthesized_paths": [
+    "src/marshmallow/fields.py"
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-marshmallow-code-marshmallow-1164/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v12_agentic_swebench_firm_0",
+ "instance_id": "marshmallow-code__marshmallow-1164",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.83,
+  "estimated_cost_usd": 0.0166,
+  "flash_count": 26,
+  "flash_input_tokens": 171798,
+  "flash_output_tokens": 12303,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 184101
+ },
+ "prediction_chars": 554,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "bash",
+    "command": "git grep -n \"_update_fields\\|def _serialize\\|many=True\" src/marshmallow/fields.py | head -40; echo ---; sed -n '420,470p' src/marshmallow/fields.py",
+    "elapsed_s": 5.76,
+    "reasoning_chars": 70,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "sed -n '800,870p' src/marshmallow/schema.py",
+    "elapsed_s": 3.32,
+    "reasoning_chars": 50,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "git grep -n \"_update_fields\\|def dump\" src/marshmallow/schema.py; echo ---; sed -n '560,640p' src/marshmallow/schema.py",
+    "elapsed_s": 4.71,
+    "reasoning_chars": 59,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "sed -n '469,530p' src/marshmallow/schema.py; echo ---; sed -n '750,775p' src/marshmallow/schema.py",
+    "elapsed_s": 5.14,
+    "reasoning_chars": 63,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom marshmallow import Schema, fields\n\n\nclass O(Schema):\n    i = fields.Int()\n\n\nclass P(Schema):\n    os = fields.Nested(O, many=True)\n\n\ndef gen():\n    yield {'i': 1}\n    yield {'i': 0}\n\n\np = P()\nresult = p.dump({'os': gen()})",
+    "elapsed_s": 26.8,
+    "reasoning_chars": 649,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 32.82,
+    "error": "Malformed ```str_replace block. Use exact format:\n```str_replace\npath: path/to/file.py\n<<<<\n<exact old lines>\n====\n<replacement lines>\n>>>>\n```",
+    "reasoning_chars": 1663,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 15.26,
+    "error": "Malformed ```str_replace block. Use exact format:\n```str_replace\npath: path/to/file.py\n<<<<\n<exact old lines>\n====\n<replacement lines>\n>>>>\n```",
+    "reasoning_chars": 177,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 13.56,
+    "path": "src/marshmallow/fields.py",
+    "reasoning_chars": 114,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def is_iterable_but_not_string\" src/marshmallow/utils.py && python /testbed/.hae/reproduce_issue.py",
+    "elapsed_s": 10.39,
+    "reasoning_chars": 421,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest tests/test_serialization.py tests/test_fields.py tests/test_schema.py tests/test_deserialization.py -q 2>&1 | tail -5",
+    "elapsed_s": 6.38,
+    "reasoning_chars": 96,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest -q 2>&1 | tail -3 && git diff",
+    "elapsed_s": 10.19,
+    "reasoning_chars": 550,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 11
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/marshmallow/fields.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "elapsed_s": 19.09,
+    "gatekeeper_ok": true,
+    "reasoning_chars": 275,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 12
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git diff",
+    "elapsed_s": 5.28,
+    "reasoning_chars": 96,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 1
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 6.42,
+    "path": "/testbed/src/marshmallow/fields.py",
+    "range": [
+     400,
+     500
+    ],
+    "reasoning_chars": 138,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"is_iterable_but_not_string\\|is_collection\" src/marshmallow/utils.py && sed -n '800,880p' src/marshmallow/schema.py",
+    "elapsed_s": 13.6,
+    "reasoning_chars": 538,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"_update_fields\\|def dump\" src/marshmallow/schema.py",
+    "elapsed_s": 5.89,
+    "reasoning_chars": 124,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 4
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 5.83,
+    "path": "/testbed/src/marshmallow/schema.py",
+    "range": [
+     469,
+     560
+    ],
+    "reasoning_chars": 86,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 5
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 13.48,
+    "path": "/testbed/src/marshmallow/schema.py",
+    "range": [
+     755,
+     810
+    ],
+    "reasoning_chars": 606,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '50,75p' src/marshmallow/utils.py && git grep -n \"def pluck\" src/marshmallow/utils.py",
+    "elapsed_s": 71.24,
+    "reasoning_chars": 5189,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae && cat > /testbed/.hae/audit_edge_cases.py <<'EOF'\nfrom marshmallow import Schema, fields, ValidationError\nfrom marshmallow import utils\n\nclass O(Schema):\n    i = fields.Int()\n\nclass P(Schema):\n    os = fields.Nested(O, many=True)\n\ndef gen():\n    yield {'i': 1}\n    yield {'i':",
+    "elapsed_s": 146.1,
+    "reasoning_chars": 3966,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && /opt/miniconda3/envs/testbed/bin/python -c \"\nfrom marshmallow import Schema, fields\nclass O(Schema):\n    i = fields.Int()\nclass P(Schema):\n    os = fields.Nested(O, many=True)\nprint(P().dump({'os': [{'i': 'a'}, {'i': 2}]}))\nprint(P().dump({'os': ({'i': 'a'}, {'i': 2})}))\n\"",
+    "elapsed_s": 14.56,
+    "reasoning_chars": 546,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - <<'EOF'\nimport re\np='/testbed/.hae/audit_edge_cases.py'\ns=open(p).read()\ns=s.replace(\"\"\"res = P().dump({'os': ({'i': 'a'}, {'i': 2})})\nassert res.data == {'os': [{'i': 'a'}, {'i': 2}]}, res.data\nassert res.errors == {0: {'os': {0: {'i': ['Not a valid integer.']}}}}, res.error",
+    "elapsed_s": 24.97,
+    "reasoning_chars": 386,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - <<'EOF'\np='/testbed/.hae/audit_edge_cases.py'\ns=open(p).read()\ns=s.replace(\"PS().dump({'os': ({'i': 'a'},)})\", \"PS(strict=True).dump({'os': ({'i': 'a'},)})\")\nopen(p,'w').write(s)\nEOF\n/opt/miniconda3/envs/testbed/bin/python /testbed/.hae/audit_edge_cases.py",
+    "elapsed_s": 12.95,
+    "reasoning_chars": 165,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 11
+   }
+  ],
+  "base_commit": "1e26d14facab213df5009300b997481aa43df80a",
+  "best_checkpoint": {
+   "changed_files": [
+    "src/marshmallow/fields.py"
+   ],
+   "note": "- Gatekeeper `verify_module('src/marshmallow/fields.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+   "rank_key": [
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    0
+   ],
+   "specialist": "PrimaryRepairSpecialist",
+   "turn": 12
+  },
+  "budget_moves": 30,
+  "changed_files": [
+   "src/marshmallow/fields.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-marshmallow-code-marshmallow-1164/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "marshmallow-code__marshmallow-1164",
+  "iterations": [
+   {
+    "best_checkpoint": {
+     "changed_files": [
+      "src/marshmallow/fields.py"
+     ],
+     "note": "- Gatekeeper `verify_module('src/marshmallow/fields.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 12
+    },
+    "iteration": 1,
+    "moves_used": 23,
+    "patched": true,
+    "recheck": {
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "resolved_by_agentic_gatekeeper",
+    "synthesized_paths": [
+     "src/marshmallow/fields.py"
+    ]
+   }
+  ],
+  "locate": [],
+  "moves_used": 23,
+  "patch_chars": 554,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "marshmallow",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 60.0,
+    "duration_s": 2.65,
+    "mode": "whole_suite",
+    "reason": "",
+    "summary": "======================== 772 passed, 1 warning in 1.71s ========================",
+    "target": "tests",
+    "timeout_s": 60.0
+   },
+   "tried": [
+    "marshmallow"
+   ]
+  },
+  "repo": "marshmallow-code/marshmallow",
+  "reproduction": [],
+  "resolved_by_self_oracle": true,
+  "root_module": "src/marshmallow/fields.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [
+    "src/marshmallow/fields.py",
+    "src/marshmallow/schema.py"
+   ],
+   "failure": "2.x: Nested(many=True) eats first element from generator value when dumping",
+   "paths": [
+    "src/marshmallow/fields.py",
+    "src/marshmallow/schema.py"
+   ],
+   "primary_module": "src/marshmallow/fields.py",
+   "root_question_id": "q1",
+   "sub_question_ids": [
+    "q2",
+    "q3"
+   ]
+  },
+  "stop": "resolved_by_agentic_gatekeeper",
+  "task_features": {
+   "complexity": 0.4787,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 4,
+   "n_paths_mentioned": 4,
+   "source": "problem_statement",
+   "statement_chars": 787,
+   "tags": [
+    "marshmallow",
+    "fields",
+    "schema",
+    "nested",
+    "many",
+    "eats",
+    "first",
+    "element",
+    "generator",
+    "value",
+    "dumping",
+    "reproduced",
+    "int",
+    "gen",
+    "yield",
+    "dump",
+    "marshalresult",
+    "data",
+    "errors",
+    "problematic",
+    "code",
+    "here",
+    "https",
+    "github",
+    "com",
+    "blob",
+    "src",
+    "l447",
+    "l832",
+    "easiest",
+    "solution",
+    "cast",
+    "nested_obj",
+    "list",
+    "before",
+    "calling"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "1e26d14facab213df5009300b997481aa43df80a",
+  "created_at": "2019-03-01T17:03:05Z",
+  "environment_setup_commit": "1e26d14facab213df5009300b997481aa43df80a",
+  "hints_text": "",
+  "instance_id": "marshmallow-code__marshmallow-1164",
+  "problem_statement": "2.x: Nested(many=True) eats first element from generator value when dumping\nAs reproduced in Python 3.6.8:\r\n\r\n```py\r\nfrom marshmallow import Schema, fields\r\n\r\nclass O(Schema):\r\n    i = fields.Int()\r\n\r\nclass P(Schema):\r\n    os = fields.Nested(O, many=True)\r\n\r\ndef gen():\r\n    yield {'i': 1}\r\n    yield {'i': 0}\r\n\r\np = P()\r\np.dump({'os': gen()})\r\n# MarshalResult(data={'os': [{'i': 0}]}, errors={})\r\n```\r\n\r\nProblematic code is here:\r\n\r\nhttps://github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/fields.py#L447\r\n\r\nAnd here:\r\n\r\nhttps://github.com/marshmallow-code/marshmallow/blob/2.x-line/src/marshmallow/schema.py#L832\r\n\r\nThe easiest solution would be to cast `nested_obj` to list before calling `schema._update_fields`, just like a normal Schema with `many=True` does.\n",
+  "repo": "marshmallow-code/marshmallow",
+  "version": "2.18"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 23,
+  "thought_tokens": 3997
+ },
+ "token_usage": 184101,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

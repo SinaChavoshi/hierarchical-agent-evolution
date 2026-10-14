@@ -1,0 +1,694 @@
+{
+ "authored_files": [
+  "astroid/builder.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 1567.19,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.0225,
+  "calibration_tested": 1,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 2,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 1,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 1,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "ed4b47eb0d77147ad16853add2536736ef5120ca177d054612c21f6d887f17f8",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 1,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 1,
+  "questions_resolved": 0,
+  "remaining_uncertainty": 0.15,
+  "resolved_fraction": 0.85,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 342919,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v12_agentic_swebench_firm_0",
+  "counters": {
+   "e": 2,
+   "h": 1,
+   "q": 1
+  },
+  "created_at": 1791941921.163,
+  "evidence_log": [
+   {
+    "command": "cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nimport astroid\nfrom astroid import util\n\ncode = \"\"\"\nclass Example:\n    def prev(self):\n        pass\n    def next(self):\n        pass\n    def other(self)",
+    "created_at": 1791942398.433,
+    "detail": "agentic reproduction probe reproduced bug",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "question_id": "q1",
+    "sha256": "c42af40883ea9a04559b25fe4f228d9cafed85c138b54b93d00f444c71be6d3b",
+    "stderr": "Traceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 37, in <module>\n    assert r.callable(), f\"not callable at {i}: {r}\"\nAssertionError: not callable at 1: Const.NoneType(value=None)\ncommand terminated with exit code 1\n",
+    "stdout": "0 ex.other -> [<BoundMethod other of .Example at 0x138691937402496]\n1 ex.prev -> [<Const.NoneType l.147 at 0x7e23bbc519a0>]\n"
+   },
+   {
+    "command": "verify_module astroid/builder.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-946/testbed:/testbed)",
+    "created_at": 1791942923.205,
+    "detail": "module check failed at repo_tests: whole suite: 1 new failure(s) not present on the clean checkout: tests/unittest_scoped_nodes.py::ClassNodeTest::test_mro_with_attribute_classes",
+    "evidence_id": "e2",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "b368cfd389a7977ad9ea283b1fc0e533f9fa35f2447921c483dc45714a11347e",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK astroid/builder.py\n\n[import] IMPORT_OK astroid.builder\n\n[static_check] no undefined names (467 lines)\n[repo_tests] whole suite: 1 new failure(s) not present on the clean checkout: tests/unittest_scoped_nodes.py::ClassNodeTest::test_mro_with_attribute_classes\n extra element 1:\nE   'A'\nE   \nE   - ['C']\nE   + ['C', 'A', 'B', 'object']\n=============================== warnings summary ===============================\nastroid/interpreter/_import/util.py:4\n  /testbed/astroid/interpreter/_import/util.py:4: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/unittest_modutils.py::ModuleFileTest::test_find_distutils_submodules_in_virtualenv\nFAILED tests/unittest_scoped_nodes.py::ClassNodeTest::test_mro_with_attribute_classes\n2 failed, 927 passed, 55 skipped, 14 xfailed, 1 xpassed, 1 warning in 8.83s\n"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
+    "created_at": 1791942398.433,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "0 ex.other -> [<BoundMethod other of .Example at 0x138691937402496] 1 ex.prev -> [<Const.NoneType l.147 at 0x7e23bbc519a0>] Traceback (most recent call last): File \"/testbed/.hae/reproduce_issue.py\", line 37, in <module> assert r.callable(), f\"not callable at {i}: {r}\" AssertionError: not cal",
+    "mechanism_signature": "assertionerror boundmethod cal call callable const example exit file hae issue last nonetype prev recent reproduc reproduce_issue reproduction script standalone testb traceback x138691937402496 x7e23bbc519a0",
+    "patch_applied": false,
+    "posterior": 0.92,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "prior": 0.85,
+    "probe_code": "import astroid\nfrom astroid import util\n\ncode = \"\"\"\nclass Example:\n    def prev(self):\n        pass\n    def next(self):\n        pass\n    def other(self):\n        pass\n\n\nex = Example()\nex.other()\nex.prev()\nex.next()\n\nimport typing\n\nex.other()\nex.prev()\nex.next()\n\"\"\"\n\nmodule = astroid.parse(code)\ncalls = [n.value for n in module.body if isinstance(n, astroid.Expr) and isinstance(n.value, astroid.Call)]\n\n# simulate pylint: build typing module in between (as happens when checking imports)\nastroid.MANAGER.ast_from_module_name(\"typing\")\n\nfor i, call in enumerate(calls):\n    res = list(call.func.infer())\n    print(i, call.func.as_string(), \"->\", res)\n    assert res and all(r is not util.Uninferable for r in res), f\"uninferable at {i}\"\n    for r in res:\n        assert r.callable(), f\"not callable at {i}: {r}\"\nprint(\"OK\")\n",
+    "probe_rejections": 0,
+    "proposed_by": "AgenticReproductionSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1791941922.476,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "astroid/inference.py",
+    "question_id": "q1",
+    "source_failure": "Delayed attribute assignment to object() may cause incorrect inference of instance attributes",
+    "source_failure_key": "swebench:pylint-dev__astroid-946",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Reproduce the reported behaviour: Delayed attribute assignment to object() may cause incorrect inference of instance attributes -- @cdce8p: `aiohttp` and `VLCTelnet` turned out to be red herrings. This case fails on current stable versions: ```python class Example: def prev(self): pass def next(self): pass def other(self): pass ex = Example() ex.other() # no warning ex.prev() # no warning ex.next() # no warning import typing ex.other() # no warning ex.prev() # false-positive: not-callable ex.next() # false-positive: not-callable ``` _Originally posted by @nelfin in https://github.com/PyCQA/astroid/issues/927#issuecomment-818626368_ I've bisected this down to 78d5537. Pylint 2.3.1 passes this case with 20a7ae5 and fails wi...",
+    "uncertainty": 0.15
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "ed4b47eb0d77147ad16853add2536736ef5120ca177d054612c21f6d887f17f8"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 35,
+   "stats": {
+    "best_checkpoint": {
+     "changed_files": [
+      "astroid/builder.py"
+     ],
+     "note": "- Gatekeeper `verify_module('astroid/builder.py')` FAILED (module check failed at repo_tests: whole suite: 1 new failure(s) not present on the clean checkout: tests/unittest_scoped_nodes.py::ClassNodeTest::test_mro_with_attribute_classes):; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      -1
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 21
+    },
+    "checkpoints_recorded": 2,
+    "mode": "v12_agentic"
+   },
+   "stop_reason": "best_checkpoint_restored",
+   "synthesized_paths": [
+    "astroid/builder.py"
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-pylint-dev-astroid-946/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v12_agentic_swebench_firm_0",
+ "instance_id": "pylint-dev__astroid-946",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.64,
+  "estimated_cost_usd": 0.0364,
+  "flash_count": 26,
+  "flash_input_tokens": 295255,
+  "flash_output_tokens": 47664,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 342919
+ },
+ "prediction_chars": 957,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "bash",
+    "command": "git log --oneline 78d5537 -1 2>/dev/null; git grep -n \"object\" astroid/inference.py | head -30",
+    "elapsed_s": 11.84,
+    "reasoning_chars": 640,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "git grep -n \"infer_call\\|_infer_stmts\\|infer_attribute\" astroid/inference.py | head -40",
+    "elapsed_s": 8.09,
+    "reasoning_chars": 531,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.64,
+    "path": "astroid/inference.py",
+    "range": [
+     236,
+     340
+    ],
+    "reasoning_chars": 46,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nimport astroid\n\ncode = \"\"\"\nclass Example:\n    def prev(self):\n        pass\n    def next(self):\n        pass\n    def other(self):\n        pass\n\n\nex = Example()\nex.other()  # no warning\nex.prev()   # no warning\nex.next()   # no ",
+    "elapsed_s": 54.81,
+    "reasoning_chars": 2985,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -c \"import pylint; print(pylint.__version__, pylint.__file__)\"",
+    "elapsed_s": 46.94,
+    "reasoning_chars": 3219,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "git grep -n \"DelayedAttribute\\|_instance_attrs\\|infer_call_result\" astroid/bases.py astroid/objects.py astroid/scoped_nodes.py | head -40",
+    "elapsed_s": 34.08,
+    "reasoning_chars": 1990,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "view_file\npath: astroid/objects.py\nstart_line: 150\nend_line: 330",
+    "elapsed_s": 33.9,
+    "reasoning_chars": 2583,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.74,
+    "path": "astroid/objects.py",
+    "range": [
+     150,
+     330
+    ],
+    "reasoning_chars": 56,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "git grep -n \"def igetattr\\|def getattr\\|_instance_attrs\\|_infer_stmts\\|def infer_call_result\" astroid/bases.py",
+    "elapsed_s": 9.28,
+    "reasoning_chars": 583,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 9
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 7.93,
+    "path": "astroid/bases.py",
+    "range": [
+     1,
+     350
+    ],
+    "reasoning_chars": 515,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "git grep -rn \"946\\|Delayed attribute\\|not-callable\" tests/ | head -30; ls tests",
+    "elapsed_s": 139.35,
+    "reasoning_chars": 10210,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 11
+   },
+   {
+    "action": "bash",
+    "command": "git grep -rn \"delayed\\|Delayed\" astroid/ | head -30",
+    "elapsed_s": 7.47,
+    "reasoning_chars": 458,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 12
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 4.08,
+    "path": "astroid/builder.py",
+    "range": [
+     1,
+     350
+    ],
+    "reasoning_chars": 203,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 13
+   },
+   {
+    "action": "bash",
+    "command": "cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nimport astroid\nfrom astroid import util\n\ncode = \"\"\"\nclass Example:\n    def prev(self):\n        pass\n    def next(self):\n        pass\n    def other(self):\n        pass\n\n\nex = Example()\nex.other()\nex.prev()\nex.next()\n\nimport typing\n\nex.other()\nex.prev()\n",
+    "elapsed_s": 49.21,
+    "reasoning_chars": 2750,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 14
+   },
+   {
+    "action": "bash",
+    "command": "cat << 'EOF' > /testbed/.hae/dbg.py\nimport astroid\nastroid.MANAGER.ast_from_module_name(\"typing\")\nobj = astroid.MANAGER.ast_from_module_name(\"builtins\")[\"object\"]\nprint(sorted(obj.instance_attrs.keys()))\nfor name in (\"prev\", \"next\"):\n    print(name, obj.instance_attrs.get(name))\nEOF\npython /testbed/",
+    "elapsed_s": 69.83,
+    "reasoning_chars": 3887,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 15
+   },
+   {
+    "action": "bash",
+    "command": "sed -n 135,160p /opt/miniconda3/envs/testbed/lib/python*/typing.py 2>/dev/null || python -c \"import typing,inspect; print(inspect.getsourcefile(typing))\"",
+    "elapsed_s": 28.98,
+    "reasoning_chars": 1803,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 16
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 4.05,
+    "error": "No valid tool block found in your response. Emit EXACTLY ONE tool block per turn: ```bash ... ```, ```view_file ... ```, ```str_replace ... ```, or ```submit ... ``` (or `<tool_call><function=...>...</tool_call>`).",
+    "reasoning_chars": 88,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 17
+   },
+   {
+    "action": "bash",
+    "command": "sed -n 140,155p /opt/miniconda3/envs/testbed/lib/python3.9/typing.py",
+    "elapsed_s": 3.96,
+    "reasoning_chars": 126,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 18
+   },
+   {
+    "action": "bash",
+    "command": "sed -n 144,152p /opt/miniconda3/envs/testbed/lib/python3.9/typing.py; python -c \"import sys; print(sys.version)\"",
+    "elapsed_s": 29.57,
+    "reasoning_chars": 2128,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 19
+   },
+   {
+    "action": "bash",
+    "command": "cat << 'EOF' > /testbed/.hae/dbg2.py\nimport astroid\nastroid.MANAGER.ast_from_module_name(\"typing\")\nobj = astroid.MANAGER.ast_from_module_name(\"builtins\")[\"object\"]\nfor name, vals in obj.instance_attrs.items():\n    for v in vals:\n        print(name, v.lineno, v.root().name, v.root().file, v.frame().n",
+    "elapsed_s": 127.94,
+    "reasoning_chars": 9340,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 20
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'PY'\nimport re\np = \"astroid/builder.py\"\ns = open(p).read()\nold = \"\"\"                    if cls is bases.Instance or cls is objects.ExceptionInstance:\n                        inferred = inferred._proxied\n                        iattrs = inferred.instance_attrs\n             ",
+    "elapsed_s": 205.31,
+    "reasoning_chars": 15133,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 21
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 11.14,
+    "error": "Empty response from model.",
+    "reasoning_chars": 1001,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git log --oneline -5 && git grep -n \"_can_assign_attr\" astroid/builder.py",
+    "elapsed_s": 5.26,
+    "reasoning_chars": 321,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"_can_assign_attr\" -- astroid/ && ls .hae/",
+    "elapsed_s": 2.37,
+    "reasoning_chars": 51,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.89,
+    "path": "astroid/builder.py",
+    "range": [
+     50,
+     90
+    ],
+    "reasoning_chars": 54,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat .hae/reproduce_issue.py && echo ---- && grep -n \"test_mro_with_attribute_classes\" -A 25 tests/unittest_scoped_nodes.py | head -60",
+    "elapsed_s": 111.75,
+    "reasoning_chars": 7379,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python .hae/reproduce_issue.py",
+    "elapsed_s": 23.61,
+    "reasoning_chars": 1815,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -c \"\nimport astroid\nastroid.MANAGER.ast_from_module_name('typing')\nobj = astroid.MANAGER.ast_from_module_name('builtins')['object']\nprint(obj.instance_attrs.get('prev'))\nprint(obj.instance_attrs.get('next'))\nfor k,v in obj.instance_attrs.items():\n    for n in v:\n        print(k",
+    "elapsed_s": 30.66,
+    "reasoning_chars": 1909,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"_infer_attribute\\|instance_attrs\" -- astroid/inference.py astroid/objects.py astroid/bases.py | head -40",
+    "elapsed_s": 34.42,
+    "reasoning_chars": 2602,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"instance_attrs\" -- astroid/ | head -40",
+    "elapsed_s": 2.85,
+    "reasoning_chars": 99,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def _infer_attribute\" -A 60 -- astroid/inference.py",
+    "elapsed_s": 48.86,
+    "reasoning_chars": 3014,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"_infer_attribute\" -- astroid/",
+    "elapsed_s": 3.15,
+    "reasoning_chars": 65,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 11
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def infer_attribute\" -- astroid/inference.py && sed -n '/def infer_attribute/,/^def /p' astroid/inference.py | head -80",
+    "elapsed_s": 61.1,
+    "reasoning_chars": 3935,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 12
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '225,265p' astroid/builder.py && echo ===== && sed -n '2350,2440p' astroid/scoped_nodes.py && echo ===== && sed -n '140,152p' $(/opt/miniconda3/envs/testbed/bin/python -c \"import collections,inspect;print(inspect.getsourcefile(collections))\")",
+    "elapsed_s": 117.42,
+    "reasoning_chars": 7572,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 13
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '62,80p' astroid/builder.py && echo ==== && sed -n '1590,1640p' astroid/scoped_nodes.py && echo ==== && sed -n '2440,2480p' astroid/scoped_nodes.py",
+    "elapsed_s": 42.6,
+    "reasoning_chars": 3037,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 14
+   }
+  ],
+  "base_commit": "2c109eec6fe3f972c6e8c637fe956431a0d7685c",
+  "best_checkpoint": {
+   "changed_files": [
+    "astroid/builder.py"
+   ],
+   "note": "- Gatekeeper `verify_module('astroid/builder.py')` FAILED (module check failed at repo_tests: whole suite: 1 new failure(s) not present on the clean checkout: tests/unittest_scoped_nodes.py::ClassNodeTest::test_mro_with_attribute_classes):; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+   "rank_key": [
+    0,
+    0,
+    0,
+    1,
+    0,
+    1,
+    -1
+   ],
+   "specialist": "PrimaryRepairSpecialist",
+   "turn": 21
+  },
+  "budget_moves": 30,
+  "changed_files": [
+   "astroid/builder.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-pylint-dev-astroid-946/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "pylint-dev__astroid-946",
+  "iterations": [
+   {
+    "best_checkpoint": {
+     "changed_files": [
+      "astroid/builder.py"
+     ],
+     "note": "- Gatekeeper `verify_module('astroid/builder.py')` FAILED (module check failed at repo_tests: whole suite: 1 new failure(s) not present on the clean checkout: tests/unittest_scoped_nodes.py::ClassNodeTest::test_mro_with_attribute_classes):; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      -1
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 21
+    },
+    "iteration": 1,
+    "moves_used": 35,
+    "patched": true,
+    "recheck": {
+     "verdict": "unresolved"
+    },
+    "resolved_this_iteration": [],
+    "stop_reason": "best_checkpoint_restored",
+    "synthesized_paths": [
+     "astroid/builder.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "astroid/inference.py",
+    "rationale": "The issue describes incorrect inference of instance attributes after delayed assignment and import, which is handled by the core inference logic in astroid/inference.py.",
+    "resolved": "astroid/inference.py"
+   }
+  ],
+  "moves_used": 35,
+  "patch_chars": 957,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "astroid",
+   "repo_tests": {
+    "baseline_failures": 1,
+    "budget_s": 60.0,
+    "duration_s": 12.98,
+    "mode": "whole_suite",
+    "reason": "",
+    "summary": "1 failed, 928 passed, 55 skipped, 14 xfailed, 1 xpassed, 1 warning in 9.54s",
+    "target": "tests",
+    "timeout_s": 60.0
+   },
+   "tried": [
+    "astroid"
+   ]
+  },
+  "repo": "pylint-dev/astroid",
+  "reproduction": [],
+  "resolved_by_self_oracle": false,
+  "root_module": "astroid/inference.py",
+  "root_question_id": "q1",
+  "root_status": "OPEN",
+  "seed": {
+   "candidates": [],
+   "failure": "Delayed attribute assignment to object() may cause incorrect inference of instance attributes",
+   "paths": [
+    "astroid/inference.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "best_checkpoint_restored",
+  "task_features": {
+   "complexity": 0.1784,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 784,
+   "tags": [
+    "astroid",
+    "inference",
+    "delayed",
+    "attribute",
+    "assignment",
+    "object",
+    "may",
+    "cause",
+    "incorrect",
+    "instance",
+    "attributes",
+    "cdce8p",
+    "aiohttp",
+    "vlctelnet",
+    "turned",
+    "out",
+    "red",
+    "herrings",
+    "case",
+    "fails",
+    "current",
+    "stable",
+    "versions",
+    "example",
+    "prev",
+    "pass",
+    "next",
+    "other",
+    "warning",
+    "typing",
+    "positive",
+    "callable",
+    "_originally",
+    "posted",
+    "nelfin",
+    "https",
+    "github",
+    "com",
+    "pycqa",
+    "issues",
+    "issuecomment",
+    "bisected",
+    "down",
+    "d5537",
+    "pylint",
+    "passes"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "2c109eec6fe3f972c6e8c637fe956431a0d7685c",
+  "created_at": "2021-04-13T12:30:06Z",
+  "environment_setup_commit": "d2ae3940a1a374253cc95d8fe83cb96f7a57e843",
+  "hints_text": "",
+  "instance_id": "pylint-dev__astroid-946",
+  "problem_statement": "Delayed attribute assignment to object() may cause incorrect inference of instance attributes\n@cdce8p: `aiohttp` and `VLCTelnet` turned out to be red herrings. This case fails on current stable versions:\r\n\r\n```python\r\nclass Example:\r\n    def prev(self):\r\n        pass\r\n    def next(self):\r\n        pass\r\n    def other(self):\r\n        pass\r\n\r\n\r\nex = Example()\r\nex.other()  # no warning\r\nex.prev()   # no warning\r\nex.next()   # no warning\r\n\r\nimport typing\r\n\r\nex.other()  # no warning\r\nex.prev()   # false-positive: not-callable\r\nex.next()   # false-positive: not-callable\r\n```\r\n\r\n_Originally posted by @nelfin in https://github.com/PyCQA/astroid/issues/927#issuecomment-818626368_\r\n\r\nI've bisected this down to 78d5537. Pylint 2.3.1 passes this case with 20a7ae5 and fails with 78d5537\n",
+  "repo": "pylint-dev/astroid",
+  "version": "2.5"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 36,
+  "thought_tokens": 23016
+ },
+ "token_usage": 342919,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

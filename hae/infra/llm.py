@@ -305,15 +305,23 @@ def call_gemini_api_rest(
 
     raise RuntimeError(f"Gemini Developer API failed after {max_retries} attempts: {last_err}")
 
-def _strip_think_tags(text: str) -> Tuple[str, int]:
-    """Strip <think>...</think> reasoning blocks if present, returning (clean_text, approx_thought_tokens)."""
+def _strip_think_tags(text: str) -> Tuple[str, int, str]:
+    """Strip <think>...</think> reasoning blocks if present, returning (clean_text, approx_thought_tokens, reasoning_text)."""
+    if not text:
+        return "", 0, ""
+    import re
     if "<think>" in text and "</think>" in text:
-        import re
         thoughts = re.findall(r"<think>(.*?)</think>", text, flags=re.DOTALL)
+        reasoning_text = "\n".join(t.strip() for t in thoughts if t.strip())
         thought_chars = sum(len(t) for t in thoughts)
         cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
-        return cleaned, max(1, thought_chars // 4) if thought_chars > 0 else 0
-    return text, 0
+        return cleaned, (max(1, thought_chars // 4) if thought_chars > 0 else 0), reasoning_text
+    if "</think>" in text:
+        think_part, rest = text.split("</think>", 1)
+        reasoning_text = think_part.replace("<think>", "").strip()
+        thought_chars = len(reasoning_text)
+        return rest.strip(), (max(1, thought_chars // 4) if thought_chars > 0 else 0), reasoning_text
+    return text, 0, ""
 
 
 def _request_timeout_s(max_tokens: Optional[int]) -> float:
@@ -341,42 +349,84 @@ def call_openai_compatible_rest(
     usage_sink: Optional[Dict[str, Any]] = None,
     response_format: Optional[Dict[str, Any]] = None,
     max_tokens: Optional[int] = None,
+    messages: Optional[list] = None,
+    enable_thinking: Optional[bool] = None,
+    extra_headers: Optional[Dict[str, str]] = None,
 ) -> str:
     """Direct REST caller for OpenAI and OpenAI-compatible endpoints (Ollama, vLLM, Groq, DeepSeek)."""
     key = api_key or os.environ.get("OPENAI_API_KEY") or DEFAULT_CONFIG.openai_api_key or "EMPTY"
     endpoint = base_url or os.environ.get("OPENAI_BASE_URL") or DEFAULT_CONFIG.openai_base_url
     url = f"{endpoint.rstrip('/')}/chat/completions"
 
-    messages = []
-    if system_instruction:
-        messages.append({"role": "system", "content": system_instruction})
-    messages.append({"role": "user", "content": prompt})
+    if messages is not None:
+        chat_messages = list(messages)
+    else:
+        chat_messages = []
+        if system_instruction:
+            chat_messages.append({"role": "system", "content": system_instruction})
+        chat_messages.append({"role": "user", "content": prompt})
 
-    effective_max_tokens = max_tokens if max_tokens is not None else int(os.environ.get("VLLM_MAX_TOKENS", "4096"))
+    if enable_thinking is None:
+        env_think = os.environ.get("VLLM_ENABLE_THINKING", "").strip().lower()
+        thinking_flag = (env_think in ("1", "true", "yes")) and (response_format is None)
+    else:
+        thinking_flag = bool(enable_thinking) and (response_format is None)
+
+    if max_tokens is not None:
+        effective_max_tokens = int(max_tokens)
+    else:
+        effective_max_tokens = int(os.environ.get("VLLM_MAX_TOKENS", "6144" if thinking_flag else "4096"))
+
     payload: Dict[str, Any] = {
         "model": model_name,
-        "messages": messages,
+        "messages": chat_messages,
         "temperature": temperature,
         "max_tokens": effective_max_tokens,
-        "chat_template_kwargs": {"enable_thinking": False},
+        "chat_template_kwargs": {"enable_thinking": thinking_flag},
     }
     if response_format is not None:
         payload["response_format"] = response_format
     body = json.dumps(payload).encode("utf-8")
     headers = {
         "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
+    if extra_headers:
+        headers.update(extra_headers)
 
     last_err = None
     for attempt in range(max_retries):
         req = urllib.request.Request(url, data=body, headers=headers, method="POST")
         try:
-            with urllib.request.urlopen(req, timeout=_request_timeout_s(max_tokens)) as resp:
+            with urllib.request.urlopen(req, timeout=_request_timeout_s(effective_max_tokens)) as resp:
                 resp_data = json.loads(resp.read().decode("utf-8"))
                 choices = resp_data.get("choices", [])
-                raw_text = choices[0].get("message", {}).get("content", "") if choices else ""
-                clean_text, approx_thoughts = _strip_think_tags(raw_text or "")
+                msg_obj = choices[0].get("message", {}) if choices else {}
+                raw_text = msg_obj.get("content", "") or ""
+                clean_text, approx_thoughts, reasoning_text = _strip_think_tags(raw_text)
+                gateway_reasoning = msg_obj.get("reasoning_content") or msg_obj.get("reasoning") or ""
+                if gateway_reasoning and not reasoning_text:
+                    reasoning_text = str(gateway_reasoning).strip()
+                    approx_thoughts = max(approx_thoughts, max(1, len(reasoning_text) // 4))
+                elif (
+                    thinking_flag
+                    and raw_text
+                    and "</think>" not in raw_text
+                    and not reasoning_text
+                    and not gateway_reasoning
+                ):
+                    # Unclosed `<think>` monologue (hit max_tokens before emitting `</think>`):
+                    # classify `raw_text` as reasoning rather than letting random snippets in
+                    # internal thoughts be mistaken for tool actions.
+                    import re as _re
+                    m_tail_tool = _re.search(
+                        r"(<tool_call>\s*<function\s*=.*?</tool_call>|```(?:str_replace|view_file|submit)\b.*?```)\s*\Z",
+                        raw_text,
+                        flags=_re.DOTALL | _re.IGNORECASE,
+                    )
+                    reasoning_text = raw_text.replace("<think>", "").strip()
+                    approx_thoughts = max(1, len(reasoning_text) // 4)
+                    clean_text = m_tail_tool.group(1).strip() if m_tail_tool else ""
                 if usage_sink is not None:
                     u = resp_data.get("usage") or {}
                     p_tok = int(u.get("prompt_tokens", 0) or 0)
@@ -388,6 +438,8 @@ def call_openai_compatible_rest(
                     usage_sink["total_tokens"] = usage_sink.get("total_tokens", 0) + t_tok
                     usage_sink["calls"] = usage_sink.get("calls", 0) + 1
                     usage_sink["measured"] = True
+                    if reasoning_text:
+                        usage_sink["last_reasoning"] = reasoning_text
                 return clean_text
         except urllib.error.HTTPError as e:
             err_body = e.read().decode("utf-8", errors="replace")
@@ -570,6 +622,9 @@ def call_llm(
     usage_sink: Optional[Dict[str, Any]] = None,
     response_format: Optional[Dict[str, Any]] = None,
     max_tokens: Optional[int] = None,
+    messages: Optional[list] = None,
+    enable_thinking: Optional[bool] = None,
+    extra_headers: Optional[Dict[str, str]] = None,
 ) -> str:
     """The only entry point for talking to a model.
 
@@ -587,6 +642,13 @@ def call_llm(
     """
     active_provider = provider or detect_llm_provider()
     resolved_model = resolve_model_for_provider(model_name, active_provider, tier=model_tier)
+    extra_oai: Dict[str, Any] = {}
+    if messages is not None:
+        extra_oai["messages"] = messages
+    if enable_thinking is not None:
+        extra_oai["enable_thinking"] = enable_thinking
+    if extra_headers is not None:
+        extra_oai["extra_headers"] = extra_headers
 
     if active_provider == "gemini_api":
         return call_gemini_api_rest(
@@ -607,6 +669,7 @@ def call_llm(
             usage_sink=usage_sink,
             response_format=response_format,
             max_tokens=max_tokens,
+            **extra_oai,
         )
     elif active_provider == "anthropic":
         return call_anthropic_rest(
@@ -628,6 +691,7 @@ def call_llm(
             usage_sink=usage_sink,
             response_format=response_format,
             max_tokens=max_tokens,
+            **extra_oai,
         )
     elif active_provider == "vllm":
         vllm_url = os.environ.get("VLLM_BASE_URL") or DEFAULT_CONFIG.vllm_base_url
@@ -641,6 +705,7 @@ def call_llm(
             usage_sink=usage_sink,
             response_format=response_format,
             max_tokens=max_tokens,
+            **extra_oai,
         )
     else:
         # Default: Vertex AI
