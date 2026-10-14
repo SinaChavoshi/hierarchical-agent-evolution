@@ -543,13 +543,15 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
 
         total_budget = int(budget_moves if budget_moves is not None else policy.search_budget_moves)
         remaining = total_budget
+        is_v13_hierarchical_mcts = bool(
+            (policy.extra or {}).get("v13_hierarchical_mcts")
+            or str(getattr(policy, "search_policy", "") or "").lower() in ("v13_hierarchical_mcts", "hierarchical_ab_mcts")
+        )
         is_v12_agentic = bool(
             (policy.extra or {}).get("v12_agentic")
             or str(getattr(policy, "search_policy", "") or "").lower() == "v12_agentic"
         )
-        if is_v12_agentic:
-            from hae.swebench.agentic import AgenticSweEngine
-
+        if is_v13_hierarchical_mcts or is_v12_agentic:
             candidate_mods: List[str] = []
             if root.module:
                 candidate_mods.append(root.module)
@@ -561,29 +563,49 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
                     if p and p not in candidate_mods:
                         candidate_mods.append(p)
 
-            engine = AgenticSweEngine(
-                runner=self,
-                task=self.task,
-                executor=self.executor,
-                gatekeeper=gatekeeper,
-                state=state,
-                logger=lambda m: print(m, flush=True),
-            )
+            if is_v13_hierarchical_mcts:
+                from hae.swebench.hierarchical_mcts import HierarchicalAgenticMCTSEngine
+
+                engine = HierarchicalAgenticMCTSEngine(
+                    runner=self,
+                    task=self.task,
+                    executor=self.executor,
+                    gatekeeper=gatekeeper,
+                    state=state,
+                    logger=lambda m: print(m, flush=True),
+                )
+                engine_mode = "v13_hierarchical_mcts"
+            else:
+                from hae.swebench.agentic import AgenticSweEngine
+
+                engine = AgenticSweEngine(
+                    runner=self,
+                    task=self.task,
+                    executor=self.executor,
+                    gatekeeper=gatekeeper,
+                    state=state,
+                    logger=lambda m: print(m, flush=True),
+                )
+                engine_mode = "v12_agentic"
+
             ag_res = engine.run(candidate_modules=candidate_mods, budget_moves=total_budget)
             moves_used = int(ag_res.get("moves_used", 0))
             remaining = max(0, total_budget - moves_used)
             stop = str(ag_res.get("stop_reason") or "resolved_by_agentic_gatekeeper")
             resolved = bool(ag_res.get("resolved_by_self_oracle"))
+            stats_dict: Dict[str, Any] = {
+                "mode": engine_mode,
+                "checkpoints_recorded": ag_res.get("checkpoints_recorded", 0),
+                "best_checkpoint": ag_res.get("best_checkpoint"),
+            }
+            if ag_res.get("mcts_tree"):
+                stats_dict["mcts_tree"] = ag_res.get("mcts_tree")
             last_search = {
                 "iteration": 1,
                 "moves_used": moves_used,
                 "stop_reason": stop,
                 "synthesized_paths": list(ag_res.get("synthesized_paths") or []),
-                "stats": {
-                    "mode": "v12_agentic",
-                    "checkpoints_recorded": ag_res.get("checkpoints_recorded", 0),
-                    "best_checkpoint": ag_res.get("best_checkpoint"),
-                },
+                "stats": stats_dict,
             }
             self.epistemic_searches.append(last_search)
             self._merge_search_stats(last_search["stats"])
