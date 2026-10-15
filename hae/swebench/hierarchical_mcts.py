@@ -402,18 +402,68 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         repo_map: List[str],
         max_turns: int = 3,
     ) -> ReconBrief:
-        """Run fast deterministic Layer L1-A Reconnaissance inside `/testbed` (0 LLM moves, < 2s)."""
+        """Run fast deterministic Layer L1-A Reconnaissance inside `/testbed` (0 LLM moves, < 3s)."""
         self.logger("[v13-hier-mcts] Layer L1-A: Running fast deterministic ReconnaissanceSubAgent probe")
-        inspected: List[str] = list(candidate_modules[:4])
-        cands_sh = " ".join(f"'{c}'" for c in inspected if c)
+        combined_text = f"{self.task.problem_statement}\n{getattr(self.task, 'hints_text', '') or ''}"
+        inspected: List[str] = [c for c in candidate_modules[:4] if c]
+
+        # Extract high-signal symbols, rule IDs (e.g. L031, L039), class/method names from issue + hints
+        rule_codes = sorted(set(re.findall(r"\bL\d{3}\b", combined_text)))
+        raw_idents = re.findall(
+            r"\b(?:[A-Z][A-Za-z0-9_]{2,}|[a-z_][a-z0-9_]{3,})\b",
+            combined_text,
+        )
+        stop_words = {
+            "this", "that", "with", "from", "have", "When", "What", "Where", "Which", "should",
+            "would", "could", "there", "their", "about", "after", "before", "into", "only_if",
+            "import", "class", "return", "def", "self", "None", "True", "False", "print",
+            "python", "pytest", "test", "tests", "issue", "error", "errors", "example",
+            "expected", "behaviour", "behavior", "observed", "describe", "version", "using",
+        }
+        key_symbols: List[str] = list(rule_codes)
+        for tok in raw_idents:
+            if tok not in stop_words and tok.lower() not in stop_words and tok not in key_symbols:
+                if "_" in tok or (tok[0].isupper() and any(c.islower() for c in tok)) or tok in ("only", "exclude", "dump_only", "load_only"):
+                    key_symbols.append(tok)
+            if len(key_symbols) >= 12:
+                break
+
+        # Discover source files and test files in `/testbed` matching rule codes and key symbols
+        sym_pattern = "\\|".join(re.escape(s) for s in key_symbols[:8]) if key_symbols else ""
+        rule_glob = " ".join(f"'*{rc}*'" for rc in rule_codes[:4])
+        discover_cmd = (
+            f"cd {self.executor.root} && "
+            + (f"git ls-files {rule_glob} 2>/dev/null | head -15; " if rule_glob else "")
+            + (
+                f"git grep -l '{sym_pattern}' -- '*.py' ':!tests/*' ':!test/*' ':!docs/*' 2>/dev/null | head -12; "
+                if sym_pattern
+                else ""
+            )
+        )
+        res_disc = self.executor.run(["bash", "-lc", discover_cmd], cwd=self.executor.root, timeout_s=10)
+        disc_files = [
+            l.strip()
+            for l in (res_disc.stdout or "").splitlines()
+            if l.strip().endswith(".py") and os.path.sep not in l.strip()[:1]
+        ]
+        disc_src = [f for f in disc_files if "test" not in f.lower() and not f.startswith("docs/")]
+        disc_tests = [f for f in disc_files if "test" in f.lower()]
+        for sf in disc_src:
+            if sf not in inspected and len(inspected) < 6:
+                inspected.append(sf)
+            if sf not in self.initial_candidate_modules and len(self.initial_candidate_modules) < 6:
+                self.initial_candidate_modules.append(sf)
+
+        cands_sh = " ".join(f"'{c}'" for c in inspected[:6] if c)
         probe_cmd = (
             f"cd {self.executor.root} && "
-            + (f"git grep -n 'def \\|class ' -- {cands_sh} 2>/dev/null | head -45; " if cands_sh else "")
+            + (f"git grep -n 'def \\|class ' -- {cands_sh} 2>/dev/null | head -55; " if cands_sh else "")
+            + (f"git grep -n '{sym_pattern}' -- {cands_sh} 2>/dev/null | head -35; " if (sym_pattern and cands_sh) else "")
             + "git ls-files '*warning*.py' '*exception*.py' 2>/dev/null | head -10; "
             + "for wf in $(git ls-files '*warning*.py' 2>/dev/null | head -3); do echo \"=== $wf ===\"; head -35 \"$wf\"; done"
         )
         res_p = self.executor.run(["bash", "-lc", probe_cmd], cwd=self.executor.root, timeout_s=15)
-        raw_out = _truncate_output(((res_p.stdout or "") + "\n" + (res_p.stderr or "")).strip(), 1800)
+        raw_out = _truncate_output(((res_p.stdout or "") + "\n" + (res_p.stderr or "")).strip(), 2200)
 
         repro_exists = self.executor.exists(self.repro_script_rel)
         repro_fails_on_head = False
@@ -427,9 +477,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             repro_fails_on_head = (res_r.rc != 0 and not res_r.timed_out)
 
         consumer_loc = ", ".join(inspected[:2]) if inspected else "(see repo map)"
-        producer_loc = ", ".join(inspected[1:4]) if len(inspected) > 1 else consumer_loc
-        test_files = [p for p in repo_map if "test" in p][:6]
-        conventions = f"Relevant test files: {', '.join(test_files)}" if test_files else ""
+        producer_loc = ", ".join(inspected[1:5]) if len(inspected) > 1 else consumer_loc
+        test_files = list(dict.fromkeys(disc_tests + [p for p in repo_map if "test" in p]))[:8]
+        conventions = f"Relevant test files to run with pytest: {', '.join(test_files)}" if test_files else ""
 
         brief = ReconBrief(
             consumer_locus=consumer_loc,
@@ -704,8 +754,46 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
 
     def _falsifier_user_prompt(self, cp: PatchCheckpoint) -> str:
         base_auditor = self._build_auditor_user_prompt(cp)
+        # Run a fast deterministic pytest check on matching test files so L1-B sees real test suite status immediately
+        stems = [
+            os.path.splitext(os.path.basename(f))[0].lstrip("_")
+            for f in (cp.changed_files or [])
+            if f
+        ]
+        rule_codes = sorted(set(re.findall(r"\bL\d{3}\b", f"{self.task.problem_statement}\n{getattr(self.task, 'hints_text', '') or ''}")))
+        globs = [f"'*test*{s}*.py' '*{s}*test*.py'" for s in stems[:3] if len(s) >= 3] + [
+            f"'*test*{r}*.py' '*{r}*test*.py'" for r in rule_codes[:3]
+        ]
+        targeted_pytest_block = ""
+        if globs:
+            find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(globs)} 2>/dev/null | head -6"
+            res_tf = self.executor.run(["bash", "-lc", find_cmd], cwd=self.executor.root, timeout_s=8)
+            tfiles = [l.strip() for l in (res_tf.stdout or "").splitlines() if l.strip().endswith(".py")]
+            if tfiles:
+                res_pt = self.executor.run(
+                    [
+                        self.executor.python,
+                        "-m",
+                        "pytest",
+                        "-q",
+                        "--tb=short",
+                        "--disable-warnings",
+                        "-p",
+                        "no:randomly",
+                        *tfiles[:4],
+                    ],
+                    cwd=self.executor.root,
+                    env={"PYTHONPATH": self.executor.root},
+                    timeout_s=35,
+                )
+                pt_out = _truncate_output(((res_pt.stdout or "") + "\n" + (res_pt.stderr or "")).strip(), 1400)
+                targeted_pytest_block = (
+                    f"\n### Targeted Repository Test Suite Output (`pytest {' '.join(tfiles[:4])}`, exit={res_pt.rc})\n"
+                    f"```text\n{pt_out}\n```\n"
+                )
         return (
-            f"{base_auditor}\n\n"
+            f"{base_auditor}\n"
+            f"{targeted_pytest_block}\n"
             f"{self.contract.to_prompt_block()}\n\n"
             "- IMPORTANT: If the patch deprecates `**kwargs` / `**metadata` in favor of `metadata=...`, ensure passing BOTH `metadata={...}` and deprecated `**kwargs` merges them (`{**(metadata or {}), **additional_metadata}`) after emitting the deprecation warning rather than raising `ValueError`!\n"
             "Also write your adversarial test script to `/testbed/.hae/falsification_suite.py` (or `/testbed/.hae/audit_edge_cases.py`), "
@@ -991,7 +1079,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
 
     def run(self, candidate_modules: List[str], budget_moves: int = 36) -> Dict[str, Any]:
         t_start = time.time()
-        effective_budget = max(int(budget_moves or 36), 48)
+        effective_budget = max(int(budget_moves or 36), 54)
         self.initial_candidate_modules = list(candidate_modules or [])
         self.executor.run(["mkdir", "-p", f"{self.executor.root}/{SCRATCH_DIR}"], cwd=self.executor.root, timeout_s=15)
         repo_map = self.runner.repo_map()
@@ -1001,9 +1089,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
 
         # --- Stage 2: Layer L0 Seed Architect & Contract Formulation (Clean Context, 1 turn) ---
         if self.runner._may_call("L0 seed architect"):
-            self.formulate_seed_contract_and_branches(candidate_modules, recon)
+            self.formulate_seed_contract_and_branches(self.initial_candidate_modules or candidate_modules, recon)
         else:
-            self.contract, self.branch_queue = parse_seed_architect_response("", candidate_modules, recon)
+            self.contract, self.branch_queue = parse_seed_architect_response("", self.initial_candidate_modules or candidate_modules, recon)
 
         # --- Stage 3: Layer L0 Agentic AB-MCTS Loop Over Ephemeral L2 & L1-B Episodes ---
         max_episodes = 4
@@ -1019,7 +1107,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 )
                 break
 
-            op_kind, target_nid, branch_spec = self.select_next_mcts_operation(candidate_modules)
+            op_kind, target_nid, branch_spec = self.select_next_mcts_operation(self.initial_candidate_modules or candidate_modules)
 
             if op_kind == "GEN" and branch_spec is not None:
                 gen_count += 1
@@ -1027,7 +1115,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 if gen_count == 1:
                     ep_turns = max(16, min(22, remaining_moves - 5))
                 else:
-                    ep_turns = max(8, min(12, remaining_moves - 2))
+                    ep_turns = max(10, min(16, remaining_moves - 2))
                 self.logger(
                     f"[v13-hier-mcts] Episode {ep}/{max_episodes}: AB-MCTS selected GEN -> `{new_nid}` "
                     f"(locus=`{branch_spec.locus}`, title={branch_spec.title!r}, max_turns={ep_turns})"
@@ -1066,7 +1154,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 parent_node = self.mcts_nodes[target_nid]
                 child_idx = len(parent_node.children) + 1
                 new_nid = f"{target_nid}.{child_idx}"
-                ep_turns = max(6, min(10, remaining_moves - 2))
+                ep_turns = max(8, min(12, remaining_moves - 2))
                 self.logger(
                     f"[v13-hier-mcts] Episode {ep}/{max_episodes}: AB-MCTS selected CONT(`{target_nid}`) -> `{new_nid}` "
                     f"(parent V={parent_node.value:.3f}, max_turns={ep_turns})"

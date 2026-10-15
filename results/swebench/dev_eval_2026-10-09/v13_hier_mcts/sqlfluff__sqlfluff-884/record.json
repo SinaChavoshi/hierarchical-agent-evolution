@@ -1,17 +1,18 @@
 {
  "authored_files": [
+  "src/sqlfluff/core/parser/segments/base.py",
   "src/sqlfluff/core/parser/segments/raw.py"
  ],
  "budget": null,
  "budget_exhausted": false,
- "elapsed_seconds": 1118.75,
+ "elapsed_seconds": 1385.18,
  "epistemic_audit": {
   "budget_moves": 0,
   "calibration_brier": 0.049167,
   "calibration_tested": 3,
   "delta_u_total": 0,
   "duplicate_rejections": 0,
-  "evidence": 7,
+  "evidence": 11,
   "evidence_backed_fraction": 1.0,
   "experiments": 0,
   "forced_low_prior_picks": 0,
@@ -23,8 +24,8 @@
   "hypotheses_supported": 3,
   "hypotheses_tested": 3,
   "hypotheses_untestable": 0,
-  "initial_uncertainty": 1.0,
-  "ledger_hash": "fd17beacf9dba0a86ee782abec07fac1b40003075ba103a6114f73bb5fb5d06a",
+  "initial_uncertainty": 2.6,
+  "ledger_hash": "2b15e3eb554978de1e7ebcdfdd918f8b8bfa2c690fab102b13620f98df88646c",
   "low_prior_wins": 0,
   "moves_used": 0,
   "overconfident_falsified": 0,
@@ -32,14 +33,14 @@
   "probes_refused": 0,
   "proposal_rounds": 0,
   "proposed_total": 3,
-  "questions": 1,
+  "questions": 3,
   "questions_certified": 0,
   "questions_deferred": 0,
   "questions_exhausted": 0,
-  "questions_open": 0,
+  "questions_open": 2,
   "questions_resolved": 1,
-  "remaining_uncertainty": 0.02,
-  "resolved_fraction": 0.98,
+  "remaining_uncertainty": 1.62,
+  "resolved_fraction": 0.376923,
   "ruled_out": 0,
   "settled_facts": 0,
   "status_inconsistencies": 0,
@@ -47,39 +48,39 @@
   "syntheses": 0,
   "syntheses_verified": 0,
   "tabu_rejections": 0,
-  "token_usage": 324810,
+  "token_usage": 397897,
   "unbacked_claims": 0
  },
  "epistemic_ledger": {
   "company_id": "v13_hierarchical_ab_mcts_firm_0",
   "counters": {
-   "e": 7,
+   "e": 11,
    "h": 3,
-   "q": 1
+   "q": 3
   },
-  "created_at": 1792035317.569,
+  "created_at": 1792091494.778,
   "evidence_log": [
    {
-    "command": "verify_module src/sqlfluff/core/parser/segments/raw.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-884/testbed:/testbed)",
-    "created_at": 1792035846.99,
-    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "command": "cd /testbed && mkdir -p .hae && cat > .hae/reproduce_issue.py << 'EOF'\n\"\"\"Reproduce sqlfluff issue #884: Whitespace token is_whitespace is False.\"\"\"\nfrom sqlfluff.core import Linter, FluffConfig\nfrom ",
+    "created_at": 1792091753.494,
+    "detail": "agentic reproduction probe reproduced bug",
     "evidence_id": "e1",
-    "exit_code": 0,
-    "hypothesis_id": "",
-    "kind": "module_check",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
     "matched_prediction": true,
     "network_isolated": null,
     "prediction": {
-     "expect_exit_code": 0
+     "expect_exit_code": 1
     },
     "question_id": "q1",
-    "sha256": "edff2131a51da0dc05ee998d145f4e10b1cbef46ac0358864c7834ad7deaa361",
-    "stderr": "",
-    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/parser/segments/raw.py\n\n[import] IMPORT_OK sqlfluff.core.parser.segments.raw\n\n[static_check] no undefined names (155 lines)\n[repo_tests] no test file near src/sqlfluff/core/parser/segments/raw.py by the proximity heuristic; step skipped\n"
+    "sha256": "617a0ecd9fbc398d1c5f814aed4f5fdee434268b5ada142c6817c69f6f3b717e",
+    "stderr": "Traceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 3, in <module>\n    from sqlfluff.core.parser import StringParser, PositionMarker\nImportError: cannot import name 'StringParser' from 'sqlfluff.core.parser' (/testbed/src/sqlfluff/core/parser/__init__.py)\ncommand terminated with exit code 1\n",
+    "stdout": ""
    },
    {
-    "command": "verify_module src/sqlfluff/core/parser/segments/raw.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-884/testbed:/testbed)",
-    "created_at": 1792035859.102,
+    "command": "verify_module src/sqlfluff/core/parser/segments/base.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-884/testbed:/testbed)",
+    "created_at": 1792092161.734,
     "detail": "module check passed: py_compile, import, static_check, repo_tests",
     "evidence_id": "e2",
     "exit_code": 0,
@@ -91,33 +92,15 @@
      "expect_exit_code": 0
     },
     "question_id": "q1",
-    "sha256": "edff2131a51da0dc05ee998d145f4e10b1cbef46ac0358864c7834ad7deaa361",
+    "sha256": "2b23bad1a5f133d4baffcf2384ddc26bc9932faaf565b5ef090c494ea90520a2",
     "stderr": "",
-    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/parser/segments/raw.py\n\n[import] IMPORT_OK sqlfluff.core.parser.segments.raw\n\n[static_check] no undefined names (155 lines)\n[repo_tests] no test file near src/sqlfluff/core/parser/segments/raw.py by the proximity heuristic; step skipped\n"
-   },
-   {
-    "command": "cd /testbed && cat .hae/reproduce_issue.py && echo \"=== tests referencing is_whitespace ===\" && git grep -rn \"is_whitespace\" -- test/ | head -20 && echo \"=== usages of .is_whitespace in src ===\" && gi",
-    "created_at": 1792036090.462,
-    "detail": "agentic reproduction probe reproduced bug",
-    "evidence_id": "e3",
-    "exit_code": 1,
-    "hypothesis_id": "h1",
-    "kind": "probe",
-    "matched_prediction": true,
-    "network_isolated": null,
-    "prediction": {
-     "expect_exit_code": 1
-    },
-    "question_id": "q1",
-    "sha256": "0184414083aad088eef5f2b3d16652a851fc29a605ac4935d5024d7d947fbe65",
-    "stderr": "command terminated with exit code 1\n",
-    "stdout": "fluff.core.rules.base import BaseRule\n\n# 1) Whitespace segment created by rules base helper\nws = BaseRule.make_whitespace(\" \", None)\nassert ws.is_whitespace is True, \"make_whitespace segment is_whitespace should be True\"\n\n# 2) Whitespace segment created via RawSegment.make with type=\"whitespace\"\nWS = RawSegment.make(\" \", name=\"whitespace\", type=\"whitespace\")\nseg = WS(raw=\"  \", pos_marker=None)\nassert seg.is_whitespace is True, \"type=whitespace segment is_whitespace should be True\"\n\n# 3) Non-whitespace raw segment should be False\nCODE = RawSegment.make(\"SELECT\", name=\"select\", type=\"code\", is_code=True)\ncode_seg = CODE(raw=\"SELECT\", pos_marker=None)\nassert code_seg.is_whitespace is False, \"code segment is_whitespace should be False\"\n\n# 4) End-to-end via the lexer\nlnt = Linter(config=FluffConfig(overrides={\"dialect\": \"ansi\"}))\nparsed = lnt.parse_string(\"SELECT 1\\n\")\nfound_ws = False\nfor s in parsed.tree.iter_raw_seg():\n    if s.type == \"whitespace\":\n        found_ws = True\n        assert s.is_whitespace is True, \"lexed whitespace is_whitespace should be True\"\nassert found_ws, \"expected at least one whitespace segment\"\n\nprint(\"ALL OK\")\n=== tests referencing is_whitespace ===\ntest/core/rules/base_test.py:5:def test_whitespace_segment_is_whitespace():\ntest/core/rules/base_test.py:6:    \"\"\"Tests that WhitespaceSegment.is_whitespace is True.\"\"\"\ntest/core/rules/base_test.py:7:    assert rules_base.BaseRule.make_whitespace(\"\", \"\").is_whitespace\n=== usages of .is_whitespace in src ===\n"
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/parser/segments/base.py\n\n[import] IMPORT_OK sqlfluff.core.parser.segments.base\n\n[static_check] no undefined names (1081 lines)\n[repo_tests] proximity tests passed: test/core/rules/base_test.py test/core/templaters/base_test.py test/core/parser/segments_base_test.py\n...................................                                      [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n35 passed, 1 warning in 0.18s\n"
    },
    {
     "command": "verify_module src/sqlfluff/core/parser/segments/raw.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-884/testbed:/testbed)",
-    "created_at": 1792036288.725,
+    "created_at": 1792092165.637,
     "detail": "module check passed: py_compile, import, static_check, repo_tests",
-    "evidence_id": "e4",
+    "evidence_id": "e3",
     "exit_code": 0,
     "hypothesis_id": "",
     "kind": "module_check",
@@ -132,8 +115,26 @@
     "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/parser/segments/raw.py\n\n[import] IMPORT_OK sqlfluff.core.parser.segments.raw\n\n[static_check] no undefined names (155 lines)\n[repo_tests] no test file near src/sqlfluff/core/parser/segments/raw.py by the proximity heuristic; step skipped\n"
    },
    {
+    "command": "verify_module src/sqlfluff/core/parser/segments/base.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-884/testbed:/testbed)",
+    "created_at": 1792092181.305,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e4",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "653dacb48f83866c211a12aab0571e3fecc2034eb9363415970ce59846e0db90",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/parser/segments/base.py\n\n[import] IMPORT_OK sqlfluff.core.parser.segments.base\n\n[static_check] no undefined names (1081 lines)\n[repo_tests] proximity tests passed: test/core/rules/base_test.py test/core/templaters/base_test.py test/core/parser/segments_base_test.py\n...................................                                      [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n35 passed, 1 warning in 0.19s\n"
+   },
+   {
     "command": "verify_module src/sqlfluff/core/parser/segments/raw.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-884/testbed:/testbed)",
-    "created_at": 1792036300.024,
+    "created_at": 1792092184.817,
     "detail": "module check passed: py_compile, import, static_check, repo_tests",
     "evidence_id": "e5",
     "exit_code": 0,
@@ -150,10 +151,82 @@
     "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/parser/segments/raw.py\n\n[import] IMPORT_OK sqlfluff.core.parser.segments.raw\n\n[static_check] no undefined names (155 lines)\n[repo_tests] no test file near src/sqlfluff/core/parser/segments/raw.py by the proximity heuristic; step skipped\n"
    },
    {
-    "command": "v13_mcts_verify_b1",
-    "created_at": 1792036432.157,
-    "detail": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "command": "verify_module src/sqlfluff/core/parser/segments/base.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-884/testbed:/testbed)",
+    "created_at": 1792092726.678,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
     "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "2b23bad1a5f133d4baffcf2384ddc26bc9932faaf565b5ef090c494ea90520a2",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/parser/segments/base.py\n\n[import] IMPORT_OK sqlfluff.core.parser.segments.base\n\n[static_check] no undefined names (1081 lines)\n[repo_tests] proximity tests passed: test/core/rules/base_test.py test/core/templaters/base_test.py test/core/parser/segments_base_test.py\n...................................                                      [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n35 passed, 1 warning in 0.18s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/parser/segments/raw.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-884/testbed:/testbed)",
+    "created_at": 1792092730.733,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e7",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "edff2131a51da0dc05ee998d145f4e10b1cbef46ac0358864c7834ad7deaa361",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/parser/segments/raw.py\n\n[import] IMPORT_OK sqlfluff.core.parser.segments.raw\n\n[static_check] no undefined names (155 lines)\n[repo_tests] no test file near src/sqlfluff/core/parser/segments/raw.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/parser/segments/base.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-884/testbed:/testbed)",
+    "created_at": 1792092749.17,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e8",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "653dacb48f83866c211a12aab0571e3fecc2034eb9363415970ce59846e0db90",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/parser/segments/base.py\n\n[import] IMPORT_OK sqlfluff.core.parser.segments.base\n\n[static_check] no undefined names (1081 lines)\n[repo_tests] proximity tests passed: test/core/rules/base_test.py test/core/templaters/base_test.py test/core/parser/segments_base_test.py\n...................................                                      [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n35 passed, 1 warning in 0.19s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/parser/segments/raw.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-884/testbed:/testbed)",
+    "created_at": 1792092752.7,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e9",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "edff2131a51da0dc05ee998d145f4e10b1cbef46ac0358864c7834ad7deaa361",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/parser/segments/raw.py\n\n[import] IMPORT_OK sqlfluff.core.parser.segments.raw\n\n[static_check] no undefined names (155 lines)\n[repo_tests] no test file near src/sqlfluff/core/parser/segments/raw.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "v13_mcts_verify_b1",
+    "created_at": 1792092875.09,
+    "detail": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/base.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "evidence_id": "e10",
     "exit_code": 0,
     "hypothesis_id": "h2",
     "kind": "module_check",
@@ -163,15 +236,15 @@
      "expect_exit_code": 0
     },
     "question_id": "q1",
-    "sha256": "c040ff4c2076f5d2d8d123d9eda28bc446b4b0255d65e6a9a957cda6d182b961",
+    "sha256": "825ca1fb75f55dd480adb16a7b9799d62e66d91babf954c389e2378b395c8d4c",
     "stderr": "",
-    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0)."
+    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/base.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0)."
    },
    {
     "command": "v13_mcts_verify_b1.1",
-    "created_at": 1792036432.158,
-    "detail": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
-    "evidence_id": "e7",
+    "created_at": 1792092875.09,
+    "detail": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/base.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).; - Adversarial edge-case script `.hae/audit_edge_cases.py`: PASSED (exit 0).",
+    "evidence_id": "e11",
     "exit_code": 0,
     "hypothesis_id": "h3",
     "kind": "module_check",
@@ -181,30 +254,30 @@
      "expect_exit_code": 0
     },
     "question_id": "q1",
-    "sha256": "adeb5f552e37a5687deee38a8ee995c04161dcccefc09a28b39a418693b58844",
+    "sha256": "2a1182b1cb33df2c6a7ac0b7bb87f402d7d0a24f9208727d86d210684c861931",
     "stderr": "",
-    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0)."
+    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/base.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).; - Adversarial edge-case script `.hae/audit_edge_cases.py`: PASSED (exit 0)."
    }
   ],
   "hypotheses": [
    {
     "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
-    "created_at": 1792036090.462,
+    "created_at": 1792091753.494,
     "epoch": 0,
     "evidence_ids": [
-     "e3"
+     "e1"
     ],
     "hypothesis_id": "h1",
     "last_rejection": "",
-    "mechanism": "f s.type == \"whitespace\": found_ws = True assert s.is_whitespace is True, \"lexed whitespace is_whitespace should be True\" assert found_ws, \"expected at least one whitespace segment\" print(\"ALL OK\") === tests referencing is_whitespace === test/core/rules/base_test.py:5:def test_white",
-    "mechanism_signature": "base_test core def exit found_ws hae is_whitespace issue least lex one print referenc reproduc reproduce_issue reproduction rul script segment standalone test_white true type whitespace",
+    "mechanism": "Traceback (most recent call last): File \"/testbed/.hae/reproduce_issue.py\", line 3, in <module> from sqlfluff.core.parser import StringParser, PositionMarker ImportError: cannot import name 'StringParser' from 'sqlfluff.core.parser' (/testbed/src/sqlfluff/core/parser/__init__.py) command termi",
+    "mechanism_signature": "__init__ call cannot command core exit file hae import importerror issue last name parser positionmarker recent reproduc reproduce_issue reproduction script sqlfluff src standalone stringparser termi testb traceback",
     "patch_applied": false,
     "posterior": 0.92,
     "prediction": {
      "expect_exit_code": 1
     },
     "prior": 0.85,
-    "probe_code": "\"\"\"Reproduce issue: Whitespace token is_whitespace is False.\"\"\"\nfrom sqlfluff.core import Linter, FluffConfig\nfrom sqlfluff.core.parser.segments.raw import RawSegment\nfrom sqlfluff.core.rules.base import BaseRule\n\n# 1) Whitespace segment created by rules base helper\nws = BaseRule.make_whitespace(\" \", None)\nassert ws.is_whitespace is True, \"make_whitespace segment is_whitespace should be True\"\n\n# 2) Whitespace segment created via RawSegment.make with type=\"whitespace\"\nWS = RawSegment.make(\" \", name=\"whitespace\", type=\"whitespace\")\nseg = WS(raw=\"  \", pos_marker=None)\nassert seg.is_whitespace is True, \"type=whitespace segment is_whitespace should be True\"\n\n# 3) Non-whitespace raw segment should be False\nCODE = RawSegment.make(\"SELECT\", name=\"select\", type=\"code\", is_code=True)\ncode_seg = CODE(raw=\"SELECT\", pos_marker=None)\nassert code_seg.is_whitespace is False, \"code segment is_whitespace should be False\"\n\n# 4) End-to-end via the lexer\nlnt = Linter(config=FluffConfig(overrides={\"dialect\": \"ansi\"}))\nparsed = lnt.parse_string(\"SELECT 1\\n\")\nfound_ws = False\nfor s in parsed.tree.iter_raw_seg():\n    if s.type == \"whitespace\":\n        found_ws = True\n        assert s.is_whitespace is True, \"lexed whitespace is_whitespace should be True\"\nassert found_ws, \"expected at least one whitespace segment\"\n\nprint(\"ALL OK\")\n",
+    "probe_code": "\"\"\"Reproduce sqlfluff issue #884: Whitespace token is_whitespace is False.\"\"\"\nfrom sqlfluff.core import Linter, FluffConfig\nfrom sqlfluff.core.parser import StringParser, PositionMarker\nfrom sqlfluff.core.parser.segments.raw import RawSegment\n\n\ndef test_whitespace_segment_is_whitespace():\n    \"\"\"Whitespace segment created by rules should report is_whitespace True.\"\"\"\n    from sqlfluff.core.rules.base import BaseRule\n\n    seg = BaseRule.make_whitespace(\" \", PositionMarker.from_point(0, 0))\n    assert seg.is_whitespace is True, \"make_whitespace segment is_whitespace is False\"\n\n\ndef test_whitespace_token_from_lint_is_whitespace():\n    \"\"\"A whitespace token produced by the lexer should report is_whitespace True.\"\"\"\n    lnt = Linter(config=FluffConfig(overrides=dict(dialect=\"ansi\")))\n    parsed = lnt.parse_string(\"SELECT 1\")\n    assert parsed.tree is not None\n    ws = [s for s in parsed.tree.recursive_crawl(\"whitespace\")]\n    assert ws, \"no whitespace segments found\"\n    for s in ws:\n        assert s.is_whitespace is True, \"lexer whitespace segment is_whitespace is False\"\n\n\nif __name__ == \"__main__\":\n    test_whitespace_segment_is_whitespace()\n    test_whitespace_token_from_lint_is_whitespace()\n    print(\"ALL OK\")\n",
     "probe_rejections": 0,
     "proposed_by": "AgenticReproductionSpecialist",
     "question_id": "q1",
@@ -215,16 +288,16 @@
     "visits": 0
    },
    {
-    "claim": "[consumer_local] Fix is_whitespace property in WhitespaceToken class: 1. Locate the WhitespaceToken class in src/sqlfluff/core/parser/segments/raw.py 2. Add or fix the is_whitespace property to return True 3. Ensure is_code returns False an",
-    "created_at": 1792036432.157,
+    "claim": "[consumer_local] Dynamic Property Implementation in BaseSegment: Modify `BaseSegment` in `src/sqlfluff/core/parser/segments/base.py`. Remove the class attribute `is_whitespace = False`. Replace it with a `@property` named `is_whitespace` th",
+    "created_at": 1792092875.09,
     "epoch": 0,
     "evidence_ids": [
-     "e6"
+     "e10"
     ],
     "hypothesis_id": "h2",
     "last_rejection": "",
-    "mechanism": "locus=consumer_local, V=0.780, files=['src/sqlfluff/core/parser/segments/raw.py']",
-    "mechanism_signature": "add consumer_local core ensure false fil fix is_code is_whitespace locate locu parser property raw segment sqlfluff src true whitespacetoken",
+    "mechanism": "locus=consumer_local, V=0.780, files=['src/sqlfluff/core/parser/segments/base.py', 'src/sqlfluff/core/parser/segments/raw.py']",
+    "mechanism_signature": "attribute base basesegment consumer_local core dynamic false fil implementation is_whitespace locu modify nam parser property raw remove replace segment sqlfluff src",
     "patch_applied": false,
     "posterior": 0.78,
     "prediction": {
@@ -243,17 +316,17 @@
    },
    {
     "claim": "Delta refinement of b1 (consumer_local)",
-    "created_at": 1792036432.158,
+    "created_at": 1792092875.09,
     "epoch": 0,
     "evidence_ids": [
-     "e7"
+     "e11"
     ],
     "hypothesis_id": "h3",
     "last_rejection": "",
-    "mechanism": "locus=cont_consumer_local, V=0.780, files=['src/sqlfluff/core/parser/segments/raw.py']",
-    "mechanism_signature": "consumer_local cont_consumer_local core delta fil locu parser raw refinement segment sqlfluff src",
+    "mechanism": "locus=cont_consumer_local, V=1.000, files=['src/sqlfluff/core/parser/segments/base.py', 'src/sqlfluff/core/parser/segments/raw.py']",
+    "mechanism_signature": "base consumer_local cont_consumer_local core delta fil locu parser raw refinement segment sqlfluff src",
     "patch_applied": false,
-    "posterior": 0.78,
+    "posterior": 0.99,
     "prediction": {
      "expect_exit_code": 0
     },
@@ -272,7 +345,7 @@
   "move_log": [],
   "questions": [
    {
-    "created_at": 1792035318.886,
+    "created_at": 1792091496.143,
     "failure_epoch": 0,
     "failure_history": [],
     "hypothesis_ids": [
@@ -283,7 +356,7 @@
     "hypothesis_rounds": 0,
     "initial_uncertainty": 1.0,
     "location": "",
-    "module": "src/sqlfluff/core/parser/segments/raw.py",
+    "module": "src/sqlfluff/core/parser/segments/base.py",
     "question_id": "q1",
     "source_failure": "Whitespace token is_whitespace is False",
     "source_failure_key": "swebench:sqlfluff__sqlfluff-884",
@@ -291,41 +364,77 @@
     "status": "RESOLVED",
     "text": "Reproduce the reported behaviour: Whitespace token is_whitespace is False -- I expect segment.is_whitespace of a Whitespace token is True, however, it is set to False. ## Expected Behaviour segment.is_whitespace return True ## Observed Behaviour segment.is_whitespace return False ## Steps to Reproduce ## Version Include the output of `sqlfluff --version` along with your Python version ## Configuration ``` Include your SQLFluff configuration here ```",
     "uncertainty": 0.02
+   },
+   {
+    "created_at": 1792091496.143,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 0.8,
+    "location": "",
+    "module": "src/sqlfluff/core/parser/segments/base.py",
+    "question_id": "q2",
+    "source_failure": "",
+    "source_failure_key": "swebench:sqlfluff__sqlfluff-884:src/sqlfluff/core/parser/segments/base.py",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Where in `src/sqlfluff/core/parser/segments/base.py` does the reported behaviour arise? The issue says: \"src/sqlfluff/core/parser/segments/base.py:72: is_whitespace = False\" | \"I see that long ago (2019), there was a class `WhitespaceSegment` (also a `NewlineSegment`). Now it's not a class -- instead, it'd defined in `src/sqlfluff/core/rules/base.py`.\"",
+    "uncertainty": 0.8
+   },
+   {
+    "created_at": 1792091496.143,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 0.8,
+    "location": "",
+    "module": "src/sqlfluff/core/rules/base.py",
+    "question_id": "q3",
+    "source_failure": "",
+    "source_failure_key": "swebench:sqlfluff__sqlfluff-884:src/sqlfluff/core/rules/base.py",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Where in `src/sqlfluff/core/rules/base.py` does the reported behaviour arise? The issue says: \"src/sqlfluff/core/parser/segments/base.py:72: is_whitespace = False\" | \"I see that long ago (2019), there was a class `WhitespaceSegment` (also a `NewlineSegment`). Now it's not a class -- instead, it'd defined in `src/sqlfluff/core/rules/base.py`.\"",
+    "uncertainty": 0.8
    }
   ],
   "ruled_out": [],
   "settled_knowledge": [],
-  "state_hash": "fd17beacf9dba0a86ee782abec07fac1b40003075ba103a6114f73bb5fb5d06a"
+  "state_hash": "2b15e3eb554978de1e7ebcdfdd918f8b8bfa2c690fab102b13620f98df88646c"
  },
  "epistemic_searches": [
   {
    "iteration": 1,
-   "moves_used": 47,
+   "moves_used": 51,
    "stats": {
     "best_checkpoint": {
      "changed_files": [
+      "src/sqlfluff/core/parser/segments/base.py",
       "src/sqlfluff/core/parser/segments/raw.py"
      ],
-     "note": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "note": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/base.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).; - Adversarial edge-case script `.hae/audit_edge_cases.py`: PASSED (exit 0).",
      "rank_key": [
       1,
       1,
-      0,
+      1,
       1,
       1,
       1,
       0
      ],
-     "specialist": "L2_DeltaRefinement_b1.1",
-     "turn": 10
+     "specialist": "L2_b1.1",
+     "turn": 2
     },
-    "checkpoints_recorded": 7,
+    "checkpoints_recorded": 8,
     "mcts_tree": {
      "b1": {
-      "alpha": 4.12,
-      "beta": 4.38,
+      "alpha": 5.62,
+      "beta": 1.88,
       "certified": false,
       "changed_files": [
+       "src/sqlfluff/core/parser/segments/base.py",
        "src/sqlfluff/core/parser/segments/raw.py"
       ],
       "children": [
@@ -336,25 +445,26 @@
       "parent_id": "root",
       "repo_tests_ok": true,
       "repro_ok": true,
-      "stagnant_steps": 1,
+      "stagnant_steps": 0,
       "value": 0.78,
       "visits": 2
      },
      "b1.1": {
-      "alpha": 4.12,
-      "beta": 3.88,
-      "certified": false,
+      "alpha": 5.0,
+      "beta": 1.0,
+      "certified": true,
       "changed_files": [
+       "src/sqlfluff/core/parser/segments/base.py",
        "src/sqlfluff/core/parser/segments/raw.py"
       ],
       "children": [],
-      "falsifier_ok": false,
+      "falsifier_ok": true,
       "locus": "cont_consumer_local",
       "parent_id": "b1",
       "repo_tests_ok": true,
       "repro_ok": true,
-      "stagnant_steps": 1,
-      "value": 0.78,
+      "stagnant_steps": 0,
+      "value": 1.0,
       "visits": 1
      },
      "root": {
@@ -377,8 +487,9 @@
     },
     "mode": "v13_hierarchical_mcts"
    },
-   "stop_reason": "resolved_by_agentic_gatekeeper",
+   "stop_reason": "resolved_by_hierarchical_ab_mcts",
    "synthesized_paths": [
+    "src/sqlfluff/core/parser/segments/base.py",
     "src/sqlfluff/core/parser/segments/raw.py"
    ]
   }
@@ -390,310 +501,344 @@
  "opex": {
   "budget_usd": 0.5,
   "cost_penalty": 0.0,
-  "efficiency_bonus": 4.71,
-  "estimated_cost_usd": 0.0285,
+  "efficiency_bonus": 4.65,
+  "estimated_cost_usd": 0.0351,
   "flash_count": 26,
-  "flash_input_tokens": 306608,
-  "flash_output_tokens": 18202,
+  "flash_input_tokens": 374444,
+  "flash_output_tokens": 23453,
   "fully_measured": true,
   "headcount": 32,
   "pro_count": 6,
   "pro_input_tokens": 0,
   "pro_output_tokens": 0,
-  "total_tokens": 324810
+  "total_tokens": 397897
  },
- "prediction_chars": 630,
+ "prediction_chars": 1625,
  "swebench": {
   "agentic_trajectory": [
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -n \"is_whitespace\" -- src/sqlfluff/core/parser/segments/",
-    "elapsed_s": 4.03,
-    "reasoning_chars": 113,
+    "command": "cd /testbed && git grep -n \"is_whitespace\\|is_code\\|is_comment\\|is_newline\\|is_meta\\|is_templated\\|is_type\\|is_raw\\|is_leaf\\|is_expandable\" src/sqlfluff/core/parser/segments/base.py | head -60",
+    "elapsed_s": 10.93,
+    "reasoning_chars": 295,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 1
    },
    {
     "action": "bash",
-    "command": "cd /testbed && sed -n 40,120p src/sqlfluff/core/parser/segments/base.py && echo \"=== RAW ===\" && sed -n 1,80p src/sqlfluff/core/parser/segments/raw.py && echo \"=== META ===\" && cat src/sqlfluff/core/parser/segments/meta.py",
-    "elapsed_s": 6.35,
-    "reasoning_chars": 85,
+    "command": "cd /testbed && sed -n 55,110p src/sqlfluff/core/parser/segments/base.py && echo \"=== RAW ===\" && git grep -n \"is_code\\|is_comment\\|is_whitespace\\|is_type\\|class \\|_class_types\\|class_types\" src/sqlfluff/core/parser/segments/raw.py | head -60",
+    "elapsed_s": 9.25,
+    "reasoning_chars": 106,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 2
    },
    {
     "action": "bash",
-    "command": "cd /testbed && sed -n 28,70p src/sqlfluff/core/parser/segments/raw.py && echo \"=== whitespace defs ===\" && git grep -n \"Whitespace\" -- src/sqlfluff | head -40",
-    "elapsed_s": 6.14,
-    "reasoning_chars": 152,
+    "command": "cd /testbed && cat src/sqlfluff/core/parser/segments/raw.py && echo \"=== LEXER ===\" && git grep -n \"whitespace\\|Whitespace\\|newline\\|newline\" src/sqlfluff/core/parser/lexer.py | head -40",
+    "elapsed_s": 7.17,
+    "reasoning_chars": 83,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 3
    },
    {
     "action": "bash",
-    "command": "cd /testbed && sed -n 64,100p src/sqlfluff/core/parser/segments/raw.py && echo \"=== lexer ===\" && git grep -n \"is_whitespace\\|Whitespace\\|whitespace\" -- src/sqlfluff/core/parser/lexer.py | head -40",
-    "elapsed_s": 6.39,
-    "reasoning_chars": 162,
+    "command": "cd /testbed && git grep -rn \"whitespace\" --include=*.py src/ | grep -v test | head -40",
+    "elapsed_s": 4.35,
+    "reasoning_chars": 95,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 4
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -rn \"whitespace\" -- src/sqlfluff/core/parser/ | head -40",
-    "elapsed_s": 4.06,
-    "reasoning_chars": 98,
+    "command": "cd /testbed && git grep -n \"whitespace\" -- 'src/**/*.py' | grep -v \"/test\" | head -40",
+    "elapsed_s": 4.49,
+    "reasoning_chars": 60,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 5
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -rn \"Whitespace\\|Newline\" -- src/sqlfluff/core/parser/lexer.py src/sqlfluff/core/dialects/dialect_ansi.py | head -40; echo \"=== lexer file list ===\"; ls src/sqlfluff/core/parser/",
-    "elapsed_s": 7.97,
-    "reasoning_chars": 277,
+    "command": "cd /testbed && sed -n 40,90p src/sqlfluff/core/dialects/dialect_ansi.py",
+    "elapsed_s": 4.34,
+    "reasoning_chars": 89,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 6
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -rn \"make(\" -- src/sqlfluff/core/dialects/dialect_ansi.py | head -30; echo ===; git grep -rn \"whitespace\" -- src/sqlfluff/core/dialects/dialect_ansi.py | head -20",
-    "elapsed_s": 6.29,
-    "reasoning_chars": 162,
+    "command": "cd /testbed && git grep -rn \"is_whitespace\" -- 'test/**' | head -20; echo \"=== all repo ===\"; git grep -rn \"is_whitespace\" | head -20; echo \"=== tests dir ===\"; ls test/core/parser/",
+    "elapsed_s": 70.57,
+    "reasoning_chars": 5271,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 7
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -rn \"is_whitespace\\|is_code\\|is_comment\\|is_meta\" -- src/sqlfluff | grep -v \"\\.pyc\" | head -40",
-    "elapsed_s": 7.97,
-    "reasoning_chars": 362,
+    "command": "cd /testbed && sed -n 390,430p src/sqlfluff/core/rules/base.py && echo \"=== test ===\" && cat test/core/rules/base_test.py",
+    "elapsed_s": 3.78,
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 8
    },
    {
     "action": "bash",
-    "command": "cd /testbed && sed -n 40,115p src/sqlfluff/core/dialects/dialect_ansi.py; echo \"=== base.py is_whitespace usage ===\"; git grep -rn \"is_whitespace\" -- src test | grep -v pyc",
-    "elapsed_s": 21.3,
-    "reasoning_chars": 1314,
+    "command": "cd /testbed && mkdir -p .hae && cat > .hae/reproduce_issue.py << 'EOF'\n\"\"\"Reproduce sqlfluff issue #884: Whitespace token is_whitespace is False.\"\"\"\nfrom sqlfluff.core import Linter, FluffConfig\nfrom sqlfluff.core.parser import StringParser, PositionMarker\nfrom sqlfluff.core.parser.segments.raw impo",
+    "elapsed_s": 20.98,
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 9
    },
    {
     "action": "bash",
-    "command": "cd /testbed && sed -n 395,420p src/sqlfluff/core/rules/base.py; echo ===; cat test/core/rules/base_test.py; echo ===; /opt/miniconda3/envs/testbed/bin/python -m pytest test/core/rules/base_test.py -x -q 2>&1 | tail -20",
-    "elapsed_s": 13.53,
-    "reasoning_chars": 729,
+    "command": "cd /testbed && git grep -n \"def recursive_crawl\\|def recursive_crawl\" -- 'src/**/*.py' | head",
+    "elapsed_s": 5.35,
+    "reasoning_chars": 57,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 10
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git status --short && git log --oneline -3 && sed -n 55,110p src/sqlfluff/core/parser/segments/base.py",
-    "elapsed_s": 45.92,
-    "reasoning_chars": 2664,
+    "command": "cd /testbed && sed -i 's/^from sqlfluff.core.parser import StringParser, PositionMarker$/from sqlfluff.core.parser.markers import PositionMarker/' .hae/reproduce_issue.py && python .hae/reproduce_issue.py",
+    "elapsed_s": 6.62,
+    "reasoning_chars": 57,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 11
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git show --stat HEAD~1 | head -20 && git show HEAD~1 | head -120",
-    "elapsed_s": 4.22,
-    "reasoning_chars": 0,
+    "command": "cd /testbed && sed -n 55,110p src/sqlfluff/core/parser/segments/base.py; echo \"=== markers ===\"; grep -n \"^class\\|^def \" src/sqlfluff/core/parser/markers.py | head",
+    "elapsed_s": 9.29,
+    "reasoning_chars": 240,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 12
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git show d087d7ea8 --stat && git show d087d7ea8 | head -200",
-    "elapsed_s": 4.61,
-    "reasoning_chars": 0,
+    "command": "cd /testbed && sed -n 1,70p src/sqlfluff/core/parser/segments/raw.py; echo \"=== base 160-230 ===\"; sed -n 160,235p src/sqlfluff/core/parser/segments/base.py; echo \"=== is_type ===\"; grep -n \"def is_type\\|def class_is_type\\|_class_types\\|class_types\\|def is_code\\|def is_comment\\|def is_meta\" src/sqlf",
+    "elapsed_s": 14.3,
+    "reasoning_chars": 483,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 13
    },
    {
-    "action": "str_replace",
-    "elapsed_s": 56.5,
-    "path": "src/sqlfluff/core/parser/segments/raw.py",
-    "reasoning_chars": 4104,
+    "action": "bash",
+    "command": "cd /testbed && sed -n 60,110p src/sqlfluff/core/parser/segments/raw.py; echo \"=== is_type base ===\"; sed -n 340,380p src/sqlfluff/core/parser/segments/base.py; echo \"=== run existing test ===\"; python -m pytest test/core/rules/base_test.py -q 2>&1 | tail -5",
+    "elapsed_s": 44.62,
+    "reasoning_chars": 2993,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 14
    },
    {
     "action": "bash",
-    "command": "mkdir -p /testbed/.hae && cd /testbed && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\n\"\"\"Reproduce issue: Whitespace token is_whitespace is False.\"\"\"\nfrom sqlfluff.core import Linter, FluffConfig\nfrom sqlfluff.core.parser.segments.raw import RawSegment\nfrom sqlfluff.core.rules.base import BaseRul",
-    "elapsed_s": 21.73,
+    "command": "cd /testbed && cat > .hae/reproduce_issue.py << 'EOF'\n\"\"\"Reproduce sqlfluff issue #884: Whitespace token is_whitespace is False.\"\"\"\nfrom sqlfluff.core import Linter, FluffConfig\nfrom sqlfluff.core.parser.markers import EnrichedFilePositionMarker as PositionMarker\nfrom sqlfluff.core.parser.segments.r",
+    "elapsed_s": 23.96,
     "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 15
    },
    {
     "action": "bash",
-    "command": "cd /testbed && /opt/miniconda3/envs/testbed/bin/python -m pytest test/core/rules/base_test.py test/core/parser -q 2>&1 | tail -8",
-    "elapsed_s": 3.73,
+    "command": "cd /testbed && sed -i 's/PositionMarker.from_point(0, 0)/None/' .hae/reproduce_issue.py && python .hae/reproduce_issue.py",
+    "elapsed_s": 3.77,
     "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 16
    },
    {
     "action": "bash",
-    "command": "cd /testbed && /opt/miniconda3/envs/testbed/bin/python -m pytest test/core -q 2>&1 | tail -6 && git diff",
-    "elapsed_s": 19.04,
-    "reasoning_chars": 1361,
+    "command": "cd /testbed && sed -n 400,440p src/sqlfluff/core/rules/base.py; echo \"=== lexer class build ===\"; grep -n \"make(\\|RawSegment\\|class\\|kwargs\" src/sqlfluff/core/parser/lexer.py | head -40",
+    "elapsed_s": 81.33,
+    "reasoning_chars": 5279,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 17
    },
    {
-    "action": "bash",
-    "command": "cd /testbed && git stash && /opt/miniconda3/envs/testbed/bin/python -m pytest test/core -q 2>&1 | tail -4; git stash pop",
-    "elapsed_s": 8.36,
-    "reasoning_chars": 385,
+    "action": "str_replace",
+    "elapsed_s": 5.34,
+    "path": "src/sqlfluff/core/parser/segments/base.py",
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 18
    },
    {
-    "action": "bash",
-    "command": "cd /testbed && /opt/miniconda3/envs/testbed/bin/python -m pytest test/core -q --ignore=test/core/templaters/dbt_test.py 2>&1 | tail -4 && git status --short",
-    "elapsed_s": 9.53,
-    "reasoning_chars": 327,
+    "action": "str_replace",
+    "elapsed_s": 8.17,
+    "path": "src/sqlfluff/core/parser/segments/base.py",
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 19
    },
    {
-    "action": "submit",
-    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
-    "elapsed_s": 21.8,
-    "gatekeeper_ok": true,
-    "reasoning_chars": 339,
+    "action": "str_replace",
+    "elapsed_s": 71.91,
+    "path": "src/sqlfluff/core/parser/segments/raw.py",
+    "reasoning_chars": 4991,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 20
    },
    {
     "action": "bash",
-    "command": "cd /testbed && echo \"=== raw.py ===\" && cat -n src/sqlfluff/core/parser/segments/raw.py && echo \"=== grep _is_code/_is_comment/_is_whitespace ===\" && git grep -n \"_is_code\\|_is_comment\\|_is_whitespace\\|is_whitespace\" -- src/",
-    "elapsed_s": 23.2,
-    "reasoning_chars": 924,
+    "command": "cd /testbed && python -m pytest test/core/rules/base_test.py test/core/parser/segments_base_test.py test/core/parser/segments_common_test.py test/core/parser/lexer_test.py test/core/parser/parse_test.py -q 2>&1 | tail -8",
+    "elapsed_s": 6.04,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 21
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git diff && python -m pytest test/core/rules/ test/core/parser/ -q 2>&1 | tail -4",
+    "elapsed_s": 4.34,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 22
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def get_type\\|def is_type\\|def is_code\\|def is_comment\\|def is_whitespace\\|is_whitespace\" -- src/sqlfluff | head -50 && echo ---- && ls .hae/\n```",
+    "elapsed_s": 29.06,
+    "reasoning_chars": 1589,
     "specialist": "L2_DeltaRefinement_b1.1",
     "turn": 1
    },
    {
     "action": "bash",
-    "command": "cd /testbed && echo \"=== base.py 55-110 ===\" && sed -n '55,110p' src/sqlfluff/core/parser/segments/base.py && echo \"=== rules/base.py 390-420 ===\" && sed -n '390,420p' src/sqlfluff/core/rules/base.py && echo \"=== lexer whitespace ===\" && git grep -n \"whitespace\" -- src/sqlfluff/core/parser/lexer.py ",
-    "elapsed_s": 14.8,
-    "reasoning_chars": 338,
+    "command": "cd /testbed && git grep -n \"get_type\\|def is_type\\|def _class_is_type\" -- src/sqlfluff | head -40; echo ----; cat .hae/audit_edge_cases.py; echo ----; cat .hae/reproduce_issue.py\n```",
+    "elapsed_s": 10.37,
+    "reasoning_chars": 411,
     "specialist": "L2_DeltaRefinement_b1.1",
     "turn": 2
    },
    {
     "action": "bash",
-    "command": "cd /testbed && ls -la .hae/ 2>/dev/null && echo \"=== lexer whitespace defs ===\" && git grep -rn \"whitespace\" -- src/sqlfluff/core/ | grep -v \"\\.pyc\" | head -40 && echo \"=== NewlineSegment / newline type ===\" && git grep -n \"type=\\\"newline\\\"\\|type='newline'\" -- src/",
-    "elapsed_s": 20.02,
-    "reasoning_chars": 1136,
+    "command": "cd /testbed && sed -n 330,400p src/sqlfluff/core/parser/segments/base.py; echo =====; sed -n 1,120p src/sqlfluff/core/parser/segments/raw.py\n```",
+    "elapsed_s": 20.15,
+    "reasoning_chars": 1411,
     "specialist": "L2_DeltaRefinement_b1.1",
     "turn": 3
    },
    {
     "action": "bash",
-    "command": "cd /testbed && cat .hae/reproduce_issue.py && echo \"=== tests referencing is_whitespace ===\" && git grep -rn \"is_whitespace\" -- test/ | head -20 && echo \"=== usages of .is_whitespace in src ===\" && git grep -rn \"\\.is_whitespace\" -- src/",
-    "elapsed_s": 55.71,
-    "reasoning_chars": 4158,
+    "command": "cd /testbed && git grep -n \"newline\\|whitespace\" -- src/sqlfluff/core/parser/lexer.py | head -40; echo =====; git grep -rn \"is_whitespace\\|is_code\\b\" -- src/sqlfluff | head -40\n```",
+    "elapsed_s": 51.08,
+    "reasoning_chars": 3823,
     "specialist": "L2_DeltaRefinement_b1.1",
     "turn": 4
    },
    {
     "action": "bash",
-    "command": "cd /testbed && echo \"=== reproduce ===\" && python .hae/reproduce_issue.py; echo \"exit=$?\"; echo \"=== test ===\" && cat test/core/rules/base_test.py && python -m pytest test/core/rules/base_test.py -q 2>&1 | tail -20",
-    "elapsed_s": 6.0,
+    "command": "cd /testbed && sed -n 180,260p src/sqlfluff/core/parser/lexer.py",
+    "elapsed_s": 3.08,
     "reasoning_chars": 0,
     "specialist": "L2_DeltaRefinement_b1.1",
     "turn": 5
    },
    {
-    "action": "str_replace",
-    "elapsed_s": 10.13,
-    "path": "src/sqlfluff/core/parser/segments/raw.py",
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"newline\" -- src/sqlfluff/core | head -30; echo =====; git grep -n \"is_whitespace\\|is_code\\|is_comment\" -- test | head -40\n```",
+    "elapsed_s": 3.65,
     "reasoning_chars": 0,
     "specialist": "L2_DeltaRefinement_b1.1",
     "turn": 6
    },
    {
     "action": "str_replace",
-    "elapsed_s": 65.42,
+    "elapsed_s": 96.17,
     "path": "src/sqlfluff/core/parser/segments/raw.py",
-    "reasoning_chars": 3891,
+    "reasoning_chars": 6404,
     "specialist": "L2_DeltaRefinement_b1.1",
     "turn": 7
    },
    {
     "action": "bash",
-    "command": "cd /testbed && cat > .hae/falsification_suite.py <<'PY'\n\"\"\"Adversarial falsification suite for is_whitespace contract.\"\"\"\nfrom sqlfluff.core import Linter, FluffConfig\nfrom sqlfluff.core.parser.segments.raw import RawSegment\nfrom sqlfluff.core.rules.base import BaseRule\n\ndef mk(raw, **kw):\n    cls =",
-    "elapsed_s": 28.52,
+    "command": "cd /testbed && sed -i 's/ws.get_type() == \"whitespace\"/ws.is_type(\"whitespace\")/; s/nl.get_type() == \"newline\"/nl.is_type(\"newline\")/; s/cm.get_type() == \"comment\"/cm.is_type(\"comment\")/; s/code.get_type() == \"code\"/code.is_type(\"code\")/' .hae/audit_edge_cases.py && python .hae/audit_edge_cases.py &",
+    "elapsed_s": 7.04,
     "reasoning_chars": 0,
     "specialist": "L2_DeltaRefinement_b1.1",
     "turn": 8
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git diff",
-    "elapsed_s": 2.77,
+    "command": "cd /testbed && python - <<'EOF'\nimport re\np = \".hae/audit_edge_cases.py\"\ns = open(p).read()\ns = s.replace(\"def mk(raw, **kw):\\n    cls = RawSegment.make(raw, **kw)\\n    return cls(raw=raw, pos_marker=pos)\",\n\"def mk(raw, **kw):\\n    cls = RawSegment.make(raw, **kw)\\n    global pos\\n    seg = cls(raw=",
+    "elapsed_s": 9.43,
     "reasoning_chars": 0,
     "specialist": "L2_DeltaRefinement_b1.1",
     "turn": 9
    },
    {
-    "action": "submit",
-    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
-    "elapsed_s": 34.11,
-    "gatekeeper_ok": true,
-    "reasoning_chars": 567,
+    "action": "bash",
+    "command": "cd /testbed && sed -i 's/BaseSegment((ws, nl))/BaseSegment((ws, nl), validate=False)/; s/BaseSegment((ws, cm))/BaseSegment((ws, cm), validate=False)/' .hae/audit_edge_cases.py && python .hae/audit_edge_cases.py && python .hae/reproduce_issue.py && python -m pytest test/core/parser/ test/core/rules/b",
+    "elapsed_s": 8.59,
+    "reasoning_chars": 158,
     "specialist": "L2_DeltaRefinement_b1.1",
     "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest test/core -q 2>&1 | tail -3 && git diff",
+    "elapsed_s": 4.53,
+    "reasoning_chars": 123,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 11
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/base.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).\n- Adversarial edge-case script `.hae/audit_edge_cases.py`: PASSED (exit 0).",
+    "elapsed_s": 16.82,
+    "gatekeeper_ok": true,
+    "reasoning_chars": 259,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 12
    }
   ],
   "base_commit": "c0bad78f3fa9549591738c77f869724f721e6830",
   "best_checkpoint": {
    "changed_files": [
+    "src/sqlfluff/core/parser/segments/base.py",
     "src/sqlfluff/core/parser/segments/raw.py"
    ],
-   "note": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+   "note": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/base.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).; - Adversarial edge-case script `.hae/audit_edge_cases.py`: PASSED (exit 0).",
    "rank_key": [
     1,
     1,
-    0,
+    1,
     1,
     1,
     1,
     0
    ],
-   "specialist": "L2_DeltaRefinement_b1.1",
-   "turn": 10
+   "specialist": "L2_b1.1",
+   "turn": 2
   },
-  "budget_moves": 48,
+  "budget_moves": 54,
   "changed_files": [
+   "src/sqlfluff/core/parser/segments/base.py",
    "src/sqlfluff/core/parser/segments/raw.py"
   ],
   "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-884/testbed:/testbed",
-  "hints_included": false,
+  "hints_included": true,
   "instance_id": "sqlfluff__sqlfluff-884",
   "iterations": [
    {
     "best_checkpoint": {
      "changed_files": [
+      "src/sqlfluff/core/parser/segments/base.py",
       "src/sqlfluff/core/parser/segments/raw.py"
      ],
-     "note": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "note": "- Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/base.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Gatekeeper `verify_module('src/sqlfluff/core/parser/segments/raw.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).; - Adversarial edge-case script `.hae/audit_edge_cases.py`: PASSED (exit 0).",
      "rank_key": [
       1,
       1,
-      0,
+      1,
       1,
       1,
       1,
       0
      ],
-     "specialist": "L2_DeltaRefinement_b1.1",
-     "turn": 10
+     "specialist": "L2_b1.1",
+     "turn": 2
     },
     "iteration": 1,
-    "moves_used": 47,
+    "moves_used": 51,
     "patched": true,
     "recheck": {
      "verdict": "resolved"
@@ -701,21 +846,16 @@
     "resolved_this_iteration": [
      "q1"
     ],
-    "stop_reason": "resolved_by_agentic_gatekeeper",
+    "stop_reason": "resolved_by_hierarchical_ab_mcts",
     "synthesized_paths": [
+     "src/sqlfluff/core/parser/segments/base.py",
      "src/sqlfluff/core/parser/segments/raw.py"
     ]
    }
   ],
-  "locate": [
-   {
-    "candidate": "src/sqlfluff/core/parser/segments/raw.py",
-    "rationale": "The issue concerns the `is_whitespace` property of a Whitespace token, which is a specific type of RawSegment defined in the raw segments module where token types and their boolean properties (like is_whitespace) are typically initialized or determined.",
-    "resolved": "src/sqlfluff/core/parser/segments/raw.py"
-   }
-  ],
-  "moves_used": 47,
-  "patch_chars": 630,
+  "locate": [],
+  "moves_used": 51,
+  "patch_chars": 1625,
   "preflight": {
    "error": "",
    "ok": true,
@@ -723,7 +863,7 @@
    "repo_tests": {
     "baseline_failures": 0,
     "budget_s": 15.0,
-    "duration_s": 16.05,
+    "duration_s": 15.66,
     "mode": "proximity",
     "reason": "whole suite did not finish within 15s",
     "target": "test"
@@ -735,34 +875,42 @@
   "repo": "sqlfluff/sqlfluff",
   "reproduction": [],
   "resolved_by_self_oracle": true,
-  "root_module": "src/sqlfluff/core/parser/segments/raw.py",
+  "root_module": "src/sqlfluff/core/parser/segments/base.py",
   "root_question_id": "q1",
   "root_status": "RESOLVED",
   "seed": {
-   "candidates": [],
+   "candidates": [
+    "src/sqlfluff/core/parser/segments/base.py",
+    "src/sqlfluff/core/rules/base.py"
+   ],
    "failure": "Whitespace token is_whitespace is False",
    "paths": [
-    "src/sqlfluff/core/parser/segments/raw.py"
+    "src/sqlfluff/core/parser/segments/base.py",
+    "src/sqlfluff/core/rules/base.py"
    ],
-   "primary_module": "",
+   "primary_module": "src/sqlfluff/core/parser/segments/base.py",
    "root_question_id": "q1",
-   "sub_question_ids": []
+   "sub_question_ids": [
+    "q2",
+    "q3"
+   ]
   },
-  "stop": "resolved_by_agentic_gatekeeper",
+  "stop": "resolved_by_hierarchical_ab_mcts",
   "task_features": {
-   "complexity": 0.1438,
+   "complexity": 0.2438,
    "has_assertion": false,
    "has_import_error": false,
    "n_exception_classes": 0,
    "n_failures": 0,
-   "n_modules": 1,
-   "n_paths_mentioned": 1,
+   "n_modules": 2,
+   "n_paths_mentioned": 2,
    "source": "problem_statement",
    "statement_chars": 438,
    "tags": [
     "sqlfluff",
     "segments",
-    "raw",
+    "base",
+    "rules",
     "whitespace",
     "token",
     "is_whitespace",
@@ -790,7 +938,7 @@
   "base_commit": "c0bad78f3fa9549591738c77f869724f721e6830",
   "created_at": "2021-03-23T21:28:49Z",
   "environment_setup_commit": "cbdcfb09feb4883de91de142956c3be6ac7f827d",
-  "hints_text": "",
+  "hints_text": "To triage this issue, I searched the SQLFluff code to find all uses of `is_whitespace`. This is the only one I found:\r\n```\r\nsrc/sqlfluff/core/parser/segments/base.py:72:    is_whitespace = False\r\n```\r\n\r\n@alanmcruickshank: What's the purpose of `is_whitespace`?\r\n\r\nI see that long ago (2019), there was a class `WhitespaceSegment` (also a `NewlineSegment`). Now it's not a class -- instead, it'd defined in `src/sqlfluff/core/rules/base.py`.\nOnce #866 is merged I'll pick up the rest of this which relates to some of the lexer objects.",
   "instance_id": "sqlfluff__sqlfluff-884",
   "problem_statement": "Whitespace token is_whitespace is False\nI expect segment.is_whitespace of a Whitespace token is True, however, it is set to False.\r\n\r\n## Expected Behaviour\r\nsegment.is_whitespace return True\r\n\r\n## Observed Behaviour\r\nsegment.is_whitespace return False\r\n## Steps to Reproduce\r\n\r\n## Version\r\nInclude the output of `sqlfluff --version` along with your Python version\r\n\r\n## Configuration\r\n```\r\nInclude your SQLFluff configuration here\r\n```\r\n\n",
   "repo": "sqlfluff/sqlfluff",
@@ -799,10 +947,10 @@
  "token_accounting": {
   "estimated_calls": 0,
   "fully_measured": true,
-  "measured_calls": 48,
-  "thought_tokens": 5950
+  "measured_calls": 51,
+  "thought_tokens": 8634
  },
- "token_usage": 324810,
+ "token_usage": 397897,
  "verification_loop": {
   "attempts": 0,
   "budget": 0,

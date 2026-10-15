@@ -218,6 +218,7 @@ def run_policy_on_instance(instance_id: str, pod: str, dataset: str, policy_tag:
             "--budget-moves", str(budget_moves),
             "--max-iterations", str(max_iterations),
             "--model-name", model_name,
+            "--include-hints",
         ]
         started = time.time()
         try:

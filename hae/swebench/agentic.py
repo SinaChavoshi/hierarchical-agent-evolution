@@ -256,6 +256,14 @@ def _parse_xml_tool_call(text: str) -> Optional[ParsedAction]:
         inner,
         re.DOTALL | re.IGNORECASE,
     )
+    if not m_fn:
+        m_direct_tag = re.search(
+            r"<(bash|sh|shell|run_command|execute_bash|view_file|read_file|view|str_replace|edit_file|write_file|create_file|submit|finish)\b[^>]*>(.*?)(?:</\1>|(?=</tool_call>)|\Z)",
+            inner,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if m_direct_tag:
+            m_fn = m_direct_tag
     if not m_fn and m_tc:
         # Handle `<tool_call>\n<parameter=bash>\n<parameter=command>...` or `<tool_call>\n{\n<parameter name="command">...`
         m_alt = re.search(
@@ -331,6 +339,12 @@ def _dispatch_xml_function(
         return ParsedAction(kind="bash", command=cmd, raw=raw_text)
 
     if func_name in ("view_file", "read_file", "view", "open_file"):
+        for line in re.sub(r"</?parameter[^>]*>", "", fn_body).splitlines():
+            if ":" in line:
+                k, v = line.split(":", 1)
+                k_clean = k.strip().lower()
+                if k_clean in ("path", "file", "filepath", "start_line", "start", "end_line", "end") and k_clean not in params:
+                    params[k_clean] = v.strip().strip("'\"")
         path = _clean_path_token(params.get("path") or params.get("file") or params.get("filepath") or "")
         if not path:
             # Try extracting path from lines in fn_body if parameter tag was malformed
@@ -468,7 +482,11 @@ def parse_agent_action(response_text: str) -> ParsedAction:
     xml_action = _parse_xml_tool_call(text)
     m_sr_fence = _STR_REPLACE_FENCE_RE.search(text)
     m_other = _OTHER_FENCE_RE.search(text)
-    m_xml_pos = re.search(r"<(?:tool_call|function\s*=)", text, re.IGNORECASE)
+    m_xml_pos = re.search(
+        r"<(?:tool_call|function\s*=|view_file\b|str_replace\b|bash\b|write_file\b|submit\b)",
+        text,
+        re.IGNORECASE,
+    )
     first_fence_pos = min(
         [m.start() for m in (m_sr_fence, m_other) if m is not None],
         default=len(text) + 1,
@@ -1262,11 +1280,38 @@ class AgenticSweEngine:
             temperature=temperature,
             provider="vllm" if os.environ.get("LLM_PROVIDER") == "vllm" else None,
             usage_sink=usage,
-            max_tokens=3200 if enable_thinking else 1800,
+            max_tokens=6400 if enable_thinking else 2400,
             messages=condensed,
             enable_thinking=enable_thinking,
             extra_headers={"X-No-Cache": "1"},
         )
+        reasoning_text = str(usage.get("last_reasoning") or "")
+        if enable_thinking and not (resp or "").strip() and reasoning_text:
+            retry_msgs = list(condensed) + [
+                {
+                    "role": "user",
+                    "content": (
+                        f"Your reasoning truncated before emitting a tool block (reasoning tail: "
+                        f"`{reasoning_text[-900:]}`). Emit ONLY your next markdown fenced tool block "
+                        "(` ```bash `, ` ```view_file `, ` ```str_replace `, or ` ```submit `) now."
+                    ),
+                }
+            ]
+            usage_retry: Dict[str, Any] = {}
+            resp_retry = call_llm(
+                prompt=retry_msgs[-1]["content"],
+                model_name=self.runner.model_name,
+                model_tier="worker",
+                temperature=temperature,
+                provider="vllm" if os.environ.get("LLM_PROVIDER") == "vllm" else None,
+                usage_sink=usage_retry,
+                max_tokens=2000,
+                messages=retry_msgs,
+                enable_thinking=False,
+                extra_headers={"X-No-Cache": "1"},
+            )
+            if (resp_retry or "").strip():
+                resp = resp_retry
         self.runner._account_tokens(
             is_pro=False,
             prompt_text=prompt_preview,
@@ -1274,7 +1319,7 @@ class AgenticSweEngine:
             response_text=resp,
             usage=usage,
         )
-        return resp, str(usage.get("last_reasoning") or "")
+        return resp, reasoning_text
 
     def run_specialist_loop(
         self,

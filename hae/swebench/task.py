@@ -253,7 +253,7 @@ def seed_from_problem_statement(state: EpistemicState, task: SweTask, authority:
     """
     if not isinstance(authority, GatekeeperAuthority):
         raise TypeError("seed_from_problem_statement needs the gatekeeper's authority")
-    statement = task.problem_statement
+    statement = f"{task.problem_statement}\n{task.hints_text}" if getattr(task, "hints_text", "") else task.problem_statement
     candidates = extract_paths(statement, task.repo)
     known = list(known_files) if known_files is not None else None
     paths = resolve_paths(candidates, known) if known is not None else [c for c in candidates if not c.startswith("/")]
@@ -322,7 +322,8 @@ def build_repo_map(py_files: Iterable[str], task: SweTask, paths: Sequence[str] 
         return []
     wanted = set(paths)
     dirs = {p.rsplit("/", 1)[0] for p in paths if "/" in p}
-    toks = set(statement_tokens(task.problem_statement))
+    combined_stmt = f"{task.problem_statement}\n{getattr(task, 'hints_text', '') or ''}"
+    toks = set(statement_tokens(combined_stmt))
     toks |= {t for t in package_names(task.repo) if len(t) >= 3}
 
     def score(f: str) -> Tuple[float, int, str]:

@@ -1,6 +1,6 @@
 {
  "FAIL_TO_PASS": {
-  "test/rules/std_L003_L036_L039_combo_test.py::test__rules__std_L003_L036_L039": "FAILED"
+  "test/rules/std_L003_L036_L039_combo_test.py::test__rules__std_L003_L036_L039": "PASSED"
  },
  "PASS_TO_PASS_failures": [],
  "PASS_TO_PASS_summary": {
@@ -10,23 +10,23 @@
   "PASSED": 3,
   "SKIPPED": 0
  },
- "elapsed_seconds": 5.9,
+ "elapsed_seconds": 6.1,
  "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-1733/testbed:/testbed",
- "f2p_passed": 0,
+ "f2p_passed": 1,
  "f2p_total": 1,
  "instance_id": "sqlfluff__sqlfluff-1733",
- "patch_chars": 707,
+ "patch_chars": 1002,
  "patch_source": "results/swebench/dev_eval_2026-10-09/v13_hier_mcts/sqlfluff__sqlfluff-1733/prediction.json",
  "pytest": {
   "files": [
    "test/rules/std_L003_L036_L039_combo_test.py",
    "test/rules/std_L016_L36_combo_test.py"
   ],
-  "log_tail": "___\n\n    def test__rules__std_L003_L036_L039():\n        \"\"\"Verify that double indents don't flag L039.\"\"\"\n        sql = \"\"\"\n        WITH example AS (\n            SELECT my_id,\n                other_thing,\n                one_more\n            FROM\n                my_table\n        )\n    \n        SELECT *\n        FROM example\\n\"\"\"\n        fixed_sql = \"\"\"\n        WITH example AS (\n            SELECT\n                my_id,\n                other_thing,\n                one_more\n            FROM\n                my_table\n        )\n    \n        SELECT *\n        FROM example\\n\"\"\"\n        result = sqlfluff.fix(sql)\n>       assert result == fixed_sql\nE       AssertionError: assert '\\n    WITH e...ROM example\\n' == '\\n    WITH e...ROM example\\n'\nE         \nE         Skipping 37 identical leading characters in diff, use -v to show\nE           \nE         -             my_id,\nE         ? ---\nE         +          my_id,\nE                       other_thing,...\nE         \nE         ...Full output truncated (7 lines hidden), use '-vv' to show\n\ntest/rules/std_L003_L036_L039_combo_test.py:36: AssertionError\n------------------------------ Captured log call -------------------------------\nWARNING  sqlfluff.linter:linter.py:286 One fix for L003 not applied, it would re-cause the same error.\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n==================================== PASSES ====================================\n__________________ test__rules__std_L016_L036_long_line_fix2 ___________________\n------------------------------ Captured log call -------------------------------\nWARNING  sqlfluff.linter:linter.py:286 One fix for L016 not applied, it would re-cause the same error.\n=========================== short test summary info ============================\nPASSED test/rules/std_L016_L36_combo_test.py::test__rules__std_L016_L036_long_line_lint\nPASSED test/rules/std_L016_L36_combo_test.py::test__rules__std_L016_L036_long_line_fix\nPASSED test/rules/std_L016_L36_combo_test.py::test__rules__std_L016_L036_long_line_fix2\nFAILED test/rules/std_L003_L036_L039_combo_test.py::test__rules__std_L003_L036_L039\n1 failed, 3 passed, 1 warning in 0.54s\n\ncommand terminated with exit code 1\n",
-  "rc": 1,
+  "log_tail": "....                                                                     [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n==================================== PASSES ====================================\n__________________ test__rules__std_L016_L036_long_line_fix2 ___________________\n------------------------------ Captured log call -------------------------------\nWARNING  sqlfluff.linter:linter.py:286 One fix for L016 not applied, it would re-cause the same error.\n=========================== short test summary info ============================\nPASSED test/rules/std_L003_L036_L039_combo_test.py::test__rules__std_L003_L036_L039\nPASSED test/rules/std_L016_L36_combo_test.py::test__rules__std_L016_L036_long_line_lint\nPASSED test/rules/std_L016_L36_combo_test.py::test__rules__std_L016_L036_long_line_fix\nPASSED test/rules/std_L016_L36_combo_test.py::test__rules__std_L016_L036_long_line_fix2\n4 passed, 1 warning in 0.53s\n\n",
+  "rc": 0,
   "reported": 4
  },
- "resolved": false,
+ "resolved": true,
  "steps": {
   "apply_model_patch": {
    "note": "",

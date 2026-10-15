@@ -508,11 +508,33 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
         agents = self._bind_epistemic_agents(policy)
         objective = self.objective_text()
 
+        pol_extra = policy.extra or {}
+        nested_extra = pol_extra.get("extra") if isinstance(pol_extra.get("extra"), dict) else {}
+        search_pol_str = str(
+            getattr(policy, "search_policy", "")
+            or pol_extra.get("search_policy", "")
+            or nested_extra.get("search_policy", "")
+            or ""
+        ).lower()
+        is_v13_hierarchical_mcts = bool(
+            pol_extra.get("v13_hierarchical_mcts")
+            or nested_extra.get("v13_hierarchical_mcts")
+            or search_pol_str in ("v13_hierarchical_mcts", "hierarchical_ab_mcts")
+        )
+        is_v12_agentic = bool(
+            not is_v13_hierarchical_mcts
+            and (
+                pol_extra.get("v12_agentic")
+                or nested_extra.get("v12_agentic")
+                or search_pol_str == "v12_agentic"
+            )
+        )
+
         seed = seed_from_problem_statement(state, self.task, gatekeeper.authority, known_files=self.py_files())
         self.seed_info = seed
         self._repo_map_cache = None
         root = state.questions[seed["root_question_id"]]
-        if not root.module:
+        if not root.module and not is_v13_hierarchical_mcts:
             self.locate_module(root, agents["hypothesis"], objective)
         self._required_modules = [root.module] if root.module else []
         features = task_features(self.task, seed.get("paths", []))
@@ -543,27 +565,6 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
 
         total_budget = int(budget_moves if budget_moves is not None else policy.search_budget_moves)
         remaining = total_budget
-        pol_extra = policy.extra or {}
-        nested_extra = pol_extra.get("extra") if isinstance(pol_extra.get("extra"), dict) else {}
-        search_pol_str = str(
-            getattr(policy, "search_policy", "")
-            or pol_extra.get("search_policy", "")
-            or nested_extra.get("search_policy", "")
-            or ""
-        ).lower()
-        is_v13_hierarchical_mcts = bool(
-            pol_extra.get("v13_hierarchical_mcts")
-            or nested_extra.get("v13_hierarchical_mcts")
-            or search_pol_str in ("v13_hierarchical_mcts", "hierarchical_ab_mcts")
-        )
-        is_v12_agentic = bool(
-            not is_v13_hierarchical_mcts
-            and (
-                pol_extra.get("v12_agentic")
-                or nested_extra.get("v12_agentic")
-                or search_pol_str == "v12_agentic"
-            )
-        )
         if is_v13_hierarchical_mcts or is_v12_agentic:
             candidate_mods: List[str] = []
             if root.module:
