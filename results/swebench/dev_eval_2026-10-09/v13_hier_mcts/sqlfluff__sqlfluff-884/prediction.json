@@ -1,0 +1,5 @@
+{
+ "instance_id": "sqlfluff__sqlfluff-884",
+ "model_name_or_path": "hae-v13-hier-mcts/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/src/sqlfluff/core/parser/segments/raw.py b/src/sqlfluff/core/parser/segments/raw.py\nindex 492ef89de..dd932983b 100644\n--- a/src/sqlfluff/core/parser/segments/raw.py\n+++ b/src/sqlfluff/core/parser/segments/raw.py\n@@ -48,6 +48,11 @@ class RawSegment(BaseSegment):\n         \"\"\"Return True if this segment is a comment.\"\"\"\n         return self._is_comment\n \n+    @property\n+    def is_whitespace(self):\n+        \"\"\"Return True if this segment is whitespace.\"\"\"\n+        return self.type == \"whitespace\"\n+\n     @property\n     def raw_upper(self):\n         \"\"\"Make an uppercase string from the segments of this segment.\"\"\"\n"
+}

@@ -224,11 +224,7 @@ class TestABMCTSSelectionAndEndToEnd(unittest.TestCase):
         engine = HierarchicalAgenticMCTSEngine(runner, executor, task, state, gk, logger=lambda m: None)
 
         responses = [
-            # 1. L1-A Recon turn 1: create reproduction script
-            f"```bash\nmkdir -p .hae && cat << 'EOF' > .hae/reproduce_issue.py\nfrom pkg.calc import add_items\nassert add_items(2, 0, extra=5) == 7\nEOF\n{sys.executable} .hae/reproduce_issue.py\n```",
-            # 2. L1-A Recon turn 2: submit brief
-            "```submit\nCONSUMER_LOCUS: pkg/calc.py:1 add_items\nPRODUCER_UPSTREAM_LOCUS: pkg/calc.py:1 arguments\nCONVENTIONS_AND_SIBLINGS: standard arithmetic\n```",
-            # 3. L0 Seed Architect: JSON contract & branches
+            # 1. L0 Seed Architect: JSON contract & branches (after fast deterministic L1-A Recon)
             json.dumps({
                 "verification_contract": {
                     "invariants": ["add_items(a, b, extra) must sum a + b + extra when extra is not None"],
@@ -244,19 +240,21 @@ class TestABMCTSSelectionAndEndToEnd(unittest.TestCase):
                     }
                 ],
             }),
-            # 4. Episode 1 (GEN b1): applies a partial fix `return a + (extra if extra is not None else b)`
+            # 2. Episode 1 (GEN b1) turn 1: create reproduction script
+            f"```bash\nmkdir -p .hae && cat << 'EOF' > .hae/reproduce_issue.py\nfrom pkg.calc import add_items\nassert add_items(2, 0, extra=5) == 7\nEOF\n{sys.executable} .hae/reproduce_issue.py\n```",
+            # 3. Episode 1 (GEN b1) turn 2: applies a partial fix `return a + (extra if extra is not None else b)`
             "```str_replace\npath: pkg/calc.py\n<<<<\ndef add_items(a, b=0, extra=None):\n    return a + b\n====\ndef add_items(a, b=0, extra=None):\n    return a + (extra if extra is not None else b)\n>>>>\n```",
-            # 5. Episode 1 (GEN b1) turn 2: submit
+            # 4. Episode 1 (GEN b1) turn 3: submit
             "```submit\nApplied initial fix.\n```",
-            # 6. L1-B Falsifier on b1 turn 1: writes falsification_suite.py testing BOTH b=3 and extra=4!
+            # 5. L1-B Falsifier on b1 turn 1: writes falsification_suite.py testing BOTH b=3 and extra=4!
             f"```bash\ncat << 'EOF' > .hae/falsification_suite.py\nfrom pkg.calc import add_items\nassert add_items(2, 3, extra=4) == 9, f'Expected 9, got {{add_items(2, 3, extra=4)}}'\nEOF\n{sys.executable} .hae/falsification_suite.py\n```",
-            # 7. L1-B Falsifier on b1 turn 2: submits FAIL verdict
+            # 6. L1-B Falsifier on b1 turn 2: submits FAIL verdict
             "```submit\nVERDICT: FAIL: When both b=3 and extra=4 are passed, add_items returns 6 instead of 9.\n```",
-            # 8. Episode 2 (CONT b1 -> b1.1): Delta-Refinement fixes `pkg/calc.py` in place!
+            # 7. Episode 2 (CONT b1 -> b1.1): Delta-Refinement fixes `pkg/calc.py` in place!
             "```str_replace\npath: pkg/calc.py\n<<<<\ndef add_items(a, b=0, extra=None):\n    return a + (extra if extra is not None else b)\n====\ndef add_items(a, b=0, extra=None):\n    return a + b + (extra if extra is not None else 0)\n>>>>\n```",
-            # 9. Episode 2 (CONT b1.1) turn 2: submit
+            # 8. Episode 2 (CONT b1.1) turn 2: submit
             "```submit\nFixed combined b + extra case.\n```",
-            # 10. L1-B Falsifier on b1.1 turn 1: runs falsification_suite.py and certifies PASS!
+            # 9. L1-B Falsifier on b1.1 turn 1: runs falsification_suite.py and certifies PASS!
             "```submit\nVERDICT: PASS\n```",
         ]
         idx = {"i": 0}

@@ -1,0 +1,5 @@
+{
+ "instance_id": "marshmallow-code__marshmallow-1252",
+ "model_name_or_path": "hae-v13-hier-mcts/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/src/marshmallow/utils.py b/src/marshmallow/utils.py\nindex 113906d6..87bba69c 100755\n--- a/src/marshmallow/utils.py\n+++ b/src/marshmallow/utils.py\n@@ -285,6 +285,9 @@ def from_iso(datestring, use_dateutil=True):\n         # Strip off timezone info.\n         if '.' in datestring:\n             # datestring contains microseconds\n+            (dt_nomstz, mstz) = datestring.split('.')\n+            ms_notz = mstz[:len(mstz) - len(mstz.lstrip('0123456789'))]\n+            datestring = '.'.join((dt_nomstz, ms_notz))\n             return datetime.datetime.strptime(datestring[:26], '%Y-%m-%dT%H:%M:%S.%f')\n         return datetime.datetime.strptime(datestring[:19], '%Y-%m-%dT%H:%M:%S')\n \n"
+}

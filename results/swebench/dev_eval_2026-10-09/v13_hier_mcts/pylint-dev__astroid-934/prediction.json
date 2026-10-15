@@ -1,0 +1,5 @@
+{
+ "instance_id": "pylint-dev__astroid-934",
+ "model_name_or_path": "hae-v13-hier-mcts/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/astroid/scoped_nodes.py b/astroid/scoped_nodes.py\nindex 27237e82..6850c420 100644\n--- a/astroid/scoped_nodes.py\n+++ b/astroid/scoped_nodes.py\n@@ -2554,7 +2554,7 @@ class ClassDef(mixins.FilterStmtsMixin, LocalsDictNodeNG, node_classes.Statement\n         context = contextmod.copy_context(context)\n         context.lookupname = name\n \n-        metaclass = self.metaclass(context=context)\n+        metaclass = self.metaclass(context=context.clone())\n         try:\n             attributes = self.getattr(name, context, class_context=class_context)\n             # If we have more than one attribute, make sure that those starting from\n"
+}

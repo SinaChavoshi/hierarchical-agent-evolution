@@ -1,0 +1,5 @@
+{
+ "instance_id": "sqlfluff__sqlfluff-1733",
+ "model_name_or_path": "hae-v13-hier-mcts/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/src/sqlfluff/rules/L003.py b/src/sqlfluff/rules/L003.py\nindex 83ff13feb..54afdb7ec 100644\n--- a/src/sqlfluff/rules/L003.py\n+++ b/src/sqlfluff/rules/L003.py\n@@ -284,6 +284,13 @@ class Rule_L003(BaseRule):\n                     ),\n                 )\n             ]\n+            # If there are more than one whitespace segments in the indent, we\n+            # should delete the rest of them. If we don't, then the leftover\n+            # whitespace will be appended to the new indent, resulting in an\n+            # over-indented line.\n+            fixes += [\n+                LintFix(\"delete\", elem) for elem in current_indent_buffer[1:]\n+            ]\n         return fixes\n \n     @staticmethod\n"
+}

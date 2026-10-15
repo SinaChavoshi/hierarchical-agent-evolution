@@ -322,6 +322,26 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         screen_rows.append(scr)
                         print(json.dumps({"event": "screen", **scr}), flush=True)
                     return
+                if not args.screen_only and all(
+                    os.path.exists(os.path.join(args.out_root, tag, iid, "prediction.json"))
+                    and os.path.exists(os.path.join(args.out_root, tag, iid, "record.json"))
+                    and os.path.exists(os.path.join(args.out_root, tag, iid, "grade.json"))
+                    for tag, _, _ in policies
+                ):
+                    with lock:
+                        screen_rows.append(scr)
+                        print(json.dumps({"event": "screen", **scr}), flush=True)
+                        valid_count[0] += 1
+                    for tag, genome_path, model_name in policies:
+                        res = run_policy_on_instance(
+                            iid, "", args.dataset, tag, genome_path, model_name,
+                            args.out_root, args.context,
+                            budget_moves=args.budget_moves, max_iterations=args.max_iterations,
+                        )
+                        with lock:
+                            run_rows.append(res)
+                            print(json.dumps({"event": "run", **res}), flush=True)
+                    return
             except Exception:
                 pass
         pod, created, err = ensure_pod(iid, args.context, nodepool=args.nodepool)

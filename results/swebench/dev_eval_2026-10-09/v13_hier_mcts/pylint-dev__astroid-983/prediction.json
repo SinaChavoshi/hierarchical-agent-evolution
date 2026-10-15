@@ -1,0 +1,5 @@
+{
+ "instance_id": "pylint-dev__astroid-983",
+ "model_name_or_path": "hae-v13-hier-mcts/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/astroid/scoped_nodes.py b/astroid/scoped_nodes.py\nindex 27237e82..eeb63c41 100644\n--- a/astroid/scoped_nodes.py\n+++ b/astroid/scoped_nodes.py\n@@ -1748,9 +1748,15 @@ class FunctionDef(mixins.MultiLineBlockMixin, node_classes.Statement, Lambda):\n                 yield node_classes.Const(None)\n                 return\n \n-            raise exceptions.InferenceError(\n-                \"The function does not have any return statements\"\n-            )\n+            if self.is_abstract(pass_is_abstract=True):\n+                raise exceptions.InferenceError(\n+                    \"The function does not have any return statements\"\n+                )\n+\n+            # Functions without any return statement implicitly return None,\n+            # mirroring Python's runtime behaviour.\n+            yield node_classes.Const(None)\n+            return\n \n         for returnnode in itertools.chain((first_return,), returns):\n             if returnnode.value is None:\n"
+}

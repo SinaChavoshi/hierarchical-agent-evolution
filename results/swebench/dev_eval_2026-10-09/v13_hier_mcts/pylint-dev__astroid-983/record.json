@@ -1,0 +1,1018 @@
+{
+ "authored_files": [
+  "astroid/scoped_nodes.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 1770.64,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.049167,
+  "calibration_tested": 3,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 12,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 4,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 3,
+  "hypotheses_tested": 3,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "fb358f359d8181d15c712ad4c0640f6f63632d35ef2c47e98ee47a64fe7ded04",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 4,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 0,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 0.02,
+  "resolved_fraction": 0.98,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 349750,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v13_hierarchical_ab_mcts_firm_0",
+  "counters": {
+   "e": 12,
+   "h": 4,
+   "q": 1
+  },
+  "created_at": 1792039052.983,
+  "evidence_log": [
+   {
+    "command": "cd /testbed && mkdir -p .hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nimport traceback\nimport astroid\n\ndef check(src, expected_repr=\"Const.NoneType\"):\n    node = astroid.extract_node(src)\n  ",
+    "created_at": 1792039297.466,
+    "detail": "agentic reproduction probe reproduced bug",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "question_id": "q1",
+    "sha256": "affaff82716a6f496842ffe5c51681c1df6cb9ba4325f61f54272c1157af29f6",
+    "stderr": "Traceback (most recent call last):\n  File \"/testbed/astroid/decorators.py\", line 135, in raise_if_nothing_inferred\n    yield next(generator)\nStopIteration: {'node': <Call l.4 at 0x7a69fa811400>, 'context': <astroid.context.InferenceContext object at 0x7a69fa871680>}\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 7, in check\n    inferred = node.inferred()\n  File \"/testbed/astroid/node_classes.py\", line 740, in inferred\n    return list(self.infer())\n  File \"/testbed/astroid/node_classes.py\", line 358, in infer\n    yield from self._infer(context, **kwargs)\n  File \"/testbed/astroid/decorators.py\", line 140, in raise_if_nothing_inferred\n    raise exceptions.InferenceError(**error.args[0]) from error\nastroid.exceptions.InferenceError: Inference failed for <Call l.4 at 0x7a69fa811400>.\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 20, in <module>\n    ok &= check(\"\"\"\n  File \"/testbed/.hae/reproduce_issue.py\", line 12, in check\n    return len(inferred) == 1 and inferred[0].repr() == expected_repr\n  File \"/testbed/astroid/node_classes.py\", line 2592, in __getattr__\n    return super().__getattr__(name)\n  File \"/testbed/astroid/bases.py\", line 112, in __getattr__\n    return getattr(self._proxied, name)\nAttributeError: 'ClassDef' object has no attribute 'repr'\ncommand terminated with exit code 1\n",
+    "stdout": "def f():\n    return\nf() -> [<Const.NoneType l.None at 0x7a69fc4cefd0>]\n"
+   },
+   {
+    "command": "verify_module astroid/scoped_nodes.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-983/testbed:/testbed)",
+    "created_at": 1792039988.636,
+    "detail": "module check failed at repo_tests: whole suite: 1 new failure(s) not present on the clean checkout: tests/unittest_inference.py::InferenceTest::test_invalid_subscripts",
+    "evidence_id": "e2",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "6247f8f31c387ab56c88b18d293f99004ad11841a545f7d00af14789447c62e5",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK astroid/scoped_nodes.py\n\n[import] IMPORT_OK astroid.scoped_nodes\n\n[static_check] no undefined names (2999 lines)\n[repo_tests] whole suite: 1 new failure(s) not present on the clean checkout: tests/unittest_inference.py::InferenceTest::test_invalid_subscripts\n                 ++++++++++++++++++++++++++\n\ntests/unittest_modutils.py:75: AssertionError\n=============================== warnings summary ===============================\nastroid/interpreter/_import/util.py:4\n  /testbed/astroid/interpreter/_import/util.py:4: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/unittest_inference.py::InferenceTest::test_invalid_subscripts - ...\nFAILED tests/unittest_modutils.py::ModuleFileTest::test_find_distutils_submodules_in_virtualenv\n2 failed, 953 passed, 55 skipped, 10 xfailed, 1 warning in 8.46s\n"
+   },
+   {
+    "command": "verify_module astroid/scoped_nodes.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-983/testbed:/testbed)",
+    "created_at": 1792040015.395,
+    "detail": "module check failed at repo_tests: whole suite: 1 new failure(s) not present on the clean checkout: tests/unittest_inference.py::InferenceTest::test_invalid_subscripts",
+    "evidence_id": "e3",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "97cb5663b8564fa77434b32d1350ddca8ab0fa1980b9eb52170aef9901e0c519",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK astroid/scoped_nodes.py\n\n[import] IMPORT_OK astroid.scoped_nodes\n\n[static_check] no undefined names (2999 lines)\n[repo_tests] whole suite: 1 new failure(s) not present on the clean checkout: tests/unittest_inference.py::InferenceTest::test_invalid_subscripts\n                 ++++++++++++++++++++++++++\n\ntests/unittest_modutils.py:75: AssertionError\n=============================== warnings summary ===============================\nastroid/interpreter/_import/util.py:4\n  /testbed/astroid/interpreter/_import/util.py:4: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/unittest_inference.py::InferenceTest::test_invalid_subscripts - ...\nFAILED tests/unittest_modutils.py::ModuleFileTest::test_find_distutils_submodules_in_virtualenv\n2 failed, 953 passed, 55 skipped, 10 xfailed, 1 warning in 8.48s\n"
+   },
+   {
+    "command": "verify_module astroid/inference.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-983/testbed:/testbed)",
+    "created_at": 1792040289.727,
+    "detail": "module check failed at repo_tests: whole suite: 20 new failure(s) not present on the clean checkout: tests/unittest_brain.py::CollectionsDequeTests::test_deque, tests/unittest_brain.py::CollectionsDequeTests::test_deque_py35methods, tests/unittest_brain.py::CollectionsDequeTests::test_deque_py39methods (+17 more)",
+    "evidence_id": "e4",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "2a541017bacf026449053499897ee4c45a0503b16aa21635cf680616656f858c",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK astroid/inference.py\n\n[import] IMPORT_OK astroid.inference\n\n[static_check] no undefined names (965 lines)\n[repo_tests] whole suite: 20 new failure(s) not present on the clean checkout: tests/unittest_brain.py::CollectionsDequeTests::test_deque, tests/unittest_brain.py::CollectionsDequeTests::test_deque_py35methods, tests/unittest_brain.py::CollectionsDequeTests::test_deque_py39methods (+17 more)\nAILED tests/unittest_scoped_nodes.py::ClassNodeTest::test_mro_with_factories\nFAILED tests/unittest_scoped_nodes.py::ClassNodeTest::test_slots_for_dict_keys\nFAILED tests/unittest_scoped_nodes.py::ClassNodeTest::test_type_three_arguments\nFAILED tests/unittest_scoped_nodes.py::test_issue940_property_grandchild - as...\nFAILED tests/unittest_scoped_nodes.py::test_issue940_metaclass_values_funcdef\nFAILED tests/unittest_scoped_nodes.py::test_issue940_metaclass_derived_funcdef\nFAILED tests/unittest_scoped_nodes.py::test_metaclass_cannot_infer_call_yields_an_instance\nFAILED tests/unittest_transforms.py::TestTransforms::test_function_inlining_transform\nFAILED tests/unittest_transforms.py::TestTransforms::test_predicates - astroi...\n254 failed, 701 passed, 55 skipped, 10 xfailed, 1 warning in 40.24s\n"
+   },
+   {
+    "command": "verify_module astroid/inference.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-983/testbed:/testbed)",
+    "created_at": 1792040351.796,
+    "detail": "module check failed at repo_tests: whole suite: 20 new failure(s) not present on the clean checkout: tests/unittest_brain.py::CollectionsDequeTests::test_deque, tests/unittest_brain.py::CollectionsDequeTests::test_deque_py35methods, tests/unittest_brain.py::CollectionsDequeTests::test_deque_py39methods (+17 more)",
+    "evidence_id": "e5",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "103dbd527d34782375825d9922c64a524710cac812e0cfd1369716fd8554af75",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK astroid/inference.py\n\n[import] IMPORT_OK astroid.inference\n\n[static_check] no undefined names (965 lines)\n[repo_tests] whole suite: 20 new failure(s) not present on the clean checkout: tests/unittest_brain.py::CollectionsDequeTests::test_deque, tests/unittest_brain.py::CollectionsDequeTests::test_deque_py35methods, tests/unittest_brain.py::CollectionsDequeTests::test_deque_py39methods (+17 more)\nAILED tests/unittest_scoped_nodes.py::ClassNodeTest::test_mro_with_factories\nFAILED tests/unittest_scoped_nodes.py::ClassNodeTest::test_slots_for_dict_keys\nFAILED tests/unittest_scoped_nodes.py::ClassNodeTest::test_type_three_arguments\nFAILED tests/unittest_scoped_nodes.py::test_issue940_property_grandchild - as...\nFAILED tests/unittest_scoped_nodes.py::test_issue940_metaclass_values_funcdef\nFAILED tests/unittest_scoped_nodes.py::test_issue940_metaclass_derived_funcdef\nFAILED tests/unittest_scoped_nodes.py::test_metaclass_cannot_infer_call_yields_an_instance\nFAILED tests/unittest_transforms.py::TestTransforms::test_function_inlining_transform\nFAILED tests/unittest_transforms.py::TestTransforms::test_predicates - astroi...\n254 failed, 701 passed, 55 skipped, 10 xfailed, 1 warning in 39.61s\n"
+   },
+   {
+    "command": "verify_module astroid/scoped_nodes.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-983/testbed:/testbed)",
+    "created_at": 1792040666.706,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "2d243ea7431efc920e4af2e7a133d181fe89157e60b8daa459be4f7d0697c6de",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK astroid/scoped_nodes.py\n\n[import] IMPORT_OK astroid.scoped_nodes\n\n[static_check] no undefined names (3002 lines)\n[repo_tests] whole suite: no new failure (tests/ (whole suite, 1 baseline failure(s)))\nte-packages/setuptools/_distutils/version.py\nE       ?                                            ++++++++++++++++++++++++++\n\ntests/unittest_modutils.py:75: AssertionError\n=============================== warnings summary ===============================\nastroid/interpreter/_import/util.py:4\n  /testbed/astroid/interpreter/_import/util.py:4: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/unittest_modutils.py::ModuleFileTest::test_find_distutils_submodules_in_virtualenv\n1 failed, 954 passed, 55 skipped, 10 xfailed, 1 warning in 8.41s\n"
+   },
+   {
+    "command": "verify_module astroid/scoped_nodes.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-983/testbed:/testbed)",
+    "created_at": 1792040692.27,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e7",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "d3ea0f6f2706c74ec4379776f9f2a09edc4c7cd8adf6c52e497bc091dc361721",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK astroid/scoped_nodes.py\n\n[import] IMPORT_OK astroid.scoped_nodes\n\n[static_check] no undefined names (3002 lines)\n[repo_tests] whole suite: no new failure (tests/ (whole suite, 1 baseline failure(s)))\nte-packages/setuptools/_distutils/version.py\nE       ?                                            ++++++++++++++++++++++++++\n\ntests/unittest_modutils.py:75: AssertionError\n=============================== warnings summary ===============================\nastroid/interpreter/_import/util.py:4\n  /testbed/astroid/interpreter/_import/util.py:4: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/unittest_modutils.py::ModuleFileTest::test_find_distutils_submodules_in_virtualenv\n1 failed, 954 passed, 55 skipped, 10 xfailed, 1 warning in 9.51s\n"
+   },
+   {
+    "command": "verify_module astroid/scoped_nodes.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-983/testbed:/testbed)",
+    "created_at": 1792040779.044,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e8",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "3ac48ceab28deb012bde20cefbe92fcfc1da2cb4c87d283934ae224809685c1b",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK astroid/scoped_nodes.py\n\n[import] IMPORT_OK astroid.scoped_nodes\n\n[static_check] no undefined names (3002 lines)\n[repo_tests] whole suite: no new failure (tests/ (whole suite, 1 baseline failure(s)))\nte-packages/setuptools/_distutils/version.py\nE       ?                                            ++++++++++++++++++++++++++\n\ntests/unittest_modutils.py:75: AssertionError\n=============================== warnings summary ===============================\nastroid/interpreter/_import/util.py:4\n  /testbed/astroid/interpreter/_import/util.py:4: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/unittest_modutils.py::ModuleFileTest::test_find_distutils_submodules_in_virtualenv\n1 failed, 954 passed, 55 skipped, 10 xfailed, 1 warning in 8.33s\n"
+   },
+   {
+    "command": "verify_module astroid/scoped_nodes.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-983/testbed:/testbed)",
+    "created_at": 1792040805.299,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e9",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "16593996ac8ea3f911294a90d72b90d67f06f82f43bd7c2e0238e2cd7ccb6cba",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK astroid/scoped_nodes.py\n\n[import] IMPORT_OK astroid.scoped_nodes\n\n[static_check] no undefined names (3002 lines)\n[repo_tests] whole suite: no new failure (tests/ (whole suite, 1 baseline failure(s)))\nte-packages/setuptools/_distutils/version.py\nE       ?                                            ++++++++++++++++++++++++++\n\ntests/unittest_modutils.py:75: AssertionError\n=============================== warnings summary ===============================\nastroid/interpreter/_import/util.py:4\n  /testbed/astroid/interpreter/_import/util.py:4: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/unittest_modutils.py::ModuleFileTest::test_find_distutils_submodules_in_virtualenv\n1 failed, 954 passed, 55 skipped, 10 xfailed, 1 warning in 8.54s\n"
+   },
+   {
+    "command": "v13_mcts_verify_b1",
+    "created_at": 1792040818.15,
+    "detail": "- Gatekeeper `verify_module('astroid/inference.py')` FAILED (module check failed at repo_tests: whole suite: 20 new failure(s) not present on the clean checkout: tests/unittest_brain.py::CollectionsDequeTests::test_deque, tests/unittest_brain.py::CollectionsDequeTests::test_deque_py35metho\n... [truncated 2563 chars] ...\ntance\nFAILED tests/unittest_transforms.py::TestTransforms::test_function_inlining_transform\nFAILED tests/unittest_transforms.py::TestTransforms::test_predicates - astroi...\n254 failed, 701 passed, 55 skipped, 10 xfailed, 1 warning in 39.61s\n\n[repo_tests] command terminated with exit code 1; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "evidence_id": "e10",
+    "exit_code": 1,
+    "hypothesis_id": "h2",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "0d6d730f8afcae85b2faf8f29a8c82053dce6f7b1fd94ed448f0332df6a49fc1",
+    "stderr": "### Exact Failing Pytest Traceback (`--tb=short`) for ['tests/unittest_brain.py::CollectionsDequeTests::test_deque', 'tests/unittest_brain.py::CollectionsDequeTests::test_deque_py35methods', 'tests/unittest_brain.py::CollectionsDequeTests::test_deque_py39methods']\n```text\nFFF                                                                      [100%]\n=================================== FAILURES ==",
+    "stdout": "- Gatekeeper `verify_module('astroid/inference.py')` FAILED (module check failed at repo_tests: whole suite: 20 new failure(s) not present on the clean checkout: tests/unittest_brain.py::CollectionsDequeTests::test_deque, tests/unittest_brain.py::CollectionsDequeTests::test_deque_py35metho\n... [truncated 2563 chars] ...\ntance\nFAILED tests/unittest_transforms.py::TestTransforms::test_function_inlining_transform\nFAILED tests/unittest_transforms.py::TestTransforms::test_predicates - astroi...\n254 failed, 701 passed, 55 skipped, 10 xfailed, 1 warning in 39.61s\n\n[repo_tests] command terminated with exit code 1; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0)."
+   },
+   {
+    "command": "v13_mcts_verify_b1.1",
+    "created_at": 1792040818.15,
+    "detail": "- Gatekeeper `verify_module('astroid/scoped_nodes.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "evidence_id": "e11",
+    "exit_code": 0,
+    "hypothesis_id": "h3",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "5a69374591f5cf9559e098ad577ddc9b62eed94c7ebc9c3a13d0fa3944b9d0a5",
+    "stderr": "",
+    "stdout": "- Gatekeeper `verify_module('astroid/scoped_nodes.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0)."
+   },
+   {
+    "command": "v13_mcts_verify_b1.1.1",
+    "created_at": 1792040818.15,
+    "detail": "- Gatekeeper `verify_module('astroid/scoped_nodes.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "evidence_id": "e12",
+    "exit_code": 0,
+    "hypothesis_id": "h4",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "3d171df12ba6d44218f5adb82058d1da98b6362afc60b94efe6fc80d52b49173",
+    "stderr": "",
+    "stdout": "- Gatekeeper `verify_module('astroid/scoped_nodes.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0)."
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
+    "created_at": 1792039297.465,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "nference failed for <Call l.4 at 0x7a69fa811400>. Traceback (most recent call last): File \"/testbed/.hae/reproduce_issue.py\", line 20, in <module> ok &= check(\"\"\" File \"/testbed/.hae/reproduce_issue.py\", line 12, in check return len(inferred) == 1 and inferred[0].repr() == expected_repr",
+    "mechanism_signature": "call check exit expected_repr file hae infer issue last len nference recent repr reproduc reproduce_issue reproduction script standalone testb traceback x7a69fa811400",
+    "patch_applied": false,
+    "posterior": 0.92,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "prior": 0.85,
+    "probe_code": "import traceback\nimport astroid\n\ndef check(src, expected_repr=\"Const.NoneType\"):\n    node = astroid.extract_node(src)\n    try:\n        inferred = node.inferred()\n    except Exception:  # noqa\n        traceback.print_exc()\n        return False\n    print(src.strip(), \"->\", inferred)\n    return len(inferred) == 1 and inferred[0].repr() == expected_repr\n\nok = True\nok &= check(\"\"\"\ndef f():\n    pass\nf()\n\"\"\")\nok &= check(\"\"\"\ndef f():\n    return\nf()\n\"\"\")\nok &= check(\"\"\"\ndef f():\n    assert f\nf()\n\"\"\")\nprint(\"OK\" if ok else \"FAIL\")\n",
+    "probe_rejections": 0,
+    "proposed_by": "AgenticReproductionSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   },
+   {
+    "claim": "[consumer_local] Fix `infer_call` to handle empty/implicit None returns: Modify `infer_call` (around line 212) in `astroid/inference.py`. When inferring the return value of a function, if the function body is empty or contains no `Return` n",
+    "created_at": 1792040818.15,
+    "epoch": 0,
+    "evidence_ids": [
+     "e10"
+    ],
+    "hypothesis_id": "h2",
+    "last_rejection": "",
+    "mechanism": "locus=consumer_local, V=0.450, files=['astroid/inference.py', 'astroid/scoped_nodes.py']",
+    "mechanism_signature": "around astroid body consumer_local contain empty fil fix handle implicit infer infer_call inference locu modify none scoped_nodes",
+    "patch_applied": false,
+    "posterior": 0.75,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.75,
+    "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "L0_AB_MCTS_b1",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "UNVERIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   },
+   {
+    "claim": "Delta refinement of b1 (consumer_local)",
+    "created_at": 1792040818.15,
+    "epoch": 0,
+    "evidence_ids": [
+     "e11"
+    ],
+    "hypothesis_id": "h3",
+    "last_rejection": "",
+    "mechanism": "locus=cont_consumer_local, V=0.700, files=['astroid/scoped_nodes.py']",
+    "mechanism_signature": "astroid consumer_local cont_consumer_local delta fil locu refinement scoped_nodes",
+    "patch_applied": false,
+    "posterior": 0.7,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.75,
+    "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "L0_AB_MCTS_b1.1",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   },
+   {
+    "claim": "Delta refinement of b1.1 (cont_consumer_local)",
+    "created_at": 1792040818.15,
+    "epoch": 0,
+    "evidence_ids": [
+     "e12"
+    ],
+    "hypothesis_id": "h4",
+    "last_rejection": "",
+    "mechanism": "locus=cont_cont_consumer_local, V=0.700, files=['astroid/scoped_nodes.py']",
+    "mechanism_signature": "astroid cont_consumer_local cont_cont_consumer_local delta fil locu refinement scoped_nodes",
+    "patch_applied": false,
+    "posterior": 0.7,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.75,
+    "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "L0_AB_MCTS_b1.1.1",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1792039054.256,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1",
+     "h2",
+     "h3",
+     "h4"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "astroid/inference.py",
+    "question_id": "q1",
+    "source_failure": "Cannot infer empty functions",
+    "source_failure_key": "swebench:pylint-dev__astroid-983",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: Cannot infer empty functions -- ### Steps to reproduce ```python import astroid astroid.extract_node(\"\"\" def f(): pass f() \"\"\").inferred() ``` ### Current behavior raises `StopIteration` ### Expected behavior Returns `[const.NoneType]` ### ``python -c \"from astroid import __pkginfo__; print(__pkginfo__.version)\"`` output 2.0.0 This also applies to procedural functions which don't explicitly return any values.",
+    "uncertainty": 0.02
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "fb358f359d8181d15c712ad4c0640f6f63632d35ef2c47e98ee47a64fe7ded04"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 38,
+   "stats": {
+    "best_checkpoint": {
+     "changed_files": [
+      "astroid/scoped_nodes.py"
+     ],
+     "note": "- Gatekeeper `verify_module('astroid/scoped_nodes.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "L2_b1.1.1",
+     "turn": 3
+    },
+    "checkpoints_recorded": 15,
+    "mcts_tree": {
+     "b1": {
+      "alpha": 3.85,
+      "beta": 3.2,
+      "certified": false,
+      "changed_files": [
+       "astroid/inference.py",
+       "astroid/scoped_nodes.py"
+      ],
+      "children": [
+       "b1.1"
+      ],
+      "falsifier_ok": false,
+      "locus": "consumer_local",
+      "parent_id": "root",
+      "repo_tests_ok": false,
+      "repro_ok": true,
+      "stagnant_steps": 0,
+      "value": 0.45,
+      "visits": 2
+     },
+     "b1.1": {
+      "alpha": 3.8,
+      "beta": 4.7,
+      "certified": false,
+      "changed_files": [
+       "astroid/scoped_nodes.py"
+      ],
+      "children": [
+       "b1.1.1"
+      ],
+      "falsifier_ok": false,
+      "locus": "cont_consumer_local",
+      "parent_id": "b1",
+      "repo_tests_ok": true,
+      "repro_ok": true,
+      "stagnant_steps": 1,
+      "value": 0.7,
+      "visits": 2
+     },
+     "b1.1.1": {
+      "alpha": 3.8,
+      "beta": 4.2,
+      "certified": false,
+      "changed_files": [
+       "astroid/scoped_nodes.py"
+      ],
+      "children": [],
+      "falsifier_ok": false,
+      "locus": "cont_cont_consumer_local",
+      "parent_id": "b1.1",
+      "repo_tests_ok": true,
+      "repro_ok": true,
+      "stagnant_steps": 1,
+      "value": 0.7,
+      "visits": 1
+     },
+     "root": {
+      "alpha": 2.0,
+      "beta": 2.0,
+      "certified": false,
+      "changed_files": [],
+      "children": [
+       "b1"
+      ],
+      "falsifier_ok": false,
+      "locus": "root",
+      "parent_id": null,
+      "repo_tests_ok": false,
+      "repro_ok": false,
+      "stagnant_steps": 0,
+      "value": 0.1,
+      "visits": 2
+     }
+    },
+    "mode": "v13_hierarchical_mcts"
+   },
+   "stop_reason": "resolved_by_agentic_gatekeeper",
+   "synthesized_paths": [
+    "astroid/scoped_nodes.py"
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-pylint-dev-astroid-983/testbed:/testbed",
+ "generation": 13,
+ "genome_id": "v13_hierarchical_ab_mcts_firm_0",
+ "instance_id": "pylint-dev__astroid-983",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.65,
+  "estimated_cost_usd": 0.0353,
+  "flash_count": 26,
+  "flash_input_tokens": 309365,
+  "flash_output_tokens": 40385,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 349750
+ },
+ "prediction_chars": 969,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '212,240p' astroid/inference.py",
+    "elapsed_s": 7.29,
+    "reasoning_chars": 325,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"infer_call_result\" astroid/scoped_nodes.py astroid/bases.py astroid/objects.py | head -40",
+    "elapsed_s": 7.49,
+    "reasoning_chars": 254,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 2
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 4.23,
+    "path": "astroid/scoped_nodes.py",
+    "range": [
+     1267,
+     1360
+    ],
+    "reasoning_chars": 61,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -n \"def infer_call_result\" -A 60 astroid/scoped_nodes.py | sed -n '1,200p'",
+    "elapsed_s": 6.86,
+    "reasoning_chars": 160,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && mkdir -p .hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nimport traceback\nimport astroid\n\ndef check(src, expected_repr=\"Const.NoneType\"):\n    node = astroid.extract_node(src)\n    try:\n        inferred = node.inferred()\n    except Exception:  # noqa\n        traceback.print_exc(",
+    "elapsed_s": 127.5,
+    "reasoning_chars": 9251,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -n \"def repr\" astroid/node_classes.py | head",
+    "elapsed_s": 2.53,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nimport traceback\nimport astroid\nfrom astroid import node_classes\n\ndef check(src):\n    node = astroid.extract_node(src)\n    try:\n        inferred = node.inferred()\n    except Exception:  # noqa\n        traceback.print_exc()\n        return",
+    "elapsed_s": 14.61,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -n \"def is_abstract\" -A 40 astroid/scoped_nodes.py | head -60",
+    "elapsed_s": 32.49,
+    "reasoning_chars": 1931,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"does not have any return statements\" ; git grep -rn \"infer_call_result\" tests/ | head -30",
+    "elapsed_s": 17.6,
+    "reasoning_chars": 1264,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 9
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 180.05,
+    "error": "Empty response from model.",
+    "reasoning_chars": 13969,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -n -i \"983\\|empty function\\|implicit None\" ChangeLog 2>/dev/null | head",
+    "elapsed_s": 2.78,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 11
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 12.17,
+    "path": "astroid/scoped_nodes.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 12
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -n \"^from\\|^import\" astroid/scoped_nodes.py | grep -i \"util\" ; git grep -n \"is_abstract(\" -- astroid tests | head -30",
+    "elapsed_s": 7.33,
+    "reasoning_chars": 246,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 13
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 90.77,
+    "path": "astroid/scoped_nodes.py",
+    "reasoning_chars": 4380,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 14
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python /testbed/.hae/reproduce_issue.py && pytest tests/unittest_scoped_nodes.py tests/unittest_inference.py -q 2>&1 | tail -20",
+    "elapsed_s": 4.77,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 15
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '680,715p' tests/unittest_inference.py",
+    "elapsed_s": 2.87,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 16
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls /opt/miniconda3/envs/ && find / -name \"scoped_nodes.py\" -path \"*astroid*\" -not -path \"/testbed/*\" 2>/dev/null | head",
+    "elapsed_s": 138.55,
+    "reasoning_chars": 9984,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 17
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git log --oneline -3 && git status --short",
+    "elapsed_s": 3.29,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 18
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git show f4579c74 --stat | head -20 && git show f4579c74 | head -80",
+    "elapsed_s": 4.09,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 19
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && pytest tests/ -q 2>&1 | tail -12 && git diff",
+    "elapsed_s": 35.0,
+    "reasoning_chars": 2749,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 20
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git stash && pytest tests/unittest_modutils.py::ModuleFileTest::test_find_distutils_submodules_in_virtualenv -q 2>&1 | tail -3; git stash pop",
+    "elapsed_s": 3.98,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 21
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('astroid/scoped_nodes.py')` FAILED (module check failed at repo_tests: whole suite: 1 new failure(s) not present on the clean checkout: tests/unittest_inference.py::InferenceTest::test_invalid_subscripts):\nFailing test `--tb=short` traceback (['tests/unittest_inference.py::InferenceTest::test_invalid_subscripts', 'tests/unittest_modutils.py', 'tests/unittest_modutils.py::ModuleFileTest::test_find_distutils_submodules_in_virtualenv']):\nFF                                                                       [100%]\n====================",
+    "elapsed_s": 18.31,
+    "gatekeeper_ok": false,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 22
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 175.27,
+    "error": "Empty response from model.",
+    "reasoning_chars": 12740,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 23
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 10.47,
+    "path": "astroid/scoped_nodes.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 24
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 11.68,
+    "path": "astroid/inference.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 25
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git diff -- astroid/inference.py astroid/scoped_nodes.py && git status --short && ls .hae 2>/dev/null || true",
+    "elapsed_s": 11.61,
+    "reasoning_chars": 837,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"infer_call_result\" -- astroid/ | head -50 && echo \"=== reproduce ===\" && cat .hae/reproduce_issue.py",
+    "elapsed_s": 6.33,
+    "reasoning_chars": 292,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 205,245p astroid/inference.py && echo \"=== scoped 1690-1760 ===\" && sed -n 1690,1760p astroid/scoped_nodes.py && echo \"=== grep Call._infer ===\" && git grep -n \"_infer = \" -- astroid/ | head -40",
+    "elapsed_s": 15.8,
+    "reasoning_chars": 789,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 1655,1706p astroid/scoped_nodes.py && echo \"=== tests referencing is_abstract ===\" && git grep -n \"is_abstract\" -- tests/ astroid/ | head -30",
+    "elapsed_s": 55.42,
+    "reasoning_chars": 4165,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 4
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 9.23,
+    "path": "astroid/inference.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 5
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 5.58,
+    "path": "astroid/scoped_nodes.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 6
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 11.09,
+    "path": "astroid/scoped_nodes.py",
+    "reasoning_chars": 234,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python .hae/reproduce_issue.py; echo \"exit=$?\"; echo \"=== grep tests ===\"; git grep -n \"does not have any return statements\\|implicit_return\\|no_return\\|empty_function\" -- tests/ astroid/ | head -30",
+    "elapsed_s": 77.75,
+    "reasoning_chars": 6191,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 8
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 13.06,
+    "path": "astroid/scoped_nodes.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python .hae/reproduce_issue.py; echo \"exit=$?\"",
+    "elapsed_s": 3.58,
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git status --short && git diff -- astroid/scoped_nodes.py && sed -n '1720,1790p' astroid/scoped_nodes.py && ls -la .hae 2>/dev/null || true",
+    "elapsed_s": 16.66,
+    "reasoning_chars": 1269,
+    "specialist": "L2_DeltaRefinement_b1.1.1",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def is_abstract\" -- astroid/ && sed -n \"$(git grep -n 'def is_abstract' -- astroid/mixins.py astroid/node_classes.py astroid/scoped_nodes.py | head -1 | cut -d: -f2),+45p\" $(git grep -l 'def is_abstract' -- astroid/)",
+    "elapsed_s": 32.05,
+    "reasoning_chars": 2528,
+    "specialist": "L2_DeltaRefinement_b1.1.1",
+    "turn": 2
+   }
+  ],
+  "base_commit": "53a20335357bbd734d74c3bfe22e3518f74f4d11",
+  "best_checkpoint": {
+   "changed_files": [
+    "astroid/scoped_nodes.py"
+   ],
+   "note": "- Gatekeeper `verify_module('astroid/scoped_nodes.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+   "rank_key": [
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    0
+   ],
+   "specialist": "L2_b1.1.1",
+   "turn": 3
+  },
+  "budget_moves": 48,
+  "changed_files": [
+   "astroid/scoped_nodes.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-pylint-dev-astroid-983/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "pylint-dev__astroid-983",
+  "iterations": [
+   {
+    "best_checkpoint": {
+     "changed_files": [
+      "astroid/scoped_nodes.py"
+     ],
+     "note": "- Gatekeeper `verify_module('astroid/scoped_nodes.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "L2_b1.1.1",
+     "turn": 3
+    },
+    "iteration": 1,
+    "moves_used": 38,
+    "patched": true,
+    "recheck": {
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "resolved_by_agentic_gatekeeper",
+    "synthesized_paths": [
+     "astroid/scoped_nodes.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "astroid/inference.py",
+    "rationale": "The inference logic for function calls, specifically handling the return value of functions with no explicit return statements (implicit None), is implemented in the inference module.",
+    "resolved": "astroid/inference.py"
+   }
+  ],
+  "moves_used": 38,
+  "patch_chars": 969,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "astroid",
+   "repo_tests": {
+    "baseline_failures": 1,
+    "budget_s": 15.0,
+    "duration_s": 14.08,
+    "mode": "whole_suite",
+    "reason": "",
+    "summary": "1 failed, 954 passed, 55 skipped, 10 xfailed, 1 warning in 10.38s",
+    "target": "tests",
+    "timeout_s": 60.0
+   },
+   "tried": [
+    "astroid"
+   ]
+  },
+  "repo": "pylint-dev/astroid",
+  "reproduction": [],
+  "resolved_by_self_oracle": true,
+  "root_module": "astroid/inference.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [],
+   "failure": "Cannot infer empty functions",
+   "paths": [
+    "astroid/inference.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "resolved_by_agentic_gatekeeper",
+  "task_features": {
+   "complexity": 0.1437,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 437,
+   "tags": [
+    "astroid",
+    "inference",
+    "cannot",
+    "infer",
+    "empty",
+    "functions",
+    "steps",
+    "reproduce",
+    "extract_node",
+    "pass",
+    "inferred",
+    "current",
+    "behavior",
+    "raises",
+    "stopiteration",
+    "returns",
+    "const",
+    "nonetype",
+    "__pkginfo__",
+    "print",
+    "version",
+    "output",
+    "applies",
+    "procedural",
+    "don",
+    "explicitly",
+    "any",
+    "values"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "53a20335357bbd734d74c3bfe22e3518f74f4d11",
+  "created_at": "2021-05-01T03:28:27Z",
+  "environment_setup_commit": "d2ae3940a1a374253cc95d8fe83cb96f7a57e843",
+  "hints_text": "",
+  "instance_id": "pylint-dev__astroid-983",
+  "problem_statement": "Cannot infer empty functions\n### Steps to reproduce\r\n```python\r\nimport astroid\r\nastroid.extract_node(\"\"\"\r\ndef f():\r\n    pass\r\nf()\r\n\"\"\").inferred()\r\n```\r\n### Current behavior\r\nraises `StopIteration`\r\n\r\n### Expected behavior\r\nReturns `[const.NoneType]`\r\n\r\n### ``python -c \"from astroid import __pkginfo__; print(__pkginfo__.version)\"`` output\r\n\r\n2.0.0\r\n\r\nThis also applies to procedural functions which don't explicitly return any values.\n",
+  "repo": "pylint-dev/astroid",
+  "version": "2.5"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 39,
+  "thought_tokens": 18399
+ },
+ "token_usage": 349750,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

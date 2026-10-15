@@ -1,0 +1,1137 @@
+{
+ "authored_files": [
+  "astroid/brain/brain_builtin_inference.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 1448.16,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.0425,
+  "calibration_tested": 2,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 13,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 4,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 2,
+  "hypotheses_tested": 2,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 3.4,
+  "ledger_hash": "15a4b5582a0f814551e35a31e1667e83e0c3b2dea2a4a8927ffc29c41f560690",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 4,
+  "questions": 4,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 3,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 2.42,
+  "resolved_fraction": 0.288235,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 293574,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v13_hierarchical_ab_mcts_firm_0",
+  "counters": {
+   "e": 13,
+   "h": 4,
+   "q": 4
+  },
+  "created_at": 1792042718.268,
+  "evidence_log": [
+   {
+    "command": "mkdir -p /testbed/.hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom astroid import extract_node, util\n\ncode = \"\"\"\nx = None\ny = \"{!r}\".format(x)\nz = \"{}\".format(x)\n\"\"\"\n\nnode = extract_node(c",
+    "created_at": 1792042815.662,
+    "detail": "agentic reproduction probe reproduced bug",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "question_id": "q1",
+    "sha256": "05997a46afa4686bad4de5fdec5195f864b5d919c5c21fa14756478175501a3d",
+    "stderr": "Traceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 10, in <module>\n    assigns = node.body\nAttributeError: 'Assign' object has no attribute 'body'\ncommand terminated with exit code 1\n",
+    "stdout": ""
+   },
+   {
+    "command": "verify_module astroid/brain/brain_builtin_inference.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-1866/testbed:/testbed)",
+    "created_at": 1792043128.853,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e2",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "73e9a1dbde5ba27f4d2389b60ec2d1865e7da2f51590b3449c87b39cee8841ae",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK astroid/brain/brain_builtin_inference.py\n\n[import] IMPORT_OK astroid.brain.brain_builtin_inference\n\n[static_check] no undefined names (1002 lines)\n[repo_tests] no test file near astroid/brain/brain_builtin_inference.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module astroid/brain/brain_builtin_inference.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-1866/testbed:/testbed)",
+    "created_at": 1792043139.117,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e3",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "73e9a1dbde5ba27f4d2389b60ec2d1865e7da2f51590b3449c87b39cee8841ae",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK astroid/brain/brain_builtin_inference.py\n\n[import] IMPORT_OK astroid.brain.brain_builtin_inference\n\n[static_check] no undefined names (1002 lines)\n[repo_tests] no test file near astroid/brain/brain_builtin_inference.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module astroid/brain/brain_builtin_inference.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-1866/testbed:/testbed)",
+    "created_at": 1792043660.655,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e4",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "92876901956cdd5e5ce437b8852d6058a512184cd690a6a873e3e1ae2ec216ed",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK astroid/brain/brain_builtin_inference.py\n\n[import] IMPORT_OK astroid.brain.brain_builtin_inference\n\n[static_check] no undefined names (1008 lines)\n[repo_tests] no test file near astroid/brain/brain_builtin_inference.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module astroid/brain/brain_builtin_inference.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-1866/testbed:/testbed)",
+    "created_at": 1792043701.681,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e5",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "92876901956cdd5e5ce437b8852d6058a512184cd690a6a873e3e1ae2ec216ed",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK astroid/brain/brain_builtin_inference.py\n\n[import] IMPORT_OK astroid.brain.brain_builtin_inference\n\n[static_check] no undefined names (1008 lines)\n[repo_tests] no test file near astroid/brain/brain_builtin_inference.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module astroid/brain/brain_builtin_inference.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-1866/testbed:/testbed)",
+    "created_at": 1792043713.526,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "92876901956cdd5e5ce437b8852d6058a512184cd690a6a873e3e1ae2ec216ed",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK astroid/brain/brain_builtin_inference.py\n\n[import] IMPORT_OK astroid.brain.brain_builtin_inference\n\n[static_check] no undefined names (1008 lines)\n[repo_tests] no test file near astroid/brain/brain_builtin_inference.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module astroid/brain/brain_builtin_inference.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-1866/testbed:/testbed)",
+    "created_at": 1792043726.931,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e7",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "92876901956cdd5e5ce437b8852d6058a512184cd690a6a873e3e1ae2ec216ed",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK astroid/brain/brain_builtin_inference.py\n\n[import] IMPORT_OK astroid.brain.brain_builtin_inference\n\n[static_check] no undefined names (1008 lines)\n[repo_tests] no test file near astroid/brain/brain_builtin_inference.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module astroid/brain/brain_builtin_inference.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-1866/testbed:/testbed)",
+    "created_at": 1792044112.242,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e8",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "cdf64243c99628f84346e71d2e2290e6ae120421d6dd0b3380aebec5e6d4c261",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK astroid/brain/brain_builtin_inference.py\n\n[import] IMPORT_OK astroid.brain.brain_builtin_inference\n\n[static_check] no undefined names (1005 lines)\n[repo_tests] no test file near astroid/brain/brain_builtin_inference.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module astroid/brain/brain_builtin_inference.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-1866/testbed:/testbed)",
+    "created_at": 1792044126.049,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e9",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "cdf64243c99628f84346e71d2e2290e6ae120421d6dd0b3380aebec5e6d4c261",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK astroid/brain/brain_builtin_inference.py\n\n[import] IMPORT_OK astroid.brain.brain_builtin_inference\n\n[static_check] no undefined names (1005 lines)\n[repo_tests] no test file near astroid/brain/brain_builtin_inference.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "verify_module astroid/brain/brain_builtin_inference.py (in place via kubectl:default/swebench-tb-pylint-dev-astroid-1866/testbed:/testbed)",
+    "created_at": 1792044143.105,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e10",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "cdf64243c99628f84346e71d2e2290e6ae120421d6dd0b3380aebec5e6d4c261",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK astroid/brain/brain_builtin_inference.py\n\n[import] IMPORT_OK astroid.brain.brain_builtin_inference\n\n[static_check] no undefined names (1005 lines)\n[repo_tests] no test file near astroid/brain/brain_builtin_inference.py by the proximity heuristic; step skipped\n"
+   },
+   {
+    "command": "v13_mcts_verify_b1",
+    "created_at": 1792044160.994,
+    "detail": "- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "evidence_id": "e11",
+    "exit_code": 0,
+    "hypothesis_id": "h2",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "1db68beb53f7c0fb62340a8baa51838f6f8b9d647d424b03e49e66cbb9f7bade",
+    "stderr": "",
+    "stdout": "- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0)."
+   },
+   {
+    "command": "v13_mcts_verify_b1.1",
+    "created_at": 1792044160.994,
+    "detail": "- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n{'a': [Uninferable], 'b': [Uninferable], 'c': [Uninferable], 'd': [Uninferable]}\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 19, in <module>\n    assert [r.value for r in results[\"c\"]] == [\"None\"], results[\"c\"]\nAssertionError: [Uninferable]\ncommand terminated with exit code 1; - Adversarial edge-case script `.hae/audit_edge_cases.py`: PASSED (exit 0).",
+    "evidence_id": "e12",
+    "exit_code": 1,
+    "hypothesis_id": "h3",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "fdaac044abf01fa531727271e64f3636b79f9801020fc91e974bfb31d75a7f11",
+    "stderr": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n{'a': [Uninferable], 'b': [Uninferable], 'c': [Uninferable], 'd': [Uninferable]}\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.p",
+    "stdout": "- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n{'a': [Uninferable], 'b': [Uninferable], 'c': [Uninferable], 'd': [Uninferable]}\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 19, in <module>\n    assert [r.value for r in results[\"c\"]] == [\"None\"], results[\"c\"]\nAssertionError: [Uninferable]\ncommand terminated with exit code 1; - Adversarial edge-case script `.hae/audit_edge_cases.py`: PASSED (exit 0)."
+   },
+   {
+    "command": "v13_mcts_verify_b2",
+    "created_at": 1792044160.994,
+    "detail": "- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\na: [<Const.str l.None at 0x7dde42445ee0>]\nb: [Uninferable]\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 18, in <module>\n    assert isinstance(b[0], nodes.Const) and b[0].value == \"None\", b\nAssertionError: [Uninferable]\ncommand terminated with exit code 1; - Adversarial edge-case script `.hae/audit_edge_cases.py` FAILED (exit 1):\nOK test_valid\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/audit_edge_cases.py\", line 50, in <module>\n    fn()\n  File \"/testbed/.hae/audit_edge_cases.py\", line 17, in test_none_pos\n    assert r is util.Uninferable, r\nAssertionError: Const.str(value='None',\n          kind=None)\ncommand terminated with exit code 1",
+    "evidence_id": "e13",
+    "exit_code": 1,
+    "hypothesis_id": "h4",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "e3235fec8690b2722fc56e8103e02e9e5884806391f0b53d83a3da051fc08ba2",
+    "stderr": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\na: [<Const.str l.None at 0x7dde42445ee0>]\nb: [Uninferable]\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 18, in <modul",
+    "stdout": "- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\na: [<Const.str l.None at 0x7dde42445ee0>]\nb: [Uninferable]\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 18, in <module>\n    assert isinstance(b[0], nodes.Const) and b[0].value == \"None\", b\nAssertionError: [Uninferable]\ncommand terminated with exit code 1; - Adversarial edge-case script `.hae/audit_edge_cases.py` FAILED (exit 1):\nOK test_valid\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/audit_edge_cases.py\", line 50, in <module>\n    fn()\n  File \"/testbed/.hae/audit_edge_cases.py\", line 17, in test_none_pos\n    assert r is util.Uninferable, r\nAssertionError: Const.str(value='None',\n          kind=None)\ncommand terminated with exit code 1"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
+    "created_at": 1792042815.661,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "Traceback (most recent call last): File \"/testbed/.hae/reproduce_issue.py\", line 10, in <module> assigns = node.body AttributeError: 'Assign' object has no attribute 'body' command terminated with exit code 1",
+    "mechanism_signature": "assign attribute attributeerror body call command exit file hae issue last node object recent reproduc reproduce_issue reproduction script standalone terminat testb traceback",
+    "patch_applied": false,
+    "posterior": 0.92,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "prior": 0.85,
+    "probe_code": "from astroid import extract_node, util\n\ncode = \"\"\"\nx = None\ny = \"{!r}\".format(x)\nz = \"{}\".format(x)\n\"\"\"\n\nnode = extract_node(code)\nassigns = node.body\nfor stmt in assigns[1:]:\n    inferred = list(stmt.value.infer())\n    print(stmt.targets[0].name, \"->\", inferred)\n    assert inferred == [util.Uninferable], f\"expected Uninferable, got {inferred}\"\n\n# sanity: normal formatting still works\nnode2 = extract_node('\"{}\".format(1)')\nprint(\"normal ->\", node2.infer())\nassert node2.inferred_value.value == \"1\"\nprint(\"OK\")\n",
+    "probe_rejections": 0,
+    "proposed_by": "AgenticReproductionSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   },
+   {
+    "claim": "[consumer_local] Handle TypeError in _infer_str_format_call: In `_infer_str_format_call`, wrap the `formatted_string = format_template.format(*pos_values, **keyword_values)` line in a try-except block catching `TypeError`. If a `TypeError`",
+    "created_at": 1792044160.994,
+    "epoch": 0,
+    "evidence_ids": [
+     "e11"
+    ],
+    "hypothesis_id": "h2",
+    "last_rejection": "",
+    "mechanism": "locus=consumer_local, V=0.780, files=['astroid/brain/brain_builtin_inference.py']",
+    "mechanism_signature": "_infer_str_format_call astroid block brain brain_builtin_inference catch consumer_local except fil format format_template formatted_string handle keyword_values locu pos_values try typeerror wrap",
+    "patch_applied": false,
+    "posterior": 0.78,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.75,
+    "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "L0_AB_MCTS_b1",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   },
+   {
+    "claim": "Delta refinement of b1 (consumer_local)",
+    "created_at": 1792044160.994,
+    "epoch": 0,
+    "evidence_ids": [
+     "e12"
+    ],
+    "hypothesis_id": "h3",
+    "last_rejection": "",
+    "mechanism": "locus=cont_consumer_local, V=0.400, files=['astroid/brain/brain_builtin_inference.py']",
+    "mechanism_signature": "astroid brain brain_builtin_inference consumer_local cont_consumer_local delta fil locu refinement",
+    "patch_applied": false,
+    "posterior": 0.75,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.75,
+    "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "L0_AB_MCTS_b1.1",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "UNVERIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   },
+   {
+    "claim": "[producer_upstream] Filter Uninferable/None before format call: Before calling `format_template.format(...)`, check if any of the inferred `pos_values` or `keyword_values` are `Uninferable` or `None`. If so, yield `Uninferable` immediately,",
+    "created_at": 1792044160.994,
+    "epoch": 0,
+    "evidence_ids": [
+     "e13"
+    ],
+    "hypothesis_id": "h4",
+    "last_rejection": "",
+    "mechanism": "locus=producer_upstream, V=0.400, files=['astroid/brain/brain_builtin_inference.py']",
+    "mechanism_signature": "astroid before brain brain_builtin_inference call check fil filter format format_template immediate infer keyword_values locu none pos_values producer_upstream uninferable yield",
+    "patch_applied": false,
+    "posterior": 0.75,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.75,
+    "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "L0_AB_MCTS_b2",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "UNVERIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1792042719.553,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1",
+     "h2",
+     "h3",
+     "h4"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "astroid/brain/brain_builtin_inference.py:956",
+    "module": "astroid/brain/brain_builtin_inference.py",
+    "question_id": "q1",
+    "source_failure": "TypeError: unsupported format string passed to NoneType.__format__",
+    "source_failure_key": "swebench:pylint-dev__astroid-1866",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: \"TypeError: unsupported format string passed to NoneType.__format__\" while running type inference in version 2.12.x -- ### Steps to reproduce I have no concise reproducer. Exception happens every time I run pylint on some internal code, with astroid 2.12.10 and 2.12.12 (debian bookworm). It does _not_ happen with earlier versions of astroid (not with version 2.9). The pylinted code itself is \"valid\", it runs in production here. ### Current behavior When running pylint on some code, I get this exception: ``` Traceback (most recent call last): File \"/usr/lib/python3/dist-packages/pylint/utils/ast_walker.py\", line 90, in walk callback(astroid) File \"/usr/lib/python3/dist-packages/pylint/checkers/classes/special_m...",
+    "uncertainty": 0.02
+   },
+   {
+    "created_at": 1792042719.553,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 0.8,
+    "location": "astroid/brain/brain_builtin_inference.py:956",
+    "module": "astroid/brain/brain_builtin_inference.py",
+    "question_id": "q2",
+    "source_failure": "",
+    "source_failure_key": "swebench:pylint-dev__astroid-1866:astroid/brain/brain_builtin_inference.py",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Where in `astroid/brain/brain_builtin_inference.py` (traceback line 956) does the reported behaviour arise? The issue says: \"File \"/usr/lib/python3/dist-packages/astroid/brain/brain_builtin_inference.py\", line 956, in _infer_str_format_call\"",
+    "uncertainty": 0.8
+   },
+   {
+    "created_at": 1792042719.553,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 0.8,
+    "location": "astroid/inference_tip.py:45",
+    "module": "astroid/inference_tip.py",
+    "question_id": "q3",
+    "source_failure": "",
+    "source_failure_key": "swebench:pylint-dev__astroid-1866:astroid/inference_tip.py",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Where in `astroid/inference_tip.py` (traceback line 45) does the reported behaviour arise? The issue says: \"File \"/usr/lib/python3/dist-packages/astroid/inference_tip.py\", line 45, in _inference_tip_cached\"",
+    "uncertainty": 0.8
+   },
+   {
+    "created_at": 1792042719.553,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 0.8,
+    "location": "astroid/nodes/node_ng.py:159",
+    "module": "astroid/nodes/node_ng.py",
+    "question_id": "q4",
+    "source_failure": "",
+    "source_failure_key": "swebench:pylint-dev__astroid-1866:astroid/nodes/node_ng.py",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Where in `astroid/nodes/node_ng.py` (traceback line 159) does the reported behaviour arise? The issue says: \"File \"/usr/lib/python3/dist-packages/astroid/nodes/node_ng.py\", line 159, in infer\"",
+    "uncertainty": 0.8
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "15a4b5582a0f814551e35a31e1667e83e0c3b2dea2a4a8927ffc29c41f560690"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 46,
+   "stats": {
+    "best_checkpoint": {
+     "changed_files": [
+      "astroid/brain/brain_builtin_inference.py"
+     ],
+     "note": "- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "L2_BranchExecutor_b1_consumer_local",
+     "turn": 18
+    },
+    "checkpoints_recorded": 12,
+    "mcts_tree": {
+     "b1": {
+      "alpha": 4.12,
+      "beta": 4.38,
+      "certified": false,
+      "changed_files": [
+       "astroid/brain/brain_builtin_inference.py"
+      ],
+      "children": [
+       "b1.1"
+      ],
+      "falsifier_ok": false,
+      "locus": "consumer_local",
+      "parent_id": "root",
+      "repo_tests_ok": true,
+      "repro_ok": true,
+      "stagnant_steps": 1,
+      "value": 0.78,
+      "visits": 2
+     },
+     "b1.1": {
+      "alpha": 2.6,
+      "beta": 5.4,
+      "certified": false,
+      "changed_files": [
+       "astroid/brain/brain_builtin_inference.py"
+      ],
+      "children": [],
+      "falsifier_ok": false,
+      "locus": "cont_consumer_local",
+      "parent_id": "b1",
+      "repo_tests_ok": true,
+      "repro_ok": false,
+      "stagnant_steps": 1,
+      "value": 0.4,
+      "visits": 1
+     },
+     "b2": {
+      "alpha": 2.6,
+      "beta": 3.4,
+      "certified": false,
+      "changed_files": [
+       "astroid/brain/brain_builtin_inference.py"
+      ],
+      "children": [],
+      "falsifier_ok": false,
+      "locus": "producer_upstream",
+      "parent_id": "root",
+      "repo_tests_ok": true,
+      "repro_ok": false,
+      "stagnant_steps": 0,
+      "value": 0.4,
+      "visits": 1
+     },
+     "root": {
+      "alpha": 2.0,
+      "beta": 2.0,
+      "certified": false,
+      "changed_files": [],
+      "children": [
+       "b1",
+       "b2"
+      ],
+      "falsifier_ok": false,
+      "locus": "root",
+      "parent_id": null,
+      "repo_tests_ok": false,
+      "repro_ok": false,
+      "stagnant_steps": 0,
+      "value": 0.1,
+      "visits": 3
+     }
+    },
+    "mode": "v13_hierarchical_mcts"
+   },
+   "stop_reason": "resolved_by_agentic_gatekeeper",
+   "synthesized_paths": [
+    "astroid/brain/brain_builtin_inference.py"
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-pylint-dev-astroid-1866/testbed:/testbed",
+ "generation": 13,
+ "genome_id": "v13_hierarchical_ab_mcts_firm_0",
+ "instance_id": "pylint-dev__astroid-1866",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.71,
+  "estimated_cost_usd": 0.0286,
+  "flash_count": 26,
+  "flash_input_tokens": 264323,
+  "flash_output_tokens": 29251,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 293574
+ },
+ "prediction_chars": 599,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"_infer_str_format_call\" astroid/brain/brain_builtin_inference.py",
+    "elapsed_s": 3.16,
+    "reasoning_chars": 123,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 1
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.51,
+    "path": "astroid/brain/brain_builtin_inference.py",
+    "range": [
+     900,
+     1005
+    ],
+    "reasoning_chars": 25,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom astroid import extract_node, util\n\ncode = \"\"\"\nx = None\ny = \"{!r}\".format(x)\nz = \"{}\".format(x)\n\"\"\"\n\nnode = extract_node(code)\nassigns = node.body\nfor stmt in assigns[1:]:\n    inferred = list(stmt.value.infer())\n    print(",
+    "elapsed_s": 24.54,
+    "reasoning_chars": 1048,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom astroid import parse, util\n\ncode = \"\"\"\nx = None\ny = \"{!r}\".format(x)\nz = \"{}\".format(x)\n\"\"\"\n\nmodule = parse(code)\nfor stmt in module.body[1:]:\n    inferred = list(stmt.value.infer())\n    print(stmt.targets[0].name, \"->\", inferred)\n ",
+    "elapsed_s": 12.84,
+    "reasoning_chars": 80,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom astroid import parse, util\n\ncode = \"\"\"\nx = None\ny = \"{!r}\".format(x)\nz = \"{}\".format(x)\nw = \"{:d}\".format(x)\n\"\"\"\n\nmodule = parse(code)\nfor stmt in module.body[1:]:\n    inferred = list(stmt.value.infer())\n    print(stmt.targets[0].na",
+    "elapsed_s": 27.79,
+    "reasoning_chars": 830,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom astroid import parse, util\n\ncode = \"\"\"\nx = None\ny = \"{!r}\".format(x)\nz = \"{}\".format(x)\n\"\"\"\n\nmodule = parse(code)\nfor stmt in module.body[1:]:\n    try:\n        inferred = list(stmt.value.infer())\n    except Exception as exc:  # noqa",
+    "elapsed_s": 13.09,
+    "reasoning_chars": 85,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom astroid import parse, util\n\ncode = \"\"\"\nx = None\na = \"{:d}\".format(x)\nb = \"{:.2f}\".format(x)\nc = \"{!r}\".format(x)\nd = \"{}\".format(x)\n\"\"\"\n\nmodule = parse(code)\nfor stmt in module.body[1:]:\n    try:\n        inferred = list(stmt.value.i",
+    "elapsed_s": 13.69,
+    "reasoning_chars": 102,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 7
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 17.29,
+    "path": "astroid/brain/brain_builtin_inference.py",
+    "reasoning_chars": 760,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat << 'EOF' > /testbed/.hae/reproduce_issue.py\nfrom astroid import parse, util\n\ncode = \"\"\"\nx = None\na = \"{:d}\".format(x)\nb = \"{:.2f}\".format(x)\nc = \"{!r}\".format(x)\nd = \"{}\".format(x)\n\"\"\"\n\nmodule = parse(code)\nresults = {}\nfor stmt in module.body[1:]:\n    results[stmt.targets[0].name",
+    "elapsed_s": 15.99,
+    "reasoning_chars": 109,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -i 's/assert node2.inferred_value.value == \"1\"/assert node2.infer().value == \"1\"/' .hae/reproduce_issue.py && python .hae/reproduce_issue.py && python -m pytest tests/unittest_brain_builtin.py -q 2>&1 | tail -5",
+    "elapsed_s": 9.65,
+    "reasoning_chars": 321,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -i 's/assert node2.infer().value == \"1\"/assert [n.value for n in node2.infer()] == [\"1\"]/' .hae/reproduce_issue.py && python .hae/reproduce_issue.py && python -m pytest tests/unittest_brain_builtin.py -q 2>&1 | tail -5",
+    "elapsed_s": 6.24,
+    "reasoning_chars": 54,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 11
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -ln \"str_format\\|\\.format(\" tests/ | head -20",
+    "elapsed_s": 4.08,
+    "reasoning_chars": 94,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 12
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"format\" tests/unittest_brain_builtin.py | head -30",
+    "elapsed_s": 5.53,
+    "reasoning_chars": 234,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 13
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest tests/unittest_brain_builtin.py tests/unittest_inference.py tests/unittest_regrtest.py tests/unittest_stdlib_inference.py -q 2>&1 | tail -5 && git diff",
+    "elapsed_s": 8.02,
+    "reasoning_chars": 314,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 14
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest tests/unittest_brain_builtin.py tests/unittest_inference.py tests/unittest_regrtest.py -q 2>&1 | tail -5",
+    "elapsed_s": 14.6,
+    "reasoning_chars": 900,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 15
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"except (IndexError, KeyError)\\|format_template\\|\\.format(\" astroid/brain/brain_builtin_inference.py",
+    "elapsed_s": 17.75,
+    "reasoning_chars": 1201,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 16
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest tests -q -x 2>&1 | tail -4",
+    "elapsed_s": 6.25,
+    "reasoning_chars": 250,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 17
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "elapsed_s": 14.85,
+    "gatekeeper_ok": true,
+    "reasoning_chars": 56,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 18
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '900,980p' astroid/brain/brain_builtin_inference.py && echo '---' && ls .hae && sed -n '1,80p' .hae/audit_edge_cases.py",
+    "elapsed_s": 36.2,
+    "reasoning_chars": 2272,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git log --oneline -5 && git diff HEAD -- astroid/brain/brain_builtin_inference.py | head -40 && grep -n \"format\" tests/unittest_brain_builtin.py | head -30",
+    "elapsed_s": 4.14,
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '80,120p' tests/unittest_brain_builtin.py",
+    "elapsed_s": 2.21,
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 3
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 177.56,
+    "error": "Empty response from model.",
+    "reasoning_chars": 12865,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest tests/unittest_brain_builtin.py -q 2>&1 | tail -20",
+    "elapsed_s": 9.38,
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python .hae/reproduce_issue.py && echo \"===REPRO OK===\" && python -m pytest tests/unittest_brain_builtin.py tests/unittest_inference.py -q 2>&1 | tail -15",
+    "elapsed_s": 10.02,
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 6
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 81.01,
+    "path": "astroid/brain/brain_builtin_inference.py",
+    "reasoning_chars": 4570,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python .hae/audit_edge_cases.py && echo \"===AUDIT OK===\" && python -m pytest tests/unittest_brain_builtin.py tests/unittest_inference.py -q 2>&1 | tail -8",
+    "elapsed_s": 8.19,
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 8
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n{'a': [Uninferable], 'b': [Uninferable], 'c': [Uninferable], 'd': [Uninferable]}\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 19, in <module>\n    assert [r.value for r in results[\"c\"]] == [\"None\"], results[\"c\"]\nAssertionError: [Uninferable]\ncommand terminated with exit code 1\n- Adversarial edge-case script `.hae/aud",
+    "elapsed_s": 19.97,
+    "gatekeeper_ok": false,
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 9
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 27.1,
+    "path": ".hae/reproduce_issue.py",
+    "range": [
+     1,
+     40
+    ],
+    "reasoning_chars": 1828,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"_infer_str_format_call\" astroid/brain/brain_builtin_inference.py",
+    "elapsed_s": 6.48,
+    "reasoning_chars": 362,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 1
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 3.1,
+    "path": "astroid/brain/brain_builtin_inference.py",
+    "range": [
+     900,
+     1005
+    ],
+    "reasoning_chars": 41,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"format\" tests/unittest_brain_builtin.py | head -50; echo ---; git grep -rn \"\\.format(\" tests/unittest_inference.py | head -40",
+    "elapsed_s": 65.31,
+    "reasoning_chars": 3895,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 3
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.6,
+    "path": "tests/unittest_brain_builtin.py",
+    "range": [
+     25,
+     130
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae && cat > /testbed/.hae/reproduce_issue.py << 'EOF'\n\"\"\"Reproduce TypeError: unsupported format string passed to NoneType.__format__.\"\"\"\nfrom astroid import extract_node, nodes, util\n\n\ndef infer(code):\n    node = extract_node(code)\n    return list(node.infer())\n\n\n# Case a: None ",
+    "elapsed_s": 17.35,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 5
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 185.52,
+    "error": "Empty response from model.",
+    "reasoning_chars": 13383,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -rn \"1866\\|NoneType.__format__\\|format.*None\" ChangeLog | head -20; echo ---; git log --oneline -3",
+    "elapsed_s": 3.01,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 7
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 10.55,
+    "path": "astroid/brain/brain_builtin_inference.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cat > /testbed/.hae/reproduce_issue.py << 'EOF'\n\"\"\"Reproduce TypeError: unsupported format string passed to NoneType.__format__.\"\"\"\nfrom astroid import extract_node, nodes, util\n\n\ndef infer(code):\n    node = extract_node(code)\n    return list(node.infer())\n\n\n# Case a: None as positional arg (valid -",
+    "elapsed_s": 32.14,
+    "reasoning_chars": 358,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 9
+   }
+  ],
+  "base_commit": "6cf238d089cf4b6753c94cfc089b4a47487711e5",
+  "best_checkpoint": {
+   "changed_files": [
+    "astroid/brain/brain_builtin_inference.py"
+   ],
+   "note": "- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+   "rank_key": [
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    0
+   ],
+   "specialist": "L2_BranchExecutor_b1_consumer_local",
+   "turn": 18
+  },
+  "budget_moves": 48,
+  "changed_files": [
+   "astroid/brain/brain_builtin_inference.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-pylint-dev-astroid-1866/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "pylint-dev__astroid-1866",
+  "iterations": [
+   {
+    "best_checkpoint": {
+     "changed_files": [
+      "astroid/brain/brain_builtin_inference.py"
+     ],
+     "note": "- Gatekeeper `verify_module('astroid/brain/brain_builtin_inference.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "L2_BranchExecutor_b1_consumer_local",
+     "turn": 18
+    },
+    "iteration": 1,
+    "moves_used": 46,
+    "patched": true,
+    "recheck": {
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "resolved_by_agentic_gatekeeper",
+    "synthesized_paths": [
+     "astroid/brain/brain_builtin_inference.py"
+    ]
+   }
+  ],
+  "locate": [],
+  "moves_used": 46,
+  "patch_chars": 599,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "astroid",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 15.0,
+    "duration_s": 15.64,
+    "mode": "proximity",
+    "reason": "whole suite did not finish within 15s",
+    "target": "tests"
+   },
+   "tried": [
+    "astroid"
+   ]
+  },
+  "repo": "pylint-dev/astroid",
+  "reproduction": [],
+  "resolved_by_self_oracle": true,
+  "root_module": "astroid/brain/brain_builtin_inference.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [
+    "pylint/checkers/classes/special_methods_checker.py",
+    "astroid/brain/brain_builtin_inference.py",
+    "astroid/inference_tip.py",
+    "astroid/nodes/node_ng.py",
+    "astroid/nodes/scoped_nodes/scoped_nodes.py",
+    "pylint/utils/ast_walker.py"
+   ],
+   "failure": "TypeError: unsupported format string passed to NoneType.__format__",
+   "paths": [
+    "astroid/brain/brain_builtin_inference.py",
+    "astroid/inference_tip.py",
+    "astroid/nodes/node_ng.py",
+    "astroid/nodes/scoped_nodes/scoped_nodes.py"
+   ],
+   "primary_module": "astroid/brain/brain_builtin_inference.py",
+   "root_question_id": "q1",
+   "sub_question_ids": [
+    "q2",
+    "q3",
+    "q4"
+   ]
+  },
+  "stop": "resolved_by_agentic_gatekeeper",
+  "task_features": {
+   "complexity": 0.6595,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 1,
+   "n_failures": 0,
+   "n_modules": 10,
+   "n_paths_mentioned": 10,
+   "source": "problem_statement",
+   "statement_chars": 1928,
+   "tags": [
+    "astroid",
+    "brain",
+    "brain_builtin_inference",
+    "inference_tip",
+    "nodes",
+    "node_ng",
+    "scoped_nodes",
+    "classes",
+    "special_methods_checker",
+    "utils",
+    "ast_walker",
+    "typeerror",
+    "unsupported",
+    "format",
+    "string",
+    "passed",
+    "nonetype",
+    "__format__",
+    "running",
+    "type",
+    "inference",
+    "version",
+    "steps",
+    "reproduce",
+    "concise",
+    "reproducer",
+    "exception",
+    "happens",
+    "every",
+    "time",
+    "run",
+    "pylint",
+    "some",
+    "internal",
+    "code",
+    "debian",
+    "bookworm",
+    "does",
+    "_not_",
+    "happen",
+    "earlier",
+    "versions",
+    "pylinted",
+    "itself",
+    "valid",
+    "runs",
+    "production",
+    "here",
+    "current",
+    "behavior",
+    "get",
+    "traceback",
+    "most",
+    "recent",
+    "call",
+    "last",
+    "usr",
+    "lib",
+    "python3",
+    "dist",
+    "packages"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "6cf238d089cf4b6753c94cfc089b4a47487711e5",
+  "created_at": "2022-11-12T19:21:34Z",
+  "environment_setup_commit": "fe058bff95745371df5796286d33677c21137847",
+  "hints_text": "",
+  "instance_id": "pylint-dev__astroid-1866",
+  "problem_statement": "\"TypeError: unsupported format string passed to NoneType.__format__\" while running type inference in version 2.12.x\n### Steps to reproduce\r\n\r\nI have no concise reproducer. Exception happens every time I run pylint on some internal code, with astroid 2.12.10 and 2.12.12 (debian bookworm). It does _not_ happen with earlier versions of astroid (not with version 2.9). The pylinted code itself is \"valid\", it runs in production here.\r\n\r\n### Current behavior\r\n\r\nWhen running pylint on some code, I get this exception:\r\n```\r\nTraceback (most recent call last):\r\n  File \"/usr/lib/python3/dist-packages/pylint/utils/ast_walker.py\", line 90, in walk\r\n    callback(astroid)\r\n  File \"/usr/lib/python3/dist-packages/pylint/checkers/classes/special_methods_checker.py\", line 183, in visit_functiondef\r\n    inferred = _safe_infer_call_result(node, node)\r\n  File \"/usr/lib/python3/dist-packages/pylint/checkers/classes/special_methods_checker.py\", line 42, in _safe_infer_call_result\r\n    value = next(inferit)\r\n  File \"/usr/lib/python3/dist-packages/astroid/nodes/scoped_nodes/scoped_nodes.py\", line 1749, in infer_call_result\r\n    yield from returnnode.value.infer(context)\r\n  File \"/usr/lib/python3/dist-packages/astroid/nodes/node_ng.py\", line 159, in infer\r\n    results = list(self._explicit_inference(self, context, **kwargs))\r\n  File \"/usr/lib/python3/dist-packages/astroid/inference_tip.py\", line 45, in _inference_tip_cached\r\n    result = _cache[func, node] = list(func(*args, **kwargs))\r\n  File \"/usr/lib/python3/dist-packages/astroid/brain/brain_builtin_inference.py\", line 956, in _infer_str_format_call\r\n    formatted_string = format_template.format(*pos_values, **keyword_values)\r\nTypeError: unsupported format string passed to NoneType.__format__\r\n```\r\n\r\n### Expected behavior\r\n\r\nTypeError exception should not happen\r\n\r\n### `python -c \"from astroid import __pkginfo__; print(__pkginfo__.version)\"` output\r\n\r\n2.12.10,\r\n2.12.12\n",
+  "repo": "pylint-dev/astroid",
+  "version": "2.13"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 46,
+  "thought_tokens": 11552
+ },
+ "token_usage": 293574,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

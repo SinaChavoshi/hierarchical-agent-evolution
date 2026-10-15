@@ -1,0 +1,5 @@
+{
+ "instance_id": "marshmallow-code__marshmallow-1229",
+ "model_name_or_path": "hae-v13-hier-mcts/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/src/marshmallow/schema.py b/src/marshmallow/schema.py\nindex dc2df7e2..bc3725a5 100644\n--- a/src/marshmallow/schema.py\n+++ b/src/marshmallow/schema.py\n@@ -908,6 +908,10 @@ class BaseSchema(base.SchemaABC):\n                 if set_operation == 'intersection':\n                     new_options &= self.set_class(original_options)\n             setattr(self.declared_fields[key], option_name, new_options)\n+            # Propagate the option to a container field (e.g. List(Nested(...))).\n+            container = getattr(self.declared_fields[key], 'container', None)\n+            if container is not None and hasattr(container, option_name):\n+                setattr(container, option_name, new_options)\n \n     def _init_fields(self):\n         \"\"\"Update fields based on schema options.\"\"\"\n"
+}

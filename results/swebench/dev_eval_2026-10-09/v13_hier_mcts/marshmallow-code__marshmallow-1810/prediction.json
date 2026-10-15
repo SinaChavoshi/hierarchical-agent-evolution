@@ -1,0 +1,5 @@
+{
+ "instance_id": "marshmallow-code__marshmallow-1810",
+ "model_name_or_path": "hae-v13-hier-mcts/nvidia-Qwen3.8-Flash-Next-NVFP4",
+ "model_patch": "diff --git a/src/marshmallow/fields.py b/src/marshmallow/fields.py\nindex a82623be..9d7662b2 100644\n--- a/src/marshmallow/fields.py\n+++ b/src/marshmallow/fields.py\n@@ -417,6 +417,8 @@ class Field(FieldABC):\n         ret = self\n         while hasattr(ret, \"parent\"):\n             ret = ret.parent\n+            if isinstance(ret, SchemaABC):\n+                break\n         return ret if isinstance(ret, SchemaABC) else None\n \n \n"
+}

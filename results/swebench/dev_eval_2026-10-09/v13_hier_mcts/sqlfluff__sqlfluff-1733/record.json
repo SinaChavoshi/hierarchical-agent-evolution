@@ -1,0 +1,1083 @@
+{
+ "authored_files": [
+  "src/sqlfluff/rules/L003.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 1719.97,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.0225,
+  "calibration_tested": 1,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 12,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 4,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 1,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "4e314aa2a5fdbaeeb0cf94417a2696a1b8b278db32c6403b86ab302d1b4b0ac5",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 4,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 1,
+  "questions_resolved": 0,
+  "remaining_uncertainty": 0.15,
+  "resolved_fraction": 0.85,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 444410,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v13_hierarchical_ab_mcts_firm_0",
+  "counters": {
+   "e": 12,
+   "h": 4,
+   "q": 1
+  },
+  "created_at": 1792040986.902,
+  "evidence_log": [
+   {
+    "command": "cd /testbed && cat > .hae/reproduce_issue.py << 'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\n\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n       ",
+    "created_at": 1792041121.19,
+    "detail": "agentic reproduction probe reproduced bug",
+    "evidence_id": "e1",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "question_id": "q1",
+    "sha256": "7d08f2207bebd0904bd9148509c0b66f0a274ec45f508c2795263c21a67d6ecf",
+    "stderr": "One fix for L003 not applied, it would re-cause the same error.\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 35, in <module>\n    assert fixed == expected, \"MISMATCH\"\nAssertionError: MISMATCH\ncommand terminated with exit code 1\n",
+    "stdout": "=== FIXED ===\n'WITH example AS (\\n    SELECT\\n         my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\nWITH example AS (\n    SELECT\n         my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L003.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1733/testbed:/testbed)",
+    "created_at": 1792041871.967,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e2",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "832478934f313ccf667f9c5c77403ec5967fe526e5d3e8fe4728118ce1bbddc8",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L003.py\n\n[import] IMPORT_OK sqlfluff.rules.L003\n\n[static_check] no undefined names (801 lines)\n[repo_tests] proximity tests passed: test/rules/std_L003_test.py\n..........                                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n10 passed, 1 warning in 0.30s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L003.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1733/testbed:/testbed)",
+    "created_at": 1792041885.044,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e3",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "832478934f313ccf667f9c5c77403ec5967fe526e5d3e8fe4728118ce1bbddc8",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L003.py\n\n[import] IMPORT_OK sqlfluff.rules.L003\n\n[static_check] no undefined names (801 lines)\n[repo_tests] proximity tests passed: test/rules/std_L003_test.py\n..........                                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n10 passed, 1 warning in 0.30s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L003.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1733/testbed:/testbed)",
+    "created_at": 1792041899.2,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e4",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "7ec511a5ccb8bb38a7f0520630c29f0fecc5c9a47503762ebab96c7be97a5ff1",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L003.py\n\n[import] IMPORT_OK sqlfluff.rules.L003\n\n[static_check] no undefined names (801 lines)\n[repo_tests] proximity tests passed: test/rules/std_L003_test.py\n..........                                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n10 passed, 1 warning in 0.27s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L003.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1733/testbed:/testbed)",
+    "created_at": 1792042189.288,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e5",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "52dd59e21ce3fa056b26f61c3e926369ef234ea66be58cb33612ba4a03e691ce",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L003.py\n\n[import] IMPORT_OK sqlfluff.rules.L003\n\n[static_check] no undefined names (801 lines)\n[repo_tests] proximity tests passed: test/rules/std_L003_test.py\n..........                                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n10 passed, 1 warning in 0.28s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L003.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1733/testbed:/testbed)",
+    "created_at": 1792042202.723,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "b7c0cb385c9aa5f6661cb9104508b0aa07212bc5f33f8079408b5375145e6f06",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L003.py\n\n[import] IMPORT_OK sqlfluff.rules.L003\n\n[static_check] no undefined names (801 lines)\n[repo_tests] proximity tests passed: test/rules/std_L003_test.py\n..........                                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n10 passed, 1 warning in 0.26s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L003.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1733/testbed:/testbed)",
+    "created_at": 1792042218.308,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e7",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "52dd59e21ce3fa056b26f61c3e926369ef234ea66be58cb33612ba4a03e691ce",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L003.py\n\n[import] IMPORT_OK sqlfluff.rules.L003\n\n[static_check] no undefined names (801 lines)\n[repo_tests] proximity tests passed: test/rules/std_L003_test.py\n..........                                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n10 passed, 1 warning in 0.28s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L003.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1733/testbed:/testbed)",
+    "created_at": 1792042672.186,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e8",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "c32d128e133d5b1b89d398d7192404c247c92a6cd7658551fdeeb0fbe1caa4d2",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L003.py\n\n[import] IMPORT_OK sqlfluff.rules.L003\n\n[static_check] no undefined names (806 lines)\n[repo_tests] proximity tests passed: test/rules/std_L003_test.py\n..........                                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n10 passed, 1 warning in 0.28s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/rules/L003.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-1733/testbed:/testbed)",
+    "created_at": 1792042684.953,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e9",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "ad4df4216db349b0c59623f481ef96986003f253886ac924da15adcf2a29456e",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/rules/L003.py\n\n[import] IMPORT_OK sqlfluff.rules.L003\n\n[static_check] no undefined names (806 lines)\n[repo_tests] proximity tests passed: test/rules/std_L003_test.py\n..........                                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:9\n  /testbed/src/sqlfluff/__init__.py:9: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n10 passed, 1 warning in 0.27s\n"
+   },
+   {
+    "command": "v13_mcts_verify_b1",
+    "created_at": 1792042702.634,
+    "detail": "- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT\\n     my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\nWITH example AS (\n    SELECT\n     my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\n\nOne fix for L003 not applied, it would re-cause the same error.\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 35, in <module>\n    assert fixed == expected, \"MISMATCH\"\nAssertionError: MISMATCH\ncommand terminated with exit code 1",
+    "evidence_id": "e10",
+    "exit_code": 1,
+    "hypothesis_id": "h2",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "18cea948202b84a88612aafd09e4f98bfc9b595e9a73e60c1e60e4966500c495",
+    "stderr": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT\\n     my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\nWITH example",
+    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT\\n     my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\nWITH example AS (\n    SELECT\n     my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\n\nOne fix for L003 not applied, it would re-cause the same error.\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 35, in <module>\n    assert fixed == expected, \"MISMATCH\"\nAssertionError: MISMATCH\ncommand terminated with exit code 1"
+   },
+   {
+    "command": "v13_mcts_verify_b1.1",
+    "created_at": 1792042702.634,
+    "detail": "- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT\\n     my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\nWITH example AS (\n    SELECT\n     my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\n\nOne fix for L003 not applied, it would re-cause the same error.\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 35, in <module>\n    assert fixed == expected, \"MISMATCH\"\nAssertionError: MISMATCH\ncommand terminated with exit code 1",
+    "evidence_id": "e11",
+    "exit_code": 1,
+    "hypothesis_id": "h3",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "a4fba34cd2d17fefdefcdb51a7879a0b69d0ddefe3f00163e5134efbfe7f9f49",
+    "stderr": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT\\n     my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\nWITH example",
+    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT\\n     my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\nWITH example AS (\n    SELECT\n     my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\n\nOne fix for L003 not applied, it would re-cause the same error.\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 35, in <module>\n    assert fixed == expected, \"MISMATCH\"\nAssertionError: MISMATCH\ncommand terminated with exit code 1"
+   },
+   {
+    "command": "v13_mcts_verify_b2",
+    "created_at": 1792042702.634,
+    "detail": "- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\n=== RENDERED ===\nWITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 38, in <module>\n    assert fixed == expected, \"MISMATCH\"\nAssertionError: MISMATCH\ncommand terminated with exit code 1",
+    "evidence_id": "e12",
+    "exit_code": 1,
+    "hypothesis_id": "h4",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "8014d9297f04767c6d0e2662453f0d2497dac8becb425083665169d266006a8f",
+    "stderr": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\n=== RENDERED ===\nW",
+    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\n=== RENDERED ===\nWITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 38, in <module>\n    assert fixed == expected, \"MISMATCH\"\nAssertionError: MISMATCH\ncommand terminated with exit code 1"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
+    "created_at": 1792041121.19,
+    "epoch": 0,
+    "evidence_ids": [
+     "e1"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "=== FIXED === 'WITH example AS (\\n SELECT\\n my_id,\\n other_thing,\\n one_more\\n FROM\\n my_table\\n)\\n\\nSELECT *\\nFROM example\\n' WITH example AS ( SELECT my_id, other_thing, one_more FROM my_table ) SELECT * FROM example On",
+    "mechanism_signature": "example exit fix hae issue my_id my_table nfrom nselect one_more other_thing reproduc reproduce_issue reproduction script select standalone",
+    "patch_applied": false,
+    "posterior": 0.92,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "prior": 0.85,
+    "probe_code": "from sqlfluff.core import Linter, FluffConfig\n\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\n\nexpected = \"\"\"WITH example AS (\n    SELECT\n        my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\n\ncfg = FluffConfig(overrides={\"dialect\": \"ansi\"})\nlnt = Linter(config=cfg)\nresult = lnt.lint_string(sql, fix=True)\nfixed = result.tree.raw\nprint(\"=== FIXED ===\")\nprint(repr(fixed))\nprint(fixed)\nassert fixed == expected, \"MISMATCH\"\nprint(\"OK\")\n",
+    "probe_rejections": 0,
+    "proposed_by": "AgenticReproductionSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   },
+   {
+    "claim": "[consumer_local] Fix Indentation Calculation for First Field in L003: The bug likely stems from how `Rule_L003` calculates the expected indentation for the first item in a multi-line list (like SELECT fields) when it is moved to a new line.",
+    "created_at": 1792042702.633,
+    "epoch": 0,
+    "evidence_ids": [
+     "e10"
+    ],
+    "hypothesis_id": "h2",
+    "last_rejection": "",
+    "mechanism": "locus=consumer_local, V=0.400, files=['src/sqlfluff/rules/L003.py']",
+    "mechanism_signature": "bug calculat calculation consumer_local field fil first fix indentation item l003 like list locu mov multi new rul rule_l003 select sqlfluff src stem",
+    "patch_applied": false,
+    "posterior": 0.75,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.75,
+    "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "L0_AB_MCTS_b1",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "UNVERIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   },
+   {
+    "claim": "Delta refinement of b1 (consumer_local)",
+    "created_at": 1792042702.634,
+    "epoch": 0,
+    "evidence_ids": [
+     "e11"
+    ],
+    "hypothesis_id": "h3",
+    "last_rejection": "",
+    "mechanism": "locus=cont_consumer_local, V=0.400, files=['src/sqlfluff/rules/L003.py']",
+    "mechanism_signature": "consumer_local cont_consumer_local delta fil l003 locu refinement rul sqlfluff src",
+    "patch_applied": false,
+    "posterior": 0.75,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.75,
+    "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "L0_AB_MCTS_b1.1",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "UNVERIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   },
+   {
+    "claim": "[producer_upstream] Correct Raw Stack Reordering in _reorder_raw_stack: Investigate `_reorder_raw_stack` and `_make_indent`. The issue might be that when the first field is moved, the whitespace/indentation tokens preceding it are not being",
+    "created_at": 1792042702.634,
+    "epoch": 0,
+    "evidence_ids": [
+     "e12"
+    ],
+    "hypothesis_id": "h4",
+    "last_rejection": "",
+    "mechanism": "locus=producer_upstream, V=0.400, files=['src/sqlfluff/rules/L003.py']",
+    "mechanism_signature": "_make_indent _reorder_raw_stack correct field fil first indentation investigate issue l003 locu mov preced producer_upstream raw reorder rul sqlfluff src stack token whitespace",
+    "patch_applied": false,
+    "posterior": 0.75,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.75,
+    "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "L0_AB_MCTS_b2",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "UNVERIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1792040988.236,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1",
+     "h2",
+     "h3",
+     "h4"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "src/sqlfluff/rules/L003.py",
+    "question_id": "q1",
+    "source_failure": "Extra space when first field moved to new line in a WITH statement",
+    "source_failure_key": "swebench:sqlfluff__sqlfluff-1733",
+    "source_failure_tag": "swebench",
+    "status": "OPEN",
+    "text": "Reproduce the reported behaviour: Extra space when first field moved to new line in a WITH statement -- Note, the query below uses a `WITH` statement. If I just try to fix the SQL within the CTE, this works fine. Given the following SQL: ```sql WITH example AS ( SELECT my_id, other_thing, one_more FROM my_table ) SELECT * FROM example ``` ## Expected Behaviour after running `sqlfluff fix` I'd expect (`my_id` gets moved down and indented properly): ```sql WITH example AS ( SELECT my_id, other_thing, one_more FROM my_table ) SELECT * FROM example ``` ## Observed Behaviour after running `sqlfluff fix` we get (notice that `my_id` is indented one extra space) ```sql WITH example AS ( SELECT my_id, ot...",
+    "uncertainty": 0.15
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "4e314aa2a5fdbaeeb0cf94417a2696a1b8b278db32c6403b86ab302d1b4b0ac5"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 44,
+   "stats": {
+    "best_checkpoint": {
+     "changed_files": [
+      "src/sqlfluff/rules/L003.py"
+     ],
+     "note": "- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\n=== RENDERED ===\nWITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 38, in <module>\n    assert fixed == expected, \"MISMATCH\"\nAssertionError: MISMATCH\ncommand terminated with exit code 1",
+     "rank_key": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     "specialist": "L2_b2",
+     "turn": 3
+    },
+    "checkpoints_recorded": 10,
+    "mcts_tree": {
+     "b1": {
+      "alpha": 2.6,
+      "beta": 5.9,
+      "certified": false,
+      "changed_files": [
+       "src/sqlfluff/rules/L003.py"
+      ],
+      "children": [
+       "b1.1"
+      ],
+      "falsifier_ok": false,
+      "locus": "consumer_local",
+      "parent_id": "root",
+      "repo_tests_ok": true,
+      "repro_ok": false,
+      "stagnant_steps": 1,
+      "value": 0.4,
+      "visits": 2
+     },
+     "b1.1": {
+      "alpha": 2.6,
+      "beta": 5.4,
+      "certified": false,
+      "changed_files": [
+       "src/sqlfluff/rules/L003.py"
+      ],
+      "children": [],
+      "falsifier_ok": false,
+      "locus": "cont_consumer_local",
+      "parent_id": "b1",
+      "repo_tests_ok": true,
+      "repro_ok": false,
+      "stagnant_steps": 1,
+      "value": 0.4,
+      "visits": 1
+     },
+     "b2": {
+      "alpha": 2.6,
+      "beta": 3.4,
+      "certified": false,
+      "changed_files": [
+       "src/sqlfluff/rules/L003.py"
+      ],
+      "children": [],
+      "falsifier_ok": false,
+      "locus": "producer_upstream",
+      "parent_id": "root",
+      "repo_tests_ok": true,
+      "repro_ok": false,
+      "stagnant_steps": 0,
+      "value": 0.4,
+      "visits": 1
+     },
+     "root": {
+      "alpha": 2.0,
+      "beta": 2.0,
+      "certified": false,
+      "changed_files": [],
+      "children": [
+       "b1",
+       "b2"
+      ],
+      "falsifier_ok": false,
+      "locus": "root",
+      "parent_id": null,
+      "repo_tests_ok": false,
+      "repro_ok": false,
+      "stagnant_steps": 0,
+      "value": 0.1,
+      "visits": 3
+     }
+    },
+    "mode": "v13_hierarchical_mcts"
+   },
+   "stop_reason": "best_checkpoint_restored",
+   "synthesized_paths": [
+    "src/sqlfluff/rules/L003.py"
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-1733/testbed:/testbed",
+ "generation": 13,
+ "genome_id": "v13_hierarchical_ab_mcts_firm_0",
+ "instance_id": "sqlfluff__sqlfluff-1733",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.58,
+  "estimated_cost_usd": 0.0422,
+  "flash_count": 26,
+  "flash_input_tokens": 405144,
+  "flash_output_tokens": 39266,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 444410
+ },
+ "prediction_chars": 707,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "bash",
+    "command": "cd /testbed && mkdir -p .hae && git grep -n \"first\" src/sqlfluff/rules/L003.py | head -80 && echo '---' && git grep -n \"indent\" src/sqlfluff/rules/L003.py | head -120",
+    "elapsed_s": 17.42,
+    "reasoning_chars": 955,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 430,620p src/sqlfluff/rules/L003.py",
+    "elapsed_s": 4.25,
+    "reasoning_chars": 126,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/reproduce_issue.py << 'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\n\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\n\nexpected = \"\"\"WITH example AS (\n    SELECT\n        my_id,\n  ",
+    "elapsed_s": 13.21,
+    "reasoning_chars": 30,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 254,300p src/sqlfluff/rules/L003.py && echo '=== rules ===' && ls src/sqlfluff/rules/ | tail -20 && echo '=== re-cause ===' && git grep -n \"re-cause\" src/sqlfluff/",
+    "elapsed_s": 35.41,
+    "reasoning_chars": 1600,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug.py << 'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\ncfg = FluffConfig(overrides={\"dialect\": \"ansi\"})\nlnt = Linter(config=cfg",
+    "elapsed_s": 48.26,
+    "reasoning_chars": 2726,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug2.py << 'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\ncfg = FluffConfig(overrides={\"dialect\": \"ansi\"})\nlnt = Linter(config=cf",
+    "elapsed_s": 11.56,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug3.py << 'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\ncfg = FluffConfig(overrides={\"dialect\": \"ansi\"})\nlnt = Linter(config=cf",
+    "elapsed_s": 13.05,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat src/sqlfluff/rules/L036.py",
+    "elapsed_s": 24.6,
+    "reasoning_chars": 1754,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 92,150p src/sqlfluff/rules/L036.py",
+    "elapsed_s": 4.01,
+    "reasoning_chars": 186,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug4.py << 'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\ncfg = FluffConfig(overrides={\"dialect\": \"ansi\"})\nlnt = Linter(config=cf",
+    "elapsed_s": 47.83,
+    "reasoning_chars": 2184,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug5.py << 'EOF'\nimport logging\nlogging.basicConfig(level=logging.DEBUG)\nlogging.getLogger(\"sqlfluff.rules.L003\").setLevel(logging.DEBUG)\nfrom sqlfluff.core import Linter, FluffConfig\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    F",
+    "elapsed_s": 64.16,
+    "reasoning_chars": 3521,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 11
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 280,330p src/sqlfluff/rules/L039.py",
+    "elapsed_s": 2.43,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 12
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat src/sqlfluff/rules/L039.py",
+    "elapsed_s": 1.86,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 13
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 455,600p src/sqlfluff/rules/L003.py",
+    "elapsed_s": 98.99,
+    "reasoning_chars": 6524,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 14
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 600,700p src/sqlfluff/rules/L003.py",
+    "elapsed_s": 2.72,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 15
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 254,290p src/sqlfluff/rules/L003.py",
+    "elapsed_s": 3.02,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 16
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'EOF'\nimport re\nsrc = open('src/sqlfluff/rules/L003.py').read()\ni = src.index('Indent expected and not found compared to line')\nprint(src[i-400:i+900])\nEOF",
+    "elapsed_s": 125.07,
+    "reasoning_chars": 9097,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 17
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 686,760p src/sqlfluff/rules/L003.py",
+    "elapsed_s": 2.39,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 18
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n 142,254p src/sqlfluff/rules/L003.py",
+    "elapsed_s": 1.91,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 19
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'EOF'\nsrc = open('src/sqlfluff/rules/L003.py').read()\nold = '''        # Otherwise edit the first element to be the right size\n        else:\n            # Edit the first element of this line's indent.\n            fixes = [\n                LintFix(\n                    \"edit",
+    "elapsed_s": 112.61,
+    "reasoning_chars": 6466,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 20
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'EOF'\nsrc = open('src/sqlfluff/rules/L003.py').read()\nold = '''        # Otherwise edit the first element to be the right size\n        else:\n            # Edit the first element of this line's indent and delete any others.\n            # NB: We need to delete the others, ot",
+    "elapsed_s": 21.31,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 21
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'EOF'\nsrc = open('src/sqlfluff/rules/L003.py').read()\nold = '''        # Otherwise edit the first element to be the right size\n        else:\n            # Edit the first element of this line's indent and delete any others.\n            # NB: We need to delete the others, ot",
+    "elapsed_s": 21.13,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b1_consumer_local",
+    "turn": 22
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat .hae/reproduce_issue.py 2>/dev/null; echo \"=== DIFF ===\"; git diff",
+    "elapsed_s": 7.26,
+    "reasoning_chars": 308,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 1
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 4.71,
+    "path": "src/sqlfluff/rules/L003.py",
+    "range": [
+     240,
+     340
+    ],
+    "reasoning_chars": 67,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python .hae/reproduce_issue.py 2>&1 | tail -30",
+    "elapsed_s": 3.7,
+    "reasoning_chars": 60,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"would re-cause the same error\" -- src/",
+    "elapsed_s": 12.21,
+    "reasoning_chars": 738,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug1.py <<'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\n\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\n\ncfg = FluffConfig(overrides={\"dialect\": \"ansi\"})\nlnt = Linter(config=c",
+    "elapsed_s": 59.07,
+    "reasoning_chars": 2705,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug2.py <<'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\n\nsql = \"\"\"WITH example AS (\n    SELECT\n     my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\n\ncfg = FluffConfig(overrides={\"dialect\": \"ansi\"})\nlnt = Linter(con",
+    "elapsed_s": 13.41,
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug3.py <<'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\n\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\n\ncfg = FluffConfig(overrides={\"dialect\": \"ansi\"})\nlnt = Linter(config=c",
+    "elapsed_s": 10.8,
+    "reasoning_chars": 0,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug4.py <<'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\n\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\n\ncfg = FluffConfig(overrides={\"dialect\": \"ansi\"})\nlnt = Linter(config=c",
+    "elapsed_s": 44.25,
+    "reasoning_chars": 1648,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 8
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 12.41,
+    "path": "src/sqlfluff/core/linter/linter.py",
+    "range": [
+     230,
+     330
+    ],
+    "reasoning_chars": 529,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug5.py <<'EOF'\nimport logging\nlogging.basicConfig(level=logging.DEBUG)\nfrom sqlfluff.core import Linter, FluffConfig\nsql = \"\"\"WITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\"\"\"\ncfg = FluffConfi",
+    "elapsed_s": 49.29,
+    "reasoning_chars": 2220,
+    "specialist": "L2_DeltaRefinement_b1.1",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae\ngit grep -n \"def fix_string\\|def lint_string\\|class Linter\" src/sqlfluff | head -50\ngit grep -n \"_reorder_raw_stack\\|_make_indent\" src/sqlfluff/rules/L003.py\npython -m sqlfluff fix --help | head -30",
+    "elapsed_s": 64.01,
+    "reasoning_chars": 3096,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 1
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.36,
+    "path": "src/sqlfluff/rules/L003.py",
+    "range": [
+     40,
+     160
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\n\nsql = (\n    \"WITH example AS (\\n\"\n    \"    SELECT my_id,\\n\"\n    \"        other_thing,\\n\"\n    \"        one_more\\n\"\n    \"    FROM\\n\"\n    \"        my_table\\n\"\n    \")\\n\"\n    \"\\n\"\n    \"SELECT *\\n\"\n    \"FROM exa",
+    "elapsed_s": 16.73,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "ls src/sqlfluff/rules/ | head -60\npython -c \"import sqlfluff; print(sqlfluff.__version__)\"",
+    "elapsed_s": 11.05,
+    "reasoning_chars": 524,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\nsql = (\"WITH example AS (\\n    SELECT my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n\")\nlinter = Linter()\nres = linter.lint_string(sql, fix=True)\nprint(repr(res.tr",
+    "elapsed_s": 8.73,
+    "reasoning_chars": 215,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python - << 'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\nsql = (\"WITH example AS (\\n    SELECT my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n\")\nlinter = Linter()\nres = linter.lint_string(sql)\nfor v in res.violations:\n  ",
+    "elapsed_s": 9.71,
+    "reasoning_chars": 248,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug.py << 'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\nfrom sqlfluff.rules.L003 import Rule_L003\n\norig = Rule_L003._process_raw_stack.__func__\ndef patched(cls, raw_stack, memory=None, tab_space_size=4, templated_file=None):\n    res = orig(cls, raw_stack, memory, ta",
+    "elapsed_s": 56.75,
+    "reasoning_chars": 2621,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/debug2.py << 'EOF'\nfrom sqlfluff.core import Linter, FluffConfig\nfrom sqlfluff.rules.L003 import Rule_L003\n\norig = Rule_L003._process_current_line\ndef patched(self, res, memory):\n    lr = orig(self, res, memory)\n    print(\"LINE\", res[\"line_no\"], \"indent_size\", res[\"indent_s",
+    "elapsed_s": 22.2,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 8
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.7,
+    "path": "src/sqlfluff/rules/L003.py",
+    "range": [
+     500,
+     740
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 9
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 182.72,
+    "error": "Empty response from model.",
+    "reasoning_chars": 12662,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 10
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 14.88,
+    "path": "src/sqlfluff/rules/L003.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 11
+   }
+  ],
+  "base_commit": "a1579a16b1d8913d9d7c7d12add374a290bcc78c",
+  "best_checkpoint": {
+   "changed_files": [
+    "src/sqlfluff/rules/L003.py"
+   ],
+   "note": "- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\n=== RENDERED ===\nWITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 38, in <module>\n    assert fixed == expected, \"MISMATCH\"\nAssertionError: MISMATCH\ncommand terminated with exit code 1",
+   "rank_key": [
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    0
+   ],
+   "specialist": "L2_b2",
+   "turn": 3
+  },
+  "budget_moves": 48,
+  "changed_files": [
+   "src/sqlfluff/rules/L003.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-sqlfluff-sqlfluff-1733/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "sqlfluff__sqlfluff-1733",
+  "iterations": [
+   {
+    "best_checkpoint": {
+     "changed_files": [
+      "src/sqlfluff/rules/L003.py"
+     ],
+     "note": "- Gatekeeper `verify_module('src/sqlfluff/rules/L003.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n=== FIXED ===\n'WITH example AS (\\n    SELECT my_id,\\n        other_thing,\\n        one_more\\n    FROM\\n        my_table\\n)\\n\\nSELECT *\\nFROM example\\n'\n=== RENDERED ===\nWITH example AS (\n    SELECT my_id,\n        other_thing,\n        one_more\n    FROM\n        my_table\n)\n\nSELECT *\nFROM example\n\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 38, in <module>\n    assert fixed == expected, \"MISMATCH\"\nAssertionError: MISMATCH\ncommand terminated with exit code 1",
+     "rank_key": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0
+     ],
+     "specialist": "L2_b2",
+     "turn": 3
+    },
+    "iteration": 1,
+    "moves_used": 44,
+    "patched": true,
+    "recheck": {
+     "verdict": "unresolved"
+    },
+    "resolved_this_iteration": [],
+    "stop_reason": "best_checkpoint_restored",
+    "synthesized_paths": [
+     "src/sqlfluff/rules/L003.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "src/sqlfluff/rules/L003.py",
+    "rationale": "The issue describes incorrect indentation (extra space) when a field is moved to a new line, which is the specific domain of the L003 indentation rule logic.",
+    "resolved": "src/sqlfluff/rules/L003.py"
+   }
+  ],
+  "moves_used": 44,
+  "patch_chars": 707,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "sqlfluff",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 15.0,
+    "duration_s": 15.64,
+    "mode": "proximity",
+    "reason": "whole suite did not finish within 15s",
+    "target": "test"
+   },
+   "tried": [
+    "sqlfluff"
+   ]
+  },
+  "repo": "sqlfluff/sqlfluff",
+  "reproduction": [],
+  "resolved_by_self_oracle": false,
+  "root_module": "src/sqlfluff/rules/L003.py",
+  "root_question_id": "q1",
+  "root_status": "OPEN",
+  "seed": {
+   "candidates": [],
+   "failure": "Extra space when first field moved to new line in a WITH statement",
+   "paths": [
+    "src/sqlfluff/rules/L003.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "best_checkpoint_restored",
+  "task_features": {
+   "complexity": 0.2226,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 1226,
+   "tags": [
+    "sqlfluff",
+    "rules",
+    "l003",
+    "extra",
+    "space",
+    "first",
+    "field",
+    "moved",
+    "new",
+    "statement",
+    "note",
+    "query",
+    "below",
+    "uses",
+    "just",
+    "try",
+    "fix",
+    "sql",
+    "within",
+    "cte",
+    "works",
+    "fine",
+    "given",
+    "following",
+    "example",
+    "select",
+    "my_id",
+    "other_thing",
+    "one_more",
+    "my_table",
+    "behaviour",
+    "after",
+    "running",
+    "expect",
+    "gets",
+    "down",
+    "indented",
+    "properly",
+    "observed",
+    "get"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "a1579a16b1d8913d9d7c7d12add374a290bcc78c",
+  "created_at": "2021-10-22T18:23:33Z",
+  "environment_setup_commit": "67023b85c41d23d6c6d69812a41b207c4f8a9331",
+  "hints_text": "",
+  "instance_id": "sqlfluff__sqlfluff-1733",
+  "problem_statement": "Extra space when first field moved to new line in a WITH statement\nNote, the query below uses a `WITH` statement. If I just try to fix the SQL within the CTE, this works fine.\r\n\r\nGiven the following SQL:\r\n\r\n```sql\r\nWITH example AS (\r\n    SELECT my_id,\r\n        other_thing,\r\n        one_more\r\n    FROM\r\n        my_table\r\n)\r\n\r\nSELECT *\r\nFROM example\r\n```\r\n\r\n## Expected Behaviour\r\n\r\nafter running `sqlfluff fix` I'd expect (`my_id` gets moved down and indented properly):\r\n\r\n```sql\r\nWITH example AS (\r\n    SELECT\r\n        my_id,\r\n        other_thing,\r\n        one_more\r\n    FROM\r\n        my_table\r\n)\r\n\r\nSELECT *\r\nFROM example\r\n```\r\n\r\n## Observed Behaviour\r\n\r\nafter running `sqlfluff fix` we get (notice that `my_id` is indented one extra space)\r\n\r\n```sql\r\nWITH example AS (\r\n    SELECT\r\n         my_id,\r\n        other_thing,\r\n        one_more\r\n    FROM\r\n        my_table\r\n)\r\n\r\nSELECT *\r\nFROM example\r\n```\r\n\r\n## Steps to Reproduce\r\n\r\nNoted above. Create a file with the initial SQL and fun `sqfluff fix` on it.\r\n\r\n## Dialect\r\n\r\nRunning with default config.\r\n\r\n## Version\r\nInclude the output of `sqlfluff --version` along with your Python version\r\n\r\nsqlfluff, version 0.7.0\r\nPython 3.7.5\r\n\r\n## Configuration\r\n\r\nDefault config.\r\n\n",
+  "repo": "sqlfluff/sqlfluff",
+  "version": "0.6"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 45,
+  "thought_tokens": 15695
+ },
+ "token_usage": 444410,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}
