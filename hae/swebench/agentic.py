@@ -1353,7 +1353,7 @@ class AgenticSweEngine:
                     f"({elapsed_total:.1f}s >= {self.max_wall_s:.0f}s); finalizing best checkpoint."
                 )
                 break
-            use_thinking = (no_think_cooldown <= 0)
+            use_thinking = (turn == 1) and (no_think_cooldown <= 0)
             if no_think_cooldown > 0:
                 no_think_cooldown -= 1
             turn_temp = min(0.7, temperature + 0.15 * min(consecutive_parse_errors, 3))

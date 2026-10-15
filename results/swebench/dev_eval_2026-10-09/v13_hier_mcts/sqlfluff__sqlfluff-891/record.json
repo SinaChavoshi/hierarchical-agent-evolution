@@ -4,34 +4,34 @@
  ],
  "budget": null,
  "budget_exhausted": false,
- "elapsed_seconds": 1729.32,
+ "elapsed_seconds": 1404.91,
  "epistemic_audit": {
   "budget_moves": 0,
   "calibration_brier": 0.0225,
   "calibration_tested": 1,
   "delta_u_total": 0,
   "duplicate_rejections": 0,
-  "evidence": 8,
+  "evidence": 18,
   "evidence_backed_fraction": 1.0,
   "experiments": 0,
   "forced_low_prior_picks": 0,
   "forced_low_prior_wins": 0,
   "frontier_admissions": 0,
-  "hypotheses": 3,
+  "hypotheses": 5,
   "hypotheses_certified": 0,
   "hypotheses_falsified": 0,
   "hypotheses_supported": 1,
   "hypotheses_tested": 1,
   "hypotheses_untestable": 0,
   "initial_uncertainty": 1.0,
-  "ledger_hash": "34f4bd9e1d9ff901f66a8f6c4886273e13234e0bf0cacd49d42f170dccd7fbc3",
+  "ledger_hash": "8a45fae7eb614894431d92d0212474277ad97890f095cf7dca6f69975a1a7a87",
   "low_prior_wins": 0,
   "moves_used": 0,
   "overconfident_falsified": 0,
   "probe_repairs": 0,
   "probes_refused": 0,
   "proposal_rounds": 0,
-  "proposed_total": 3,
+  "proposed_total": 5,
   "questions": 1,
   "questions_certified": 0,
   "questions_deferred": 0,
@@ -47,21 +47,21 @@
   "syntheses": 0,
   "syntheses_verified": 0,
   "tabu_rejections": 0,
-  "token_usage": 286136,
+  "token_usage": 879843,
   "unbacked_claims": 0
  },
  "epistemic_ledger": {
   "company_id": "v13_hierarchical_ab_mcts_firm_0",
   "counters": {
-   "e": 8,
-   "h": 3,
+   "e": 18,
+   "h": 5,
    "q": 1
   },
-  "created_at": 1792091712.798,
+  "created_at": 1792104844.504,
   "evidence_log": [
    {
-    "command": "cd /testbed && mkdir -p .hae && cat << 'EOF' > .hae/reproduce_issue.py\nfrom sqlfluff.core import Linter, FluffConfig\n\nsql = \"\"\"\nSELECT\n    a  +  b AS c,  -- noqa: L006\n    d  +  e AS f,\n    /*\n    noq",
-    "created_at": 1792093005.899,
+    "command": "cd /testbed && cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nfrom sqlfluff.core import Linter\n\ndef check(sql, expected):\n    lntr = Linter(config=Linter.from_kwargs if False else None)\n    lntr = Li",
+    "created_at": 1792105011.908,
     "detail": "agentic reproduction probe reproduced bug",
     "evidence_id": "e1",
     "exit_code": 1,
@@ -73,13 +73,13 @@
      "expect_exit_code": 1
     },
     "question_id": "q1",
-    "sha256": "fd240a355136d82c562becea96c23fe21d052ed7dc14e8a9f1c75176adac585d",
-    "stderr": "Traceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 14, in <module>\n    result = lntr.lint_string(sql)\n  File \"/testbed/src/sqlfluff/core/linter.py\", line 1078, in lint_string\n    ignore_entry = self.extract_ignore_from_comment(comment)\n  File \"/testbed/src/sqlfluff/core/linter.py\", line 924, in extract_ignore_from_comment\n    comment_remainder = line_content[line_content.partition(\"noqa\")[2]:]\nTypeError: slice indices must be integers or None or have an __index__ method\ncommand terminated with exit code 1\n",
+    "sha256": "2ff446327e8a059b0047230cf5a910ca3a3cae248d3954364a935d206e83f237",
+    "stderr": "Traceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 14, in <module>\n    check(\"select 1+2\\n-- noqa: disable=all\\nselect 3+4\\n\", [])\n  File \"/testbed/.hae/reproduce_issue.py\", line 7, in check\n    tuples = sorted(result.check_tuples())\n  File \"/testbed/src/sqlfluff/core/linter.py\", line 117, in check_tuples\n    raise v\nsqlfluff.core.errors.SQLParseError: Found unparsable section: '\\n-- noqa: disable=all\\nselect 3+4'\ncommand terminated with exit code 1\n",
     "stdout": ""
    },
    {
     "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
-    "created_at": 1792093049.217,
+    "created_at": 1792105238.278,
     "detail": "module check passed: py_compile, import, static_check, repo_tests",
     "evidence_id": "e2",
     "exit_code": 0,
@@ -91,13 +91,13 @@
      "expect_exit_code": 0
     },
     "question_id": "q1",
-    "sha256": "f4adca742a867846fd43b13775f5cfc548a1564724175acd827d88219005b492",
+    "sha256": "b48e3550f117cabe9f6d55f6c327a601174a637d5a209406f5716ea6876cfdcd",
     "stderr": "",
-    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1337 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.03s\n"
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1402 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.03s\n"
    },
    {
     "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
-    "created_at": 1792093072.886,
+    "created_at": 1792105254.54,
     "detail": "module check passed: py_compile, import, static_check, repo_tests",
     "evidence_id": "e3",
     "exit_code": 0,
@@ -109,13 +109,13 @@
      "expect_exit_code": 0
     },
     "question_id": "q1",
-    "sha256": "f4adca742a867846fd43b13775f5cfc548a1564724175acd827d88219005b492",
+    "sha256": "66401dea56f988c73baf82ee3d0ac3ab66a6594b28422eab7f8635b272482a7b",
     "stderr": "",
-    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1337 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.03s\n"
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1402 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.10s\n"
    },
    {
     "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
-    "created_at": 1792093089.033,
+    "created_at": 1792105270.808,
     "detail": "module check passed: py_compile, import, static_check, repo_tests",
     "evidence_id": "e4",
     "exit_code": 0,
@@ -127,13 +127,13 @@
      "expect_exit_code": 0
     },
     "question_id": "q1",
-    "sha256": "353b48147d9749150a1bf820e7f5d288ece4c5714a9f4a0b5eef2e151257a59c",
+    "sha256": "f6ae74e4dda7c45cc47c5767ad035ffb02bd433284712fab440cca0a8e4769b9",
     "stderr": "",
-    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1337 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.00s\n"
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1402 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.08s\n"
    },
    {
     "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
-    "created_at": 1792093408.602,
+    "created_at": 1792105572.189,
     "detail": "module check passed: py_compile, import, static_check, repo_tests",
     "evidence_id": "e5",
     "exit_code": 0,
@@ -145,13 +145,13 @@
      "expect_exit_code": 0
     },
     "question_id": "q1",
-    "sha256": "353b48147d9749150a1bf820e7f5d288ece4c5714a9f4a0b5eef2e151257a59c",
+    "sha256": "b9145694ca2cf057772a03a49e254a46062ce908116339522fb488658e1a0c84",
     "stderr": "",
-    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1337 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.00s\n"
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1402 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.31s\n"
    },
    {
     "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
-    "created_at": 1792093424.545,
+    "created_at": 1792105589.134,
     "detail": "module check passed: py_compile, import, static_check, repo_tests",
     "evidence_id": "e6",
     "exit_code": 0,
@@ -163,15 +163,159 @@
      "expect_exit_code": 0
     },
     "question_id": "q1",
-    "sha256": "1069d46808235af6be4e3236389e975f56fd5cf54a942bfa7d4b5f4746d50c8f",
+    "sha256": "d885903d6aa65ccf4a9d05de9c3cdf06712213e6498edbebefed837aa130608e",
     "stderr": "",
-    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1337 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 2.95s\n"
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1402 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.40s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
+    "created_at": 1792105605.841,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e7",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "b49beeb0880b9e6506f10057aae7faac04985e3a91a16f77ff54c5f11808d6f1",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1402 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.16s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
+    "created_at": 1792105870.51,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e8",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "ba3b870d17a43135c1afb0580429c5d0f30d3247e4b8cdc841f45eb6b503a4e8",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1404 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.11s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
+    "created_at": 1792105892.292,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e9",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "317ce19d326938425dbba0688e58def249d39e5e0ae63c06c77e93c7609a1235",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1404 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.34s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
+    "created_at": 1792105912.979,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e10",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "2b76e42246bd1603f622136a66822a85e8de5d0071c8159c08bab1faef718557",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1404 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.27s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
+    "created_at": 1792106175.445,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e11",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "783a7e9df388fa739ded81472f4fa770c9e5bd933298e21f912c1587f7cabe8e",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1408 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 3.00s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
+    "created_at": 1792106192.1,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e12",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "7fb6fa9dcf0108b1854810db595b28d87f3ffb8df2caab173673754756cd7a82",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1408 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 2.94s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
+    "created_at": 1792106211.005,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e13",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "f9bfb66f7ba29e7683bb403edba0265a2fea53c8cd97fbdec7d855cbcd4ac493",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1408 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 2.96s\n"
+   },
+   {
+    "command": "verify_module src/sqlfluff/core/linter.py (in place via kubectl:default/swebench-tb-sqlfluff-sqlfluff-891/testbed:/testbed)",
+    "created_at": 1792106227.319,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e14",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "6507dc67035c640055684a73e40069590420444c16b892e2855e671dad711546",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK src/sqlfluff/core/linter.py\n\n[import] IMPORT_OK sqlfluff.core.linter\n\n[static_check] no undefined names (1408 lines)\n[repo_tests] proximity tests passed: test/core/linter_test.py\n..........................                                               [100%]\n=============================== warnings summary ===============================\nsrc/sqlfluff/__init__.py:21\n  /testbed/src/sqlfluff/__init__.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n26 passed, 1 warning in 2.97s\n"
    },
    {
     "command": "v13_mcts_verify_b1",
-    "created_at": 1792093437.835,
-    "detail": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n[('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 20, in <module>\n    assert not any(t[1] in (3, 8) for t in tuples), tuples\nAssertionError: [('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\ncommand terminated with exit code 1",
-    "evidence_id": "e7",
+    "created_at": 1792106243.906,
+    "detail": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: []\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 13, in <module>\n    check(\"select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n\", [])\n  File \"/testbed/.hae/reproduce_issue.py\", line 10, in check\n    assert tuples == sorted(expected), (tuples, expected)\nAssertionError: ([('L006', 1, 9), ('L006', 1, 10)], [])\ncommand terminated with exit code 1",
+    "evidence_id": "e15",
     "exit_code": 1,
     "hypothesis_id": "h2",
     "kind": "module_check",
@@ -181,15 +325,15 @@
      "expect_exit_code": 0
     },
     "question_id": "q1",
-    "sha256": "88531e922164002f8848e9aeaf7a02a4e0377782100d637a38d18d47f3c6d055",
-    "stderr": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n[('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\n\nTraceback (most recent ",
-    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n[('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 20, in <module>\n    assert not any(t[1] in (3, 8) for t in tuples), tuples\nAssertionError: [('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\ncommand terminated with exit code 1"
+    "sha256": "28fa0440a87f243b8e5b0c1d0edaafc35feb0da5e580d0510a8389c742ba115f",
+    "stderr": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: []\n\nTraceback (most recent call last):\n  File \"/testbe",
+    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: []\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 13, in <module>\n    check(\"select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n\", [])\n  File \"/testbed/.hae/reproduce_issue.py\", line 10, in check\n    assert tuples == sorted(expected), (tuples, expected)\nAssertionError: ([('L006', 1, 9), ('L006', 1, 10)], [])\ncommand terminated with exit code 1"
    },
    {
-    "command": "v13_mcts_verify_b1.1",
-    "created_at": 1792093437.835,
-    "detail": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n[('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 20, in <module>\n    assert not any(t[1] in (3, 8) for t in tuples), tuples\nAssertionError: [('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\ncommand terminated with exit code 1",
-    "evidence_id": "e8",
+    "command": "v13_mcts_verify_b2",
+    "created_at": 1792106243.906,
+    "detail": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;\\n-- noqa: disable=L006\\nselect 3+4\\nfrom t;\\n'\n  got: [\n... [truncated 537 chars] ...\nL006\", 1, 10)])\n  File \"/testbed/.hae/reproduce_issue.py\", line 12, in check\n    assert tuples == sorted(expected), (tuples, expected)\nAssertionError: ([('L006', 1, 9), ('L006', 1, 10), ('L006', 7, 9), ('L006', 7, 10)], [('L006', 1, 9), ('L006', 1, 10)])\ncommand terminated with exit code 1",
+    "evidence_id": "e16",
     "exit_code": 1,
     "hypothesis_id": "h3",
     "kind": "module_check",
@@ -199,30 +343,66 @@
      "expect_exit_code": 0
     },
     "question_id": "q1",
-    "sha256": "d048ae6c14c2b1824d04b2c0d7f8d4b87f92f8eb5a1b6730c281ad3cf410275a",
-    "stderr": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n[('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\n\nTraceback (most recent ",
-    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n[('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 20, in <module>\n    assert not any(t[1] in (3, 8) for t in tuples), tuples\nAssertionError: [('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\ncommand terminated with exit code 1"
+    "sha256": "2d6963d8ed35bfa06f78a74c4b497382be8d89280d88208484ce3a589ad3d2cf",
+    "stderr": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;",
+    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;\\n-- noqa: disable=L006\\nselect 3+4\\nfrom t;\\n'\n  got: [\n... [truncated 537 chars] ...\nL006\", 1, 10)])\n  File \"/testbed/.hae/reproduce_issue.py\", line 12, in check\n    assert tuples == sorted(expected), (tuples, expected)\nAssertionError: ([('L006', 1, 9), ('L006', 1, 10), ('L006', 7, 9), ('L006', 7, 10)], [('L006', 1, 9), ('L006', 1, 10)])\ncommand terminated with exit code 1"
+   },
+   {
+    "command": "v13_mcts_verify_b3",
+    "created_at": 1792106243.906,
+    "detail": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;\\n-- noqa: disable=L006\\nselect 3+4\\nfrom t;\\n'\n  got: [\n... [truncated 537 chars] ...\nL006\", 1, 10)])\n  File \"/testbed/.hae/reproduce_issue.py\", line 12, in check\n    assert tuples == sorted(expected), (tuples, expected)\nAssertionError: ([('L006', 1, 9), ('L006', 1, 10), ('L006', 7, 9), ('L006', 7, 10)], [('L006', 1, 9), ('L006', 1, 10)])\ncommand terminated with exit code 1",
+    "evidence_id": "e17",
+    "exit_code": 1,
+    "hypothesis_id": "h4",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "83a562c5204536813c8dc1de788fb5af17b85cdd3246d7086d83c571cd5da28c",
+    "stderr": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;",
+    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;\\n-- noqa: disable=L006\\nselect 3+4\\nfrom t;\\n'\n  got: [\n... [truncated 537 chars] ...\nL006\", 1, 10)])\n  File \"/testbed/.hae/reproduce_issue.py\", line 12, in check\n    assert tuples == sorted(expected), (tuples, expected)\nAssertionError: ([('L006', 1, 9), ('L006', 1, 10), ('L006', 7, 9), ('L006', 7, 10)], [('L006', 1, 9), ('L006', 1, 10)])\ncommand terminated with exit code 1"
+   },
+   {
+    "command": "v13_mcts_verify_b4",
+    "created_at": 1792106243.906,
+    "detail": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;\\n-- noqa: disable=L006\\nselect 3+4\\nfrom t;\\n'\n  got: [\n... [truncated 537 chars] ...\nL006\", 1, 10)])\n  File \"/testbed/.hae/reproduce_issue.py\", line 12, in check\n    assert tuples == sorted(expected), (tuples, expected)\nAssertionError: ([('L006', 1, 9), ('L006', 1, 10), ('L006', 7, 9), ('L006', 7, 10)], [('L006', 1, 9), ('L006', 1, 10)])\ncommand terminated with exit code 1",
+    "evidence_id": "e18",
+    "exit_code": 1,
+    "hypothesis_id": "h5",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "e96458eda404dd97f46099d3db568a0572e3cb83302d31f0ee6602a6e81caaa6",
+    "stderr": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;",
+    "stdout": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;\\n-- noqa: disable=L006\\nselect 3+4\\nfrom t;\\n'\n  got: [\n... [truncated 537 chars] ...\nL006\", 1, 10)])\n  File \"/testbed/.hae/reproduce_issue.py\", line 12, in check\n    assert tuples == sorted(expected), (tuples, expected)\nAssertionError: ([('L006', 1, 9), ('L006', 1, 10), ('L006', 7, 9), ('L006', 7, 10)], [('L006', 1, 9), ('L006', 1, 10)])\ncommand terminated with exit code 1"
    }
   ],
   "hypotheses": [
    {
     "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
-    "created_at": 1792093005.898,
+    "created_at": 1792105011.908,
     "epoch": 0,
     "evidence_ids": [
      "e1"
     ],
     "hypothesis_id": "h1",
     "last_rejection": "",
-    "mechanism": "Traceback (most recent call last): File \"/testbed/.hae/reproduce_issue.py\", line 14, in <module> result = lntr.lint_string(sql) File \"/testbed/src/sqlfluff/core/linter.py\", line 1078, in lint_string ignore_entry = self.extract_ignore_from_comment(comment) File \"/testbed/src/sqlfluff/co",
-    "mechanism_signature": "call comment core exit extract_ignore_from_comment file hae ignore_entry issue last lint_string linter lntr recent reproduc reproduce_issue reproduction result script self sql sqlfluff src standalone testb traceback",
+    "mechanism": "Traceback (most recent call last): File \"/testbed/.hae/reproduce_issue.py\", line 14, in <module> check(\"select 1+2\\n-- noqa: disable=all\\nselect 3+4\\n\", []) File \"/testbed/.hae/reproduce_issue.py\", line 7, in check tuples = sorted(result.check_tuples()) File \"/testbed/src/sqlfluff/core",
+    "mechanism_signature": "call check check_tuples core disable exit file hae issue last noqa nselect recent reproduc reproduce_issue reproduction result script select sort sqlfluff src standalone testb traceback tupl",
     "patch_applied": false,
     "posterior": 0.92,
     "prediction": {
      "expect_exit_code": 1
     },
     "prior": 0.85,
-    "probe_code": "from sqlfluff.core import Linter, FluffConfig\n\nsql = \"\"\"\nSELECT\n    a  +  b AS c,  -- noqa: L006\n    d  +  e AS f,\n    /*\n    noqa: L006\n    */\n    g  +  h AS i\nFROM tbl\n\"\"\"\nlntr = Linter(config=FluffConfig(overrides={\"dialect\": \"ansi\"}))\nresult = lntr.lint_string(sql)\nprint([v.check_tuple() for v in result.violations])\ntuples = [v.check_tuple() for v in result.violations]\n# line 4 (d + e) should still be reported; lines 3 and 8 ignored\nassert (3, None) not in tuples\nassert any(t[1] == 4 for t in tuples), tuples\nassert not any(t[1] in (3, 8) for t in tuples), tuples\nprint(\"OK\")\n",
+    "probe_code": "from sqlfluff.core import Linter\n\ndef check(sql, expected):\n    lntr = Linter(config=Linter.from_kwargs if False else None)\n    lntr = Linter()\n    result = lntr.lint_string(sql)\n    tuples = sorted(result.check_tuples())\n    print(repr(sql))\n    print(\"  got:\", tuples)\n    print(\"  exp:\", sorted(expected))\n    assert tuples == sorted(expected), (tuples, expected)\n\n# disable all\ncheck(\"select 1+2\\n-- noqa: disable=all\\nselect 3+4\\n\", [])\n# disable specific\ncheck(\"select 1+2\\n-- noqa: disable=L006\\nselect 3+4\\n\", [(\"L006\", 1, 9)])\n# enable back\ncheck(\"select 1+2\\n-- noqa: disable=all\\nselect 3+4\\n-- noqa: enable=all\\nselect 5+6\\n\", [(\"L006\", 5, 9)])\n# plain noqa still works\ncheck(\"select 1+2 -- noqa\\n\", [])\ncheck(\"select 1+2\\nselect 3+4 -- noqa: L006\\n\", [(\"L006\", 1, 9)])\nprint(\"ALL OK\")\n",
     "probe_rejections": 0,
     "proposed_by": "AgenticReproductionSpecialist",
     "question_id": "q1",
@@ -233,16 +413,16 @@
     "visits": 0
    },
    {
-    "claim": "[consumer_local] Complete Cohesive Primary Root-Cause Fix: Modify the `Linter` class in `src/sqlfluff/core/linter.py`. Specifically, locate the method responsible for filtering violations based on `noqa` comments (likely `_filter_violations",
-    "created_at": 1792093437.835,
+    "claim": "[consumer_local] Complete Cohesive Primary Root-Cause Fix: 1. Modify `src/sqlfluff/core/linter.py` to add state tracking for noqa directives. 2. Implement `parse_noqa` (or update existing `_parse_noqa`) to recognize `noqa:enable` and `noqa",
+    "created_at": 1792106243.906,
     "epoch": 0,
     "evidence_ids": [
-     "e7"
+     "e15"
     ],
     "hypothesis_id": "h2",
     "last_rejection": "",
-    "mechanism": "locus=consumer_local, V=0.400, files=['src/sqlfluff/core/linter.py']",
-    "mechanism_signature": "_filter_violations bas cause cohesive comment complete consumer_local core fil filter fix like linter locate locu modify noqa primary responsible root specifical sqlfluff src violation",
+    "mechanism": "locus=consumer_local, V=0.386, files=['src/sqlfluff/core/linter.py']",
+    "mechanism_signature": "_parse_noqa add cause cohesive complete consumer_local core directiv enable exist fil fix implement linter locu modify noqa parse_noqa primary recognize root sqlfluff src state track update",
     "patch_applied": false,
     "posterior": 0.75,
     "prediction": {
@@ -260,16 +440,16 @@
     "visits": 0
    },
    {
-    "claim": "Delta refinement of b1 (consumer_local)",
-    "created_at": 1792093437.835,
+    "claim": "[producer_upstream] Move 37: Upstream Producer / State-Invariant Fix: 1. Investigate if `noqa` parsing is currently handled in `parser/helpers.py` or `linter.py`. 2. If parsing is in `helpers.py`, refactor to return a structured object or",
+    "created_at": 1792106243.906,
     "epoch": 0,
     "evidence_ids": [
-     "e8"
+     "e16"
     ],
     "hypothesis_id": "h3",
     "last_rejection": "",
-    "mechanism": "locus=cont_consumer_local, V=0.400, files=['src/sqlfluff/core/linter.py']",
-    "mechanism_signature": "consumer_local cont_consumer_local core delta fil linter locu refinement sqlfluff src",
+    "mechanism": "locus=producer_upstream, V=0.386, files=['src/sqlfluff/core/linter.py']",
+    "mechanism_signature": "core current fil fix handl helper invariant investigate linter locu move noqa object pars parser producer producer_upstream refactor sqlfluff src state structur upstream",
     "patch_applied": false,
     "posterior": 0.75,
     "prediction": {
@@ -278,7 +458,61 @@
     "prior": 0.75,
     "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
     "probe_rejections": 0,
-    "proposed_by": "L0_AB_MCTS_b1.1",
+    "proposed_by": "L0_AB_MCTS_b2",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "UNVERIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   },
+   {
+    "claim": "[codebase_symmetry] Sibling-Aligned & Convention-Symmetric Fix: 1. Implement the enable/disable logic in `linter.py` following the existing pattern for `noqa` handling. 2. Add comprehensive unit tests in `test/core/linter_test.py` (or equi",
+    "created_at": 1792106243.906,
+    "epoch": 0,
+    "evidence_ids": [
+     "e17"
+    ],
+    "hypothesis_id": "h4",
+    "last_rejection": "",
+    "mechanism": "locus=codebase_symmetry, V=0.381, files=['src/sqlfluff/core/linter.py']",
+    "mechanism_signature": "add align codebase_symmetry comprehensive convention core disable enable equi exist fil fix follow handl implement linter linter_test locu logic noqa pattern sibl sqlfluff src symmetric unit",
+    "patch_applied": false,
+    "posterior": 0.75,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.75,
+    "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "L0_AB_MCTS_b3",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "UNVERIFIED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   },
+   {
+    "claim": "[counterfactual_move37] Move 37 Counterfactual Root-Cause Branch: Prior branches hit a local optimum or failed verification: - Node `b1` (locus=`consumer_local`, V=0.39, files=['src/sqlfluff/core/linter.py']): claim=[consumer_local] Complet",
+    "created_at": 1792106243.906,
+    "epoch": 0,
+    "evidence_ids": [
+     "e18"
+    ],
+    "hypothesis_id": "h5",
+    "last_rejection": "",
+    "mechanism": "locus=counterfactual_move37, V=0.382, files=['src/sqlfluff/core/linter.py']",
+    "mechanism_signature": "branch cause claim complet consumer_local core counterfactual counterfactual_move37 fil hit linter local locu move node optimum prior root sqlfluff src verification",
+    "patch_applied": false,
+    "posterior": 0.75,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.75,
+    "probe_code": "# verified via V13 Hierarchical Agentic AB-MCTS\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "L0_AB_MCTS_b4",
     "question_id": "q1",
     "role_id": "",
     "status": "UNVERIFIED",
@@ -290,13 +524,15 @@
   "move_log": [],
   "questions": [
    {
-    "created_at": 1792091714.036,
+    "created_at": 1792104845.87,
     "failure_epoch": 0,
     "failure_history": [],
     "hypothesis_ids": [
      "h1",
      "h2",
-     "h3"
+     "h3",
+     "h4",
+     "h5"
     ],
     "hypothesis_rounds": 0,
     "initial_uncertainty": 1.0,
@@ -313,18 +549,18 @@
   ],
   "ruled_out": [],
   "settled_knowledge": [],
-  "state_hash": "34f4bd9e1d9ff901f66a8f6c4886273e13234e0bf0cacd49d42f170dccd7fbc3"
+  "state_hash": "8a45fae7eb614894431d92d0212474277ad97890f095cf7dca6f69975a1a7a87"
  },
  "epistemic_searches": [
   {
    "iteration": 1,
-   "moves_used": 27,
+   "moves_used": 64,
    "stats": {
     "best_checkpoint": {
      "changed_files": [
       "src/sqlfluff/core/linter.py"
      ],
-     "note": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n[('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 20, in <module>\n    assert not any(t[1] in (3, 8) for t in tuples), tuples\nAssertionError: [('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\ncommand terminated with exit code 1",
+     "note": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;\\n-- noqa: disable=L006\\nselect 3+4\\nfrom t;\\n'\n  got: [\n... [truncated 537 chars] ...\nL006\", 1, 10)])\n  File \"/testbed/.hae/reproduce_issue.py\", line 12, in check\n    assert tuples == sorted(expected), (tuples, expected)\nAssertionError: ([('L006', 1, 9), ('L006', 1, 10), ('L006', 7, 9), ('L006', 7, 10)], [('L006', 1, 9), ('L006', 1, 10)])\ncommand terminated with exit code 1",
      "rank_key": [
       0,
       0,
@@ -334,45 +570,77 @@
       1,
       0
      ],
-     "specialist": "L2_b1.1",
+     "specialist": "L2_b2",
      "turn": 2
     },
-    "checkpoints_recorded": 9,
+    "checkpoints_recorded": 26,
     "mcts_tree": {
      "b1": {
-      "alpha": 2.6,
-      "beta": 5.9,
-      "certified": false,
-      "changed_files": [
-       "src/sqlfluff/core/linter.py"
-      ],
-      "children": [
-       "b1.1"
-      ],
-      "falsifier_ok": false,
-      "locus": "consumer_local",
-      "parent_id": "root",
-      "repo_tests_ok": true,
-      "repro_ok": false,
-      "stagnant_steps": 1,
-      "value": 0.4,
-      "visits": 2
-     },
-     "b1.1": {
-      "alpha": 2.6,
-      "beta": 5.4,
+      "alpha": 2.54,
+      "beta": 3.46,
       "certified": false,
       "changed_files": [
        "src/sqlfluff/core/linter.py"
       ],
       "children": [],
       "falsifier_ok": false,
-      "locus": "cont_consumer_local",
-      "parent_id": "b1",
+      "locus": "consumer_local",
+      "parent_id": "root",
       "repo_tests_ok": true,
       "repro_ok": false,
-      "stagnant_steps": 1,
-      "value": 0.4,
+      "stagnant_steps": 0,
+      "value": 0.3855,
+      "visits": 1
+     },
+     "b2": {
+      "alpha": 2.54,
+      "beta": 3.46,
+      "certified": false,
+      "changed_files": [
+       "src/sqlfluff/core/linter.py"
+      ],
+      "children": [],
+      "falsifier_ok": false,
+      "locus": "producer_upstream",
+      "parent_id": "root",
+      "repo_tests_ok": true,
+      "repro_ok": false,
+      "stagnant_steps": 0,
+      "value": 0.3855,
+      "visits": 1
+     },
+     "b3": {
+      "alpha": 2.52,
+      "beta": 3.48,
+      "certified": false,
+      "changed_files": [
+       "src/sqlfluff/core/linter.py"
+      ],
+      "children": [],
+      "falsifier_ok": false,
+      "locus": "codebase_symmetry",
+      "parent_id": "root",
+      "repo_tests_ok": true,
+      "repro_ok": false,
+      "stagnant_steps": 0,
+      "value": 0.381,
+      "visits": 1
+     },
+     "b4": {
+      "alpha": 2.53,
+      "beta": 3.47,
+      "certified": false,
+      "changed_files": [
+       "src/sqlfluff/core/linter.py"
+      ],
+      "children": [],
+      "falsifier_ok": false,
+      "locus": "counterfactual_move37",
+      "parent_id": "root",
+      "repo_tests_ok": true,
+      "repro_ok": false,
+      "stagnant_steps": 0,
+      "value": 0.3815,
       "visits": 1
      },
      "root": {
@@ -381,7 +649,10 @@
       "certified": false,
       "changed_files": [],
       "children": [
-       "b1"
+       "b1",
+       "b2",
+       "b3",
+       "b4"
       ],
       "falsifier_ok": false,
       "locus": "root",
@@ -390,7 +661,7 @@
       "repro_ok": false,
       "stagnant_steps": 0,
       "value": 0.1,
-      "visits": 2
+      "visits": 5
      }
     },
     "mode": "v13_hierarchical_mcts"
@@ -408,240 +679,573 @@
  "opex": {
   "budget_usd": 0.5,
   "cost_penalty": 0.0,
-  "efficiency_bonus": 4.68,
-  "estimated_cost_usd": 0.0322,
+  "efficiency_bonus": 4.31,
+  "estimated_cost_usd": 0.0692,
   "flash_count": 26,
-  "flash_input_tokens": 238303,
-  "flash_output_tokens": 47833,
+  "flash_input_tokens": 865457,
+  "flash_output_tokens": 14386,
   "fully_measured": true,
   "headcount": 32,
   "pro_count": 6,
   "pro_input_tokens": 0,
   "pro_output_tokens": 0,
-  "total_tokens": 286136
+  "total_tokens": 879843
  },
- "prediction_chars": 3090,
+ "prediction_chars": 6327,
  "swebench": {
   "agentic_trajectory": [
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -n \"noqa\" -- 'src/**/*.py' | head -50",
-    "elapsed_s": 3.83,
-    "reasoning_chars": 62,
+    "command": "cd /testbed && git grep -n \"noqa\\|ignore_mask\\|extract_ignore_from_comment\\|_ignore_masked_violations\\|get_violations\" -- src/sqlfluff/core/linter.py",
+    "elapsed_s": 5.63,
+    "reasoning_chars": 79,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 1
    },
    {
     "action": "view_file",
-    "elapsed_s": 4.62,
+    "elapsed_s": 2.79,
     "path": "src/sqlfluff/core/linter.py",
     "range": [
-     860,
-     1100
+     1,
+     180
     ],
-    "reasoning_chars": 67,
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 2
    },
    {
-    "action": "bash",
-    "command": "cd /testbed && git grep -n \"ignore_mask\\|ignore_if_in\\|is_ignored\" -- 'src/**/*.py' 'test/**/*.py' | head -40",
-    "elapsed_s": 4.85,
-    "reasoning_chars": 56,
+    "action": "view_file",
+    "elapsed_s": 3.07,
+    "path": "src/sqlfluff/core/linter.py",
+    "range": [
+     900,
+     1130
+    ],
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 3
    },
    {
-    "action": "view_file",
-    "elapsed_s": 4.97,
-    "path": "src/sqlfluff/core/linter.py",
-    "range": [
-     100,
-     200
-    ],
-    "reasoning_chars": 71,
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def line_no\\|def rule_code\" -- src/sqlfluff/core/errors.py",
+    "elapsed_s": 4.05,
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 4
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -rn \"noqa\" -- 'test/**' | head -40 && echo \"=== docs ===\" && git grep -rn \"noqa\" -- 'docs/**' | head -20",
-    "elapsed_s": 5.8,
-    "reasoning_chars": 113,
+    "command": "cd /testbed && git grep -rn \"extract_ignore_from_comment\\|parse_noqa\\|ignore_mask\\|NoQaDirective\" -- test/ | head -40",
+    "elapsed_s": 4.42,
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 5
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git log --oneline -3 && git log --all --oneline | head -5 && timeout 25 pip download sqlfluff==0.4.1 --no-deps -d /tmp/dl 2>&1 | tail -5",
-    "elapsed_s": 174.26,
-    "reasoning_chars": 11522,
+    "command": "cd /testbed && git grep -rn \"noqa\" -- test/ | head -40",
+    "elapsed_s": 2.53,
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 6
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -n \"def raw_trimmed\\|def line_no\" -- src/sqlfluff/core/parser/segments/base.py src/sqlfluff/core/parser/markers.py | head",
-    "elapsed_s": 4.08,
+    "command": "cd /testbed && sed -n '195,230p' test/core/linter_test.py",
+    "elapsed_s": 2.71,
     "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 7
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -rn \"def raw_trimmed\\|def line_no\" -- 'src/**/*.py' | head",
-    "elapsed_s": 3.08,
+    "command": "cd /testbed && cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nfrom sqlfluff.core import Linter\n\ndef check(sql, expected):\n    lntr = Linter(config=Linter.from_kwargs if False else None)\n    lntr = Linter()\n    result = lntr.lint_string(sql)\n    tuples = sorted(result.check_tuples())\n    print(repr(",
+    "elapsed_s": 19.26,
     "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 8
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -rn \"extract_ignore_from_comment\\|ignore_mask\\|NoQaDirective\\|parse_noqa\" -- 'test/**' 'docs/**' 'src/**' | head -20 && echo \"=== linter_test noqa test ===\" && sed -n 195,230p test/core/linter_test.py",
-    "elapsed_s": 197.42,
-    "reasoning_chars": 12939,
+    "command": "cd /testbed && cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nfrom sqlfluff.core import Linter\n\ndef check(sql, expected):\n    lntr = Linter()\n    result = lntr.lint_string(sql)\n    tuples = sorted(result.check_tuples())\n    print(repr(sql))\n    print(\"  got:\", tuples)\n    print(\"  exp:\", sorted(exp",
+    "elapsed_s": 18.62,
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 9
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -rn \"noqa\" -- 'test/fixtures/**' | head -20 && echo \"=== ignore_mask in test ===\" && git grep -rn \"ignore_mask\\|ignore_buff\" -- 'test/**' | head",
-    "elapsed_s": 4.71,
+    "command": "cd /testbed && cat > /tmp/t.sql << 'EOF'\nselect 1+2\nfrom t\n-- noqa: disable=all\nselect 3+4\nfrom t\nEOF\npython -m sqlfluff parse /tmp/t.sql 2>&1 | head -40",
+    "elapsed_s": 5.28,
     "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 10
    },
    {
-    "action": "view_file",
-    "elapsed_s": 3.56,
-    "path": "src/sqlfluff/core/linter.py",
-    "range": [
-     895,
-     945
-    ],
+    "action": "bash",
+    "command": "cd /testbed && cat > /tmp/t2.sql << 'EOF'\nselect 1+2\nfrom t;\n-- noqa: disable=all\nselect 3+4\nfrom t;\nEOF\npython -m sqlfluff lint /tmp/t2.sql 2>&1 | head -20",
+    "elapsed_s": 5.34,
     "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 11
    },
    {
     "action": "bash",
-    "command": "cd /testbed && sed -n 1,40p src/sqlfluff/core/linter.py",
-    "elapsed_s": 195.98,
-    "reasoning_chars": 15332,
+    "command": "cd /testbed && cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nfrom sqlfluff.core import Linter\n\ndef check(sql, expected):\n    lntr = Linter()\n    result = lntr.lint_string(sql)\n    tuples = sorted(result.check_tuples())\n    print(repr(sql))\n    print(\"  got:\", tuples)\n    print(\"  exp:\", sorted(exp",
+    "elapsed_s": 18.82,
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 12
    },
    {
-    "action": "str_replace",
-    "elapsed_s": 34.21,
-    "path": "src/sqlfluff/core/linter.py",
+    "action": "bash",
+    "command": "cd /testbed && sed -n '55,180p' src/sqlfluff/core/linter.py",
+    "elapsed_s": 2.67,
     "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 13
    },
    {
     "action": "str_replace",
-    "elapsed_s": 12.39,
+    "elapsed_s": 11.9,
     "path": "src/sqlfluff/core/linter.py",
     "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 14
    },
    {
-    "action": "bash",
-    "command": "cd /testbed && git grep -rn \"inline_comment\" -- 'src/**/*.py' | head -20",
-    "elapsed_s": 209.9,
-    "reasoning_chars": 14635,
+    "action": "str_replace",
+    "elapsed_s": 34.16,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 15
    },
    {
     "action": "bash",
-    "command": "cd /testbed && sed -n 40,80p src/sqlfluff/dialects/dialect_ansi.py",
-    "elapsed_s": 2.88,
+    "command": "cd /testbed && sed -n '935,975p' src/sqlfluff/core/linter.py",
+    "elapsed_s": 3.37,
     "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 16
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -rn \"block_comment\" -- 'src/**/*.py' | grep -v dialects | head",
-    "elapsed_s": 2.9,
+    "command": "cd /testbed && sed -n '1095,1125p' src/sqlfluff/core/linter.py",
+    "elapsed_s": 3.67,
     "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 17
    },
    {
-    "action": "bash",
-    "command": "cd /testbed && git grep -rn \"subdivide\" -- 'src/**/*.py' | head -20",
-    "elapsed_s": 203.89,
-    "reasoning_chars": 14368,
+    "action": "str_replace",
+    "elapsed_s": 43.63,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
     "specialist": "L2_BranchExecutor_b1_consumer_local",
     "turn": 18
    },
    {
-    "action": "str_replace",
-    "elapsed_s": 15.59,
-    "path": "src/sqlfluff/core/linter.py",
-    "reasoning_chars": 0,
-    "specialist": "L2_BranchExecutor_b1_consumer_local",
-    "turn": 19
-   },
-   {
     "action": "bash",
-    "command": "cd /testbed && sed -n 40,110p src/sqlfluff/core/parser/lexer.py",
-    "elapsed_s": 3.73,
-    "reasoning_chars": 0,
-    "specialist": "L2_BranchExecutor_b1_consumer_local",
-    "turn": 20
-   },
-   {
-    "action": "bash",
-    "command": "cd /testbed && mkdir -p .hae && cat << 'EOF' > .hae/reproduce_issue.py\nfrom sqlfluff.core import Linter, FluffConfig\n\nsql = \"\"\"\nSELECT\n    a  +  b AS c,  -- noqa: L006\n    d  +  e AS f,\n    /*\n    noqa: L006\n    */\n    g  +  h AS i\nFROM tbl\n\"\"\"\nlntr = Linter(config=FluffConfig(overrides={\"dialect\": ",
-    "elapsed_s": 22.32,
-    "reasoning_chars": 338,
-    "specialist": "L2_BranchExecutor_b1_consumer_local",
-    "turn": 21
-   },
-   {
-    "action": "str_replace",
-    "elapsed_s": 8.02,
-    "path": "src/sqlfluff/core/linter.py",
-    "reasoning_chars": 150,
-    "specialist": "L2_BranchExecutor_b1_consumer_local",
-    "turn": 22
-   },
-   {
-    "action": "bash",
-    "command": "cat /testbed/.hae/reproduce_issue.py; echo ---; git -C /testbed diff",
-    "elapsed_s": 3.69,
-    "reasoning_chars": 80,
-    "specialist": "L2_DeltaRefinement_b1.1",
+    "command": "cd /testbed && git grep -n \"noqa\\|ignore_mask\\|extract_ignore\\|_ignore_masked\\|NoQaDirective\\|parse_noqa\" src/sqlfluff/core/linter.py\n</parameter>\n</parameter>\n<parameter=command>\ncd /testbed && git grep -n \"noqa\\|ignore_mask\\|extract_ignore\\|_ignore_masked\\|NoQaDirective\\|parse_noqa\" src/sqlfluff/c",
+    "elapsed_s": 11.07,
+    "reasoning_chars": 337,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
     "turn": 1
    },
    {
     "action": "bash",
-    "command": "cd /testbed && git grep -n \"noqa\" -- test | head -60; echo ---; ls test/core/",
-    "elapsed_s": 248.82,
-    "reasoning_chars": 17546,
-    "specialist": "L2_DeltaRefinement_b1.1",
+    "command": "cd /testbed && git grep -n \"noqa\\|ignore_mask\\|extract_ignore\\|_ignore_masked\\|NoQaDirective\\|parse_noqa\" src/sqlfluff/core/linter.py",
+    "elapsed_s": 2.97,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
     "turn": 2
    },
    {
-    "action": "bash",
-    "command": "cd /testbed && git log --oneline -3 && git grep -n \"ignore_buff\\|ignore_mask\\|noqa\" src/sqlfluff/core/linter.py | head -40",
-    "elapsed_s": 4.54,
+    "action": "view_file",
+    "elapsed_s": 3.13,
+    "path": "src/sqlfluff/core/linter.py",
+    "range": [
+     1,
+     180
+    ],
     "reasoning_chars": 0,
-    "specialist": "L2_DeltaRefinement_b1.1",
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 3
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 3.43,
+    "path": "src/sqlfluff/core/linter.py",
+    "range": [
+     900,
+     945
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls .hae/ 2>/dev/null && cat .hae/reproduce_issue.py 2>/dev/null; echo \"---TESTS---\"; git grep -n \"parse_noqa\\|NoQaDirective\\|noqa: disable\\|noqa:disable\\|noqa: enable\\|_ignore_masked\" test/ | head -50",
+    "elapsed_s": 5.83,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def line_no\\|def rule_code\\|def check_tuple\" src/sqlfluff/core/errors.py",
+    "elapsed_s": 3.02,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 6
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 3.09,
+    "path": "src/sqlfluff/core/errors.py",
+    "range": [
+     15,
+     75
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 7
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 10.27,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 8
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 35.91,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 9
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 44.65,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python .hae/reproduce_issue.py",
+    "elapsed_s": 2.36,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 11
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 20.88,
+    "path": "/testbed/.hae/reproduce_issue.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 12
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 20.56,
+    "path": ".hae/reproduce_issue.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 13
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/reproduce_issue.py <<'EOF'\nfrom sqlfluff.core import Linter\nfrom sqlfluff.core.errors import SQLParseError\nfrom sqlfluff.core.linter import NoQaDirective, Linter as L\n\ndef check(sql, expected):\n    lntr = Linter()\n    result = lntr.lint_string(sql)\n    tuples = sorted(resul",
+    "elapsed_s": 39.68,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 14
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest test/core/linter_test.py -q 2>&1 | tail -20",
+    "elapsed_s": 2.93,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b2_producer_upstream",
+    "turn": 15
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"noqa\\|ignore_mask\\|extract_ignore_from_comment\\|_ignore_masked_violations\\|parse_noqa\\|get_violations\" src/sqlfluff/core/linter.py test/core/linter_test.py | head -200",
+    "elapsed_s": 12.19,
+    "reasoning_chars": 506,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 1
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.44,
+    "path": "src/sqlfluff/core/linter.py",
+    "range": [
+     1,
+     200
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 2
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.61,
+    "path": "src/sqlfluff/core/linter.py",
+    "range": [
+     890,
+     940
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
     "turn": 3
    },
    {
     "action": "bash",
-    "command": "cd /testbed && sed -n 140,175p src/sqlfluff/core/linter.py && sed -n 905,945p src/sqlfluff/core/linter.py",
-    "elapsed_s": 4.7,
+    "command": "cd /testbed && git grep -n \"noqa\\|disable\\|enable\" test/core/linter_test.py | head -100",
+    "elapsed_s": 3.03,
     "reasoning_chars": 0,
-    "specialist": "L2_DeltaRefinement_b1.1",
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
     "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"noqa\" test/ | head -100",
+    "elapsed_s": 2.02,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"extract_ignore_from_comment\\|ignore_mask\\|NoQaDirective\\|parse_noqa\" test/ src/ | head -100",
+    "elapsed_s": 3.31,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"def line_no\\|def rule_code\\|def check_tuple\" src/sqlfluff/core/errors.py | head -40",
+    "elapsed_s": 3.07,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '1,80p' src/sqlfluff/core/errors.py",
+    "elapsed_s": 2.13,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 8
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 11.34,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat .hae/reproduce_issue.py",
+    "elapsed_s": 2.03,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 10
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 34.07,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 11
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.16,
+    "path": "src/sqlfluff/core/linter.py",
+    "range": [
+     120,
+     175
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 12
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 56.54,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 13
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.63,
+    "path": "src/sqlfluff/core/linter.py",
+    "range": [
+     955,
+     1000
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 14
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 36.6,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b3_codebase_symmetry",
+    "turn": 15
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git grep -n \"noqa\\|ignore_mask\\|extract_ignore_from_comment\\|get_violations\\|_ignore_masked_violations\\|SQLParseError\" -- src/sqlfluff/core/linter.py | head -100 && sed -n '1,80p' src/sqlfluff/core/linter.py",
+    "elapsed_s": 12.15,
+    "reasoning_chars": 708,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 1
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.08,
+    "path": "src/sqlfluff/core/linter.py",
+    "range": [
+     80,
+     180
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 2
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.23,
+    "path": "src/sqlfluff/core/linter.py",
+    "range": [
+     1,
+     350
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 3
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.19,
+    "path": "src/sqlfluff/core/linter.py",
+    "range": [
+     900,
+     940
+    ],
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -rn \"parse_noqa\\|NoQaDirective\\|noqa: disable\\|noqa: enable\\|disable=all\" test/ src/ 2>/dev/null | head -40",
+    "elapsed_s": 3.17,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -rn \"noqa\" test/core/linter_test.py | head -40",
+    "elapsed_s": 2.64,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '180,260p' test/core/linter_test.py",
+    "elapsed_s": 2.69,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 7
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 7.36,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 8
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 34.16,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 9
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 46.61,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat .hae/reproduce_issue.py",
+    "elapsed_s": 3.43,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 11
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python .hae/reproduce_issue.py",
+    "elapsed_s": 2.99,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 12
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 19.78,
+    "path": "src/sqlfluff/core/linter.py",
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 13
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python .hae/reproduce_issue.py",
+    "elapsed_s": 2.3,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 14
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;\\n-- noqa: disable=L006\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n-- no",
+    "elapsed_s": 16.34,
+    "gatekeeper_ok": false,
+    "reasoning_chars": 0,
+    "specialist": "L2_BranchExecutor_b4_counterfactual_move37",
+    "turn": 15
    }
   ],
   "base_commit": "bcc986e7d217f017130385b89cbda837f3e650ac",
@@ -649,7 +1253,7 @@
    "changed_files": [
     "src/sqlfluff/core/linter.py"
    ],
-   "note": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n[('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 20, in <module>\n    assert not any(t[1] in (3, 8) for t in tuples), tuples\nAssertionError: [('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\ncommand terminated with exit code 1",
+   "note": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;\\n-- noqa: disable=L006\\nselect 3+4\\nfrom t;\\n'\n  got: [\n... [truncated 537 chars] ...\nL006\", 1, 10)])\n  File \"/testbed/.hae/reproduce_issue.py\", line 12, in check\n    assert tuples == sorted(expected), (tuples, expected)\nAssertionError: ([('L006', 1, 9), ('L006', 1, 10), ('L006', 7, 9), ('L006', 7, 10)], [('L006', 1, 9), ('L006', 1, 10)])\ncommand terminated with exit code 1",
    "rank_key": [
     0,
     0,
@@ -659,10 +1263,10 @@
     1,
     0
    ],
-   "specialist": "L2_b1.1",
+   "specialist": "L2_b2",
    "turn": 2
   },
-  "budget_moves": 54,
+  "budget_moves": 68,
   "changed_files": [
    "src/sqlfluff/core/linter.py"
   ],
@@ -675,7 +1279,7 @@
      "changed_files": [
       "src/sqlfluff/core/linter.py"
      ],
-     "note": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n[('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\n\nTraceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 20, in <module>\n    assert not any(t[1] in (3, 8) for t in tuples), tuples\nAssertionError: [('L006', 3, 6), ('L006', 3, 9), ('L006', 4, 6), ('L006', 4, 9), ('L006', 8, 6), ('L006', 8, 9), ('L039', 3, 6), ('L039', 4, 6), ('L039', 8, 6)]\ncommand terminated with exit code 1",
+     "note": "- Gatekeeper `verify_module('src/sqlfluff/core/linter.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py` FAILED (exit 1):\n'select 1+2\\nfrom t;\\n-- noqa: disable=all\\nselect 3+4\\nfrom t;\\n'\n  got: [('L006', 1, 9), ('L006', 1, 10)]\n  exp: [('L006', 1, 9), ('L006', 1, 10)]\n'select 1+2\\nfrom t;\\n-- noqa: disable=L006\\nselect 3+4\\nfrom t;\\n'\n  got: [\n... [truncated 537 chars] ...\nL006\", 1, 10)])\n  File \"/testbed/.hae/reproduce_issue.py\", line 12, in check\n    assert tuples == sorted(expected), (tuples, expected)\nAssertionError: ([('L006', 1, 9), ('L006', 1, 10), ('L006', 7, 9), ('L006', 7, 10)], [('L006', 1, 9), ('L006', 1, 10)])\ncommand terminated with exit code 1",
      "rank_key": [
       0,
       0,
@@ -685,11 +1289,11 @@
       1,
       0
      ],
-     "specialist": "L2_b1.1",
+     "specialist": "L2_b2",
      "turn": 2
     },
     "iteration": 1,
-    "moves_used": 27,
+    "moves_used": 64,
     "patched": true,
     "recheck": {
      "verdict": "unresolved"
@@ -702,8 +1306,8 @@
    }
   ],
   "locate": [],
-  "moves_used": 27,
-  "patch_chars": 3090,
+  "moves_used": 64,
+  "patch_chars": 6327,
   "preflight": {
    "error": "",
    "ok": true,
@@ -711,7 +1315,7 @@
    "repo_tests": {
     "baseline_failures": 0,
     "budget_s": 15.0,
-    "duration_s": 15.63,
+    "duration_s": 15.62,
     "mode": "proximity",
     "reason": "whole suite did not finish within 15s",
     "target": "test"
@@ -788,10 +1392,10 @@
  "token_accounting": {
   "estimated_calls": 0,
   "fully_measured": true,
-  "measured_calls": 27,
-  "thought_tokens": 21814
+  "measured_calls": 64,
+  "thought_tokens": 406
  },
- "token_usage": 286136,
+ "token_usage": 879843,
  "verification_loop": {
   "attempts": 0,
   "budget": 0,
