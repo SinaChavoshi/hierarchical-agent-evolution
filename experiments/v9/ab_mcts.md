@@ -4,7 +4,7 @@ Status: implemented and unit-tested on `main` (2026-10-08); no live
 comparison against V8 yet. Paper: Inoue, Misaki, Imajuku, Kuroki, Nakamura,
 Akiba, "Wider or Deeper? Scaling LLM Inference-Time Compute with Adaptive
 Branching Tree Search", [arXiv:2503.04412](https://arxiv.org/abs/2503.04412).
-Specification: `docs/v8_role_evolution_and_swebench_roadmap.md`, section
+Specification: `experiments/v8/v8_role_evolution_and_swebench_roadmap.md`, section
 "Agent Implementation Specification for V9". Code: `hae/epistemic/ab_mcts.py`
 (the controller), `hae/epistemic/mcts.py` (`_ab_step`, the gate),
 `hae/genome/schema.py` (the gene fields), `hae/runtime/company.py` (the k=1
@@ -59,7 +59,7 @@ synthesis           y = clamp(dU + 0.5 * [write kept],            0, 1)
 
 `dU` is the move's `delta_u` from the ledger, the uncertainty the move
 actually resolved. "Write kept" means the module check passed and the
-post-synthesis effect check (`docs/v8/track_c_swebench.md`, section 2) did
+post-synthesis effect check (`experiments/v8/track_c_swebench.md`, section 2) did
 not find the write ineffective; a write that passes the module check but
 leaves every supported probe reproducing the bug is reverted, has `dU` 0 and
 scores 0, so a synthesize arm cannot be fed by cosmetic rewrites
@@ -227,7 +227,7 @@ inconclusive; cosmetic function rewrites passed the gate and could regress
 tests outside the graded files) and the V9-specific one (refused probes could
 not be repaired under the k=1 prompt); all three are fixed, the third by the
 post-synthesis effect check and the calibrated whole-suite `repo_tests` mode
-described in section 2 of `docs/v8/track_c_swebench.md`. On their recorded
+described in section 2 of `experiments/v8/track_c_swebench.md`. On their recorded
 probes, the V9 run's two cosmetic syntheses (steps 7 and 24) would have
 failed that effect check and been reverted, leaving the `Field.root` hunk as
 the patch; what the search would have done with the moves instead is not

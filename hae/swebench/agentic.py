@@ -137,7 +137,7 @@ class ParsedAction:
 # Dedicated regex for `str_replace` that anchors on `>>>>` before closing ` ``` `,
 # so nested triple backticks inside Python docstrings never truncate the block.
 _STR_REPLACE_FENCE_RE = re.compile(
-    r"```(?:str_replace|edit_file)\b[^\n]*\n(?P<body>.*?)\s*(?:</?[a-zA-Z0-9_:-]+>\s*)*```",
+    r"```(?:str_replace|edit_file)\b[^\n]*\n(?P<body>.*?\n\s*>{4,}[^\n]*)\s*(?:</?[a-zA-Z0-9_:-]+>\s*)*```",
     re.DOTALL | re.IGNORECASE,
 )
 

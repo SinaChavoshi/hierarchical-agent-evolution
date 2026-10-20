@@ -1,7 +1,7 @@
 # V9 AB-MCTS live validation, 2026-10-08
 
 First live run of the V9 step policy (`epistemic_policy.search_algorithm = "ab_mcts"`,
-[docs/v9/ab_mcts.md](../../../docs/v9/ab_mcts.md)) on a SWE-bench instance, against the
+[experiments/v9/ab_mcts.md](../../../experiments/v9/ab_mcts.md)) on a SWE-bench instance, against the
 same self-hosted model, container and grader as the V8 smoke run, plus a V8 (`puct`) rerun
 on the same code so the two step policies can be compared like for like.
 

@@ -2,7 +2,7 @@
 
 This directory contains the execution records (`record.json`), official containerized pytest grading outputs (`grade.json`), model patches (`prediction.json`, `preds.jsonl`), and aggregate statistics (`summary.json`) comparing **Reflection AI's `Beam-1.0-501B-A23B-NVFP4`** (+ `Beam-1.0-501B-A23B-DFlash2` 8-token speculative decoding) against **`nvidia/Qwen3.8-Flash-Next-NVFP4`** across `v12_agentic` and `v13_hier_mcts`.
 
-See [`docs/v13/beam_vs_qwen38_evaluation_report.md`](../../../docs/v13/beam_vs_qwen38_evaluation_report.md) for the full technical analysis.
+See [`experiments/v13/beam_vs_qwen38_evaluation_report.md`](../../../experiments/v13/beam_vs_qwen38_evaluation_report.md) for the full technical analysis.
 
 ## Summary Table (`n = 6` Multi-Repo SWE-bench Slice)
 

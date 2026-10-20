@@ -212,7 +212,7 @@ Design a mutated, upgraded organization that systematically overcomes these bott
 # V8: role-library and CEO-policy operators (LLM-free, deterministic)
 # --------------------------------------------------------------------------- #
 #
-# Thresholds follow the roadmap (docs/v8_role_evolution_and_swebench_roadmap.md
+# Thresholds follow the roadmap (experiments/v8/v8_role_evolution_and_swebench_roadmap.md
 # section 1.4): a role recruited mid-run is promoted into the persistent
 # library when it earned a verified SUPPORTED probe or >= 0.20 cumulative dU
 # (or resolved a task); a library role is pruned when it was tried often and

@@ -2,7 +2,7 @@
 
 **Status:** Complete. 60/60 archived firms re-scored.
 **Date:** 2026-09-14
-**Raw data:** [`execution_grounded_fitness.json`](execution_grounded_fitness.json) | [`execution_grounded_backfill.log`](execution_grounded_backfill.log)
+**Raw data:** [`execution_grounded_fitness.json`](execution_grounded_fitness.json) | [`standardized_execution_fitness.json`](standardized_execution_fitness.json)
 **Reproduce:** `PYTHONPATH=. python3 scripts/backfill_execution_fitness.py --timeout 25`
 (must run inside the project container image; the harness needs real `pip`, `pytest`, and `opentelemetry`)
 

@@ -11,9 +11,8 @@
 
 ## 2. Genomic Artifacts & Telemetry
 * [`winning_champion_genome.json`](winning_champion_genome.json): Gen 1 Champion (`exp001_elite_2`, Score: 96.25).
-* [`top_5_survivor_genomes.json`](top_5_survivor_genomes.json): Complete genomes for all evaluated pilot firms.
-* [`starting_population.json`](starting_population.json): Starting population genomes.
-* [`scorecards/`](scorecards/): Full JSON evaluation scorecards.
+* [`mutant_genome.json`](mutant_genome.json): Evolved mutant genome evaluated in the pilot tournament.
+* [`seed_genome.json`](seed_genome.json): Baseline Gen 0 seed genome.
 * [`experiment_report.md`](experiment_report.md): Benchmark report with token and telemetry breakdowns.
 
 ---

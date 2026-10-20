@@ -13,7 +13,6 @@
 * [`champion_firm_3_genome.json`](champion_firm_3_genome.json): Tournament Champion genome (`gen_0_firm_3`, Score: 77.50).
 * [`top_5_survivor_genomes.json`](top_5_survivor_genomes.json): Complete genomes and scorecards of top 5 breeding survivors.
 * [`bred_offspring_gen1.json`](bred_offspring_gen1.json): Gen 1 population bred via 3-Way Recombination.
-* [`scorecards/`](scorecards/): Full JSON scorecards for all 10 firms.
 * [`experiment_report.md`](experiment_report.md): Wall-clock performance report and score breakdown.
 
 ---

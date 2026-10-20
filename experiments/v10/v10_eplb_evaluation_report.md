@@ -1,6 +1,6 @@
 # V10 (Empirical AB-MCTS + EPLB) Evaluation Report
 
-This report summarizes **Experiment 10 (V10)** across all **30 validated SWE-bench dev instances**, measuring both the algorithmic impact of **Empirical AB-MCTS** ([`AdaptiveBranchingController`](file:///usr/local/google/home/chavoshi/hierarchical-agent-evolution/hae/epistemic/ab_mcts.py#L185-L265)) and the cluster infrastructure impact of enabling **Expert Parallelism + EPLB** (`--enable-expert-parallel --enable-eplb`) across the 6 `nvidia/Qwen3.8-Flash-Next-NVFP4` MoE replicas (`12x NVIDIA RTX PRO 6000`).
+This report summarizes **Experiment 10 (V10)** across all **30 validated SWE-bench dev instances**, measuring both the algorithmic impact of **Empirical AB-MCTS** ([`AdaptiveBranchingController`](../../hae/epistemic/ab_mcts.py#L185-L265)) and the cluster infrastructure impact of enabling **Expert Parallelism + EPLB** (`--enable-expert-parallel --enable-eplb`) across the 6 `nvidia/Qwen3.8-Flash-Next-NVFP4` MoE replicas (`12x NVIDIA RTX PRO 6000`).
 
 ---
 
