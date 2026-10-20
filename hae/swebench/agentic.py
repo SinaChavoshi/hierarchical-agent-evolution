@@ -80,6 +80,7 @@ class PatchCheckpoint:
     specialist: str = ""
     turn: int = 0
     note: str = ""
+    created_files: List[str] = dataclasses.field(default_factory=list)
 
     def rank_key(self) -> Tuple[int, int, int, int, int, int, int]:
         """Higher is better."""
@@ -810,6 +811,10 @@ class AgenticSweEngine:
         gatekeeper: EvidenceGatekeeper,
         state: EpistemicState,
         logger: Callable[[str], None] = print,
+        allow_new_files: bool = False,
+        base_ref: str = "HEAD",
+        diff_bloat_threshold: int = 120,
+        custom_test_cmd: Optional[str] = None,
     ) -> None:
         self.runner = runner
         self.task = task
@@ -817,6 +822,12 @@ class AgenticSweEngine:
         self.gatekeeper = gatekeeper
         self.state = state
         self.logger = logger
+        self.allow_new_files = bool(allow_new_files)
+        self.base_ref = str(base_ref or "HEAD")
+        self.diff_bloat_threshold = int(diff_bloat_threshold)
+        self.custom_test_cmd = custom_test_cmd
+        self._known_created_files: set[str] = set()
+        self._last_created_files: List[str] = []
         self.checkpoints: List[PatchCheckpoint] = []
         self.trajectory_log: List[Dict[str, Any]] = []
         self.total_moves_used: int = 0
@@ -839,8 +850,25 @@ class AgenticSweEngine:
 
     _normalize_rel_path = normalize_rel_path
 
+    def _file_exists_in_base_ref(self, rel: str) -> bool:
+        res = self.executor.run(
+            ["git", "cat-file", "-e", f"{self.base_ref}:{rel}"],
+            cwd=self.executor.root,
+            timeout_s=15,
+        )
+        return res.rc == 0
+
     def _clean_untracked_outside_scratch(self) -> List[str]:
         """Move any stray untracked `.py` scripts at repo root into `.hae/` and remove stray untracked artifacts."""
+        if self.allow_new_files:
+            untracked = [
+                f for f in self.executor.untracked_files()
+                if not f.startswith(SCRATCH_DIR + "/") and f != SCRATCH_DIR
+            ]
+            if untracked:
+                self._known_created_files.update(untracked)
+                self.executor.git(["add", "-N", "--", *untracked])
+            return []
         res = self.executor.run(["git", "status", "--porcelain"], cwd=self.executor.root, timeout_s=30)
         if res.rc != 0:
             return []
@@ -864,30 +892,70 @@ class AgenticSweEngine:
 
     def _current_diff_and_files(self) -> Tuple[str, List[str], Dict[str, str]]:
         self._clean_untracked_outside_scratch()
-        diff = self.executor.diff()
-        changed = [
-            f for f in self.executor.changed_files()
-            if not f.startswith(SCRATCH_DIR + "/") and f != SCRATCH_DIR
-        ]
+        if self.base_ref == "HEAD":
+            diff = self.executor.diff()
+            changed = [
+                f for f in self.executor.changed_files()
+                if not f.startswith(SCRATCH_DIR + "/") and f != SCRATCH_DIR
+            ]
+        else:
+            if self.allow_new_files:
+                new_untracked = self.executor.untracked_files()
+                if new_untracked:
+                    self._known_created_files.update(new_untracked)
+                    self.executor.git(["add", "-N", "--", *new_untracked])
+            res_d = self.executor.git(["diff", "--no-color", "--no-ext-diff", self.base_ref, "--", ".", f":(exclude){SCRATCH_DIR}"])
+            diff = res_d.stdout if res_d.rc == 0 else ""
+            res_c = self.executor.git(["diff", "--name-only", self.base_ref, "--", "."])
+            raw_changed = [l.strip() for l in res_c.stdout.splitlines() if l.strip()] if res_c.rc == 0 else []
+            if self.allow_new_files:
+                raw_changed = sorted(set(raw_changed) | set(self.executor.untracked_files()))
+            changed = [
+                f for f in raw_changed
+                if not f.startswith(SCRATCH_DIR + "/") and f != SCRATCH_DIR
+            ]
         contents: Dict[str, str] = {}
+        created: List[str] = []
         for rel in changed:
             try:
                 if self.executor.exists(rel):
                     contents[rel] = self.executor.read_file(rel)
+                if self.allow_new_files and not self._file_exists_in_base_ref(rel):
+                    created.append(rel)
+                    self._known_created_files.add(rel)
             except Exception:
                 pass
+        self._last_created_files = created
         return diff, changed, contents
 
     def _restore_checkpoint(self, cp: PatchCheckpoint) -> None:
-        """Reset tracked files to HEAD and write `cp.file_contents`."""
-        self.executor.run(["git", "checkout", "-q", "--", "."], cwd=self.executor.root, timeout_s=60)
-        self._clean_untracked_outside_scratch()
+        """Reset tracked/created files to `base_ref` and write `cp.file_contents`."""
+        self._reset_tracked_to_head()
         for rel, content in cp.file_contents.items():
             self.executor.write_file(rel, content)
+        if self.allow_new_files:
+            to_stage = list(cp.created_files or [
+                rel for rel in cp.file_contents if not self._file_exists_in_base_ref(rel)
+            ])
+            if to_stage:
+                self._known_created_files.update(to_stage)
+                self.executor.git(["add", "-N", "--", *to_stage])
 
     def _reset_tracked_to_head(self) -> None:
-        self.executor.run(["git", "checkout", "-q", "--", "."], cwd=self.executor.root, timeout_s=60)
-        self._clean_untracked_outside_scratch()
+        self.executor.run(["git", "reset", "-q", self.base_ref, "--", "."], cwd=self.executor.root, timeout_s=30)
+        if self.base_ref == "HEAD":
+            self.executor.run(["git", "checkout", "-q", "--", "."], cwd=self.executor.root, timeout_s=60)
+        else:
+            self.executor.run(["git", "checkout", "-q", self.base_ref, "--", "."], cwd=self.executor.root, timeout_s=60)
+        if self.allow_new_files:
+            untracked_now = set(self.executor.untracked_files()) | set(self._known_created_files)
+            for rel in sorted(untracked_now):
+                if not rel or rel.startswith(SCRATCH_DIR + "/") or rel == SCRATCH_DIR:
+                    continue
+                if not self._file_exists_in_base_ref(rel) and self.executor.exists(rel):
+                    self.executor.run(["rm", "-rf", rel], cwd=self.executor.root, timeout_s=15)
+        else:
+            self._clean_untracked_outside_scratch()
 
     # ------------------------------------------------------------------ #
     # Tool Execution
@@ -968,6 +1036,7 @@ class AgenticSweEngine:
                     specialist="bash_edit",
                     turn=self.total_moves_used,
                     note=f"modified via bash ({', '.join(changed)}, repro_ok={b_repro_ok})",
+                    created_files=list(self._last_created_files),
                 )
             )
 
@@ -1013,6 +1082,24 @@ class AgenticSweEngine:
             except SyntaxError as syn_err:
                 return f"Observation (write_file on `{rel}`): ERROR: SyntaxError at line {syn_err.lineno}: {syn_err.msg}."
         self.executor.write_file(rel, content)
+        if not rel.startswith(SCRATCH_DIR + "/"):
+            diff, changed, contents = self._current_diff_and_files()
+            if diff.strip():
+                self.checkpoints.append(
+                    PatchCheckpoint(
+                        diff=diff,
+                        changed_files=changed,
+                        file_contents=contents,
+                        gatekeeper_ok=False,
+                        repro_ok=False,
+                        compile_ok=True,
+                        static_ok=True,
+                        specialist="write_file",
+                        turn=self.total_moves_used,
+                        note=f"wrote {rel}",
+                        created_files=list(self._last_created_files),
+                    )
+                )
         if run_after or rel == self.repro_script_rel:
             run_obs = self.execute_bash_tool(f"python {rel}")
             return f"Observation (write_file `{rel}` + execution):\n{run_obs}"
@@ -1023,8 +1110,26 @@ class AgenticSweEngine:
         if not rel:
             return "Observation (str_replace): ERROR: empty file path."
         if not self.executor.exists(rel):
-            if rel.startswith(SCRATCH_DIR + "/") and not old_str.strip():
+            if (rel.startswith(SCRATCH_DIR + "/") or self.allow_new_files) and not old_str.strip():
                 self.executor.write_file(rel, new_str)
+                if not rel.startswith(SCRATCH_DIR + "/"):
+                    diff, changed, contents = self._current_diff_and_files()
+                    if diff.strip():
+                        self.checkpoints.append(
+                            PatchCheckpoint(
+                                diff=diff,
+                                changed_files=changed,
+                                file_contents=contents,
+                                gatekeeper_ok=False,
+                                repro_ok=False,
+                                compile_ok=True,
+                                static_ok=True,
+                                specialist=specialist,
+                                turn=turn,
+                                note=f"created {rel}",
+                                created_files=list(self._last_created_files),
+                            )
+                        )
                 return f"Observation (str_replace): Created `{rel}` ({len(new_str)} chars)."
             return f"Observation (str_replace): ERROR: `{rel}` does not exist."
 
@@ -1096,6 +1201,7 @@ class AgenticSweEngine:
                         specialist=specialist,
                         turn=turn,
                         note=f"in-progress edit to {rel}:{line_no} (repro_ok={sr_repro_ok})",
+                        created_files=list(self._last_created_files),
                     )
                 )
 
@@ -1164,12 +1270,13 @@ class AgenticSweEngine:
                 None,
             )
 
-        non_test_changed = [f for f in changed if not is_test_path(f)]
-        test_changed = [f for f in changed if is_test_path(f)]
-        if test_changed and non_test_changed:
-            for tf in test_changed:
-                self.executor.run(["git", "checkout", "-q", "--", tf], cwd=self.executor.root, timeout_s=30)
-            diff, changed, contents = self._current_diff_and_files()
+        if not self.allow_new_files:
+            non_test_changed = [f for f in changed if not is_test_path(f)]
+            test_changed = [f for f in changed if is_test_path(f)]
+            if test_changed and non_test_changed:
+                for tf in test_changed:
+                    self.executor.run(["git", "checkout", "-q", "--", tf], cwd=self.executor.root, timeout_s=30)
+                diff, changed, contents = self._current_diff_and_files()
 
         diagnostics: List[str] = []
         compile_ok = True
@@ -1267,10 +1374,35 @@ class AgenticSweEngine:
                     f"- Reproduction script `{self.repro_script_rel}` FAILED (exit {res_repro.rc}):\n"
                     f"{_truncate_output(out_r, 2500)}"
                 )
-        else:
+        elif not self.custom_test_cmd:
             diagnostics.append(
                 f"- WARNING: `{self.repro_script_rel}` does not exist. Create `{self.repro_script_rel}` to verify the reported issue is fixed!"
             )
+
+        if self.custom_test_cmd:
+            wrapped_cust = (
+                f'export PATH="{self._python_bin_dir}:$PATH"; '
+                f'export PYTHONPATH="{self.executor.root}:${{PYTHONPATH:-}}"; '
+                f"{self.custom_test_cmd}"
+            )
+            res_cust = self.executor.run(
+                ["bash", "-lc", wrapped_cust],
+                cwd=self.executor.root,
+                env={"PYTHONPATH": self.executor.root},
+                timeout_s=90,
+            )
+            out_cust = ((res_cust.stdout or "") + "\n" + (res_cust.stderr or "")).strip()
+            if res_cust.rc == 0 and not res_cust.timed_out:
+                if not self.executor.exists(self.repro_script_rel):
+                    repro_ok = True
+                diagnostics.append(f"- Custom test command `{self.custom_test_cmd}`: PASSED (exit 0).")
+            else:
+                repo_tests_ok = False
+                new_failures = max(1, new_failures + 1)
+                diagnostics.append(
+                    f"- Custom test command `{self.custom_test_cmd}` FAILED (exit {res_cust.rc}):\n"
+                    f"{_truncate_output(out_cust, 2000)}"
+                )
 
         audit_ok = False
         if self.executor.exists(self.audit_script_rel):
@@ -1291,7 +1423,7 @@ class AgenticSweEngine:
                 )
 
         all_ok = compile_ok and static_ok and repo_tests_ok and (repro_ok or not self.executor.exists(self.repro_script_rel)) and (audit_ok or not is_auditor)
-        if not self.executor.exists(self.repro_script_rel) and turn <= 15:
+        if not self.executor.exists(self.repro_script_rel) and not self.custom_test_cmd and turn <= 15:
             all_ok = False
 
         cp = PatchCheckpoint(
@@ -1308,6 +1440,7 @@ class AgenticSweEngine:
             specialist=specialist,
             turn=turn,
             note="; ".join(_truncate_output(d, 700) for d in diagnostics[:4]),
+            created_files=list(self._last_created_files),
         )
         self.checkpoints.append(cp)
 
@@ -1686,7 +1819,7 @@ class AgenticSweEngine:
             "1. **Locate Precisely (1-3 turns)**: Use `bash` (`git grep -n ...`) and targeted `view_file` to find the exact class/function(s) involved in the issue and the relevant existing unit test file(s).\n"
             "2. **Reproduce the Bug (1-2 turns)**: In `bash`, write `/testbed/.hae/reproduce_issue.py` (`cat << 'EOF' > /testbed/.hae/reproduce_issue.py ... EOF && python /testbed/.hae/reproduce_issue.py`) that reproduces the bug on the current code and asserts the expected fixed behaviour.\n"
             "3. **Patch & Verify Iteratively**: Apply a minimal, surgical fix to the source code using `str_replace`. Immediately run `python /testbed/.hae/reproduce_issue.py && pytest <relevant_test_file>` via `bash`. If any assertion or test fails, refine your edit in place.\n"
-            "4. **Check Sibling Methods / Deprecations / Edge Cases & Submit**: Check if the same bug pattern applies to sibling methods/classes or edge cases (`None`, empty input, subclasses, `is_abstract(pass_is_abstract=True, any_raise_is_abstract=True)` yielding `util.Uninferable`). If replacing or deprecating an old parameter/decorator/style (e.g. `**metadata` / `**additional_metadata` kwargs -> `metadata=...`, `cachedproperty` -> `cached_property`), check the repo's `warnings` module / existing deprecations and ensure using the deprecated style emits the expected `DeprecationWarning` (or repo warning subclass like `RemovedInMarshmallow4Warning`, `stacklevel=2`) while preserving backward compatibility (e.g., merging `{**(metadata or {}), **additional_metadata}` when both `metadata` and deprecated kwargs are passed — NEVER raise `ValueError` when both are passed unless explicitly requested). Run `git diff` to verify cleanliness, then emit `submit`."
+            "4. **Check Sibling Methods / Deprecations / Edge Cases & Submit**: Check if the same bug pattern applies to sibling methods/classes or edge cases (`None`, empty input, subclasses, abstract/base-class overrides). If replacing or deprecating an old parameter/decorator/style (e.g. `**metadata` / `**additional_metadata` kwargs -> `metadata=...`, `cachedproperty` -> `cached_property`), check the repo's `warnings` module / existing deprecations and ensure using the deprecated style emits the expected `DeprecationWarning` (or project-specific warning subclass, `stacklevel=2`) while preserving backward compatibility (e.g., merging `{**(metadata or {}), **additional_metadata}` when both `metadata` and deprecated kwargs are passed — NEVER raise `ValueError` when both are passed unless explicitly requested). Run `git diff` to verify cleanliness, then emit `submit`."
         )
 
     def _build_auditor_user_prompt(self, primary_cp: PatchCheckpoint) -> str:
@@ -1699,7 +1832,7 @@ class AgenticSweEngine:
             "However, benchmarks fail when a patch misses a secondary requirement, deprecation warning, edge case, or sibling class/method/caller.\n"
             "Perform the following audit in 2-6 turns:\n"
             "1. Immediately inspect any **sibling classes or functions** in the modified module(s) (e.g. if `List` was fixed, check `Tuple`/`Dict`/`Mapping`; if one setter/loader was fixed, check sibling setters/loaders) and compare `git diff` against EVERY requirement in the PROBLEM STATEMENT.\n"
-            "2. Check if the issue replaces or deprecates an older parameter/decorator/calling style (e.g., passing arbitrary `**metadata` kwargs instead of `metadata=...`, or `@cachedproperty` instead of `@cached_property`): if so, verify whether the repo's deprecation warning (`RemovedInMarshmallow4Warning` / `DeprecationWarning` with `warnings.warn(..., stacklevel=2)`) must be emitted when the deprecated style is used!\n"
+            "2. Check if the issue replaces or deprecates an older parameter/decorator/calling style (e.g., passing arbitrary `**metadata` kwargs instead of `metadata=...`, or `@cachedproperty` instead of `@cached_property`): if so, verify whether the repo's deprecation warning (project-specific warning subclass or `DeprecationWarning` with `warnings.warn(..., stacklevel=2)`) must be emitted when the deprecated style is used!\n"
             "3. Write and run an adversarial edge-case test script `/testbed/.hae/audit_edge_cases.py` via `bash` that tests:\n"
             "   - All examples, deprecation warnings (`pytest.warns(...)`), and edge cases from the problem statement,\n"
             "   - Boundary values (`None`, empty inputs, subclasses, kwargs forwarding, etc.),\n"

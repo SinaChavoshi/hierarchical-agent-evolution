@@ -182,6 +182,7 @@ def compute_node_empirical_value(
     cp: Optional[PatchCheckpoint],
     falsifier_ran: bool,
     falsifier_ok: bool,
+    diff_bloat_threshold: int = 120,
 ) -> float:
     """Compute empirical node value V(s_i) in [0, 1] with diff-bloat regularization."""
     if cp is None or not cp.diff.strip() or not cp.compile_ok:
@@ -203,7 +204,8 @@ def compute_node_empirical_value(
         v += 0.08
 
     diff_lines = len(cp.diff.splitlines())
-    bloat_penalty = min(0.12, 0.0005 * max(0, diff_lines - 120))
+    threshold = max(0, int(diff_bloat_threshold))
+    bloat_penalty = min(0.12, 0.0005 * max(0, diff_lines - threshold))
     return max(0.05, min(1.0, round(v - bloat_penalty, 4)))
 
 
@@ -329,7 +331,15 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         state: EpistemicState,
         gatekeeper: EvidenceGatekeeper,
         logger: Callable[[str], None] = print,
+        allow_new_files: bool = False,
+        base_ref: str = "HEAD",
+        diff_bloat_threshold: int = 120,
+        custom_test_cmd: Optional[str] = None,
     ) -> None:
+        if isinstance(executor, SweTask) and isinstance(task, CommandExecutor):
+            executor, task = task, executor  # type: ignore[assignment]
+        if isinstance(state, EvidenceGatekeeper) and isinstance(gatekeeper, EpistemicState):
+            state, gatekeeper = gatekeeper, state  # type: ignore[assignment]
         super().__init__(
             runner=runner,
             executor=executor,
@@ -337,6 +347,10 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             state=state,
             gatekeeper=gatekeeper,
             logger=logger,
+            allow_new_files=allow_new_files,
+            base_ref=base_ref,
+            diff_bloat_threshold=diff_bloat_threshold,
+            custom_test_cmd=custom_test_cmd,
         )
         self.falsification_script_rel = FALSIFICATION_SCRIPT_REL
         self.mcts_nodes: Dict[str, AgenticMCTSNode] = {
@@ -407,16 +421,37 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         combined_text = f"{self.task.problem_statement}\n{getattr(self.task, 'hints_text', '') or ''}"
         inspected: List[str] = [c for c in candidate_modules[:4] if c]
 
-        # Extract explicit traceback file paths (especially the bottom-most frame where the error is raised!)
-        tb_files = re.findall(r'File "[^"]*?((?:src/|astroid/|pydicom/|pyvista/|marshmallow/)[A-Za-z0-9_./-]+\.py)"', combined_text)
-        for tbf in reversed(tb_files):
-            if tbf not in inspected:
-                inspected.insert(0, tbf)
-            if tbf not in self.initial_candidate_modules:
-                self.initial_candidate_modules.insert(0, tbf)
+        # Extract explicit traceback or inline file paths and match against repository files
+        raw_tb_files = re.findall(r'File "([^"]+\.py)"', combined_text)
+        inline_py_files = re.findall(r"\b([A-Za-z0-9_]+(?:/[A-Za-z0-9_.-]+)+\.py)\b", combined_text)
+        known_repo_files = list(repo_map or [])
+        for raw_f in reversed(raw_tb_files + inline_py_files):
+            norm_f = raw_f.replace("\\", "/").lstrip("/")
+            matched_f = ""
+            if self.executor.exists(norm_f):
+                matched_f = norm_f
+            else:
+                parts = [p for p in norm_f.split("/") if p]
+                for idx in range(len(parts)):
+                    sub = "/".join(parts[idx:])
+                    if self.executor.exists(sub):
+                        matched_f = sub
+                        break
+                    for kf in known_repo_files:
+                        if kf == sub or kf.endswith("/" + sub):
+                            matched_f = kf
+                            break
+                    if matched_f:
+                        break
+            if matched_f and not matched_f.startswith(SCRATCH_DIR + "/"):
+                if matched_f not in inspected:
+                    inspected.insert(0, matched_f)
+                if matched_f not in self.initial_candidate_modules:
+                    self.initial_candidate_modules.insert(0, matched_f)
 
-        # Extract high-signal symbols, rule IDs (e.g. L031, L039), class/method names from issue + hints
-        rule_codes = sorted(set(re.findall(r"\bL\d{3}\b", combined_text)))
+        # Extract high-signal symbols, rule IDs (e.g. L031, E1101), backticked identifiers, and class/method names
+        rule_codes = sorted(set(re.findall(r"\b[A-Z]\d{3,4}\b", combined_text)))
+        backtick_idents = re.findall(r"`([A-Za-z_][A-Za-z0-9_]{2,})`", combined_text)
         raw_idents = re.findall(
             r"\b(?:[A-Z][A-Za-z0-9_]{2,}|[a-z_][a-z0-9_]{3,})\b",
             combined_text,
@@ -429,9 +464,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             "expected", "behaviour", "behavior", "observed", "describe", "version", "using",
         }
         key_symbols: List[str] = list(rule_codes)
-        for tok in raw_idents:
+        for tok in backtick_idents + raw_idents:
             if tok not in stop_words and tok.lower() not in stop_words and tok not in key_symbols:
-                if "_" in tok or (tok[0].isupper() and any(c.islower() for c in tok)) or tok in ("only", "exclude", "dump_only", "load_only", "parent", "diffuse", "specular", "noqa"):
+                if tok in backtick_idents or "_" in tok or (tok[0].isupper() and any(c.islower() for c in tok)):
                     key_symbols.append(tok)
             if len(key_symbols) >= 14:
                 break
@@ -462,29 +497,12 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             if sf not in self.initial_candidate_modules and len(self.initial_candidate_modules) < 7:
                 self.initial_candidate_modules.append(sf)
 
-        if "parent" in combined_text and "Dataset" in combined_text:
-            for pf in ("pydicom/filewriter.py", "pydicom/sequence.py", "pydicom/dataset.py"):
-                if pf not in inspected:
-                    inspected.insert(0, pf)
-                if pf not in self.initial_candidate_modules:
-                    self.initial_candidate_modules.insert(0, pf)
-        if "noqa" in combined_text and ("enable" in combined_text or "disable" in combined_text):
-            for sf_noqa in ("src/sqlfluff/core/linter.py",):
-                if sf_noqa not in inspected:
-                    inspected.insert(0, sf_noqa)
-                if sf_noqa not in self.initial_candidate_modules:
-                    self.initial_candidate_modules.insert(0, sf_noqa)
-
         cands_sh = " ".join(f"'{c}'" for c in inspected[:6] if c)
         probe_cmd = (
             f"cd {self.executor.root} && "
             + (f"git grep -n 'def \\|class ' -- {cands_sh} 2>/dev/null | head -55; " if cands_sh else "")
             + (f"git grep -n '{sym_pattern}' -- {cands_sh} 2>/dev/null | head -35; " if (sym_pattern and cands_sh) else "")
-            + ("git grep -n '\\.parent\\b' -- 'pydicom/*.py' 2>/dev/null | head -25; echo '=== dataset.py ==='; sed -n '768,782p;850,860p' pydicom/dataset.py 2>/dev/null; echo '=== sequence.py ==='; sed -n '55,75p' pydicom/sequence.py 2>/dev/null; echo '=== filewriter.py ==='; sed -n '68,78p' pydicom/filewriter.py 2>/dev/null; " if "parent" in combined_text else "")
-            + ("echo '=== linter.py ==='; sed -n '50,115p;145,170p;905,935p' src/sqlfluff/core/linter.py 2>/dev/null; " if "noqa" in combined_text else "")
-            + ("git grep -n '_check_between_zero_and_one\\|_check_range' -- 'pyvista/*.py' 2>/dev/null | head -20; " if "diffuse" in combined_text or "specular" in combined_text else "")
-            + ("git grep -n 'class Test.*Nested\\|def _bind_to_schema' -- 'src/marshmallow/*.py' 'tests/*.py' 2>/dev/null | head -25; " if "Nested" in combined_text and "List" in combined_text else "")
-            + "git ls-files '*warning*.py' '*exception*.py' 2>/dev/null | head -10; "
+            + "git ls-files '*warning*.py' '*exception*.py' '*error*.py' 2>/dev/null | head -10; "
             + "for wf in $(git ls-files '*warning*.py' 2>/dev/null | head -3); do echo \"=== $wf ===\"; head -35 \"$wf\"; done"
         )
         res_p = self.executor.run(["bash", "-lc", probe_cmd], cwd=self.executor.root, timeout_s=15)
@@ -557,13 +575,10 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             "     },\n"
             "     ` {`locus`: \"codebase_symmetry\", `title`: \"Sibling-Aligned & Convention-Symmetric Fix\", `target_files`: [\"path/to/file.py\"], `mechanism_and_plan`: \"Concrete plan aligning with sibling classes/methods and existing repo test conventions\", `prior`: 0.60}\n"
             "   ]\n"
-            "Architecture Notes:\n"
-            "- For `sqlfluff` `Dropped elements in sequence matching!`, `target_files` MUST be `[\"src/sqlfluff/core/parser/helpers.py\"]` ONLY (never modify `delimited.py`) and `check_still_complete` must raise `SQLParseError(f\"Could not parse: {current_str}\", segment=unmatched_segments[0])`.\n"
-            "- For `sqlfluff` `noqa` `enable`/`disable`, `LintedFile` must define `_ignore_masked_violations(self, violations)` (with leading underscore) and `Linter` must define `@classmethod def parse_noqa(cls, comment: str, line_no: int)`.\n"
-            "- For `astroid` empty function inference, `target_files` MUST include BOTH `\"astroid/scoped_nodes.py\"` (checking `if self.body:` — never `or self.doc`) AND `\"astroid/bases.py\"` (`Instance.getitem` signature check `if len(method.args.arguments) != 2: raise exceptions.AstroidTypeError(...)`).\n"
-            "- For `pydicom` `Sequence.parent` weakref, `target_files` MUST include ALL THREE of `[\"pydicom/dataset.py\", \"pydicom/sequence.py\", \"pydicom/filewriter.py\"]`.\n"
-            "- For `pydicom` mypy/type-hint release fixes (`pydicom-1255`), `target_files` MUST include `[\"pydicom/filebase.py\", \"pydicom/jsonrep.py\", \"setup.py\"]` (remove `'py.typed'` from `setup.py` and delete `pydicom/py.typed`, change `NoReturn` -> `None` in `pydicom/filebase.py`, AND in `pydicom/jsonrep.py` `get_sequence_item` pass `self.bulk_data_element_handler` as the 6th argument to `DataElement.from_json`).\n"
-            "- For `pyvista` `Property` range validation (`pyvista-4226`), `target_files` MUST include `[\"pyvista/utilities/misc.py\", \"pyvista/plotting/_property.py\", \"pyvista/themes.py\", \"pyvista/plotting/composite_mapper.py\"]` (define `_check_range(value, rng, parm_name)` in `pyvista/utilities/misc.py`, import `_check_range` in `pyvista/plotting/_property.py` for `opacity`, `ambient`, `diffuse`, `specular`, `specular_power` `(0, 128)`, `metallic`, `roughness`, `anisotropy`, and use `_check_range` in `pyvista/themes.py` and `pyvista/plotting/composite_mapper.py`)."
+            "Architecture Principles:\n"
+            "- Never split a multi-file invariant across partial half-fixes: if an API signature, reference type (e.g. weakref vs. direct ref), or exception contract changes, include BOTH the definition site and all affected internal callers/consumers in `target_files`.\n"
+            "- Separate immediate symptom handling (`consumer_local`) from upstream state-construction invariants (`producer_upstream` / Move 37) and sibling-pattern alignment (`codebase_symmetry`).\n"
+            "- Preserve backward compatibility and exact repository warning/exception hierarchies whenever deprecating parameters or validating inputs."
         )
         user_prompt = (
             f"{self.runner.objective_text()}\n\n"
@@ -738,17 +753,10 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             "### Execution Instructions & Completeness Checklist\n"
             "1. **Inspect & Reproduce**: Check `/testbed/.hae/reproduce_issue.py` (create/update it if needed so it reproduces the issue before your edit and exits 0 after). Use `view_file` or `git grep -n` on the target lines.\n"
             "2. **Check Exact Codebase Conventions, Helpers & Sibling Classes Before Editing**:\n"
-            "   - If the issue deprecates old kwargs/behavior or adds a new parameter (e.g. `metadata=` replacing `**kwargs`), ALWAYS inspect the package's `warnings.py` / `exceptions.py` and `git grep -n \"warnings.warn\"` to emit the exact project deprecation warning class (e.g., `RemovedInMarshmallow4Warning`) with `{**(metadata or {}), **additional_metadata}` merge semantics!\n"
-            "   - For `marshmallow` nested container option propagation (`List(Nested(...))`), check `TestListNested`, `TestTupleNested`, and `TestDictNested` in `tests/test_fields.py`: in `src/marshmallow/fields.py`, both `List` (`self.container`) and `Dict` (`self.value_container`) should copy `self.only = container.only` and `self.exclude = container.exclude` in `__init__` when `isinstance(container, Nested)`, and copy `container.only = self.only` and `container.exclude = self.exclude` in `_bind_to_schema` (without modifying `schema.py`) so `BaseSchema.__apply_nested_option` naturally merges and propagates `only`/`exclude`/`dump_only`/`load_only`!\n"
-            "   - For `astroid` empty function inference (`FunctionDef.infer_call_result` & `is_abstract`), edit BOTH `astroid/scoped_nodes.py` AND `astroid/bases.py`:\n"
-            "     (a) In `astroid/scoped_nodes.py`: add `any_raise_is_abstract=False` to `FunctionDef.is_abstract(self, pass_is_abstract=True, any_raise_is_abstract=False)` (inside `for child_node in self.body: if isinstance(child_node, node_classes.Raise): if any_raise_is_abstract: return True`), and in `FunctionDef.infer_call_result`, under `if not first_return:`, check `if self.body:` (NEVER `if self.body or self.doc:` because built-in C functions have `self.body == []` and `self.doc != None` and must fall through to `raise exceptions.InferenceError`!): if `self.is_abstract(pass_is_abstract=True, any_raise_is_abstract=True): yield util.Uninferable` else `yield node_classes.Const(None)`, then `return`.\n"
-            "     (b) In `astroid/bases.py:Instance.getitem`: right before `return next(method.infer_call_result(self, new_context))`, add `if len(method.args.arguments) != 2: raise exceptions.AstroidTypeError(\"__getitem__ for {node!r} does not have correct signature\", node=self, context=context)`.\n"
-            "   - For `sqlfluff` parser `RuntimeError: Dropped elements in sequence matching!`, modify ONLY `src/sqlfluff/core/parser/helpers.py` (do NOT modify `delimited.py`!): import `from sqlfluff.core.errors import SQLParseError`, and in `check_still_complete`, replace `raise RuntimeError(...)` with `raise SQLParseError(f\"Could not parse: {current_str}\", segment=unmatched_segments[0])`.\n"
-            "   - For `sqlfluff` `noqa` `enable`/`disable` line ranges (`sqlfluff-891`), in `src/sqlfluff/core/linter.py`: (a) define `class NoQaDirective(NamedTuple): line_no: int; rules: Optional[Tuple[str, ...]]; action: Optional[str]`, (b) on `Linter`, define `@classmethod def parse_noqa(cls, comment: str, line_no: int)` (exact arg names `comment` and `line_no` for `Linter.parse_noqa(**c)`): when `comment.startswith('noqa')`, let `comment_remainder = comment[4:]`; if `comment_remainder` is non-empty: if `not comment_remainder.startswith(':')` return `SQLParseError(\"Malformed 'noqa' section. Expected 'noqa: <rule>[,...]\")`; then `comment_remainder = comment_remainder[1:].strip()`; if `comment_remainder` is STILL non-empty (note: `'noqa:'` has empty `comment_remainder` and MUST fall through to `return NoQaDirective(line_no, None, None)`!): if `'=' in comment_remainder`, `action, rule_part = comment_remainder.split('=', 1)` and if `action not in {'disable', 'enable'}` return `SQLParseError(\"Malformed 'noqa' section. Expected 'noqa: enable=<rule>[,...] | all' or 'noqa: disable=<rule>[,...] | all\")`; else `action = None; rule_part = comment_remainder` and if `rule_part in {'disable', 'enable'}` return `SQLParseError(\"Malformed 'noqa' section. Expected 'noqa: enable=<rule>[,...] | all' or 'noqa: disable=<rule>[,...] | all\")`; then set `rules = None if rule_part == 'all' else tuple(r.strip() for r in rule_part.split(','))` (CRITICAL: when `rule_part == 'all'`, `rules` MUST be `None`, NOT `('all',)`!) and `return NoQaDirective(line_no, rules, action)`; if `comment_remainder` is empty, `return NoQaDirective(line_no, None, None)`. Have `extract_ignore_from_comment(cls, comment: RawSegment)` call `cls.parse_noqa(comment.raw_trimmed().strip(), comment.pos_marker.line_no)` and set `result.segment = comment` if `isinstance(result, SQLParseError)`. (c) On `LintedFile`, define `def _ignore_masked_violations(self, violations: List[SQLBaseError]) -> List[SQLBaseError]:` (with leading underscore) and call `if self.ignore_mask: violations = self._ignore_masked_violations(violations)` in `LintedFile.get_violations`. Inside `_ignore_masked_violations`, first filter single-line ignores (`[g for g in self.ignore_mask if not g.action]`), then for line-range ignores (`ignore_range = [g for g in self.ignore_mask if g.action]`), for each violation `v` collect `ignore_rule = sorted([g for g in ignore_range if not g.rules or (v.rule_code() in g.rules)], key=lambda g: g.line_no)`, loop `disable = False; for g in ignore_rule: if g.line_no > v.line_no(): break; disable = (g.action == 'disable')`, and keep `v` if `not disable`.\n"
-            "   - For `pyvista` range validation on `Property` setters, check existing range helpers (`_check_between_zero_and_one` in `pyvista/themes.py`), define `_check_range(value, rng, parm_name)` in `pyvista/utilities/misc.py` raising `ValueError(f'The value {float(value)} for `{parm_name}` is outside the acceptable range {tuple(rng)}.')`, and import `_check_range` in `pyvista/plotting/_property.py` (for `opacity`, `ambient`, `diffuse`, `specular`, `specular_power` `(0, 128)`, `metallic`, `roughness`, `anisotropy`), `pyvista/themes.py`, and `pyvista/plotting/composite_mapper.py`.\n"
-            "   - For `pydicom` `Sequence.parent` weakref (`pydicom-996`), update ALL THREE files (`pydicom/dataset.py`, `pydicom/sequence.py`, and `pydicom/filewriter.py`): (a) in `pydicom/dataset.py`, change `Dataset.__getattr__` to `return self[tag].value` and in `Dataset.__getitem__` inside `if isinstance(data_elem, DataElement):` add `if data_elem.VR == 'SQ' and data_elem.value: data_elem.value.parent = self`; (b) in `pydicom/sequence.py`, `import weakref`, have `Sequence.parent` getter return `self._parent` directly (the weakref), and in `Sequence.parent` setter do `if value != self._parent: self._parent = weakref.ref(value); for item in self._list: item.parent = self._parent`; (c) in `pydicom/filewriter.py` (`_correct_ambiguous_vr_element`), change `while 'PixelRepresentation' not in ds and ds.parent: ds = ds.parent` to `while 'PixelRepresentation' not in ds and ds.parent and ds.parent(): ds = ds.parent()`.\n"
-            "   - For `pydicom` `encaps.py` empty BOT frames (`pydicom-997`), update `get_frame_offsets(fp)` to return `bool(length), offsets`, add `get_nr_fragments(fp)`, and add `nr_frames=None` to `generate_pixel_data_frame(bytestream, nr_frames=None)` and `generate_pixel_data(bytestream, nr_frames=None)`.\n"
-            "   - For `pydicom` mypy/type-hint release fixes (`pydicom-1255`), in addition to removing `'py.typed'` from `setup.py` and changing `NoReturn` -> `None` on `no_write`/`no_read`/`no_seek` in `pydicom/filebase.py`, also check `pydicom/jsonrep.py` (`get_sequence_item`) to pass `self.bulk_data_element_handler` as the 6th argument to `DataElement.from_json(self.dataset_class, key, vr, val[value_key], value_key, self.bulk_data_element_handler)`!\n"
+            "   - **Warning & Exception Hierarchy**: If the issue deprecates old kwargs/behavior or adds validation, inspect the package's `warnings.py` / `exceptions.py` / `errors.py` and `git grep -n \"warnings.warn\"` to emit the exact project warning/exception class and preserve backward-compatible parameter merging (e.g., `{**(metadata or {}), **additional_metadata}`) after warning rather than raising `ValueError`.\n"
+            "   - **Sibling Class & Method Symmetry**: Inspect sibling classes, containers, or property setters in the same module (e.g., `List` vs `Tuple`/`Dict`, sibling AST nodes, or sibling range-checked properties) so your fix applies consistently across all analogous types and helpers.\n"
+            "   - **Caller vs. Callee Consistency**: Whenever you change a method signature, return structure, or attribute reference type (such as converting a parent reference to a `weakref` or adding an optional parameter), use `git grep -n` to check all internal callers and callees across the repository so no call site breaks.\n"
+            "   - **Boundary & Abstract Semantics**: Distinguish empty/abstract declarations or terminal exception-raising bodies from normal fallthrough functions, and ensure builtin/extension objects without AST bodies are handled without regressions.\n"
             "3. **Apply Surgical Edit (`str_replace`) & Verify**: Apply your fix with `str_replace`, then run `python /testbed/.hae/reproduce_issue.py` and `pytest` on the relevant test files via `bash`"
             f"{falsify_note}.\n"
             "4. Check every item in the L0 Master Verification Contract above, then emit ` ```submit `."
@@ -777,7 +785,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             "The candidate patch above is **already applied in `/testbed`**.\n"
             "1. **Do NOT reset to HEAD or rewrite from scratch**: inspect the exact failure in the Critique above "
             "(if a `pytest` test or `/testbed/.hae/falsification_suite.py` failed, inspect the failing test lines with `view_file` or `sed -n`).\n"
-            "   - Note: For `astroid` function return inference (`FunctionDef.infer_call_result`), remember that when a function has no `return` statements (`not first_return`), if `self.is_abstract(pass_is_abstract=True)` is True OR the function body only raises an exception (e.g. `isinstance(self.body[-1], node_classes.Raise)` or `any` terminal raise without normal fallthrough), it must raise `InferenceError` (or yield `Uninferable` for abstract methods as appropriate) rather than yielding `Const(None)`!\n"
+            "   - Note: Check boundary conditions carefully (e.g., abstract methods or exception-only bodies vs. normal fallthrough, combined legacy + new arguments, sibling class symmetry, and internal caller/callee signatures).\n"
             "2. Apply a targeted surgical refinement using `str_replace` (`path: ...` followed by `<<<<`, `====`, `>>>>`) so that the Critique is resolved while keeping "
             "all previously passing behaviors intact.\n"
             f"3. Run `python {self.repro_script_rel}{falsify_cmd}` and the relevant `pytest` test file(s) in `bash`.\n"
@@ -798,35 +806,65 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         )
 
     def _discover_targeted_test_files(self, cp: PatchCheckpoint) -> List[str]:
+        discovered: List[str] = []
+        if self.custom_test_cmd:
+            for cand in re.findall(r"([A-Za-z0-9_./-]*test[A-Za-z0-9_./-]*\.py)", self.custom_test_cmd):
+                if self.executor.exists(cand) and cand not in discovered:
+                    discovered.append(cand)
+        for cf in (cp.changed_files or []):
+            if cf and "test" in os.path.basename(cf).lower() and cf.endswith(".py") and self.executor.exists(cf):
+                if cf not in discovered:
+                    discovered.append(cf)
         stems = [
             os.path.splitext(os.path.basename(f))[0].lstrip("_")
             for f in (cp.changed_files or [])
             if f
         ]
-        rule_codes = sorted(
-            set(re.findall(r"\bL\d{3}\b", f"{self.task.problem_statement}\n{getattr(self.task, 'hints_text', '') or ''}"))
-        )
-        globs = [f"'*test*{s}*.py' '*{s}*test*.py'" for s in stems[:4] if len(s) >= 3] + [
-            f"'*test*{r}*.py' '*{r}*test*.py'" for r in rule_codes[:3]
+        parent_dirs = [
+            os.path.basename(os.path.dirname(f)).lstrip("_")
+            for f in (cp.changed_files or [])
+            if f and os.path.dirname(f)
         ]
-        changed_str = " ".join(cp.changed_files or [])
-        if "scoped_nodes" in changed_str or "bases.py" in changed_str:
-            globs.append("'*unittest_inference*.py'")
-        if "pydicom/dataset.py" in changed_str or "pydicom/sequence.py" in changed_str:
-            globs.append("'*test_filewriter*.py'")
-        if "src/sqlfluff/core/parser" in changed_str:
-            globs.append("'*ansi_test*.py'")
-        if not globs:
-            return []
-        find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(globs)} 2>/dev/null | head -6"
-        res_tf = self.executor.run(["bash", "-lc", find_cmd], cwd=self.executor.root, timeout_s=8)
-        return [l.strip() for l in (res_tf.stdout or "").splitlines() if l.strip().endswith(".py")][:4]
+        rule_codes = sorted(
+            set(re.findall(r"\b[A-Z]\d{3,4}\b", f"{self.task.problem_statement}\n{getattr(self.task, 'hints_text', '') or ''}"))
+        )
+        globs = (
+            [f"'*test*{s}*.py' '*{s}*test*.py'" for s in stems[:4] if len(s) >= 3]
+            + [f"'*test*{d}*.py' '*{d}*test*.py'" for d in parent_dirs[:3] if len(d) >= 3 and d not in ("src", "lib", "pkg", "core")]
+            + [f"'*test*{r}*.py' '*{r}*test*.py'" for r in rule_codes[:3]]
+        )
+        if globs:
+            find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(globs)} 2>/dev/null | head -6"
+            res_tf = self.executor.run(["bash", "-lc", find_cmd], cwd=self.executor.root, timeout_s=8)
+            for line in (res_tf.stdout or "").splitlines():
+                p = line.strip()
+                if p.endswith(".py") and p not in discovered:
+                    discovered.append(p)
+        return discovered[:4]
 
     def _falsifier_user_prompt(self, cp: PatchCheckpoint) -> str:
         base_auditor = self._build_auditor_user_prompt(cp)
-        # Run a fast deterministic pytest check on matching test files so L1-B sees real test suite status immediately
+        # Run a fast deterministic pytest / custom_test_cmd check so L1-B sees real test suite status immediately
         tfiles = self._discover_targeted_test_files(cp)
         targeted_pytest_block = ""
+        if self.custom_test_cmd:
+            wrapped_ct = (
+                f'export PATH="{self._python_bin_dir}:$PATH"; '
+                f'export PYTHONPATH="{self.executor.root}:${{PYTHONPATH:-}}"; '
+                f"{self.custom_test_cmd}"
+            )
+            res_ct = self.executor.run(
+                ["bash", "-lc", wrapped_ct],
+                cwd=self.executor.root,
+                env={"PYTHONPATH": self.executor.root},
+                timeout_s=35,
+            )
+            ct_raw = ((res_ct.stdout or "") + "\n" + (res_ct.stderr or "")).strip()
+            ct_out = _truncate_output(ct_raw, 1400)
+            targeted_pytest_block += (
+                f"\n### Custom Test Command Output (`{self.custom_test_cmd}`, exit={res_ct.rc})\n"
+                f"```text\n{ct_out}\n```\n"
+            )
         if tfiles:
             res_pt = self.executor.run(
                 [
@@ -847,7 +885,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             pt_raw = ((res_pt.stdout or "") + "\n" + (res_pt.stderr or "")).strip()
             if "No module named pytest" not in pt_raw:
                 pt_out = _truncate_output(pt_raw, 1400)
-                targeted_pytest_block = (
+                targeted_pytest_block += (
                     f"\n### Targeted Repository Test Suite Output (`pytest {' '.join(tfiles[:4])}`, exit={res_pt.rc})\n"
                     f"```text\n{pt_out}\n```\n"
                 )
@@ -855,7 +893,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             f"{base_auditor}\n"
             f"{targeted_pytest_block}\n"
             f"{self.contract.to_prompt_block()}\n\n"
-            "- IMPORTANT: If the patch deprecates `**kwargs` / `**metadata` in favor of `metadata=...`, ensure passing BOTH `metadata={...}` and deprecated `**kwargs` merges them (`{**(metadata or {}), **additional_metadata}`) after emitting the deprecation warning rather than raising `ValueError`!\n"
+            "- IMPORTANT: If the patch deprecates legacy kwargs or parameters in favor of a new parameter (e.g. `metadata=...`), ensure passing BOTH the new parameter and deprecated kwargs merges them cleanly after emitting the deprecation warning rather than raising `ValueError`!\n"
             "Also write your adversarial test script to `/testbed/.hae/falsification_suite.py` (or `/testbed/.hae/audit_edge_cases.py`), "
             "and when emitting ` ```submit `, include `VERDICT: PASS` if all edge cases, deprecation warnings, and tests pass, "
             "or `VERDICT: FAIL: <exact failing assertion or missing requirement>` if the patch is still flawed."
@@ -959,6 +997,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 cp.diff = cp_aud.diff
                 cp.changed_files = cp_aud.changed_files
                 cp.file_contents = cp_aud.file_contents
+                cp.created_files = list(cp_aud.created_files)
                 cp.compile_ok = True
                 cp.static_ok = cp_aud.static_ok
                 cp.repro_ok = True
@@ -987,6 +1026,29 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                     suite_ok = False
                     suite_out = _truncate_output((res_f.stdout + "\n" + res_f.stderr).strip(), 1500)
                     break
+
+        if self.custom_test_cmd:
+            wrapped_ct_post = (
+                f'export PATH="{self._python_bin_dir}:$PATH"; '
+                f'export PYTHONPATH="{self.executor.root}:${{PYTHONPATH:-}}"; '
+                f"{self.custom_test_cmd}"
+            )
+            res_ct_post = self.executor.run(
+                ["bash", "-lc", wrapped_ct_post],
+                cwd=self.executor.root,
+                env={"PYTHONPATH": self.executor.root},
+                timeout_s=45,
+            )
+            ct_post_raw = ((res_ct_post.stdout or "") + "\n" + (res_ct_post.stderr or "")).strip()
+            if res_ct_post.rc != 0 or res_ct_post.timed_out:
+                cp.repo_tests_ok = False
+                cp.gatekeeper_ok = False
+                for c in self.checkpoints:
+                    if c.diff == cp.diff:
+                        c.repo_tests_ok = False
+                        c.gatekeeper_ok = False
+                ct_fail_out = _truncate_output(ct_post_raw, 1500)
+                return False, f"Custom test command ({self.custom_test_cmd}) FAILED (exit {res_ct_post.rc}):\n{ct_fail_out}"
 
         # Also deterministically verify targeted repository test files after any L1-B edits
         tfiles_post = self._discover_targeted_test_files(cp)
@@ -1119,7 +1181,12 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 cp.audit_ok = False
                 cp.gatekeeper_ok = False
 
-        val = compute_node_empirical_value(cp, falsifier_ran=falsifier_ran, falsifier_ok=falsifier_ok)
+        val = compute_node_empirical_value(
+            cp,
+            falsifier_ran=falsifier_ran,
+            falsifier_ok=falsifier_ok,
+            diff_bloat_threshold=self.diff_bloat_threshold,
+        )
         alpha = 1.0 + 4.0 * val
         beta = 1.0 + 4.0 * (1.0 - val)
 
@@ -1397,3 +1464,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             "mcts_tree": mcts_tree_summary,
             "trajectory": self.trajectory_log,
         }
+
+
+HierarchicalMCTSSweEngine = HierarchicalAgenticMCTSEngine
+

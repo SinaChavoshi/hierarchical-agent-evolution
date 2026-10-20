@@ -12,6 +12,8 @@ Four modes:
                  one is launched, and optionally repair IAM first.
     swebench     Run one firm against one SWE-bench instance inside a
                  container (flags are parsed by hae.swebench.runner).
+    ratchet      Execute a multi-milestone system build using the Two-Tier
+                 L0-Macro Milestone DAG & Persistent Git Commit Ratchet.
 """
 
 import os
@@ -37,15 +39,14 @@ from hae.orchestration.runtimes import GcsHarvest, KubernetesRuntime
 # copy rather than one per entry point.
 from hae.task.spec import LEGACY_OBJECTIVE as DEFAULT_STRATEGIC_OBJECTIVE
 
-def parse_args():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Hierarchical Agent Evolution System")
     parser.add_argument("--mode",
                         choices=["tournament", "single-firm", "breed",
-                                 "benchmark", "preflight", "campaign", "swebench"],
+                                 "benchmark", "preflight", "campaign", "swebench", "ratchet"],
                         default="tournament",
                         help="tournament | single-firm | breed | benchmark | "
-                             "preflight | campaign | swebench (one SWE-bench "
-                             "instance; remaining flags go to hae.swebench.runner)")
+                             "preflight | campaign | swebench | ratchet")
     parser.add_argument("--specs", type=str, nargs="+", default=None,
                         help="(--mode campaign) Generation specs to run in "
                              "order, e.g. configs/generations/gen1.json ...")
@@ -103,7 +104,15 @@ def parse_args():
                         help="Number of evolutionary generations to execute")
     parser.add_argument("--output-dir", type=str, default=DEFAULT_CONFIG.local_output_dir,
                         help="Directory to store outputs, transcripts, and evaluation logs")
-    return parser.parse_args()
+    parser.add_argument("--milestone-spec", dest="milestone_spec", type=str, default=None,
+                        help="(--mode ratchet) Path to a declarative MilestoneDAG JSON specification")
+    parser.add_argument("--workspace-dir", dest="workspace_dir", type=str, default=".",
+                        help="(--mode ratchet) Target Git workspace directory for milestone ratcheting")
+    parser.add_argument("--resume", action="store_true",
+                        help="(--mode ratchet) Resume from <workspace>/.hae/ratchet_state.json")
+    parser.add_argument("--acceptance-cmd", dest="acceptance_cmd", type=str, default="pytest -q",
+                        help="(--mode ratchet) Default milestone acceptance command")
+    return parser.parse_args(argv)
 
 def run_campaign(args) -> int:
     """Runs generations back to back until a stopping criterion fires.
@@ -223,6 +232,42 @@ def run_benchmark(args) -> int:
     return 0
 
 
+def run_ratchet_mode(args) -> int:
+    """Executes a multi-milestone build using the L0-Macro Milestone DAG & Git Commit Ratchet."""
+    from hae.hierarchical.milestone_ratchet import (
+        L0MacroPlanner,
+        MacroMilestoneRatchetEngine,
+    )
+    from hae.swebench.executor import LocalExecutor
+
+    workspace_dir = os.path.abspath(args.workspace_dir or ".")
+    if not os.path.isdir(workspace_dir):
+        print(f"--mode ratchet: workspace directory {workspace_dir!r} does not exist.")
+        return 2
+
+    executor = LocalExecutor(root=workspace_dir)
+    planner = L0MacroPlanner(default_acceptance_cmd=args.acceptance_cmd or "pytest -q")
+    dag = None
+    if args.milestone_spec:
+        if not os.path.exists(args.milestone_spec):
+            print(f"--mode ratchet: milestone spec {args.milestone_spec!r} does not exist.")
+            return 2
+        dag = planner.load_from_file(args.milestone_spec)
+
+    engine = MacroMilestoneRatchetEngine(
+        executor=executor,
+        dag=dag,
+        objective=args.objective,
+        planner=planner,
+    )
+    summary = engine.run(resume=bool(args.resume))
+    print(
+        f"Milestone Ratchet Complete: certified={summary['certified_milestones']} "
+        f"failed={summary['failed_milestones']} head={summary['head_commit_sha'][:12]}"
+    )
+    return 0 if summary["completed"] else 1
+
+
 def swebench_argv(argv):
     """`--mode swebench` is handled before the main parser: the SWE-bench runner
     owns its own flags (--instance-id, --executor, ...), which argparse here
@@ -261,6 +306,8 @@ def main():
         return run_breed(args)
     if args.mode == "benchmark":
         return run_benchmark(args)
+    if args.mode == "ratchet":
+        return run_ratchet_mode(args)
 
     if args.llm_provider:
         DEFAULT_CONFIG.llm_provider = args.llm_provider

@@ -1,12 +1,13 @@
 # Hierarchical Agent Evolution (HAE)
 
-**Hierarchical Agent Evolution (HAE)** is a **Context-Bounded Hierarchical Verification & Agentic Tree-Search Engine (`V13`)** paired with self-hosted **Reflection `Beam-1.0-501B-A23B-NVFP4` (`501B` total / `23B` active MoE) + `DFlash2` (`8`-token speculative decoding)** on GKE (`12x NVIDIA RTX PRO 6000 Blackwell 96 GB GPUs`, `1.15 TB` VRAM) for autonomous software diagnosis, verification, and repair on **SWE-bench**.
+**Hierarchical Agent Evolution (HAE)** is a **Universal Two-Tier Hierarchical Verification & Agentic Tree-Search Architecture**—combining an outer **`L0-Macro` Compositional Milestone DAG & Persistent Git Commit Ratchet** (`hae/hierarchical/`) with an inner **`L0-Micro` V13 Context-Bounded Hierarchical AB-MCTS ("Move 37" Engine)** (`hae/swebench/hierarchical_mcts.py`), powered by self-hosted **Reflection `Beam-1.0-501B-A23B-NVFP4` (`501B` total / `23B` active MoE) + `DFlash2` (`8`-token speculative decoding)** on GKE (`12x NVIDIA RTX PRO 6000 Blackwell 96 GB GPUs`, `1.15 TB` VRAM). HAE scales seamlessly from **5-minute surgical bug fixes (`< 200` LoC, `100.0%` SWE-bench resolved)** to **multi-day full-system builds (`5,000–100,000+` LoC)** with zero context rot and zero `L1` falsifier overload.
 
 > [!IMPORTANT]
-> **Headline Empirical Results (`V13` Hierarchical Verification Harness + `Beam-1.0-501B-A23B-NVFP4` + `DFlash2`)**
+> **Headline Empirical Results & Architectural Capabilities (`L0-Macro` Ratchet + `L0-Micro` V13 + `Beam-1.0-501B` + `DFlash2`)**
 > - **`100.0%` Gold Held-Out SWE-bench Resolution**: Resolves **`30 / 30` (`100.0%`)** instances on the 30-task SWE-bench dev cohort (`275 / 275` individual `FAIL_TO_PASS` tests passed, `0` `PASS_TO_PASS` regressions) with `Qwen3.8-Flash-Next-NVFP4`, and **`6 / 6` (`100.0%`)** on the 6-task multi-repo benchmark cohort (`57 / 57` `FAIL_TO_PASS`, `214 / 214` `PASS_TO_PASS`, `0` regressions) with `Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2`.
 > - **`3.31x` Faster End-to-End Execution**: Pairing `V13` with `Beam-1.0-501B-A23B-NVFP4 + DFlash2` cuts mean wall-clock resolution time from **`1,010.6s` to `305.6s` (`3.31x` faster, up to `5.36x` faster on `marshmallow-1702` at `158.4s`)** and accelerates `v12_agentic` by **`3.56x` (`331.0s` vs. `1,177.2s`)**.
 > - **Radical Token & Search Efficiency**: Requires **`-34.0%` fewer agentic moves (`22.3` vs. `33.8`)**, **`-55.1%` fewer total tokens (`149.9k` vs. `333.7k`)**, and **`-75.3%` to `-91.0%` fewer `<think>` tokens** via `DFlash2` speculative decoding and per-turn Harmony `reasoning_effort` budget control.
+> - **Unbounded Multi-Day Scaling via `L0-Macro` Git Commit Ratchet**: Decomposes `5,000–100,000+` LoC system builds into topological `< 500`-LoC milestones ($M_1 \prec M_2 \prec \dots \prec M_K$), permanently committing each certified milestone to Git `HEAD_k` and locking its `.hae/ratchet_suites/falsify_M_k.py` into a cumulative regression guard so `L1-A` and `L1-B` never inspect more than `< 500` lines of uncommitted diff.
 
 | Benchmark Cohort & Configuration | Gold Held-Out Resolved (`grade.json`) | Individual `FAIL_TO_PASS` Passed | `PASS_TO_PASS` Regressions | Mean Agentic Moves | Mean Total Tokens | Mean Wall-Clock Time | Speedup vs. `Qwen3.8` | Primary Report |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
@@ -89,11 +90,36 @@ flowchart TB
 | **`L0`: Seed Architect & AB-MCTS Controller** | Synthesizes the `VerificationContract` (invariants, anti-cheat rules, regression targets), seeds 3 orthogonal causal branches (`b1: consumer_local`, `b2: producer_upstream` / "Move 37", `b3: codebase_symmetry`), and uses Thompson Sampling over $\text{Beta}(\alpha_i, \beta_i)$ posteriors to choose `GEN` vs. `CONT`. | Clean strategic ledger (`< 4K` tokens; never ingests raw `grep` or test dumps) | Selected `GEN(b_k)` or `CONT(s_i)` dispatch |
 | **`L1-A`: Ephemeral Recon Probe** | Maps the producer $\to$ consumer call chain and target test files inside `/testbed`, and authors a baseline reproduction script (`/testbed/.hae/reproduce_issue.py`) verified to fail on `HEAD`. | Ephemeral (`0–6` turns; scratchpad garbage-collected on exit) | Distilled `ReconBrief` (`< 800` tokens) + `/testbed/.hae/reproduce_issue.py` |
 | **`L2`: Ephemeral Branch & Delta Executors** | Runs interactive ReAct tools (`view_file`, `bash`, `str_replace`, `submit`) inside `/testbed`. **`GEN`** starts from clean `git checkout -f HEAD`; **`CONT`** starts with parent checkpoint $s_i$'s `git diff` pre-applied plus the exact failing test or falsifier critique. | Fresh context per tree node (`8–18` turns for `GEN`, `6–12` turns for `CONT`; GC'd on exit) | Candidate `git diff` workspace checkpoint $s_i$ |
-| **`L1-B`: Gatekeeper & Adversarial Falsifier** | `EvidenceGatekeeper` runs the repro script + target `pytest` suite; on pass, a read-only `AdversarialFalsifierSubAgent` audits the diff against $L_0$'s contract and appends adversarial edge-case tests to `/testbed/.hae/falsification_suite.py`. | Ephemeral (`4–6` turns; zero author confirmation bias) | Empirical score $V(s_i) \in [0, 1]$, updated $\text{Beta}(\alpha_i, \beta_i)$, and `< 400`-token `Critique` (or `Certified V = 1.0`) |
+| **`L1-B`: Gatekeeper & Adversarial Falsifier** | `EvidenceGatekeeper` / `WorkspaceVerifierPlugin` runs the repro script + target test suite; on pass, a read-only `AdversarialFalsifierSubAgent` audits the diff against $L_0$'s contract and appends adversarial edge-case tests to `/testbed/.hae/falsification_suite.py`. | Ephemeral (`4–6` turns; zero author confirmation bias) | Empirical score $V(s_i) \in [0, 1]$, updated $\text{Beta}(\alpha_i, \beta_i)$, and `< 400`-token `Critique` (or `Certified V = 1.0`) |
 
 ---
 
-### 2. GKE Distributed Inference & Execution Topology (`Beam-1.0-501B-A23B-NVFP4` + `DFlash2`)
+### 2. Generalized Two-Tier `L0-Macro` Milestone DAG & Persistent Git Commit Ratchet
+
+To scale from **5–20 minute bug fixes (`< 200` LoC)** to **multi-hour and multi-day full-system builds (`5,000–100,000+` LoC)** without overloading Layer `L1` (`L1-A` Recon and `L1-B`'s `4,500`-char diff window) or wiping out completed subsystems on `GEN` resets, HAE wraps the generalized `L0-Micro` V13 engine inside an outer **`L0-Macro` Compositional Milestone AND-DAG & Persistent Git Commit Ratchet** (`hae/hierarchical/milestone_ratchet.py`, `hae/hierarchical/verifier_plugin.py`). Full specification: [`experiments/v13/v14_generalized_macro_ratchet_architecture.md`](experiments/v13/v14_generalized_macro_ratchet_architecture.md) (high-res PNG: [`v14_macro_ratchet_architecture.png`](experiments/v13/assets/v14_macro_ratchet_architecture.png)).
+
+![Universal Two-Tier Hierarchical Verification & Milestone Ratchet Architecture](experiments/v13/assets/v14_macro_ratchet_architecture.svg)
+
+1. **Domain-General `L0-Micro` Engine (`hae/swebench/hierarchical_mcts.py`, `hae/hierarchical/verifier_plugin.py`)**:
+   - **Zero Repo-Specific Hints**: Domain-general call-chain localization, stratified causal branches (`b1` local, `b2` upstream "Move 37", `b3` symmetry), and Popperian audit checklists.
+   - **Pluggable `WorkspaceVerifierPlugin`**: Ships with `PytestVerifierPlugin` and `ShellCommandVerifierPlugin` (supporting Rust `cargo test`, Go `go test`, C++ `cmake`/`ctest`, TypeScript `npm test`, and custom acceptance scripts).
+   - **Greenfield File Creation (`allow_new_files=True`) & Configurable `diff_bloat_threshold`**: Stages newly created files via `git add -N` into `PatchCheckpoint.created_files` and scales diff regularization up to `500+` LoC per milestone.
+2. **Ratcheting Git Commits & Cumulative Regression Guard (`hae/hierarchical/milestone_ratchet.py`)**:
+   - `L0MacroPlanner` decomposes a system build into a topological DAG of bounded `< 500`-LoC milestones ($M_1 \prec M_2 \prec \dots \prec M_K$).
+   - When milestone $M_k$ achieves Popperian certification ($V = 1.0$) and passes the **Cumulative Regression Guard** (re-running all prior milestones' `acceptance_cmd` and `.hae/ratchet_suites/falsify_M_1..M_{k-1}.py`), `GitCommitRatchet` permanently commits $M_k$ to Git (`HEAD_k`), tags `hae-milestone-M_k`, and saves `.hae/ratchet_state.json` for crash-resilient multi-day resume (`--resume`).
+   - Because $M_{k-1}$ is committed to `HEAD`, `git diff HEAD` during $M_k$ **only ever contains $M_k$'s `< 500`-LoC delta**, ensuring `L1-A` and `L1-B` never overload regardless of total repository size.
+
+#### Readiness by Task Horizon
+
+| Task Horizon | Wall-Clock & Scale | Examples | Active HAE Mode & Configuration | How Context & `L1` Audit Stay Bounded |
+| :--- | :--- | :--- | :--- | :--- |
+| **Short Horizon (Surgical Bug Fix)** | **5–20 min** (`1–5` files, `< 200` LoC) | SWE-bench issues, production regressions, security patches | **`L0-Micro` Direct (`--mode swebench`)** (`diff_bloat_threshold = 120`) | `L1-A` maps fault in `0–6` turns; `L2` explores `b1`/`b2`/`b3`; `L1-B` falsifies full diff. **`100.0%` SWE-bench resolved (`305.6s` mean on `Beam-501B`)**. |
+| **Medium Horizon (Feature / Module Build)** | **30–90 min** (`3–10` files, `200–1,500` LoC) | New CLI subcommand, protocol parser, REST endpoint + test suite | **`L0-Micro` Greenfield or `2–4` Node Ratchet (`--mode ratchet`)** (`allow_new_files = True`, `diff_bloat_threshold = 500`) | New files tracked via `git add -N` in `PatchCheckpoint.created_files`; `WorkspaceVerifierPlugin` runs build + test gates. |
+| **Long Horizon (Full System Build)** | **Hours to Days** (`20–200+` files, `5,000–100,000+` LoC) | Toy browser engine, bytecode compiler + VM, embedded SQL engine | **Two-Tier `L0-Macro` Milestone DAG + Git Commit Ratchet (`--mode ratchet --resume`)** | Each certified milestone $M_k$ advances `git HEAD` and locks `falsify_M_k.py` into the regression guard so `git diff HEAD` stays `< 500` LoC at every step. |
+
+---
+
+### 3. GKE Distributed Inference & Execution Topology (`Beam-1.0-501B-A23B-NVFP4` + `DFlash2`)
 
 HAE executes distributed evaluations on GKE (`hae-cluster`) across **`6x g4-standard-96` Spot VMs (`12x NVIDIA RTX PRO 6000 Blackwell Server Edition 96 GB GPUs` = `1.15 TB` VRAM, `576` vCPUs, `2.16 TiB` DDR5 RAM)**. Full cluster and manifest documentation: [`k8s/README.md`](k8s/README.md) (high-res PNG: [`gke_beam_501b_topology.png`](experiments/v13/assets/gke_beam_501b_topology.png)).
 
@@ -210,7 +236,7 @@ Across 13 generations, HAE progressed through three distinct architectural eras.
 | :--- | :--- | :--- | :--- | :--- |
 | **Era 1: Execution-Grounded Fitness & Epistemic Search Foundations** | **`V1` – `V7`** (Internal `artifacts.py` 7-test & `full_stack_hae` 50-test benchmarks) | Replaced uncalibrated prose LLM judges (`V1`, `corr = +0.045` with execution) with sandboxed unit-test fitness (`V2`), recursive code overlays (`V3`), self-hosted `vLLM` + `llm-d` prefix-affinity routing (`V4`), `xgrammar` schema packets (`V5`), evidence-gated epistemic search (`V6`), and out-of-fold value heads (`V7`). | Proved execution-grounded verification is mandatory (`0/60` $\to$ `30/30` on 7-test suite; `50/50` on 4-module `full_stack_hae`), cut packet output tokens by `-91.9%`, and achieved `455/455` `llm-d` prefix-affinity hits. | [`experiments/v1`](experiments/v1/README.md), [`v2`](experiments/v2/README.md), [`v3_rsi`](experiments/v3_rsi/README.md), [`v4_llmd`](experiments/v4_llmd/README.md), [`v5`](experiments/v5_typesafe_xgrammar/README.md), [`v6`](experiments/v6_epistemic_search/README.md), [`v7`](results/v7_value_heads/README.md) |
 | **Era 2: SWE-bench Container Harness & Single-Layer Agentic ReAct** | **`V8` – `V12`** (Official containerized SWE-bench dev cohort, `n = 30`) | Transitioned to real-world GitHub issues inside `swebench.harness` `/testbed` pods (`V8`), introduced packet-level AB-MCTS (`V9`), MoE Expert Parallelism + EPLB (`V10`), multi-hunk splicing (`V11`), and interactive multi-turn ReAct tool loops (`view_file`, `bash`, `str_replace`, `submit`) with Best-of-3 causal framing (`V12`). | Lifted SWE-bench resolution from **`13.3%` (`4/30`) in `V8` $\to$ `20.0%` (`6/30`) in `V11` $\to$ `46.7%` (`14/30`, `98` `FAIL_TO_PASS` tests) in `V12`**, exposing context-window entropy and single-basin local optima as the remaining bottlenecks. | [`v8_roadmap`](experiments/v8/v8_role_evolution_and_swebench_roadmap.md), [`v8_v9_report`](experiments/v9/v8_v9_evaluation_report.md), [`v10_eplb`](experiments/v10/v10_eplb_evaluation_report.md), [`v11_report`](experiments/v11/v11_evaluation_report.md), [`v12_report`](experiments/v12/v12_evaluation_report.md) |
-| **Era 3: Context-Bounded Hierarchical AB-MCTS + Speculative `501B` MoE** | **`V13` & `V13 + Beam-501B`** (SWE-bench `n = 30` cohort & `n = 6` multi-repo slice) | Refactored hierarchy into **Context-Bounded Verification Layers ($L_0 \to L_1 \to L_2$)** with **Agentic AB-MCTS over Git Checkpoints** (`CONT` delta-refinement vs. `GEN` "Move 37" pivots) and a read-only **Popperian `AdversarialFalsifierSubAgent`**, powered by **`Reflection Beam-1.0-501B-A23B-NVFP4` + `DFlash2` (`8`-token speculative decoding)** across 3 Ray `TP=4` replica groups (`12x RTX PRO 6000 96 GB`). | Achieved **`100.0%` (`30/30` on `Qwen3.8`, `6/6` on `Beam-501B`) held-out SWE-bench resolution** (`100%` `FAIL_TO_PASS`, `0` regressions) and **`3.31x` faster wall-clock execution (`305.6s` mean, up to `5.36x` faster)** with **`-55.1%` fewer tokens**. | [`v13_architecture`](experiments/v13/v13_hierarchical_agentic_ab_mcts_architecture.md), [`v13_report`](experiments/v13/v13_evaluation_report.md), [`beam_vs_qwen38`](experiments/v13/beam_vs_qwen38_evaluation_report.md) |
+| **Era 3: Context-Bounded Hierarchical AB-MCTS, Speculative `501B` MoE & Two-Tier `L0-Macro` Ratchet** | **`V13`, `V13 + Beam-501B` & `L0-Macro` Ratchet** (SWE-bench `n = 30` cohort, `n = 6` multi-repo slice & multi-milestone builds) | Refactored hierarchy into **Context-Bounded Verification Layers ($L_0 \to L_1 \to L_2$)** with **Agentic AB-MCTS over Git Checkpoints** (`CONT` delta-refinement vs. `GEN` "Move 37" pivots), read-only **Popperian `AdversarialFalsifierSubAgent`**, pluggable `WorkspaceVerifierPlugin`, and the outer **`L0-Macro` Milestone DAG & Git Commit Ratchet**, powered by **`Reflection Beam-1.0-501B-A23B-NVFP4` + `DFlash2` (`8`-token speculative decoding)** across 3 Ray `TP=4` replica groups (`12x RTX PRO 6000 96 GB`). | Achieved **`100.0%` (`30/30` on `Qwen3.8`, `6/6` on `Beam-501B`) held-out SWE-bench resolution** (`100%` `FAIL_TO_PASS`, `0` regressions), **`3.31x` faster wall-clock execution (`305.6s` mean, up to `5.36x` faster)** with **`-55.1%` fewer tokens**, and bounded `< 500`-LoC per-milestone ratcheting for `5,000–100,000+` LoC builds. | [`v14_macro_ratchet`](experiments/v13/v14_generalized_macro_ratchet_architecture.md), [`v13_architecture`](experiments/v13/v13_hierarchical_agentic_ab_mcts_architecture.md), [`v13_report`](experiments/v13/v13_evaluation_report.md), [`beam_vs_qwen38`](experiments/v13/beam_vs_qwen38_evaluation_report.md) |
 
 ---
 
@@ -218,7 +244,8 @@ Across 13 generations, HAE progressed through three distinct architectural eras.
 
 ```text
 hae/
-  swebench/       V13 Hierarchical AB-MCTS engine (hierarchical_mcts.py), V12 Agentic ReAct engine (agentic.py), container executor, runner
+  hierarchical/   Two-Tier L0-Macro Milestone DAG & Git Commit Ratchet (milestone_ratchet.py), pluggable WorkspaceVerifierPlugin (verifier_plugin.py)
+  swebench/       Generalized L0-Micro V13 Hierarchical AB-MCTS engine (hierarchical_mcts.py), V12 Agentic ReAct engine (agentic.py), container executor, runner
   infra/          LLM providers (vLLM + Harmony reasoning_effort & <rfl:tool_call> adapter, Vertex), config, preflight, telemetry
   epistemic/      Epistemic ledger, moves, gatekeeper, PUCT search, packet AB-MCTS controller (V9–V11), value/audit, heads (V7)
   genome/         CompanyGenome schema, mutation and crossover, role seeds, morphogenesis
@@ -226,9 +253,9 @@ hae/
   evaluation/     Benchmark, execution harness, verification loop, fitness judge
   orchestration/  Tournament engine, GKE worker, breeder
   task/           Task specs, budgets, verifiers
-  cli.py          Entry point: swebench, tournament, single-firm, breed, benchmark, preflight
+  cli.py          Entry point: ratchet, swebench, tournament, single-firm, breed, benchmark, preflight
 k8s/              GKE cluster setup, Beam-1.0-501B + DFlash2 (TP=4 Ray) & Qwen3.8 + EPLB (TP=2) serving manifests (see k8s/README.md)
-experiments/      Architecture specs, evaluation reports, and complete V1–V13 phase index (see experiments/README.md)
+experiments/      Architecture specs, evaluation reports, and complete V1–V13+ phase index (see experiments/README.md)
 results/          Harvested SWE-bench evaluations (beam_eval_2026-10-20/, dev_eval_2026-10-09/) and V6/V7 cohort artifacts
 configs/          V8–V13 SWE-bench genomes (configs/genomes/), generation population specs, task definitions
 scripts/          GKE SWE-bench batch evaluator (swebench_kubectl_batch.py), harvesters, telemetry & summary generators
@@ -279,7 +306,7 @@ PYTHONPATH=. python3 -u scripts/swebench_kubectl_batch.py \
   --budget-moves 36
 ```
 
-### 3. Single-Instance CLI & Hermetic Unit Tests
+### 3. Multi-Milestone Ratchet CLI (`--mode ratchet`), Single-Instance CLI & Hermetic Unit Tests
 
 Unit tests require Python 3.10+ and only the standard library (zero network dependency):
 
@@ -287,8 +314,15 @@ Unit tests require Python 3.10+ and only the standard library (zero network depe
 # Run the complete unit and regression test suite
 PYTHONPATH=. python3 -m unittest discover -s tests -q
 
-# Run the V8-V13 SWE-bench unit tests specifically
-PYTHONPATH=. python3 -m unittest tests/test_swebench_hierarchical_mcts.py tests/test_swebench_agentic.py tests/test_swebench_runner.py -v
+# Run the Two-Tier L0-Macro Milestone Ratchet & Generalized V13 L0-Micro tests specifically
+PYTHONPATH=. python3 -m unittest tests/test_milestone_ratchet.py tests/test_swebench_hierarchical_mcts.py tests/test_swebench_agentic.py tests/test_swebench_runner.py -v
+
+# Run a multi-milestone system build with the Two-Tier L0-Macro Git Commit Ratchet
+PYTHONPATH=. python3 -m hae.cli --mode ratchet \
+  --workspace-dir /path/to/target-repo \
+  --objective "Build a modular tokenizer, recursive-descent parser, and evaluator with full unit tests." \
+  --acceptance-cmd "pytest -q" \
+  --resume
 
 # Run a single SWE-bench instance via CLI
 PYTHONPATH=. python3 -m hae.cli --mode swebench \
@@ -300,13 +334,14 @@ PYTHONPATH=. python3 -m hae.cli --mode swebench \
 
 ## Key Documentation & Evaluation Reports
 
-- **V13 & `Beam-1.0-501B` Architecture & Evaluation Reports**:
+- **Generalized Two-Tier `L0-Macro` Ratchet, `V13` & `Beam-1.0-501B` Architecture & Evaluation Reports**:
+  - **[`experiments/v13/v14_generalized_macro_ratchet_architecture.md`](experiments/v13/v14_generalized_macro_ratchet_architecture.md)**: Universal Two-Tier Hierarchical Verification & Milestone Ratchet specification (`L0-Macro` Compositional Milestone DAG & Persistent Git Commit Ratchet $\times$ `L0-Micro` Generalized V13 AB-MCTS, scaling from 5-minute bug fixes to multi-day `100,000+` LoC builds).
   - **[`experiments/v13/beam_vs_qwen38_evaluation_report.md`](experiments/v13/beam_vs_qwen38_evaluation_report.md)**: Head-to-head SWE-bench evaluation of `Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2` vs. `nvidia/Qwen3.8-Flash-Next-NVFP4` (`100.0%` resolution at `3.31x` faster wall-clock speed and `-55.1%` fewer tokens).
   - **[`experiments/v13/v13_evaluation_report.md`](experiments/v13/v13_evaluation_report.md)**: Full 30-instance SWE-bench cohort report for `V13` (`30 / 30` = `100.0%` resolved, `275 / 275` `FAIL_TO_PASS`, 6-generation longitudinal comparison across `V8`–`V13`).
   - **[`experiments/v13/v13_hierarchical_agentic_ab_mcts_architecture.md`](experiments/v13/v13_hierarchical_agentic_ab_mcts_architecture.md)**: Formal specification of the V13 Context-Bounded Hierarchical Verification Harness and Agentic AB-MCTS ("Move 37" Engine).
   - **[`k8s/README.md`](k8s/README.md)**: GKE hardware topology (`12x RTX PRO 6000 Blackwell 96 GB`), multi-node Ray `TP=4` `Beam-501B + DFlash2` serving guide, and `Qwen3.8` EPLB configuration.
 - **Complete Multi-Generation Index & Harvested Artifacts**:
-  - **[`experiments/README.md`](experiments/README.md)**: Complete generation-by-generation (`V1`–`V13`) phase table, reading order, and links to all historical reports ([`V12`](experiments/v12/v12_evaluation_report.md), [`V11`](experiments/v11/v11_evaluation_report.md), [`V10`](experiments/v10/v10_eplb_evaluation_report.md), [`V8–V9`](experiments/v9/v8_v9_evaluation_report.md)).
+  - **[`experiments/README.md`](experiments/README.md)**: Complete generation-by-generation (`V1`–`V13+`) phase table, reading order, and links to all historical reports ([`V12`](experiments/v12/v12_evaluation_report.md), [`V11`](experiments/v11/v11_evaluation_report.md), [`V10`](experiments/v10/v10_eplb_evaluation_report.md), [`V8–V9`](experiments/v9/v8_v9_evaluation_report.md)).
   - **[`results/swebench/beam_eval_2026-10-20/README.md`](results/swebench/beam_eval_2026-10-20/README.md)** & **[`results/swebench/dev_eval_2026-10-09/README.md`](results/swebench/dev_eval_2026-10-09/README.md)**: Per-instance patches, `grade.json` pytest reports, and trajectories.
 
 ---
