@@ -6,7 +6,9 @@ Agent Evolution (HAE)** program (`V1` through `V13`). Each phase changed a
 specific axis of how firms are scored, how tasks are verified in sandboxes, or
 how multi-agent hierarchy and tree search are structured.
 
-![V2 and V3 held-out test trajectory](v2/assets/v2_v3_evolutionary_trajectory.png)
+![HAE V1 to V13 + Reflection Beam-501B Evolutionary & SWE-bench Trajectory](v13/assets/v1_to_v13_beam_trajectory.svg)
+
+*(High-res PNG: [`v1_to_v13_beam_trajectory.png`](v13/assets/v1_to_v13_beam_trajectory.png) | Early V2–V3 held-out test trajectory: [`v2_v3_evolutionary_trajectory.png`](v2/assets/v2_v3_evolutionary_trajectory.png))*
 
 ---
 
@@ -39,14 +41,14 @@ verified disjoint from the 500-task `SWE-bench Verified` test split; `30` valid
 executable container environments after preflight screening in
 [`results/swebench/dev_eval_2026-10-09/`](../results/swebench/dev_eval_2026-10-09/README.md)):
 
-| Metric | V8 (`puct`) | V9 (`ab_mcts`) | V10 (`ab_mcts` + EPLB) | V11 (`ab_mcts` + Multi-Hunk) | V12 (`v12_agentic` ReAct + Best-of-N) | **V13 (`v13_hier_mcts` Verification Harness + AB-MCTS)** |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Official Resolved (`grade.json`)** | `4 / 30` (`13.3%`) | `3 / 30` (`10.0%`) | `5 / 30` (`16.7%`) | `6 / 30` (`20.0%`) | `14 / 30` (`46.7%`) | **`30 / 30` (`100.0%`)** (**`275 / 275` (`100.0%`) `FAIL_TO_PASS`**) |
-| **Non-Empty Verified Patches** | `9 / 30` (`30.0%`) | `8 / 30` (`26.7%`) | `11 / 30` (`36.7%`) | `11 / 30` (`36.7%`) | `26 / 30` (`86.7%`) | **`30 / 30` (`100.0%`)** |
-| **Zero-Regression on `PASS_TO_PASS`** | `28 / 30` (`93.3%`) | `30 / 30` (`100.0%`) | `29 / 30` (`96.7%`) | `30 / 30` (`100.0%`) | `28 / 30` (`93.3%`) | **`30 / 30` (`100.0%`)** |
-| **Mean Wall-Clock Time per Task** | `555.8s` | `463.8s` | `539.8s` | `519.5s` | `1,310.7s` | **`1,210.5s`** (**`-7.6%` faster than V12**) |
-| **Context Management** | Cumulative Epistemic Ledger | Cumulative Epistemic Ledger | Cumulative Epistemic Ledger | Cumulative Epistemic Ledger | Per-Specialist ReAct (`18` turns) | **3-Layer Clean-Context Ephemeral Sub-Agents (`8–22` turns)** |
-| **Search & Local-Optima Escape** | Fixed-width PUCT (`k=3`) | Packet-level AB-MCTS | Empirical AB-MCTS (`pending_loss=1.5`) | Empirical AB-MCTS + Corroboration | Linear Best-of-3 Restart from `HEAD` | **Agentic AB-MCTS (`CONT` Delta-Refinement vs. `GEN` "Move 37" Pivot)** |
+| Metric | V8 (`puct`) | V9 (`ab_mcts`) | V10 (`ab_mcts` + EPLB) | V11 (`ab_mcts` + Multi-Hunk) | V12 (`v12_agentic` ReAct + Best-of-N) | **V13 (`v13_hier_mcts` on `Qwen3.8`)** | **`V13 + Beam-501B` (`+ DFlash2`, `n = 6` Slice)** |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Official Resolved (`grade.json`)** | `4 / 30` (`13.3%`) | `3 / 30` (`10.0%`) | `5 / 30` (`16.7%`) | `6 / 30` (`20.0%`) | `14 / 30` (`46.7%`) | **`30 / 30` (`100.0%`)** (**`275 / 275` (`100.0%`) `FAIL_TO_PASS`**) | **`6 / 6` (`100.0%`)** (**`57 / 57` (`100.0%`) `FAIL_TO_PASS`**) |
+| **Non-Empty Verified Patches** | `9 / 30` (`30.0%`) | `8 / 30` (`26.7%`) | `11 / 30` (`36.7%`) | `11 / 30` (`36.7%`) | `26 / 30` (`86.7%`) | **`30 / 30` (`100.0%`)** | **`6 / 6` (`100.0%`)** |
+| **Zero-Regression on `PASS_TO_PASS`** | `28 / 30` (`93.3%`) | `30 / 30` (`100.0%`) | `29 / 30` (`96.7%`) | `30 / 30` (`100.0%`) | `28 / 30` (`93.3%`) | **`30 / 30` (`100.0%`)** | **`6 / 6` (`100.0%`, `214 / 214` P2P)** |
+| **Mean Wall-Clock Time per Task** | `555.8s` | `463.8s` | `539.8s` | `519.5s` | `1,310.7s` | **`1,210.5s`** (**`-7.6%` faster than V12**) | **`305.6s`** (**`3.31x` faster than `Qwen3.8`, up to `5.36x`**) |
+| **Context Management** | Cumulative Epistemic Ledger | Cumulative Epistemic Ledger | Cumulative Epistemic Ledger | Cumulative Epistemic Ledger | Per-Specialist ReAct (`18` turns) | **3-Layer Clean-Context Ephemeral Sub-Agents (`8–22` turns)** | **3-Layer Clean-Context + Harmony `reasoning_effort` (`-55.1%` tokens)** |
+| **Search & Local-Optima Escape** | Fixed-width PUCT (`k=3`) | Packet-level AB-MCTS | Empirical AB-MCTS (`pending_loss=1.5`) | Empirical AB-MCTS + Corroboration | Linear Best-of-3 Restart from `HEAD` | **Agentic AB-MCTS (`CONT` Delta-Refinement vs. `GEN` "Move 37" Pivot)** | **Agentic AB-MCTS + `Beam-501B` (`DFlash2` `8`-token speculative decoding)** |
 
 ---
 
@@ -61,3 +63,5 @@ If you are new to the project:
    - [v11/v11_evaluation_report.md](v11/v11_evaluation_report.md) and [v12/v12_evaluation_report.md](v12/v12_evaluation_report.md) document why rigid V6 JSON-schema packets (`PROPOSE_HYPOTHESES` / `REPAIR_PLAN`) capped SWE-bench resolution at `20.0%` (`6/30`), and how replacing them with interactive ReAct tool loops + Best-of-$N$ diverse causal framing more than doubled performance to **`46.7%` (`14/30`)**.
 4. **V13 Hierarchical Verification Harness + Agentic AB-MCTS ("Move 37" Engine)**:
    - [v13/v13_evaluation_report.md](v13/v13_evaluation_report.md) and [v13/v13_hierarchical_agentic_ab_mcts_architecture.md](v13/v13_hierarchical_agentic_ab_mcts_architecture.md) detail the V13 paradigm shift and its **`100.0%` (`30/30`)** cohort evaluation (**`275/275` (`100.0%`)** individual `FAIL_TO_PASS` tests passed).
+5. **Reflection `Beam-1.0-501B-A23B-NVFP4` (`+ DFlash2`) Comparative Evaluation & GKE Topology**:
+   - [v13/beam_vs_qwen38_evaluation_report.md](v13/beam_vs_qwen38_evaluation_report.md) and [../k8s/README.md](../k8s/README.md) document the multi-node Ray `TP=4` GKE deployment (`12x RTX PRO 6000 Blackwell 96 GB`, `2.51M` KV-cache tokens) and the **`3.31x` wall-clock speedup (`305.6s` vs. `1,010.6s`, up to `5.36x` faster)** with **`-55.1%` fewer tokens** while preserving **`100.0%` (`6/6`)** SWE-bench resolution.

@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 940" width="1440" height="940" font-family="'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="hdrGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0f766e"/>
+      <stop offset="50%" stop-color="#3730a3"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="tier1Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#042f2e" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.90"/>
+    </linearGradient>
+    <linearGradient id="tier2Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b" stop-opacity="0.94"/>
+      <stop offset="100%" stop-color="#312e81" stop-opacity="0.84"/>
+    </linearGradient>
+    <linearGradient id="tier3Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2e1065" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#111827" stop-opacity="0.94"/>
+    </linearGradient>
+    <linearGradient id="repCard" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="gpuBadge" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#0d9488"/>
+    </linearGradient>
+    <filter id="shadow2" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <marker id="arrCyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrViolet" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#a78bfa"/>
+    </marker>
+    <marker id="arrGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#34d399"/>
+    </marker>
+  </defs>
+
+  <rect width="1440" height="940" fill="url(#bgGrad2)"/>
+
+  <!-- Header Banner -->
+  <rect x="28" y="20" width="1384" height="96" rx="16" fill="url(#hdrGrad2)" stroke="#818cf8" stroke-width="2" filter="url(#shadow2)"/>
+  <text x="54" y="56" fill="#ffffff" font-size="24" font-weight="800" letter-spacing="0.3">GKE DISTRIBUTED INFERENCE &amp; SANDBOX EXECUTION TOPOLOGY (hae-cluster)</text>
+  <text x="54" y="84" fill="#e0e7ff" font-size="14" font-weight="500">3x Multi-Node Ray TP=4 Replica Groups | Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2 | 12x NVIDIA RTX PRO 6000 Blackwell 96 GB (1.15 TB VRAM)</text>
+
+  <rect x="1155" y="32" width="236" height="70" rx="10" fill="#064e3b" stroke="#34d399" stroke-width="1.5"/>
+  <text x="1273" y="58" fill="#ecfdf5" font-size="18" font-weight="800" text-anchor="middle">2.51M KV TOKENS</text>
+  <text x="1273" y="80" fill="#a7f3d0" font-size="11.5" font-weight="600" text-anchor="middle">fp8_e4m3 | 8-Tok DFlash2</text>
+
+  <!-- ===================================================================== -->
+  <!-- TIER 1: COORDINATOR & SWE-BENCH SANDBOX POOL                           -->
+  <!-- ===================================================================== -->
+  <rect x="28" y="136" width="1384" height="174" rx="16" fill="url(#tier1Grad)" stroke="#14b8a6" stroke-width="2" filter="url(#shadow2)"/>
+  <rect x="46" y="150" width="540" height="28" rx="6" fill="#0d9488"/>
+  <text x="58" y="169" fill="#ffffff" font-size="13" font-weight="800">TIER 1 &#8212; COORDINATOR &amp; SWE-BENCH CONTAINER SANDBOX POOL (CPU NODES)</text>
+  <text x="600" y="169" fill="#99f6e4" font-size="12.5" font-weight="600">Isolated Git Worktrees + Pytest Execution inside Official swebench.harness Images</text>
+
+  <!-- Orchestrator Box -->
+  <rect x="48" y="190" width="520" height="102" rx="12" fill="#0f172a" stroke="#2dd4bf" stroke-width="2" filter="url(#shadow2)"/>
+  <text x="68" y="216" fill="#2dd4bf" font-size="14.5" font-weight="800">V13 AB-MCTS Orchestrator (scripts/swebench_kubectl_batch.py)</text>
+  <text x="68" y="239" fill="#e2e8f0" font-size="12">&#8226; Parallel Task Worker Pool (--workers 3..4) driving L0 &#8594; L1-A &#8594; L2 &#8594; L1-B</text>
+  <text x="68" y="259" fill="#e2e8f0" font-size="12">&#8226; Dispatches OpenAI Chat Completions requests with per-branch prefix affinity</text>
+  <text x="68" y="279" fill="#5eead4" font-size="11.5" font-weight="700">&#8226; Harvests grade.json held-out pytest verdicts &amp; full MCTS tree telemetry</text>
+
+  <!-- Arrow Orchestrator -> Sandbox Pods -->
+  <line x1="568" y1="241" x2="660" y2="241" stroke="#38bdf8" stroke-width="3" marker-end="url(#arrCyan)"/>
+  <text x="614" y="230" fill="#7dd3fc" font-size="11" font-weight="700" text-anchor="middle">kubectl exec</text>
+
+  <!-- Sandbox Pods Box -->
+  <rect x="668" y="190" width="722" height="102" rx="12" fill="#0f172a" stroke="#38bdf8" stroke-width="2" filter="url(#shadow2)"/>
+  <text x="688" y="216" fill="#38bdf8" font-size="14.5" font-weight="800">Ephemeral SWE-bench /testbed Sandbox Pods (swebench-tb-*)</text>
+  <text x="688" y="239" fill="#e2e8f0" font-size="12">&#8226; Isolated repo environment per task (astroid, django, marshmallow, pydicom, pyvista, sqlfluff, ...)</text>
+  <text x="688" y="259" fill="#e2e8f0" font-size="12">&#8226; Executes ReAct tools (view_file, bash, str_replace), reproduce_issue.py, and falsification_suite.py</text>
+  <text x="688" y="279" fill="#bae6fd" font-size="11.5" font-weight="700">&#8226; Final held-out evaluation runs clean git apply + official FAIL_TO_PASS &amp; PASS_TO_PASS grading</text>
+
+  <!-- Downward Arrow Tier 1 -> Tier 2 -->
+  <line x1="308" y1="292" x2="308" y2="348" stroke="#a78bfa" stroke-width="3.5" marker-end="url(#arrViolet)"/>
+
+  <!-- ===================================================================== -->
+  <!-- TIER 2: LLM-D INTELLIGENT INFERENCE GATEWAY & HARMONY ADAPTER         -->
+  <!-- ===================================================================== -->
+  <rect x="28" y="332" width="1384" height="168" rx="16" fill="url(#tier2Grad)" stroke="#818cf8" stroke-width="2" filter="url(#shadow2)"/>
+  <rect x="46" y="346" width="520" height="28" rx="6" fill="#4f46e5"/>
+  <text x="58" y="365" fill="#ffffff" font-size="13" font-weight="800">TIER 2 &#8212; LLM-D INTELLIGENT INFERENCE GATEWAY (svc/vllm-qwen38-gateway:8000)</text>
+  <text x="580" y="365" fill="#c7d2fe" font-size="12.5" font-weight="600">Prefix-Affinity Routing + Singleflight Coalescing + Harmony Reasoning Controller</text>
+
+  <!-- Gateway Router Card -->
+  <rect x="48" y="386" width="645" height="96" rx="12" fill="#0f172a" stroke="#818cf8" stroke-width="1.8" filter="url(#shadow2)"/>
+  <text x="68" y="412" fill="#a5b4fc" font-size="14" font-weight="800">llm-d Prefix-Affinity Router &amp; Exact/Singleflight Cache</text>
+  <text x="68" y="434" fill="#e2e8f0" font-size="12">&#8226; Hashes system prompt + ReconBrief prefix to pin MCTS branches to warm KV replicas</text>
+  <text x="68" y="454" fill="#e2e8f0" font-size="12">&#8226; 0.74 ms cache short-circuit latency; automatic retry &amp; failover across healthy backends</text>
+  <text x="68" y="472" fill="#818cf8" font-size="11.5" font-weight="700">&#8226; Service Endpoints: 10.68.2.40:8000 (Rep 0), 10.68.4.34:8000 (Rep 1), 10.68.5.33:8000 (Rep 2)</text>
+
+  <!-- Harmony Adapter Card -->
+  <rect x="725" y="386" width="665" height="96" rx="12" fill="#0f172a" stroke="#c084fc" stroke-width="1.8" filter="url(#shadow2)"/>
+  <text x="745" y="412" fill="#d8b4fe" font-size="14" font-weight="800">Harmony Wire-Tag Sanitizer &amp; reasoning_effort Budget Controller (vllm_provider.py)</text>
+  <text x="745" y="434" fill="#e2e8f0" font-size="12">&#8226; Turn 1 (Initial Localization): reasoning_effort="medium" (64 thinking token budget)</text>
+  <text x="745" y="454" fill="#e2e8f0" font-size="12">&#8226; Turn 2+ (ReAct Tool Execution): reasoning_effort="minimal" (8 thinking token budget)</text>
+  <text x="745" y="472" fill="#e9d5ff" font-size="11.5" font-weight="700">&#8226; Translates &lt;rfl:tool_call&gt; wire tags &amp; strips &lt;|channel|&gt;thoughts blocks cleanly</text>
+
+  <!-- Routing Arrows from Gateway to 3 Replica Groups -->
+  <path d="M 370 482 L 248 548" fill="none" stroke="#34d399" stroke-width="3" marker-end="url(#arrGreen)"/>
+  <path d="M 720 482 L 720 548" fill="none" stroke="#34d399" stroke-width="3" marker-end="url(#arrGreen)"/>
+  <path d="M 1070 482 L 1192 548" fill="none" stroke="#34d399" stroke-width="3" marker-end="url(#arrGreen)"/>
+
+  <!-- ===================================================================== -->
+  <!-- TIER 3: GPU INFERENCE POOL (3x RAY TP=4 REPLICA GROUPS = 12 GPUS)      -->
+  <!-- ===================================================================== -->
+  <rect x="28" y="520" width="1384" height="396" rx="16" fill="url(#tier3Grad)" stroke="#a855f7" stroke-width="2" filter="url(#shadow2)"/>
+  <rect x="46" y="534" width="650" height="28" rx="6" fill="#7c3aed"/>
+  <text x="58" y="553" fill="#ffffff" font-size="13" font-weight="800">TIER 3 &#8212; GPU INFERENCE POOL: 3x MULTI-NODE RAY TP=4 REPLICA GROUPS (6x g4-standard-96)</text>
+  <text x="712" y="553" fill="#e9d5ff" font-size="12.5" font-weight="600">12x RTX PRO 6000 Blackwell 96 GB (1.15 TB VRAM) | 576 vCPUs | 2.16 TiB DDR5 RAM</text>
+
+  <!-- REPLICA GROUP 0 -->
+  <rect x="48" y="576" width="428" height="236" rx="14" fill="url(#repCard)" stroke="#34d399" stroke-width="2" filter="url(#shadow2)"/>
+  <rect x="64" y="590" width="396" height="32" rx="8" fill="url(#gpuBadge)"/>
+  <text x="262" y="611" fill="#ffffff" font-size="13.5" font-weight="800" text-anchor="middle">REPLICA GROUP 0 (beam-501b-0 | Ray TP=4)</text>
+
+  <rect x="64" y="632" width="192" height="92" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.2"/>
+  <text x="160" y="652" fill="#38bdf8" font-size="12" font-weight="800" text-anchor="middle">Head Pod (g4-node-a)</text>
+  <text x="160" y="672" fill="#e2e8f0" font-size="11.5" text-anchor="middle">2x RTX PRO 6000 (192 GB)</text>
+  <text x="160" y="690" fill="#cbd5e1" font-size="11" text-anchor="middle">TP Ranks 0 &amp; 1 + API :8000</text>
+  <text x="160" y="708" fill="#6ee7b7" font-size="10.5" font-weight="700" text-anchor="middle">Ray Head :6379</text>
+
+  <rect x="268" y="632" width="192" height="92" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.2"/>
+  <text x="364" y="652" fill="#a78bfa" font-size="12" font-weight="800" text-anchor="middle">Worker Pod (g4-node-b)</text>
+  <text x="364" y="672" fill="#e2e8f0" font-size="11.5" text-anchor="middle">2x RTX PRO 6000 (192 GB)</text>
+  <text x="364" y="690" fill="#cbd5e1" font-size="11" text-anchor="middle">TP Ranks 2 &amp; 3</text>
+  <text x="364" y="708" fill="#c4b5fd" font-size="10.5" font-weight="700" text-anchor="middle">NCCL Socket Cross-Node</text>
+
+  <text x="68" y="746" fill="#e2e8f0" font-size="11.5">&#8226; VRAM / GPU: 70.71 GiB Weights + 0.94 GiB DFlash2 + 12.97 GiB KV</text>
+  <text x="68" y="766" fill="#e2e8f0" font-size="11.5">&#8226; KV Capacity: 837,056 fp8_e4m3 tokens (max_model_len = 65,536)</text>
+  <text x="68" y="786" fill="#34d399" font-size="11.5" font-weight="700">&#8226; Hybrid Storage: 170 GiB DDR5 tmpfs + 125 GiB NVMe (0% Eviction)</text>
+
+  <!-- REPLICA GROUP 1 -->
+  <rect x="506" y="576" width="428" height="236" rx="14" fill="url(#repCard)" stroke="#38bdf8" stroke-width="2" filter="url(#shadow2)"/>
+  <rect x="522" y="590" width="396" height="32" rx="8" fill="#0284c7"/>
+  <text x="720" y="611" fill="#ffffff" font-size="13.5" font-weight="800" text-anchor="middle">REPLICA GROUP 1 (beam-501b-1 | Ray TP=4)</text>
+
+  <rect x="522" y="632" width="192" height="92" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.2"/>
+  <text x="618" y="652" fill="#38bdf8" font-size="12" font-weight="800" text-anchor="middle">Head Pod (g4-node-c)</text>
+  <text x="618" y="672" fill="#e2e8f0" font-size="11.5" text-anchor="middle">2x RTX PRO 6000 (192 GB)</text>
+  <text x="618" y="690" fill="#cbd5e1" font-size="11" text-anchor="middle">TP Ranks 0 &amp; 1 + API :8000</text>
+  <text x="618" y="708" fill="#6ee7b7" font-size="10.5" font-weight="700" text-anchor="middle">Ray Head :6379</text>
+
+  <rect x="726" y="632" width="192" height="92" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.2"/>
+  <text x="822" y="652" fill="#a78bfa" font-size="12" font-weight="800" text-anchor="middle">Worker Pod (g4-node-d)</text>
+  <text x="822" y="672" fill="#e2e8f0" font-size="11.5" text-anchor="middle">2x RTX PRO 6000 (192 GB)</text>
+  <text x="822" y="690" fill="#cbd5e1" font-size="11" text-anchor="middle">TP Ranks 2 &amp; 3</text>
+  <text x="822" y="708" fill="#c4b5fd" font-size="10.5" font-weight="700" text-anchor="middle">NCCL Socket Cross-Node</text>
+
+  <text x="526" y="746" fill="#e2e8f0" font-size="11.5">&#8226; VRAM / GPU: 70.71 GiB Weights + 0.94 GiB DFlash2 + 12.97 GiB KV</text>
+  <text x="526" y="766" fill="#e2e8f0" font-size="11.5">&#8226; KV Capacity: 837,056 fp8_e4m3 tokens (max_model_len = 65,536)</text>
+  <text x="526" y="786" fill="#7dd3fc" font-size="11.5" font-weight="700">&#8226; Hybrid Storage: 170 GiB DDR5 tmpfs + 125 GiB NVMe (0% Eviction)</text>
+
+  <!-- REPLICA GROUP 2 -->
+  <rect x="964" y="576" width="428" height="236" rx="14" fill="url(#repCard)" stroke="#c084fc" stroke-width="2" filter="url(#shadow2)"/>
+  <rect x="980" y="590" width="396" height="32" rx="8" fill="#7c3aed"/>
+  <text x="1178" y="611" fill="#ffffff" font-size="13.5" font-weight="800" text-anchor="middle">REPLICA GROUP 2 (beam-501b-2 | Ray TP=4)</text>
+
+  <rect x="980" y="632" width="192" height="92" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.2"/>
+  <text x="1076" y="652" fill="#38bdf8" font-size="12" font-weight="800" text-anchor="middle">Head Pod (g4-node-e)</text>
+  <text x="1076" y="672" fill="#e2e8f0" font-size="11.5" text-anchor="middle">2x RTX PRO 6000 (192 GB)</text>
+  <text x="1076" y="690" fill="#cbd5e1" font-size="11" text-anchor="middle">TP Ranks 0 &amp; 1 + API :8000</text>
+  <text x="1076" y="708" fill="#6ee7b7" font-size="10.5" font-weight="700" text-anchor="middle">Ray Head :6379</text>
+
+  <rect x="1184" y="632" width="192" height="92" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1.2"/>
+  <text x="1280" y="652" fill="#a78bfa" font-size="12" font-weight="800" text-anchor="middle">Worker Pod (g4-node-f)</text>
+  <text x="1280" y="672" fill="#e2e8f0" font-size="11.5" text-anchor="middle">2x RTX PRO 6000 (192 GB)</text>
+  <text x="1280" y="690" fill="#cbd5e1" font-size="11" text-anchor="middle">TP Ranks 2 &amp; 3</text>
+  <text x="1280" y="708" fill="#c4b5fd" font-size="10.5" font-weight="700" text-anchor="middle">NCCL Socket Cross-Node</text>
+
+  <text x="984" y="746" fill="#e2e8f0" font-size="11.5">&#8226; VRAM / GPU: 70.71 GiB Weights + 0.94 GiB DFlash2 + 12.97 GiB KV</text>
+  <text x="984" y="766" fill="#e2e8f0" font-size="11.5">&#8226; KV Capacity: 837,056 fp8_e4m3 tokens (max_model_len = 65,536)</text>
+  <text x="984" y="786" fill="#d8b4fe" font-size="11.5" font-weight="700">&#8226; Hybrid Storage: 170 GiB DDR5 tmpfs + 125 GiB NVMe (0% Eviction)</text>
+
+  <!-- Shared Speculative Decoding & Kernel Summary Bar -->
+  <rect x="48" y="828" width="1344" height="70" rx="12" fill="#0f172a" stroke="#fbbf24" stroke-width="1.8"/>
+  <text x="720" y="854" fill="#fbbf24" font-size="13.5" font-weight="800" text-anchor="middle">BLACKWELL SM120 KERNEL &amp; SPECULATIVE DECODING STACK (k8s/beam-501b-nvfp4-serving.yaml)</text>
+  <text x="720" y="878" fill="#e2e8f0" font-size="12" text-anchor="middle">VLLM_NVFP4_GEMM_BACKEND=marlin &#8226; VLLM_MOE_NVFP4_BACKEND=marlin &#8226; DFlash2 Drafter (num_speculative_tokens=8) &#8226; Total Cluster KV: 2,511,168 fp8_e4m3 Tokens</text>
+</svg>
