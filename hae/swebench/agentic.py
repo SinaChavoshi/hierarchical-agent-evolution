@@ -137,7 +137,7 @@ class ParsedAction:
 # Dedicated regex for `str_replace` that anchors on `>>>>` before closing ` ``` `,
 # so nested triple backticks inside Python docstrings never truncate the block.
 _STR_REPLACE_FENCE_RE = re.compile(
-    r"```(?:str_replace|edit_file)\b[^\n]*\n(?P<body>.*?\n>{4,}[^\n]*)\s*\n```",
+    r"```(?:str_replace|edit_file)\b[^\n]*\n(?P<body>.*?)\s*(?:</?[a-zA-Z0-9_:-]+>\s*)*```",
     re.DOTALL | re.IGNORECASE,
 )
 
@@ -154,32 +154,98 @@ _OTHER_FENCE_RE = re.compile(
 )
 
 
+def _strip_rfl_artifacts(val: str) -> str:
+    """Strip Reflection Beam `<rfl:...>` / `</rfl:...>` and XML tool-call closing tags (including truncated tail tags)."""
+    if not val:
+        return ""
+    val = re.sub(
+        r"^\s*(?:</?(?:rfl:[a-zA-Z0-9_:-]*|param[a-zA-Z0-9_:-]*\b[^>]*|func[a-zA-Z0-9_:-]*\b[^>]*|tool_call\b[^>]*|rfl\b[^>]*)\s*>?\s*)+",
+        "",
+        val,
+        flags=re.IGNORECASE,
+    )
+    val = re.sub(
+        r"(?:\s*</?(?:rfl:[a-zA-Z0-9_:-]*|param[a-zA-Z0-9_:-]*\b[^>]*|func[a-zA-Z0-9_:-]*\b[^>]*|tool_call\b[^>]*|rfl\b[^>]*)\s*>?\s*)+\Z",
+        "",
+        val,
+        flags=re.IGNORECASE,
+    )
+    val = re.sub(r"<(/?)rfl:", r"<\1", val, flags=re.IGNORECASE)
+    return val
+
+
+def _clean_new_str_tail(val: str) -> str:
+    """Strip trailing `>>>>`, closing fences ```` ``` ````, and XML/Beam tags from `new_str`."""
+    cleaned = _strip_rfl_artifacts(val or "")
+    cleaned = re.sub(
+        r"(?:\r?\n)?(?:>{4,}[^\n]*|```)\s*(?:</?[a-zA-Z0-9_:-]+>\s*)*\Z",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    return _strip_rfl_artifacts(cleaned)
+
+
 def _clean_path_token(raw_path: str) -> str:
-    p = (raw_path or "").strip()
+    p = _strip_rfl_artifacts(raw_path or "").strip()
     if "\n" in p:
         p = p.splitlines()[0].strip()
     p = re.sub(r"^(?:path|file|filepath)\s*:\s*", "", p, flags=re.IGNORECASE)
     return p.strip().strip("'\"")
 
 
+def _decode_kv_block_str(raw_val: str) -> str:
+    """Decode an `old_str:` / `new_str:` value from either a JSON/Python quoted string or a multiline block."""
+    cleaned = _strip_rfl_artifacts(raw_val)
+    cleaned = re.sub(r"\n*```\s*\Z", "", cleaned)
+    cleaned = re.sub(r"^\s*[|>][-+]?\s*\r?\n", "\n", cleaned)
+    s = cleaned.strip()
+    if len(s) >= 2 and ((s[0] == '"' and s[-1] == '"') or (s[0] == "'" and s[-1] == "'")):
+        try:
+            import ast
+            val = ast.literal_eval(s)
+            if isinstance(val, str):
+                return val
+        except Exception:
+            pass
+    if cleaned.startswith("\r\n"):
+        cleaned = cleaned[2:]
+    elif cleaned.startswith("\n"):
+        cleaned = cleaned[1:]
+    elif cleaned.startswith(" "):
+        # If first line was written on the same line after `old_str: `, strip the single separator space
+        # unless subsequent lines are indented deeper and the first line already has leading spaces.
+        lines = cleaned.splitlines()
+        if len(lines) == 1 or not cleaned.startswith("  "):
+            cleaned = cleaned[1:]
+    if cleaned.endswith("\r\n"):
+        cleaned = cleaned[:-2]
+    elif cleaned.endswith("\n"):
+        cleaned = cleaned[:-1]
+    return cleaned
+
+
 def _parse_str_replace_body(body: str, raw_text: str) -> ParsedAction:
+    body = _strip_rfl_artifacts(body)
+    body = re.sub(r"\s*```\s*\Z", "", body)
+    body = _strip_rfl_artifacts(body)
     m_sr = re.search(
         r"(?:^|\n)\s*(?:path|file|filepath)\s*:\s*(?P<path>[^\n]+?)\s*\n"
-        r"<{4,}[^\n]*\n(?P<old>.*?)\n={4,}[^\n]*\n(?P<new>.*?)(?:\n>{4,}[^\n]*|\Z)",
+        r"\s*<{4,}[^\n]*\n(?P<old>.*?)\n\s*={4,}[^\n]*(?:\n(?P<new>.*?))?(?:\n\s*>{4,}[^\n]*|\Z)",
         body,
         re.DOTALL | re.IGNORECASE,
     )
     if not m_sr:
         m_sr = re.search(
             r"^\s*(?P<path>[^\n<]+?)\s*\n"
-            r"<{4,}[^\n]*\n(?P<old>.*?)\n={4,}[^\n]*\n(?P<new>.*?)(?:\n>{4,}[^\n]*|\Z)",
+            r"\s*<{4,}[^\n]*\n(?P<old>.*?)\n\s*={4,}[^\n]*(?:\n(?P<new>.*?))?(?:\n\s*>{4,}[^\n]*|\Z)",
             body,
             re.DOTALL,
         )
     if not m_sr:
         # Handle nested fences like ```path\n/testbed/foo.py\n```\n<<<<\n...\n====\n...\n>>>>
         m_markers = re.search(
-            r"(?:^|\n)<{4,}[^\n]*\n(?P<old>.*?)\n={4,}[^\n]*\n(?P<new>.*?)(?:\n>{4,}[^\n]*|\Z)",
+            r"(?:^|\n)\s*<{4,}[^\n]*\n(?P<old>.*?)\n\s*={4,}[^\n]*(?:\n(?P<new>.*?))?(?:\n\s*>{4,}[^\n]*|\Z)",
             body,
             re.DOTALL,
         )
@@ -196,28 +262,47 @@ def _parse_str_replace_body(body: str, raw_text: str) -> ParsedAction:
                     break
             if extracted_path:
                 old_str = m_markers.group("old")
-                new_str = re.sub(
-                    r"\n*(?:>{4,}[^\n]*|</parameter>|</function>|</tool_call>)\s*\Z",
-                    "",
-                    m_markers.group("new"),
-                )
+                new_str = _clean_new_str_tail(m_markers.group("new") or "")
                 return ParsedAction(
                     kind="str_replace", path=extracted_path, old_str=old_str, new_str=new_str, raw=raw_text
                 )
         # Fallback if `<<<<` was omitted after `path: ...` (i.e. `path: foo.py\n<old>\n====\n<new>\n>>>>`)
         m_no_lt = re.search(
-            r"(?:^|\n)\s*(?:path|file|filepath)\s*:\s*(?P<path>[^\n]+?)\s*\n(?P<old>.*?)\n={4,}[^\n]*\n(?P<new>.*?)(?:\n>{4,}[^\n]*|\Z)",
+            r"(?:^|\n)\s*(?:path|file|filepath)\s*:\s*(?P<path>[^\n]+?)\s*\n(?P<old>.*?)\n\s*={4,}[^\n]*(?:\n(?P<new>.*?))?(?:\n\s*>{4,}[^\n]*|\Z)",
             body,
             re.DOTALL | re.IGNORECASE,
         )
         if m_no_lt:
             p_cand = _clean_path_token(m_no_lt.group("path"))
-            old_c = re.sub(r"^<{4,}[^\n]*\n", "", m_no_lt.group("old"))
-            new_c = re.sub(
-                r"\n*(?:>{4,}[^\n]*|</parameter>|</function>|</tool_call>)\s*\Z",
-                "",
-                m_no_lt.group("new"),
-            )
+            old_c = re.sub(r"^\s*<{4,}[^\n]*\n", "", m_no_lt.group("old"))
+            new_c = _clean_new_str_tail(m_no_lt.group("new") or "")
+            if p_cand and old_c:
+                return ParsedAction(kind="str_replace", path=p_cand, old_str=old_c, new_str=new_c, raw=raw_text)
+        # Fallback if `>>>>` was used instead of `====` as the divider (`path: ...\n<<<<\n<old>\n>>>>\n<new>\n>>>>`)
+        m_gt_div = re.search(
+            r"(?:^|\n)\s*(?:(?:path|file|filepath)\s*:\s*)?(?P<path>[^\n<]+?)\s*\n"
+            r"\s*<{4,}[^\n]*\n(?P<old>.*?)\n\s*>{4,}[^\n]*\n(?P<new>.+?)(?:\n\s*>{4,}[^\n]*|\Z)",
+            body,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if m_gt_div:
+            p_cand = _clean_path_token(m_gt_div.group("path"))
+            old_c = m_gt_div.group("old")
+            new_c = _clean_new_str_tail(m_gt_div.group("new"))
+            if p_cand and old_c:
+                return ParsedAction(kind="str_replace", path=p_cand, old_str=old_c, new_str=new_c, raw=raw_text)
+        # Fallback for `path: ...\nold_str: ...\nnew_str: ...` (used by Reflection Beam)
+        m_kv_sr = re.search(
+            r"(?:^|\n)\s*(?:path|file|filepath)\s*:\s*(?P<path>[^\n]+?)\s*\n"
+            r"\s*(?:old_str|old_string|old)\s*:(?P<old>.*?)\n"
+            r"\s*(?:new_str|new_string|new)\s*:(?P<new>.*)",
+            body,
+            re.DOTALL | re.IGNORECASE,
+        )
+        if m_kv_sr:
+            p_cand = _clean_path_token(m_kv_sr.group("path"))
+            old_c = _decode_kv_block_str(m_kv_sr.group("old"))
+            new_c = _decode_kv_block_str(m_kv_sr.group("new"))
             if p_cand and old_c:
                 return ParsedAction(kind="str_replace", path=p_cand, old_str=old_c, new_str=new_c, raw=raw_text)
         return ParsedAction(
@@ -230,7 +315,7 @@ def _parse_str_replace_body(body: str, raw_text: str) -> ParsedAction:
         )
     path = _clean_path_token(m_sr.group("path"))
     old_str = m_sr.group("old")
-    new_str = re.sub(r"\n*(?:>{4,}[^\n]*|</parameter>|</function>|</tool_call>)\s*\Z", "", m_sr.group("new"))
+    new_str = _clean_new_str_tail(m_sr.group("new") or "")
     return ParsedAction(kind="str_replace", path=path, old_str=old_str, new_str=new_str, raw=raw_text)
 
 
@@ -247,9 +332,10 @@ def _strip_single_outer_newlines(val: str) -> str:
 
 
 def _parse_xml_tool_call(text: str) -> Optional[ParsedAction]:
-    """Parse Qwen3/Qwen3.8 native `<tool_call><function=...><parameter=...>...</tool_call>` blocks."""
-    m_tc = re.search(r"<tool_call>\s*(.*?)(?:</tool_call>|\Z)", text, re.DOTALL | re.IGNORECASE)
-    inner = m_tc.group(1) if m_tc else text
+    """Parse Qwen3/Qwen3.8 and Reflection Beam native `<tool_call><function=...><parameter=...>...</tool_call>` blocks."""
+    norm_text = re.sub(r"<(/?)rfl:", r"<\1", text, flags=re.IGNORECASE)
+    m_tc = re.search(r"<tool_call>\s*(.*?)(?:</tool_call>|\Z)", norm_text, re.DOTALL | re.IGNORECASE)
+    inner = m_tc.group(1) if m_tc else norm_text
 
     m_fn = re.search(
         r"<(?:function\s*=\s*|(?==))=?([a-zA-Z0-9_:-]+)\s*>?(.*?)(?:</function>|(?=<tool_call>)|\Z)",
@@ -280,7 +366,7 @@ def _parse_xml_tool_call(text: str) -> Optional[ParsedAction]:
                 re.DOTALL | re.IGNORECASE,
             )
             if m_cmd:
-                return _dispatch_xml_function("bash", {"command": _strip_single_outer_newlines(m_cmd.group(1))}, inner, text)
+                return _dispatch_xml_function("bash", {"command": _strip_single_outer_newlines(_strip_rfl_artifacts(m_cmd.group(1)))}, inner, text)
     if not m_fn:
         if m_tc:
             # Check if JSON inside <tool_call>{...}</tool_call>
@@ -312,7 +398,7 @@ def _parse_xml_tool_call(text: str) -> Optional[ParsedAction]:
         re.DOTALL | re.IGNORECASE,
     ):
         pkey = m_p.group(1).strip().lower()
-        pval = _strip_single_outer_newlines(m_p.group(2))
+        pval = _strip_single_outer_newlines(_strip_rfl_artifacts(m_p.group(2)))
         params[pkey] = pval
 
     return _dispatch_xml_function(func_name, params, fn_body, text)
@@ -322,7 +408,7 @@ def _dispatch_xml_function(
     func_name: str, params: Dict[str, str], fn_body: str, raw_text: str
 ) -> Optional[ParsedAction]:
     if func_name in ("bash", "sh", "shell", "run_command", "execute_bash", "terminal"):
-        cmd = (
+        cmd = _strip_rfl_artifacts(
             params.get("command")
             or params.get("cmd")
             or params.get("script")
@@ -478,12 +564,12 @@ def parse_agent_action(response_text: str) -> ParsedAction:
     if not text:
         return ParsedAction(kind="none", error="Empty response from model.")
 
-    # 0. Check for Qwen3.8 native `<tool_call><function=...>` XML format if it appears first
+    # 0. Check for Qwen3.8 / Reflection Beam native `<tool_call><function=...>` XML format if it appears first
     xml_action = _parse_xml_tool_call(text)
     m_sr_fence = _STR_REPLACE_FENCE_RE.search(text)
     m_other = _OTHER_FENCE_RE.search(text)
     m_xml_pos = re.search(
-        r"<(?:tool_call|function\s*=|view_file\b|str_replace\b|bash\b|write_file\b|submit\b)",
+        r"<(?:(?:rfl:)?tool_call|(?:rfl:)?function\s*=|(?:rfl:)?view_file\b|(?:rfl:)?str_replace\b|(?:rfl:)?bash\b|(?:rfl:)?write_file\b|(?:rfl:)?submit\b)",
         text,
         re.IGNORECASE,
     )
@@ -501,7 +587,7 @@ def parse_agent_action(response_text: str) -> ParsedAction:
     # Also check if a ```str_replace fence was opened without matching _STR_REPLACE_FENCE_RE
     m_sr_open = re.search(r"```(?:str_replace|edit_file)\b[^\n]*\n(.*)", text, re.DOTALL | re.IGNORECASE)
     if m_sr_open and (not m_other or m_sr_open.start() <= m_other.start()):
-        inner = m_sr_open.group(1)
+        inner = _strip_rfl_artifacts(m_sr_open.group(1))
         if inner.endswith("```"):
             inner = inner[:-3].rstrip()
         return _parse_str_replace_body(inner, text)
@@ -511,16 +597,16 @@ def parse_agent_action(response_text: str) -> ParsedAction:
     if m_bare_sr and (not m_other or m_bare_sr.start() <= m_other.start()):
         return ParsedAction(
             kind="str_replace",
-            path=m_bare_sr.group("path").strip().strip("'\""),
+            path=_clean_path_token(m_bare_sr.group("path")),
             old_str=m_bare_sr.group("old"),
-            new_str=m_bare_sr.group("new"),
+            new_str=_clean_new_str_tail(m_bare_sr.group("new")),
             raw=text,
         )
 
     # 3. Check standard fenced blocks (`bash`, `view_file`, `write_file`, `submit`, `python`)
     if m_other:
         tag = m_other.group("tag").lower()
-        body = m_other.group("body")
+        body = _strip_rfl_artifacts(m_other.group("body"))
 
         if tag in ("bash", "sh", "shell"):
             cmd = body.strip()
@@ -1280,7 +1366,7 @@ class AgenticSweEngine:
             temperature=temperature,
             provider="vllm" if os.environ.get("LLM_PROVIDER") == "vllm" else None,
             usage_sink=usage,
-            max_tokens=6400 if enable_thinking else 2400,
+            max_tokens=6400 if enable_thinking else 4096,
             messages=condensed,
             enable_thinking=enable_thinking,
             extra_headers={"X-No-Cache": "1"},
@@ -1405,7 +1491,13 @@ class AgenticSweEngine:
                 })
                 continue
 
-            messages.append({"role": "assistant", "content": resp_text})
+            clean_assistant_text = _strip_rfl_artifacts(resp_text)
+            if clean_assistant_text.startswith("```") and not clean_assistant_text.rstrip().endswith("```"):
+                clean_assistant_text = clean_assistant_text.rstrip() + "\n```"
+            asst_msg: Dict[str, str] = {"role": "assistant", "content": clean_assistant_text}
+            if reasoning:
+                asst_msg["reasoning_content"] = reasoning[:2000]
+            messages.append(asst_msg)
 
             consecutive_parse_errors = 0
 

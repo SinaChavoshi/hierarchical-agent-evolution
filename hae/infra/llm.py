@@ -359,7 +359,14 @@ def call_openai_compatible_rest(
     url = f"{endpoint.rstrip('/')}/chat/completions"
 
     if messages is not None:
-        chat_messages = list(messages)
+        import re as _re_wire
+        chat_messages = []
+        for _m in messages:
+            _mc = dict(_m)
+            for _fk in ("content", "reasoning_content", "reasoning", "thinking"):
+                if isinstance(_mc.get(_fk), str) and "<|" in _mc[_fk]:
+                    _mc[_fk] = _re_wire.sub(r"<\|(?:channel|message|start|end|return|call|constrain)\|[^>]*>|<\|(?:channel|message|start|end|return|call|constrain)\|>", "", _mc[_fk])
+            chat_messages.append(_mc)
     else:
         chat_messages = []
         if system_instruction:
@@ -382,7 +389,11 @@ def call_openai_compatible_rest(
         "messages": chat_messages,
         "temperature": temperature,
         "max_tokens": effective_max_tokens,
-        "chat_template_kwargs": {"enable_thinking": thinking_flag},
+        "chat_template_kwargs": {
+            "enable_thinking": thinking_flag,
+            "allow_missing_thinking": True,
+            "reasoning_effort": os.environ.get("VLLM_REASONING_EFFORT", "medium" if thinking_flag else "minimal"),
+        },
     }
     if response_format is not None:
         payload["response_format"] = response_format
@@ -403,11 +414,28 @@ def call_openai_compatible_rest(
                 choices = resp_data.get("choices", [])
                 msg_obj = choices[0].get("message", {}) if choices else {}
                 raw_text = msg_obj.get("content", "") or ""
+                if "<|channel|>final<|message|>" in raw_text:
+                    raw_text = raw_text.split("<|channel|>final<|message|>", 1)[1]
+                if "<|" in raw_text:
+                    import re as _re_w
+                    raw_text = _re_w.sub(r"<\|(?:channel|message|start|end|return|call|constrain)\|[^>]*>|<\|(?:channel|message|start|end|return|call|constrain)\|>", "", raw_text)
                 clean_text, approx_thoughts, reasoning_text = _strip_think_tags(raw_text)
                 gateway_reasoning = msg_obj.get("reasoning_content") or msg_obj.get("reasoning") or ""
+                if "<|" in str(gateway_reasoning):
+                    import re as _re_w
+                    gateway_reasoning = _re_w.sub(r"<\|(?:channel|message|start|end|return|call|constrain)\|[^>]*>|<\|(?:channel|message|start|end|return|call|constrain)\|>", "", str(gateway_reasoning))
                 if gateway_reasoning and not reasoning_text:
                     reasoning_text = str(gateway_reasoning).strip()
                     approx_thoughts = max(approx_thoughts, max(1, len(reasoning_text) // 4))
+                    if not clean_text and reasoning_text:
+                        import re as _re
+                        m_tail_tool = _re.search(
+                            r"(<tool_call>\s*.*?</tool_call>|```(?:str_replace|view_file|submit)\b.*?```)\s*\Z",
+                            reasoning_text,
+                            flags=_re.DOTALL | _re.IGNORECASE,
+                        )
+                        if m_tail_tool:
+                            clean_text = m_tail_tool.group(1).strip()
                 elif (
                     thinking_flag
                     and raw_text
@@ -427,6 +455,20 @@ def call_openai_compatible_rest(
                     reasoning_text = raw_text.replace("<think>", "").strip()
                     approx_thoughts = max(1, len(reasoning_text) // 4)
                     clean_text = m_tail_tool.group(1).strip() if m_tail_tool else ""
+                tool_calls_list = msg_obj.get("tool_calls") or []
+                if tool_calls_list and "<tool_call>" not in clean_text and "```" not in clean_text:
+                    tc0 = tool_calls_list[0] if isinstance(tool_calls_list[0], dict) else {}
+                    fn_obj = tc0.get("function") or {}
+                    fn_name = fn_obj.get("name") or tc0.get("name") or ""
+                    fn_args = fn_obj.get("arguments") or tc0.get("arguments") or {}
+                    if isinstance(fn_args, str):
+                        try:
+                            fn_args = json.loads(fn_args)
+                        except Exception:
+                            pass
+                    if fn_name:
+                        tc_json = json.dumps({"name": fn_name, "arguments": fn_args})
+                        clean_text = (f"{clean_text}\n<tool_call>{tc_json}</tool_call>").strip()
                 if usage_sink is not None:
                     u = resp_data.get("usage") or {}
                     p_tok = int(u.get("prompt_tokens", 0) or 0)

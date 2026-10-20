@@ -291,6 +291,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--keep-pods", action="store_true", help="Do not delete temporary testbed pods after finishing an instance")
     ap.add_argument("--context", default=DEFAULT_CONTEXT)
     ap.add_argument("--nodepool", default="firm-pool")
+    ap.add_argument("--vllm-url", default=os.environ.get("VLLM_BASE_URL", "http://127.0.0.1:8000/v1"))
+    ap.add_argument("--vllm-model", default=os.environ.get("VLLM_MODEL", "nvidia/Qwen3.8-Flash-Next-NVFP4"))
     args = ap.parse_args(list(argv) if argv is not None else None)
 
     if args.instances:
@@ -304,7 +306,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             ids = ids[:args.n]
 
     os.makedirs(args.out_root, exist_ok=True)
-    policies = [p for p in DEFAULT_POLICIES if p[0] in set(args.policies)]
+    model_slug = args.vllm_model.replace("/", "-")
+    policies = [
+        (tag, gpath, mname.split("/")[0] + "/" + model_slug)
+        for tag, gpath, mname in DEFAULT_POLICIES
+        if tag in set(args.policies)
+    ]
     screen_rows: List[Dict[str, Any]] = []
     run_rows: List[Dict[str, Any]] = []
     lock = threading.Lock()
@@ -338,6 +345,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                             iid, "", args.dataset, tag, genome_path, model_name,
                             args.out_root, args.context,
                             budget_moves=args.budget_moves, max_iterations=args.max_iterations,
+                            vllm_url=args.vllm_url, vllm_model=args.vllm_model,
                         )
                         with lock:
                             run_rows.append(res)
@@ -370,6 +378,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                             iid, pod, args.dataset, tag, genome_path, model_name,
                             args.out_root, args.context,
                             budget_moves=args.budget_moves, max_iterations=args.max_iterations,
+                            vllm_url=args.vllm_url, vllm_model=args.vllm_model,
                         )
                     except Exception as exc:
                         res = {"instance_id": iid, "policy": tag, "status": f"error: {type(exc).__name__}: {exc}"}

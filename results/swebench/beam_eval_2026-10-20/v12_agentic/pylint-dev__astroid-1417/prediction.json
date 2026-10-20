@@ -1,0 +1,5 @@
+{
+ "instance_id": "pylint-dev__astroid-1417",
+ "model_name_or_path": "hae-v12-agentic/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/astroid/decorators.py b/astroid/decorators.py\nindex aff91e0c..a6c90e88 100644\n--- a/astroid/decorators.py\n+++ b/astroid/decorators.py\n@@ -22,7 +22,7 @@ import functools\n import inspect\n import sys\n import warnings\n-from typing import Callable, TypeVar\n+from typing import TYPE_CHECKING, Callable, TypeVar\n \n import wrapt\n \n@@ -91,6 +91,12 @@ class cachedproperty:\n         return val\n \n \n+if sys.version_info >= (3, 8) or TYPE_CHECKING:\n+    from functools import cached_property\n+else:\n+    cached_property = cachedproperty\n+\n+\n def path_wrapper(func):\n     \"\"\"return the given infer function wrapped to handle the path\n \n"
+}

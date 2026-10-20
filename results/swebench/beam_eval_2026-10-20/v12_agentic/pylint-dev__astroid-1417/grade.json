@@ -1,0 +1,43 @@
+{
+ "FAIL_TO_PASS": {
+  "tests/unittest_decorators.py::test_deprecation_warning_on_cachedproperty": "FAILED"
+ },
+ "PASS_TO_PASS_failures": [],
+ "PASS_TO_PASS_summary": {
+  "ERROR": 0,
+  "FAILED": 0,
+  "MISSING": 0,
+  "PASSED": 3,
+  "SKIPPED": 0
+ },
+ "elapsed_seconds": 5.6,
+ "executor": "kubectl:default/swebench-tb-pylint-dev-astroid-1417/testbed:/testbed",
+ "f2p_passed": 0,
+ "f2p_total": 1,
+ "instance_id": "pylint-dev__astroid-1417",
+ "patch_chars": 636,
+ "patch_source": "results/swebench/beam_eval_2026-10-20/v12_agentic/pylint-dev__astroid-1417/prediction.json",
+ "pytest": {
+  "files": [
+   "tests/unittest_decorators.py"
+  ],
+  "log_tail": "ecation_warning_on_cachedproperty __________________\n\n    @pytest.mark.skipif(not PY38_PLUS, reason=\"Requires Python 3.8 or higher\")\n    def test_deprecation_warning_on_cachedproperty() -> None:\n        \"\"\"Check the DeprecationWarning on cachedproperty.\"\"\"\n    \n        with pytest.warns(DeprecationWarning) as records:\n    \n            class MyClass:  # pylint: disable=unused-variable\n                @cachedproperty\n                def my_property(self):\n                    return 1\n    \n>           assert len(records) == 1\nE           assert 0 == 1\nE            +  where 0 = len(WarningsChecker(record=True))\n\ntests/unittest_decorators.py:114: AssertionError\n\nDuring handling of the above exception, another exception occurred:\n\n    @pytest.mark.skipif(not PY38_PLUS, reason=\"Requires Python 3.8 or higher\")\n    def test_deprecation_warning_on_cachedproperty() -> None:\n        \"\"\"Check the DeprecationWarning on cachedproperty.\"\"\"\n    \n        with pytest.warns(DeprecationWarning) as records:\n    \n            class MyClass:  # pylint: disable=unused-variable\n                @cachedproperty\n                def my_property(self):\n                    return 1\n    \n            assert len(records) == 1\n>           assert \"functools.cached_property\" in records[0].message.args[0]\nE           Failed: DID NOT WARN. No warnings of type (<class 'DeprecationWarning'>,) were emitted.\nE            Emitted warnings: [].\n\ntests/unittest_decorators.py:115: Failed\n=============================== warnings summary ===============================\nastroid/interpreter/_import/util.py:8\n  /testbed/astroid/interpreter/_import/util.py:8: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n==================================== PASSES ====================================\n=========================== short test summary info ============================\nPASSED tests/unittest_decorators.py::TestDeprecationDecorators::test_deprecated_default_argument_values_one_arg\nPASSED tests/unittest_decorators.py::TestDeprecationDecorators::test_deprecated_default_argument_values_two_args\nPASSED tests/unittest_decorators.py::TestDeprecationDecorators::test_deprecated_default_argument_values_ok\nFAILED tests/unittest_decorators.py::test_deprecation_warning_on_cachedproperty\n1 failed, 3 passed, 1 warning in 0.37s\n\ncommand terminated with exit code 1\n",
+  "rc": 1,
+  "reported": 4
+ },
+ "resolved": false,
+ "steps": {
+  "apply_model_patch": {
+   "note": "",
+   "ok": true
+  },
+  "apply_test_patch": {
+   "note": "",
+   "ok": true
+  },
+  "reset": {
+   "dirty_after": "0",
+   "rc": 0
+  }
+ }
+}
