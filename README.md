@@ -23,19 +23,24 @@ All inference runs on self-hosted open-weight MoE models on GKE (vLLM behind an
 ## Current results
 
 All SWE-bench numbers are graded by the official `swebench.harness` containers
-(`FAIL_TO_PASS` and `PASS_TO_PASS` tests). The *Prompt hints* column records
+(`FAIL_TO_PASS` and `PASS_TO_PASS` tests). The *Hints* column records
 whether the prompts contained repository- or instance-specific guidance. See
 [Caveats](#caveats).
 
 ### SWE-bench, 6-task multi-repo slice
 
-| Policy | Model | Prompt hints | Resolved | Mean moves | Mean tokens | Mean time |
+| Policy | Model | Hints | Resolved | Moves | Tokens | Time |
 | :--- | :--- | :---: | :---: | ---: | ---: | ---: |
-| **V14 (`v13_hier_mcts`, zero-hint)** | **Beam-1.0-501B + DFlash2** | **none** | **6 / 6** | **23.3** | **148k** | **279 s** |
-| V13 (`v13_hier_mcts`) | Beam-1.0-501B + DFlash2 | instance-specific | 6 / 6 | 22.3 | 150k | 306 s |
-| V13 (`v13_hier_mcts`) | Qwen3.8-Flash-Next (180B) | instance-specific | 6 / 6 | 33.8 | 334k | 1,011 s |
-| V12 (`v12_agentic`) | Beam-1.0-501B + DFlash2 | light | 2 / 6 | 27.3 | 162k | 331 s |
-| V12 (`v12_agentic`) | Qwen3.8-Flash-Next (180B) | light | 2 / 6 | 30.0 | 273k | 1,177 s |
+| **V14 zero-hint** | **Beam-501B** | **none** | **6 / 6** | **23.3** | **148k** | **279 s** |
+| V13 | Beam-501B | specific | 6 / 6 | 22.3 | 150k | 306 s |
+| V13 | Qwen3.8-180B | specific | 6 / 6 | 33.8 | 334k | 1,011 s |
+| V12 ReAct | Beam-501B | light | 2 / 6 | 27.3 | 162k | 331 s |
+| V12 ReAct | Qwen3.8-180B | light | 2 / 6 | 30.0 | 273k | 1,177 s |
+
+<sub>Moves, tokens and time are per-instance means. Beam-501B is
+Beam-1.0-501B-A23B-NVFP4 with DFlash2 speculative decoding. Qwen3.8-180B is
+Qwen3.8-Flash-Next-NVFP4. V13 and V14 both run the `v13_hier_mcts` policy;
+V12 runs `v12_agentic`.</sub>
 
 The zero-hint run passed 57/57 `FAIL_TO_PASS` and 214/214 `PASS_TO_PASS` tests.
 With the same 501B model, the single-context ReAct agent (V12) solves 2/6 and
@@ -105,12 +110,22 @@ Each layer runs in its own short-lived context and passes upward only
 verifiable artifacts: a brief, a diff or a critique. Raw transcripts are
 discarded at every boundary, so no context accumulates across the search.
 
-| Layer | Job | Context | Returns |
-| :--- | :--- | :--- | :--- |
-| **L1-A Recon** | Locate the fault surface and write `reproduce_issue.py`, which must fail on clean `HEAD`. | 0–6 turns | A brief of under 800 tokens, plus the repro script |
-| **L0 Controller** | Write a `VerificationContract` and seed three causal branches: local consumer, upstream producer, and codebase symmetry. Choose the next move with Thompson sampling over Beta posteriors. | Small strategic ledger (under 4k tokens) | `GEN(branch)` or `CONT(checkpoint)` |
-| **L2 Executors** | ReAct loop in `/testbed` (`view_file`, `bash`, `str_replace`, `submit`). `GEN` starts a new branch from clean `HEAD`. `CONT` refines a near-miss checkpoint, with its diff and the failing test pre-loaded. | Fresh, 6–18 turns | A candidate `git diff` |
-| **L1-B Verifier** | Stage A runs deterministic checks: compile, repro, target tests. Stage B is a read-only falsifier agent that audits the diff against the contract and adds edge-case tests to a shared falsification suite. | Fresh, 4–6 turns | A score V ∈ [0, 1] and a critique |
+| Layer | Role | Turns | Returns |
+| :--- | :--- | :---: | :--- |
+| **L1-A Recon** | Locate the fault; write a failing repro script | 0–6 | Brief (< 800 tokens) |
+| **L0 Controller** | Write the contract; pick `GEN` or `CONT` | — | Next move |
+| **L2 Executors** | Edit code in `/testbed` with ReAct tools | 6–18 | Candidate `git diff` |
+| **L1-B Verifier** | Run tests, then adversarial review | 4–6 | Score V and critique |
+
+- **L0 Controller.** It seeds three causal branches: local consumer, upstream
+  producer and codebase symmetry. It chooses each next move with Thompson
+  sampling over Beta posteriors and keeps only a small ledger (under 4k tokens).
+- **L2 Executors.** `GEN` starts a fresh branch from clean `HEAD`. `CONT`
+  refines a near-miss checkpoint, with its diff and the failing test
+  pre-loaded.
+- **L1-B Verifier.** Stage A is deterministic: compile, repro script and
+  target tests. Stage B is a read-only falsifier agent that audits the diff
+  against the contract and adds edge-case tests to a shared suite.
 
 A patch is accepted only when both stages pass (V = 1.0). A failure or
 critique updates the controller's posteriors. Near-misses get refined, and
@@ -139,12 +154,14 @@ Spec: [`experiments/v13/v14_generalized_macro_ratchet_architecture.md`](experime
 
 ### Serving
 
-| | Beam-1.0-501B-A23B-NVFP4 (primary) | Qwen3.8-Flash-Next-NVFP4 (180B-A10B) |
+| | Beam-501B (primary) | Qwen3.8-180B |
 | :--- | :--- | :--- |
-| Hardware | 6× `g4-standard-96` (12× RTX PRO 6000 Blackwell 96 GB) | same pool |
-| Layout | 3 replica groups, Ray TP=4 | 6 replicas, TP=2, expert parallelism + EPLB |
-| Extras | DFlash2 8-token speculative decoding, per-turn `reasoning_effort` | prefix caching |
-| Manifest | [`k8s/beam-501b-nvfp4-serving.yaml`](k8s/beam-501b-nvfp4-serving.yaml) | [`k8s/qwen38-flash-next-180b-eplb-serving.yaml`](k8s/qwen38-flash-next-180b-eplb-serving.yaml) |
+| Layout | 3 replicas × TP=4 (Ray) | 6 replicas × TP=2 + EPLB |
+| Decoding | DFlash2 speculative (8 tokens) | standard |
+| Manifest | [beam-501b-nvfp4-serving.yaml](k8s/beam-501b-nvfp4-serving.yaml) | [qwen38-…-eplb-serving.yaml](k8s/qwen38-flash-next-180b-eplb-serving.yaml) |
+
+Both run on 6× `g4-standard-96` nodes (12× RTX PRO 6000 Blackwell, 96 GB
+each).
 
 Both run behind the `llm-d` gateway (prefix-affinity routing, request
 coalescing). Setup guide: [`k8s/README.md`](k8s/README.md)
@@ -156,11 +173,11 @@ coalescing). Setup guide: [`k8s/README.md`](k8s/README.md)
 HAE went through three eras. The full phase-by-phase table is in
 [`experiments/README.md`](experiments/README.md).
 
-| Era | Versions | Question | What we learned |
-| :--- | :--- | :--- | :--- |
-| **Execution-grounded evolution** | V1–V7 | Can evolving firm genomes improve software output? | LLM-judged fitness is gameable: it rose from 25 to 97 while correlation with execution was +0.045. Held-out unit tests as fitness worked (30/30 firms at 7/7, then 10/10 at 46–50/50 on a 50-test benchmark). Learned value heads helped. LLM self-reported priors did not. |
-| **SWE-bench, single-layer agents** | V8–V12 | Do these firms transfer to real GitHub issues? | Packet-based epistemic search topped out at 4–6/30. Switching to interactive ReAct tool loops (V12) reached 14/30, with light hints. |
-| **Hierarchical verification** | V13–V14 | Can isolating context and adding adversarial verification fix the remaining failures? | Hierarchy, AB-MCTS over git checkpoints and a falsifier beat single-layer ReAct on the same model (6/6 vs 2/6). V14 removed all prompt hints and added the milestone ratchet. |
+| Era | Versions | Benchmark | Key finding |
+| :--- | :---: | :--- | :--- |
+| **Execution-grounded evolution** | V1–V7 | Internal 7- and 50-test tasks | LLM judges are gameable; held-out tests work |
+| **SWE-bench, single-layer agents** | V8–V12 | 30-task dev cohort | ReAct tool loops: 4 / 30 → 14 / 30 |
+| **Hierarchical verification** | V13–V14 | 6-task slice, MiniLang | Hierarchy beats ReAct on the same model (6 / 6 vs 2 / 6) |
 
 Since V8, each SWE-bench version has been a single hand-designed genome
 (`configs/genomes/`). Population-level evolution, breeding and selection have
