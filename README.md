@@ -94,9 +94,8 @@ Report: [`results/ratchet/beam_macro_ratchet_eval_2026-10-21/`](results/ratchet/
   The agent also wrote each milestone's acceptance tests. Builds far beyond
   ~1k LoC are a design goal that hasn't been measured yet.
 
-The clean next measurements are: V14 zero-hint on the unused instances of the
-50-task pool and on SWE-bench Verified, without `hints_text`, with ≥ 3 seeds,
-plus a matched-budget plain-ReAct baseline.
+The [Roadmap](#roadmap) lists the measurements that would turn these into
+comparable results.
 
 ---
 
@@ -182,6 +181,54 @@ HAE went through three eras. The full phase-by-phase table is in
 Since V8, each SWE-bench version has been a single hand-designed genome
 (`configs/genomes/`). Population-level evolution, breeding and selection have
 not been applied to the V13/V14 harness yet.
+
+---
+
+## Roadmap
+
+The aim is to turn V14 from an internally validated harness into a result
+others can compare against. The steps are in priority order.
+
+| # | Step | Question it answers | Done when |
+| :-: | :--- | :--- | :--- |
+| 1 | **Standard benchmark** | Is V14 competitive? | Results reported on SWE-bench Pro (public) |
+| 2 | **Ablations** | Which components earn their cost? | Per-component Δ resolve and Δ cost |
+| 3 | **Real long-horizon build** | Does the ratchet scale? | ≥ 10k LoC passing an external test suite |
+| 4 | **Evolve the harness** | Does evolution beat hand design? | An evolved genome wins on held-out tasks |
+
+**1. Run a standard benchmark.**
+- Freeze V14 and run it on Beam-501B on SWE-bench Pro (public), and
+  optionally Verified.
+- Exclude `hints_text` and use at least 3 seeds.
+- Run mini-SWE-agent or OpenHands on Beam with the same token budget as the
+  baseline.
+- Success means V14 clearly beats that baseline. On Verified, that means
+  clearly above Beam's reported ~82% with a standard scaffold. This step alone
+  shows whether V14 is competitive.
+
+**2. Run ablations.** Remove one component at a time and record the change in
+resolve rate and in cost (tokens and time):
+- the L1-B falsifier
+- L1-A recon
+- `CONT` refinement, leaving only `GEN`
+- the AST static checks
+
+**3. Test the ratchet on a real long-horizon build.**
+- Let `L0MacroPlanner` produce the milestones, not a script.
+- Choose a target with an external test suite the agent never writes, such as
+  a SQLite subset or an interpreter checked against a reference
+  implementation.
+- Scale to 10k+ LoC and record recovery when a decomposition turns out to be
+  wrong.
+
+**4. Bring evolution back.**
+- Treat V14's knobs as genes: turn budgets, branch types, falsifier policy,
+  contract templates and diff thresholds.
+- Evolve a population on a training split of tasks and select on a validation
+  split.
+- Report the result against hand-designed V14 on held-out tasks. An evolved
+  harness that beats a hand-built one for open models is the result this
+  project is uniquely placed to show.
 
 ---
 
