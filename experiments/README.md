@@ -54,7 +54,7 @@ Graded with the official containers.*
 | **V13** | Layered agents + tree search | 30 tasks | 30 / 30 ⁴ | 1,211 s | [spec](v13/v13_hierarchical_agentic_ab_mcts_architecture.md) · [report](v13/v13_evaluation_report.md) |
 | **V13** | Same, on Beam-501B | 6 tasks | 6 / 6 ⁴ | 306 s | [report](v13/beam_vs_qwen38_evaluation_report.md) |
 | **V14** | Zero-hint prompts | 6 tasks | **6 / 6** | **279 s** | [results](../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md) |
-| **V14** | Milestone ratchet | MiniLang | **4 / 4** ⁵ | 246 s | [spec](v13/v14_generalized_macro_ratchet_architecture.md) · [results](../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md) |
+| **V14** | Milestone ratchet | MiniLang | **4 / 4** ⁵ | 246 s | [spec](v14/v14_generalized_macro_ratchet_architecture.md) · [results](../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md) |
 
 <sub>⁴ Instance-specific hints in the prompts: 3 repo-specific strings for the
 earlier 15/30 and 22/30 runs, and 25 for the 30/30 run (`e20a400`), several of
@@ -70,11 +70,11 @@ total. See the [Caveats](../README.md#caveats) in the top-level README.</sub>
 2. **Search and serving foundations:** [V4](v4_llmd/README.md), [V5](v5_typesafe_xgrammar/README.md), [V6](v6_epistemic_search/README.md)
 3. **From packets to tool-using agents:** [V11](v11/v11_evaluation_report.md), [V12](v12/v12_evaluation_report.md)
 4. **The hierarchical harness:** the [V13 spec](v13/v13_hierarchical_agentic_ab_mcts_architecture.md) and the [Beam vs Qwen comparison](v13/beam_vs_qwen38_evaluation_report.md)
-5. **Current system:** the [V14 spec](v13/v14_generalized_macro_ratchet_architecture.md) and the two V14 result folders
+5. **Current system:** the [V14 spec](v14/v14_generalized_macro_ratchet_architecture.md) and the two V14 result folders
 
 Raw runs: [V13 + Beam results](../results/swebench/beam_eval_2026-10-20/README.md)
 
-Diagrams: [V14 architecture](v13/assets/v14_macro_ratchet_architecture.svg) ·
+Diagrams: [V14 architecture](v14/assets/v14_macro_ratchet_architecture.svg) ·
 [V13 architecture](v13/assets/v13_beam_architecture.svg) ·
 [GKE topology](v13/assets/gke_beam_501b_topology.svg) ·
 [V2–V3 trajectory](v2/assets/v2_v3_evolutionary_trajectory.png)

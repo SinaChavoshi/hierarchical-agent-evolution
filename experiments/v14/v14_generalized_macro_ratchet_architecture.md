@@ -31,13 +31,13 @@ This specification defines HAE's **Universal Two-Tier Hierarchical Verification 
 
 ![Universal Two-Tier Hierarchical Verification & Milestone Ratchet Architecture](assets/v14_macro_ratchet_architecture.svg)
 
-*(High-resolution PNG: [`v14_macro_ratchet_architecture.png`](assets/v14_macro_ratchet_architecture.png) | Core V13 Micro-Engine diagram: [`v13_beam_architecture.png`](assets/v13_beam_architecture.png))*
+*(High-resolution PNG: [`v14_macro_ratchet_architecture.png`](assets/v14_macro_ratchet_architecture.png) | Core V13 Micro-Engine diagram: [`v13_beam_architecture.png`](../v13/assets/v13_beam_architecture.png))*
 
 ---
 
 ## 2. Why `V13` + `Beam-1.0-501B` (`+ DFlash2`) Works as a Universal Core
 
-The foundation of the architecture is the synergy between **V13's Epistemic Context-Isolation Hierarchy** ([`v13_hierarchical_agentic_ab_mcts_architecture.md`](v13_hierarchical_agentic_ab_mcts_architecture.md)) and **Reflection `Beam-1.0-501B-A23B-NVFP4` + `DFlash2`** ([`beam_vs_qwen38_evaluation_report.md`](beam_vs_qwen38_evaluation_report.md)):
+The foundation of the architecture is the synergy between **V13's Epistemic Context-Isolation Hierarchy** ([`v13_hierarchical_agentic_ab_mcts_architecture.md`](../v13/v13_hierarchical_agentic_ab_mcts_architecture.md)) and **Reflection `Beam-1.0-501B-A23B-NVFP4` + `DFlash2`** ([`beam_vs_qwen38_evaluation_report.md`](../v13/beam_vs_qwen38_evaluation_report.md)):
 
 | Architectural Pillar | Mechanism in Code | Why It Is Domain-Universal | Empirical Impact on SWE-bench |
 | :--- | :--- | :--- | :--- |
@@ -333,7 +333,7 @@ PYTHONPATH=. python3 -m hae.cli --mode ratchet \
 
 - **[`../../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md`](../../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md)** & **[`summary.json`](../../results/swebench/v14_zero_hint_beam_eval_2026-10-21/summary.json)**: Zero-Hint Generalized V13 `L0-Micro` evaluation on the 6-task SWE-bench multi-repo slice with `Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2` (`6/6` = `100.0%` resolved, `57/57` F2P, `214/214` P2P, `278.82s` mean wall time = `3.62x` faster than `Qwen3.8` and `1.10x` faster than prior hinted `Beam-501B`, `-55.5%` fewer tokens, `0` repo hints).
 - **[`../../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md`](../../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md)** & **[`summary.json`](../../results/ratchet/beam_macro_ratchet_eval_2026-10-21/summary.json)**: Live 4-milestone `L0-Macro` Compositional Milestone DAG & Git Commit Ratchet evaluation on `Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2` (`4/4` milestones certified in `245.58s`, `1,139` cumulative LoC with active delta bounded to `257–364` lines `< 500` LoC, `25/25` cumulative regression tests passed).
-- **[`v13_hierarchical_agentic_ab_mcts_architecture.md`](v13_hierarchical_agentic_ab_mcts_architecture.md)**: Formal mathematical specification of the `L0-Micro` V13 Context-Bounded Hierarchical Verification Harness and Agentic AB-MCTS ("Move 37" Engine).
-- **[`beam_vs_qwen38_evaluation_report.md`](beam_vs_qwen38_evaluation_report.md)**: Head-to-head SWE-bench evaluation of `Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2` vs. `nvidia/Qwen3.8-Flash-Next-NVFP4` (`100.0%` resolution, `3.31x` faster wall-clock execution, `-55.1%` fewer tokens).
-- **[`v13_evaluation_report.md`](v13_evaluation_report.md)**: Full 30-instance SWE-bench dev cohort evaluation (`30 / 30` = `100.0%` resolved, `275 / 275` `FAIL_TO_PASS`, `0` regressions).
+- **[`v13_hierarchical_agentic_ab_mcts_architecture.md`](../v13/v13_hierarchical_agentic_ab_mcts_architecture.md)**: Formal mathematical specification of the `L0-Micro` V13 Context-Bounded Hierarchical Verification Harness and Agentic AB-MCTS ("Move 37" Engine).
+- **[`beam_vs_qwen38_evaluation_report.md`](../v13/beam_vs_qwen38_evaluation_report.md)**: Head-to-head SWE-bench evaluation of `Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2` vs. `nvidia/Qwen3.8-Flash-Next-NVFP4` (`100.0%` resolution, `3.31x` faster wall-clock execution, `-55.1%` fewer tokens).
+- **[`v13_evaluation_report.md`](../v13/v13_evaluation_report.md)**: Full 30-instance SWE-bench dev cohort evaluation (`30 / 30` = `100.0%` resolved, `275 / 275` `FAIL_TO_PASS`, `0` regressions).
 - **[`../../k8s/README.md`](../../k8s/README.md)**: GKE distributed inference topology (`6x g4-standard-96`, `12x RTX PRO 6000 Blackwell 96 GB GPUs`, 3x Ray `TP=4` `Beam-501B + DFlash2` replica groups).
