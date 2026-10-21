@@ -102,7 +102,7 @@ plus a matched-budget plain-ReAct baseline.
 
 ## How it works
 
-![V14 two-tier architecture](experiments/v13/assets/v14_macro_ratchet_architecture.svg)
+![V14 two-tier architecture](experiments/v14/assets/v14_macro_ratchet_architecture.svg)
 
 ### Inner engine: context-bounded hierarchical search (`L0-Micro`)
 
@@ -150,7 +150,7 @@ however large the repository gets. Verification is pluggable through
 `WorkspaceVerifierPlugin`, which ships with pytest and shell-command verifiers
 (for `cargo test`, `go test`, `npm test` and similar).
 
-Spec: [`experiments/v13/v14_generalized_macro_ratchet_architecture.md`](experiments/v13/v14_generalized_macro_ratchet_architecture.md)
+Spec: [`experiments/v14/v14_generalized_macro_ratchet_architecture.md`](experiments/v14/v14_generalized_macro_ratchet_architecture.md)
 
 ### Serving
 
