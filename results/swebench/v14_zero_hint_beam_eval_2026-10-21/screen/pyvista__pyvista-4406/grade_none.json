@@ -1,0 +1,50 @@
+{
+ "FAIL_TO_PASS": {
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_pass_cell_data": "FAILED",
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_pass_cell_ids": "FAILED"
+ },
+ "PASS_TO_PASS_failures": [
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[12]",
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[5]",
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[6]",
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_edge_case",
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_mixed"
+ ],
+ "PASS_TO_PASS_summary": {
+  "ERROR": 0,
+  "FAILED": 5,
+  "MISSING": 0,
+  "PASSED": 1,
+  "SKIPPED": 0
+ },
+ "elapsed_seconds": 6.4,
+ "executor": "kubectl:default/swebench-tb-pyvista-pyvista-4406/testbed:/testbed",
+ "f2p_passed": 0,
+ "f2p_total": 2,
+ "instance_id": "pyvista__pyvista-4406",
+ "patch_chars": 0,
+ "patch_source": "none",
+ "pytest": {
+  "files": [
+   "tests/filters/test_rectilinear_grid.py"
+  ],
+  "log_tail": "l_data ______________________\n\ntiny_rectilinear = RectilinearGrid (0x7b902fd9f4c0)\n  N Cells:      60\n  N Points:     120\n  X Bounds:     0.000e+00, 3.000e+00\n  Y Bounds:     0.000e+00, 3.000e+00\n  Z Bounds:     0.000e+00, 3.000e+00\n  Dimensions:   4, 5, 6\n  N Arrays:     2\n\n\n    def test_to_tetrahedral_pass_cell_data(tiny_rectilinear):\n        # test that data isn't passed\n        tiny_rectilinear[\"cell_data\"] = np.ones(tiny_rectilinear.n_cells)\n        tiny_rectilinear[\"point_data\"] = np.arange(tiny_rectilinear.n_points)\n>       tiny_rectilinear.set_active_scalars(\"cell_data\")\n\ntests/filters/test_rectilinear_grid.py:63: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npyvista/core/dataset.py:623: in set_active_scalars\n    self._last_active_scalars_name = self.active_scalars_info.name\npyvista/core/dataset.py:132: in __getattr__\n    return super().__getattribute__(item)\npyvista/core/dataset.py:166: in active_scalars_info\n    field, name = self._active_scalars_info\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = RectilinearGrid (0x7b902fd9f4c0)\n  N Cells:      60\n  N Points:     120\n  X Bounds:     0.000e+00, 3.000e+00\n  Y Bounds:     0.000e+00, 3.000e+00\n  Z Bounds:     0.000e+00, 3.000e+00\n  Dimensions:   4, 5, 6\n  N Arrays:     2\n\nitem = '_active_scalars_info'\n\n    def __getattr__(self, item) -> Any:\n        \"\"\"Get attribute from base class if not found.\"\"\"\n>       return super().__getattribute__(item)\nE       AttributeError: 'RectilinearGrid' object has no attribute '_active_scalars_info'\n\npyvista/core/dataset.py:132: AttributeError\n==================================== PASSES ====================================\n=========================== short test summary info ============================\nPASSED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_raise\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[5] - Attri...\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[6] - Attri...\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[12] - Attr...\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_mixed - At...\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_edge_case\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_pass_cell_ids\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_pass_cell_data\n7 failed, 1 passed in 0.48s\n\ncommand terminated with exit code 1\n",
+  "rc": 1,
+  "reported": 9
+ },
+ "resolved": false,
+ "steps": {
+  "apply_model_patch": {
+   "note": "no model patch (control)",
+   "ok": true
+  },
+  "apply_test_patch": {
+   "note": "",
+   "ok": true
+  },
+  "reset": {
+   "dirty_after": "0",
+   "rc": 0
+  }
+ }
+}

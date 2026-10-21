@@ -19,6 +19,10 @@ from hae.hierarchical import (
     ShellCommandVerifierPlugin,
     VerificationGateResult,
 )
+from hae.hierarchical.milestone_ratchet import (
+    _DefaultMicroRunnerAdapter,
+    _RatchetWorkspaceExecutorProxy,
+)
 from hae.swebench.executor import LocalExecutor
 
 
@@ -455,6 +459,54 @@ class TestMacroMilestoneRatchetIntegration(unittest.TestCase):
         self.assertEqual(summary2["certified_milestones"], ["m1_tokenizer", "m2_parser"])
         self.assertFalse(self.executor.exists("compiler/partial_crash.py"))
         self.assertTrue(self.executor.exists("compiler/parser.py"))
+
+    def test_workspace_proxy_pytest_shim_and_token_telemetry(self) -> None:
+        proxy = _RatchetWorkspaceExecutorProxy(self.executor)
+        # Writing `/testbed/.hae/reproduce_issue.py` maps to `<workspace>/.hae/reproduce_issue.py`
+        proxy.write_file("/testbed/.hae/reproduce_issue.py", "assert 2 + 2 == 4\n")
+        self.assertTrue(self.executor.exists(".hae/reproduce_issue.py"))
+
+        # Creating a stray top-level `falsification_suite.py` via bash relocates it into `.hae/`
+        proxy.run(["bash", "-lc", "echo 'assert 3 * 3 == 9' > falsification_suite.py"])
+        self.assertFalse(self.executor.exists("falsification_suite.py"))
+        self.assertTrue(self.executor.exists(".hae/falsification_suite.py"))
+
+        # Running `pytest -q` with `import pytest`, `pytest.raises`, and `@pytest.mark.parametrize`
+        proxy.write_file(
+            "test_shim_features.py",
+            "import pytest\n\n"
+            "@pytest.mark.parametrize('x,expected', [(2, 4), (3, 9), (5, 25)])\n"
+            "def test_square(x, expected):\n"
+            "    assert x * x == expected\n\n"
+            "def test_zero_div():\n"
+            "    with pytest.raises(ZeroDivisionError):\n"
+            "        _ = 1 / 0\n",
+        )
+        res_pt = proxy.run(["bash", "-lc", "pytest -q test_shim_features.py"])
+        self.assertTrue(res_pt.ok, msg=f"stdout={res_pt.stdout} stderr={res_pt.stderr}")
+        self.assertIn("4 passed", res_pt.stdout)
+
+        # Verify `_DefaultMicroRunnerAdapter` token accounting
+        spec = MilestoneSpec(
+            milestone_id="m1_demo",
+            title="Demo",
+            objective="Build demo",
+            target_files=["demo.py"],
+            acceptance_cmd="pytest -q test_shim_features.py",
+        )
+        adapter = _DefaultMicroRunnerAdapter(proxy, spec)
+        adapter._account_tokens(
+            usage={"prompt_tokens": 120, "output_tokens": 45, "thought_tokens": 30, "total_tokens": 165}
+        )
+        adapter._account_tokens(
+            usage={"prompt_tokens": 80, "output_tokens": 25, "thought_tokens": 10, "total_tokens": 105}
+        )
+        tok = adapter.token_summary()
+        self.assertEqual(tok["llm_calls"], 2)
+        self.assertEqual(tok["prompt_tokens"], 200)
+        self.assertEqual(tok["output_tokens"], 70)
+        self.assertEqual(tok["thought_tokens"], 40)
+        self.assertEqual(tok["total_tokens"], 270)
 
 
 if __name__ == "__main__":

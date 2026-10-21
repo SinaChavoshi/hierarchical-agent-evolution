@@ -46,9 +46,11 @@ from hae.hierarchical.verifier_plugin import (
     ShellCommandVerifierPlugin,
     VerificationGateResult,
     WorkspaceVerifierPlugin,
+    _parse_passed_count,
     compute_gate_score,
+    ensure_workspace_pytest_shim,
 )
-from hae.swebench.executor import CommandExecutor, SCRATCH_DIR
+from hae.swebench.executor import CommandExecutor, ExecResult, SCRATCH_DIR
 from hae.swebench.hierarchical_mcts import HierarchicalAgenticMCTSEngine
 from hae.swebench.task import SweTask
 
@@ -437,6 +439,128 @@ class L0MacroPlanner:
         return dag
 
 
+_TRANSIENT_SCRATCH_BASENAMES = (
+    "reproduce_issue.py",
+    "falsification_suite.py",
+    "audit_edge_cases.py",
+)
+
+
+class _RatchetWorkspaceExecutorProxy(CommandExecutor):
+    """Executor proxy for `L0-Micro` milestones running in local workspaces (`executor.root != '/testbed'`).
+
+    - Transparently maps `/testbed` references in commands and file paths to `executor.root`
+      so specialists (`L1-A`, `L2-A`, `L2-B`, `L1-B`) whose prompts mention `/testbed/.hae/...`
+      operate cleanly inside the local ratchet workspace.
+    - Prepends `<workspace>/.hae/pybin` (when provisioned by `ensure_workspace_pytest_shim`)
+      to `PATH` and `PYTHONPATH` so `pytest`, `python3 -m pytest`, and `import pytest`
+      succeed inside the workspace without polluting global host site-packages.
+    - Relocates any top-level `reproduce_issue.py`, `falsification_suite.py`, or
+      `audit_edge_cases.py` created in the workspace root into `.hae/` so `git diff HEAD`
+      only contains real milestone source and test files.
+    """
+
+    def __init__(self, inner: CommandExecutor) -> None:
+        self._inner = inner
+        self.root = inner.root
+        self.python = inner.python
+        self._pybin = ensure_workspace_pytest_shim(inner)
+
+    def _map_path(self, rel_or_abs: str) -> str:
+        p = str(rel_or_abs or "")
+        if p == "/testbed" or p == "/testbed/":
+            return self.root
+        if p.startswith("/testbed/"):
+            p = p[len("/testbed/") :]
+        stripped = p.lstrip("./")
+        if stripped in _TRANSIENT_SCRATCH_BASENAMES:
+            return f"{SCRATCH_DIR}/{stripped}"
+        return p
+
+    def _map_cmd_text(self, text: str) -> str:
+        s = str(text or "")
+        if "/testbed" in s and self.root != "/testbed":
+            s = s.replace("/testbed/", f"{self.root}/")
+            s = re.sub(r"/testbed(?=$|[\s\"':;,\)\]])", self.root, s)
+        return s
+
+    def _relocate_stray_scratch_files(self) -> None:
+        for bname in _TRANSIENT_SCRATCH_BASENAMES:
+            if self._inner.exists(bname):
+                try:
+                    content = self._inner.read_file(bname)
+                    if content.strip():
+                        self._inner.write_file(f"{SCRATCH_DIR}/{bname}", content)
+                    self._inner.run(["rm", "-f", bname], cwd=self.root, timeout_s=10)
+                except Exception:
+                    pass
+
+    def abspath(self, path: Optional[str]) -> str:
+        if not path:
+            return self.root
+        return self._inner.abspath(self._map_path(path))
+
+    def run(
+        self,
+        argv: Union[str, Sequence[str]],
+        cwd: Optional[str] = None,
+        timeout_s: float = 60.0,
+        env: Optional[Mapping[str, str]] = None,
+        stdin: str = "",
+    ) -> ExecResult:
+        eff_cwd = self._map_cmd_text(cwd) if cwd else self.root
+        if isinstance(argv, str):
+            eff_cmd: Sequence[str] = ["bash", "-lc", self._map_cmd_text(argv)]
+        else:
+            eff_cmd = [self._map_cmd_text(str(c)) for c in argv]
+
+        eff_env = dict(env or {})
+        if self._pybin:
+            cur_path = eff_env.get("PATH") or os.environ.get("PATH", "")
+            if self._pybin not in cur_path.split(os.pathsep):
+                eff_env["PATH"] = f"{self._pybin}{os.pathsep}{cur_path}" if cur_path else self._pybin
+            cur_pypath = eff_env.get("PYTHONPATH") or self.root
+            pypath_parts = [p for p in cur_pypath.split(os.pathsep) if p]
+            if self.root not in pypath_parts:
+                pypath_parts.insert(0, self.root)
+            if self._pybin not in pypath_parts:
+                pypath_parts.append(self._pybin)
+            eff_env["PYTHONPATH"] = os.pathsep.join(pypath_parts)
+        else:
+            eff_env.setdefault("PYTHONPATH", self.root)
+
+        res = self._inner.run(eff_cmd, cwd=eff_cwd, timeout_s=timeout_s, env=eff_env, stdin=stdin)
+        self._relocate_stray_scratch_files()
+        return res
+
+    def read_file(self, path: str) -> str:
+        return self._inner.read_file(self._map_path(path))
+
+    def write_file(self, path: str, content: str) -> None:
+        self._inner.write_file(self._map_path(path), content)
+
+    def exists(self, path: str) -> bool:
+        return self._inner.exists(self._map_path(path))
+
+    def list_dir(self, path: str = ".") -> List[str]:
+        return self._inner.list_dir(self._map_path(path))
+
+    def git(self, args: Sequence[str], timeout_s: float = 120.0) -> ExecResult:
+        return self._inner.git(args, timeout_s=timeout_s)
+
+    def untracked_files(self, exclude: Iterable[str] = ()) -> List[str]:
+        self._relocate_stray_scratch_files()
+        return self._inner.untracked_files(exclude=exclude)
+
+    def diff(self, exclude: Iterable[str] = ()) -> str:
+        self._relocate_stray_scratch_files()
+        return self._inner.diff(exclude=exclude)
+
+    def changed_files(self, exclude: Iterable[str] = ()) -> List[str]:
+        self._relocate_stray_scratch_files()
+        return self._inner.changed_files(exclude=exclude)
+
+
 class GitCommitRatchet:
     """Manages persistent Git commit ratcheting, falsification suite archiving,
     cumulative regression gating, rollback on failure, and `.hae/ratchet_state.json`.
@@ -464,6 +588,7 @@ class GitCommitRatchet:
             cwd=self.executor.root,
             timeout_s=15,
         )
+        ensure_workspace_pytest_shim(self.executor)
 
     def state_exists(self) -> bool:
         return self.executor.exists(self.STATE_FILE_REL)
@@ -483,6 +608,22 @@ class GitCommitRatchet:
     def current_delta_files(self) -> List[str]:
         return self.executor.changed_files()
 
+    def total_repo_loc(self) -> int:
+        """Return total lines of code across all tracked + newly created files outside `.hae/`."""
+        res = self.executor.git(["ls-files"])
+        tracked = [l.strip() for l in res.stdout.splitlines() if l.strip()] if res.ok else []
+        files = set(tracked) | set(self.current_delta_files())
+        total = 0
+        for rel in sorted(files):
+            if rel.startswith(SCRATCH_DIR + "/") or not self.executor.exists(rel):
+                continue
+            try:
+                content = self.executor.read_file(rel)
+                total += len(content.splitlines())
+            except Exception:
+                pass
+        return total
+
     def archive_falsification_suite(
         self,
         milestone: MilestoneSpec,
@@ -498,6 +639,9 @@ class GitCommitRatchet:
                 f"{SCRATCH_DIR}/falsification_suite.py",
                 f"{SCRATCH_DIR}/audit_edge_cases.py",
                 f"{SCRATCH_DIR}/reproduce_issue.py",
+                "falsification_suite.py",
+                "audit_edge_cases.py",
+                "reproduce_issue.py",
             )
             if c
         ]
@@ -513,6 +657,41 @@ class GitCommitRatchet:
             milestone.falsification_suite_path = target_rel
             return target_rel
         return milestone.falsification_suite_path
+
+    def _run_falsification_file(self, f_path: str) -> ExecResult:
+        """Execute an archived falsification script, running `pytest`-style `def test_*` functions if needed."""
+        pybin_dir = ensure_workspace_pytest_shim(self.executor)
+        env: Dict[str, str] = {"PYTHONPATH": self.executor.root}
+        if pybin_dir:
+            env["PYTHONPATH"] = f"{self.executor.root}{os.pathsep}{pybin_dir}"
+            cur_path = os.environ.get("PATH", "")
+            env["PATH"] = f"{pybin_dir}{os.pathsep}{cur_path}" if cur_path else pybin_dir
+
+        res_f = self.executor.run(
+            [self.executor.python, f_path],
+            cwd=self.executor.root,
+            env=env,
+            timeout_s=60,
+        )
+        if not res_f.ok:
+            return res_f
+
+        # If the script defines `def test_*` functions without a `__main__` entrypoint,
+        # also execute it via pytest so those test functions are genuinely exercised.
+        try:
+            src = self.executor.read_file(f_path)
+        except Exception:
+            src = ""
+        if re.search(r"^\s*def\s+test_", src, flags=re.MULTILINE) and "__main__" not in src:
+            res_pt = self.executor.run(
+                [self.executor.python, "-m", "pytest", "-q", f_path],
+                cwd=self.executor.root,
+                env=env,
+                timeout_s=60,
+            )
+            if not res_pt.ok:
+                return res_pt
+        return res_f
 
     def run_cumulative_regression_gate(
         self,
@@ -537,6 +716,8 @@ class GitCommitRatchet:
         falsifier_ok = True
         new_failures = 0
         notes: List[str] = []
+        milestone_passed_tests: Dict[str, int] = {}
+        cumulative_passed_tests = 0
 
         # 1. Check Python syntax of any modified/created .py files in the active delta
         delta_files = self.current_delta_files()
@@ -583,6 +764,9 @@ class GitCommitRatchet:
                         diff_bloat_threshold=active_milestone.max_diff_lines,
                     )
                     res_m = shell_vp.verify(self.executor, changed_files=delta_files)
+                    m_passed = int(getattr(res_m, "passed_tests", 0) or 0)
+                    milestone_passed_tests[m.milestone_id] = m_passed
+                    cumulative_passed_tests += m_passed
                     if not res_m.tests_ok:
                         tests_ok = False
                         if is_active:
@@ -592,16 +776,15 @@ class GitCommitRatchet:
                             f"[{m.milestone_id}] acceptance `{m.acceptance_cmd}` FAILED: {res_m.summary}"
                         )
                     else:
-                        notes.append(f"[{m.milestone_id}] acceptance PASSED")
+                        notes.append(
+                            f"[{m.milestone_id}] acceptance PASSED ({m_passed} tests)"
+                            if m_passed > 0
+                            else f"[{m.milestone_id}] acceptance PASSED"
+                        )
 
                 f_path = m.falsification_suite_path
                 if f_path and self.executor.exists(f_path):
-                    res_f = self.executor.run(
-                        [self.executor.python, f_path],
-                        cwd=self.executor.root,
-                        env={"PYTHONPATH": self.executor.root},
-                        timeout_s=60,
-                    )
+                    res_f = self._run_falsification_file(f_path)
                     if not res_f.ok:
                         falsifier_ok = False
                         new_failures += 1
@@ -639,15 +822,26 @@ class GitCommitRatchet:
             new_failures=new_failures,
             summary="; ".join(notes) if notes else "Cumulative regression gate PASSED",
             score=score,
+            passed_tests=cumulative_passed_tests,
+            details={
+                "verified_milestones": [m.milestone_id for m in milestones_to_verify],
+                "milestone_passed_tests": milestone_passed_tests,
+                "cumulative_passed_tests": cumulative_passed_tests,
+                "delta_added_lines": added_lines,
+                "delta_diff_lines": len(delta_diff.splitlines()),
+            },
         )
 
     def _clean_transient_scratch(self) -> None:
-        """Remove per-episode scratch files while preserving `.hae/ratchet_state.json` and `.hae/ratchet_suites/`."""
+        """Remove per-episode scratch files while preserving `.hae/ratchet_state.json`, `.hae/ratchet_suites/`, and `.hae/pybin/`."""
         for rel in (
             f"{SCRATCH_DIR}/tmp",
             f"{SCRATCH_DIR}/reproduce_issue.py",
             f"{SCRATCH_DIR}/falsification_suite.py",
             f"{SCRATCH_DIR}/audit_edge_cases.py",
+            "reproduce_issue.py",
+            "falsification_suite.py",
+            "audit_edge_cases.py",
         ):
             if self.executor.exists(rel):
                 self.executor.run(["rm", "-rf", rel], cwd=self.executor.root, timeout_s=15)
@@ -661,9 +855,7 @@ class GitCommitRatchet:
         record `certified_commit_sha`, and persist `.hae/ratchet_state.json`.
         """
         self.ensure_dirs()
-        # Ensure `.hae/tmp` is removed before staging
-        if self.executor.exists(f"{SCRATCH_DIR}/tmp"):
-            self.executor.run(["rm", "-rf", f"{SCRATCH_DIR}/tmp"], cwd=self.executor.root, timeout_s=15)
+        self._clean_transient_scratch()
 
         # Stage all created/modified source & test files while keeping `.hae` untracked
         self.executor.git(["add", "-A"])
@@ -694,7 +886,6 @@ class GitCommitRatchet:
         milestone.status = "certified"
         milestone.certified_commit_sha = sha
 
-        self._clean_transient_scratch()
         if dag is not None:
             self.save_state(dag)
 
@@ -753,23 +944,90 @@ class _DefaultMicroRunnerAdapter:
         self.milestone = milestone
         self.model_name = model_name or os.environ.get("HAE_WORKER_MODEL", "nvidia/Qwen3.8-Flash-Next-NVFP4")
         self.calls = 0
-        self.max_calls = max(40, milestone.budget_moves * 2)
+        self.max_calls = max(60, milestone.budget_moves * 3)
+        self.prompt_tokens = 0
+        self.output_tokens = 0
+        self.thought_tokens = 0
+        self.total_tokens = 0
+        self.llm_calls = 0
 
     def _may_call(self, reason: str = "") -> bool:
         self.calls += 1
         return self.calls <= self.max_calls
 
-    def _account_tokens(self, **kwargs: Any) -> None:
-        return None
+    def _account_tokens(self, usage: Optional[Mapping[str, Any]] = None, **kwargs: Any) -> None:
+        self.llm_calls += 1
+        u = dict(usage or kwargs or {})
+        p_tok = int(u.get("prompt_tokens") or u.get("input_tokens") or 0)
+        o_tok = int(u.get("output_tokens") or u.get("completion_tokens") or 0)
+        th_tok = int(u.get("thought_tokens") or u.get("reasoning_tokens") or 0)
+        tot_tok = int(u.get("total_tokens") or (p_tok + o_tok) or 0)
+        self.prompt_tokens += p_tok
+        self.output_tokens += o_tok
+        self.thought_tokens += th_tok
+        self.total_tokens += tot_tok
+
+    def token_summary(self) -> Dict[str, int]:
+        return {
+            "llm_calls": self.llm_calls,
+            "prompt_tokens": self.prompt_tokens,
+            "output_tokens": self.output_tokens,
+            "thought_tokens": self.thought_tokens,
+            "total_tokens": self.total_tokens,
+        }
+
+    def _upstream_snapshot_text(self) -> str:
+        """Render a compact snapshot of upstream certified source files from `HEAD`."""
+        res = self.executor.git(["ls-files"])
+        if not res.ok:
+            return ""
+        tracked = [l.strip() for l in res.stdout.splitlines() if l.strip()]
+        src_files = [
+            f for f in tracked
+            if f.endswith(".py")
+            and not f.startswith("tests/")
+            and not f.startswith("test_")
+            and not f.startswith(SCRATCH_DIR + "/")
+            and self.executor.exists(f)
+        ]
+        if not src_files:
+            return ""
+        blocks: List[str] = []
+        budget_chars = 6500
+        used_chars = 0
+        for rel in src_files:
+            try:
+                content = "\n".join(self.executor.read_file(rel).splitlines()[:180])
+            except Exception:
+                continue
+            snippet = f"#### `{rel}` (certified in Git HEAD)\n```python\n{content}\n```"
+            if used_chars + len(snippet) > budget_chars and blocks:
+                break
+            blocks.append(snippet)
+            used_chars += len(snippet)
+        if not blocks:
+            return ""
+        return "\n\n### Upstream Certified Modules in Git `HEAD` (Do NOT break existing APIs)\n" + "\n\n".join(blocks)
 
     def objective_text(self) -> str:
         targets = ", ".join(f"`{t}`" for t in self.milestone.target_files) or "(create/modify as needed)"
         acc = f"\nAcceptance Command: `{self.milestone.acceptance_cmd}`" if self.milestone.acceptance_cmd else ""
+        upstream = self._upstream_snapshot_text()
         return (
             f"MILESTONE `{self.milestone.milestone_id}`: {self.milestone.title}\n\n"
             f"{self.milestone.objective}\n\n"
             f"Target Files: {targets}{acc}\n"
-            f"Maximum Diff Lines for this Milestone: {self.milestone.max_diff_lines}"
+            f"Maximum Diff Lines for this Milestone: {self.milestone.max_diff_lines}\n"
+            f"Workspace Root: `{self.executor.root}`\n\n"
+            "### Greenfield & Milestone Implementation Rules\n"
+            "1. To **create a brand-new file** that does not exist yet (e.g. a new module or test file in "
+            f"{targets}), use `bash` with `mkdir -p <dir> && cat << 'EOF' > <rel_path> ... EOF` "
+            "(because `str_replace` requires matching existing file text).\n"
+            "2. Put any temporary reproduction or falsification scripts inside `.hae/` "
+            "(`.hae/reproduce_issue.py`, `.hae/falsification_suite.py`), NEVER in the repository root.\n"
+            f"3. Run `{self.milestone.acceptance_cmd or 'pytest -q'}` via `bash` to verify all tests pass "
+            "with exit code 0 before calling `finish`."
+            f"{upstream}"
         )
 
     def repo_map(self) -> List[str]:
@@ -827,7 +1085,13 @@ class MacroMilestoneRatchetEngine:
             return {"resolved_by_self_oracle": True}
 
         # Default L0-Micro runner: Generalized V13 `HierarchicalAgenticMCTSEngine`
-        runner = self.firm_runner or _DefaultMicroRunnerAdapter(self.executor, milestone)
+        proxy_executor = (
+            self.executor
+            if isinstance(self.executor, _RatchetWorkspaceExecutorProxy)
+            else _RatchetWorkspaceExecutorProxy(self.executor)
+        )
+        default_adapter = _DefaultMicroRunnerAdapter(proxy_executor, milestone)
+        runner = self.firm_runner or default_adapter
         head_sha = self.ratchet.current_head_sha() or "HEAD"
         swe_task = SweTask(
             instance_id=f"ratchet__{milestone.milestone_id}",
@@ -848,9 +1112,9 @@ class MacroMilestoneRatchetEngine:
             uncertainty=0.9,
         )
         gk = EvidenceGatekeeper(
-            workspace=self.executor.root,
-            python_executable=self.executor.python,
-            executor=self.executor,
+            workspace=proxy_executor.root,
+            python_executable=proxy_executor.python,
+            executor=proxy_executor,
             logger=self.logger,
         )
 
@@ -867,17 +1131,20 @@ class MacroMilestoneRatchetEngine:
 
         micro_engine = HierarchicalAgenticMCTSEngine(
             runner=runner,
-            executor=self.executor,
+            executor=proxy_executor,
             task=swe_task,
             state=state,
             gatekeeper=gk,
             logger=self.logger,
             **extra_kwargs,
         )
-        return micro_engine.run(
+        out = micro_engine.run(
             candidate_modules=list(milestone.target_files),
             budget_moves=milestone.budget_moves,
         )
+        if isinstance(out, dict) and hasattr(runner, "token_summary"):
+            out["token_usage"] = runner.token_summary()
+        return out
 
     def _restore_from_saved_state(self, saved_dag: MilestoneDAG) -> None:
         """Merge persisted `.hae/ratchet_state.json` milestone statuses into `self.dag`."""
@@ -947,6 +1214,11 @@ class MacroMilestoneRatchetEngine:
             delta_diff = self.ratchet.current_delta_diff()
             delta_files = self.ratchet.current_delta_files()
             delta_lines = len(delta_diff.splitlines())
+            delta_added_lines = sum(
+                1
+                for line in delta_diff.splitlines()
+                if line.startswith("+") and not line.startswith("+++")
+            )
 
             # Archive adversarial falsification script if created during this milestone
             archived_suite = self.ratchet.archive_falsification_suite(milestone)
@@ -969,11 +1241,14 @@ class MacroMilestoneRatchetEngine:
                 )
 
             elapsed_s = round(time.time() - t0, 3)
+            total_loc = self.ratchet.total_repo_loc()
             milestone.mcts_summary = {
                 **micro_summary,
                 "base_head_sha": base_head,
                 "delta_files": delta_files,
                 "delta_diff_lines": delta_lines,
+                "delta_added_lines": delta_added_lines,
+                "total_repo_loc": total_loc,
                 "archived_falsification_suite": archived_suite,
                 "cumulative_gate": gate_res.to_dict(),
                 "elapsed_s": elapsed_s,
@@ -987,9 +1262,14 @@ class MacroMilestoneRatchetEngine:
                         "status": "certified",
                         "base_head_sha": base_head,
                         "certified_commit_sha": commit_sha,
+                        "git_tag": f"hae-milestone-{milestone.milestone_id}",
                         "delta_files": delta_files,
                         "delta_diff_lines": delta_lines,
+                        "delta_added_lines": delta_added_lines,
+                        "total_repo_loc": total_loc,
                         "gate": gate_res.to_dict(),
+                        "token_usage": micro_summary.get("token_usage", {}),
+                        "moves_used": micro_summary.get("moves_used", 0),
                         "elapsed_s": elapsed_s,
                     }
                 )
@@ -1006,7 +1286,11 @@ class MacroMilestoneRatchetEngine:
                         "rolled_back_to_sha": rolled_back_sha,
                         "delta_files": delta_files,
                         "delta_diff_lines": delta_lines,
+                        "delta_added_lines": delta_added_lines,
+                        "total_repo_loc": total_loc,
                         "gate": gate_res.to_dict(),
+                        "token_usage": micro_summary.get("token_usage", {}),
+                        "moves_used": micro_summary.get("moves_used", 0),
                         "elapsed_s": elapsed_s,
                     }
                 )

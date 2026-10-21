@@ -1,0 +1,452 @@
+{
+  "eval_id": "beam_macro_ratchet_eval_2026-10-21",
+  "timestamp_utc": "2026-10-21T00:33:36Z",
+  "endpoint_info": {
+    "endpoint": "http://127.0.0.1:8000/v1",
+    "requested_model": "reflection/Beam-1.0-501B-A23B-NVFP4",
+    "available_models": [
+      "reflection/Beam-1.0-501B-A23B-NVFP4",
+      "Beam-1.0-501B-A23B",
+      "nvidia/Qwen3.8-Flash-Next-NVFP4",
+      "Qwen/Qwen3-Coder-32B-Instruct",
+      "Qwen3-Coder-32B"
+    ],
+    "detected_provider": "vllm",
+    "hierarchical_micro_engine": "HierarchicalAgenticMCTSEngine"
+  },
+  "completed": true,
+  "topological_order": [
+    "m1_lexer",
+    "m2_parser",
+    "m3_evaluator",
+    "m4_bytecode_vm"
+  ],
+  "certified_milestones": [
+    "m1_lexer",
+    "m2_parser",
+    "m3_evaluator",
+    "m4_bytecode_vm"
+  ],
+  "failed_milestones": [],
+  "pending_milestones": [],
+  "head_commit_sha": "c7e1d45161d6f899460205a0ea6b2b71001ea570",
+  "total_wall_clock_s": 245.579,
+  "totals": {
+    "moves_used": 49,
+    "llm_calls": 49,
+    "prompt_tokens": 365138,
+    "output_tokens": 16514,
+    "thought_tokens": 1240,
+    "total_tokens": 381652
+  },
+  "milestones": [
+    {
+      "milestone_id": "m1_lexer",
+      "title": "MiniLang Tokenizer & Lexical Analyzer",
+      "depends_on": [],
+      "target_files": [
+        "minilang/__init__.py",
+        "minilang/lexer.py",
+        "tests/test_m1_lexer.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/test_m1_lexer.py",
+      "max_diff_lines": 500,
+      "status": "certified",
+      "base_head_sha": "21b08e15f7eb041802aa3e18c59a394ca108db03",
+      "certified_commit_sha": "43eb7bda437454469a2c8ad4eed30ab5f00f7e6b",
+      "git_tag": "hae-milestone-m1_lexer",
+      "elapsed_s": 56.225,
+      "moves_used": 11,
+      "token_usage": {
+        "llm_calls": 11,
+        "prompt_tokens": 60588,
+        "output_tokens": 3964,
+        "thought_tokens": 224,
+        "total_tokens": 64552
+      },
+      "delta_files": [
+        "minilang/__init__.py",
+        "minilang/lexer.py",
+        "tests/test_m1_lexer.py"
+      ],
+      "delta_added_lines": 256,
+      "delta_removed_lines": 0,
+      "delta_diff_lines": 274,
+      "total_repo_loc": 263,
+      "archived_falsification_suite": ".hae/ratchet_suites/falsify_m1_lexer.py",
+      "verified_milestones": [
+        "m1_lexer"
+      ],
+      "milestone_passed_tests": {
+        "m1_lexer": 10
+      },
+      "cumulative_passed_tests": 10,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 10,
+        "summary": "[m1_lexer] acceptance PASSED (10 tests); [m1_lexer] falsification suite `.hae/ratchet_suites/falsify_m1_lexer.py` PASSED; plugin(PytestVerifierPlugin): py_compile OK (3 file(s)); pytest PASSED (10 passed)",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_lexer"
+          ],
+          "milestone_passed_tests": {
+            "m1_lexer": 10
+          },
+          "cumulative_passed_tests": 10,
+          "delta_added_lines": 256,
+          "delta_diff_lines": 274
+        }
+      }
+    },
+    {
+      "milestone_id": "m2_parser",
+      "title": "MiniLang AST Nodes & Recursive-Descent Parser",
+      "depends_on": [
+        "m1_lexer"
+      ],
+      "target_files": [
+        "minilang/ast_nodes.py",
+        "minilang/parser.py",
+        "minilang/__init__.py",
+        "tests/test_m2_parser.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/test_m2_parser.py",
+      "max_diff_lines": 500,
+      "status": "certified",
+      "base_head_sha": "43eb7bda437454469a2c8ad4eed30ab5f00f7e6b",
+      "certified_commit_sha": "701ded5bea21640c93cd347352a7021e901c47a6",
+      "git_tag": "hae-milestone-m2_parser",
+      "elapsed_s": 57.214,
+      "moves_used": 10,
+      "token_usage": {
+        "llm_calls": 10,
+        "prompt_tokens": 63909,
+        "output_tokens": 3846,
+        "thought_tokens": 369,
+        "total_tokens": 67755
+      },
+      "delta_files": [
+        "minilang/__init__.py",
+        "minilang/ast_nodes.py",
+        "minilang/parser.py",
+        "tests/test_m2_parser.py"
+      ],
+      "delta_added_lines": 302,
+      "delta_removed_lines": 1,
+      "delta_diff_lines": 328,
+      "total_repo_loc": 564,
+      "archived_falsification_suite": ".hae/ratchet_suites/falsify_m2_parser.py",
+      "verified_milestones": [
+        "m1_lexer",
+        "m2_parser"
+      ],
+      "milestone_passed_tests": {
+        "m1_lexer": 10,
+        "m2_parser": 4
+      },
+      "cumulative_passed_tests": 14,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 14,
+        "summary": "[m1_lexer] acceptance PASSED (10 tests); [m1_lexer] falsification suite `.hae/ratchet_suites/falsify_m1_lexer.py` PASSED; [m2_parser] acceptance PASSED (4 tests); [m2_parser] falsification suite `.hae/ratchet_suites/falsify_m2_parser.py` PASSED; plugin(PytestVerifierPlugin): py_compile OK (4 file(s)); pytest PASSED (14 passed)",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_lexer",
+            "m2_parser"
+          ],
+          "milestone_passed_tests": {
+            "m1_lexer": 10,
+            "m2_parser": 4
+          },
+          "cumulative_passed_tests": 14,
+          "delta_added_lines": 302,
+          "delta_diff_lines": 328
+        }
+      }
+    },
+    {
+      "milestone_id": "m3_evaluator",
+      "title": "MiniLang Lexical Environment, Closures & Tree-Walking Evaluator",
+      "depends_on": [
+        "m2_parser"
+      ],
+      "target_files": [
+        "minilang/evaluator.py",
+        "minilang/__init__.py",
+        "tests/test_m3_evaluator.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/test_m3_evaluator.py",
+      "max_diff_lines": 500,
+      "status": "certified",
+      "base_head_sha": "701ded5bea21640c93cd347352a7021e901c47a6",
+      "certified_commit_sha": "da346ab6e349c1f1cdcc1d39257d3f22282db694",
+      "git_tag": "hae-milestone-m3_evaluator",
+      "elapsed_s": 51.061,
+      "moves_used": 10,
+      "token_usage": {
+        "llm_calls": 10,
+        "prompt_tokens": 71937,
+        "output_tokens": 3520,
+        "thought_tokens": 200,
+        "total_tokens": 75457
+      },
+      "delta_files": [
+        "minilang/__init__.py",
+        "minilang/evaluator.py",
+        "tests/test_m3_evaluator.py"
+      ],
+      "delta_added_lines": 235,
+      "delta_removed_lines": 1,
+      "delta_diff_lines": 257,
+      "total_repo_loc": 798,
+      "archived_falsification_suite": ".hae/ratchet_suites/falsify_m3_evaluator.py",
+      "verified_milestones": [
+        "m1_lexer",
+        "m2_parser",
+        "m3_evaluator"
+      ],
+      "milestone_passed_tests": {
+        "m1_lexer": 10,
+        "m2_parser": 4,
+        "m3_evaluator": 8
+      },
+      "cumulative_passed_tests": 22,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 22,
+        "summary": "[m1_lexer] acceptance PASSED (10 tests); [m1_lexer] falsification suite `.hae/ratchet_suites/falsify_m1_lexer.py` PASSED; [m2_parser] acceptance PASSED (4 tests); [m2_parser] falsification suite `.hae/ratchet_suites/falsify_m2_parser.py` PASSED; [m3_evaluator] acceptance PASSED (8 tests); [m3_evaluator] falsification suite `.hae/ratchet_suites/falsify_m3_evaluator.py` PASSED; plugin(PytestVerifierPlugin): py_compile OK (3 file(s)); pytest PASSED (22 passed); falsifier `.hae/falsification_suite.py` PASSED",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_lexer",
+            "m2_parser",
+            "m3_evaluator"
+          ],
+          "milestone_passed_tests": {
+            "m1_lexer": 10,
+            "m2_parser": 4,
+            "m3_evaluator": 8
+          },
+          "cumulative_passed_tests": 22,
+          "delta_added_lines": 235,
+          "delta_diff_lines": 257
+        }
+      }
+    },
+    {
+      "milestone_id": "m4_bytecode_vm",
+      "title": "MiniLang Constant-Folding Bytecode Compiler & Stack Virtual Machine",
+      "depends_on": [
+        "m3_evaluator"
+      ],
+      "target_files": [
+        "minilang/bytecode.py",
+        "minilang/__init__.py",
+        "tests/test_m4_bytecode.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/test_m4_bytecode.py",
+      "max_diff_lines": 500,
+      "status": "certified",
+      "base_head_sha": "da346ab6e349c1f1cdcc1d39257d3f22282db694",
+      "certified_commit_sha": "c7e1d45161d6f899460205a0ea6b2b71001ea570",
+      "git_tag": "hae-milestone-m4_bytecode_vm",
+      "elapsed_s": 79.057,
+      "moves_used": 18,
+      "token_usage": {
+        "llm_calls": 18,
+        "prompt_tokens": 168704,
+        "output_tokens": 5184,
+        "thought_tokens": 447,
+        "total_tokens": 173888
+      },
+      "delta_files": [
+        "minilang/__init__.py",
+        "minilang/bytecode.py",
+        "tests/test_m4_bytecode.py"
+      ],
+      "delta_added_lines": 342,
+      "delta_removed_lines": 1,
+      "delta_diff_lines": 364,
+      "total_repo_loc": 1139,
+      "archived_falsification_suite": null,
+      "verified_milestones": [
+        "m1_lexer",
+        "m2_parser",
+        "m3_evaluator",
+        "m4_bytecode_vm"
+      ],
+      "milestone_passed_tests": {
+        "m1_lexer": 10,
+        "m2_parser": 4,
+        "m3_evaluator": 8,
+        "m4_bytecode_vm": 3
+      },
+      "cumulative_passed_tests": 25,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 25,
+        "summary": "[m1_lexer] acceptance PASSED (10 tests); [m1_lexer] falsification suite `.hae/ratchet_suites/falsify_m1_lexer.py` PASSED; [m2_parser] acceptance PASSED (4 tests); [m2_parser] falsification suite `.hae/ratchet_suites/falsify_m2_parser.py` PASSED; [m3_evaluator] acceptance PASSED (8 tests); [m3_evaluator] falsification suite `.hae/ratchet_suites/falsify_m3_evaluator.py` PASSED; [m4_bytecode_vm] acceptance PASSED (3 tests); plugin(PytestVerifierPlugin): py_compile OK (3 file(s)); pytest PASSED (25 passed)",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_lexer",
+            "m2_parser",
+            "m3_evaluator",
+            "m4_bytecode_vm"
+          ],
+          "milestone_passed_tests": {
+            "m1_lexer": 10,
+            "m2_parser": 4,
+            "m3_evaluator": 8,
+            "m4_bytecode_vm": 3
+          },
+          "cumulative_passed_tests": 25,
+          "delta_added_lines": 342,
+          "delta_diff_lines": 364
+        }
+      }
+    }
+  ],
+  "git_telemetry": {
+    "commits": [
+      {
+        "sha": "21b08e15f7eb041802aa3e18c59a394ca108db03",
+        "subject": "chore: initial repository scaffold"
+      },
+      {
+        "sha": "43eb7bda437454469a2c8ad4eed30ab5f00f7e6b",
+        "subject": "hae(ratchet): certify milestone m1_lexer - MiniLang Tokenizer & Lexical Analyzer"
+      },
+      {
+        "sha": "701ded5bea21640c93cd347352a7021e901c47a6",
+        "subject": "hae(ratchet): certify milestone m2_parser - MiniLang AST Nodes & Recursive-Descent Parser"
+      },
+      {
+        "sha": "da346ab6e349c1f1cdcc1d39257d3f22282db694",
+        "subject": "hae(ratchet): certify milestone m3_evaluator - MiniLang Lexical Environment, Closures & Tree-Walking Evaluator"
+      },
+      {
+        "sha": "c7e1d45161d6f899460205a0ea6b2b71001ea570",
+        "subject": "hae(ratchet): certify milestone m4_bytecode_vm - MiniLang Constant-Folding Bytecode Compiler & Stack Virtual Machine"
+      }
+    ],
+    "tags": {
+      "hae-milestone-m1_lexer": "43eb7bda437454469a2c8ad4eed30ab5f00f7e6b",
+      "hae-milestone-m2_parser": "701ded5bea21640c93cd347352a7021e901c47a6",
+      "hae-milestone-m3_evaluator": "da346ab6e349c1f1cdcc1d39257d3f22282db694",
+      "hae-milestone-m4_bytecode_vm": "c7e1d45161d6f899460205a0ea6b2b71001ea570"
+    },
+    "milestone_git_stats": {
+      "m1_lexer": {
+        "base_commit_sha": "21b08e15f7eb041802aa3e18c59a394ca108db03",
+        "certified_commit_sha": "43eb7bda437454469a2c8ad4eed30ab5f00f7e6b",
+        "git_tag": "hae-milestone-m1_lexer",
+        "tag_matches_sha": true,
+        "delta_added_lines": 256,
+        "delta_removed_lines": 0,
+        "delta_total_diff_lines": 274,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 263,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minilang/__init__.py",
+          "minilang/lexer.py",
+          "tests/test_m1_lexer.py"
+        ]
+      },
+      "m2_parser": {
+        "base_commit_sha": "43eb7bda437454469a2c8ad4eed30ab5f00f7e6b",
+        "certified_commit_sha": "701ded5bea21640c93cd347352a7021e901c47a6",
+        "git_tag": "hae-milestone-m2_parser",
+        "tag_matches_sha": true,
+        "delta_added_lines": 302,
+        "delta_removed_lines": 1,
+        "delta_total_diff_lines": 328,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 564,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minilang/__init__.py",
+          "minilang/ast_nodes.py",
+          "minilang/lexer.py",
+          "minilang/parser.py",
+          "tests/test_m1_lexer.py",
+          "tests/test_m2_parser.py"
+        ]
+      },
+      "m3_evaluator": {
+        "base_commit_sha": "701ded5bea21640c93cd347352a7021e901c47a6",
+        "certified_commit_sha": "da346ab6e349c1f1cdcc1d39257d3f22282db694",
+        "git_tag": "hae-milestone-m3_evaluator",
+        "tag_matches_sha": true,
+        "delta_added_lines": 235,
+        "delta_removed_lines": 1,
+        "delta_total_diff_lines": 257,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 798,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minilang/__init__.py",
+          "minilang/ast_nodes.py",
+          "minilang/evaluator.py",
+          "minilang/lexer.py",
+          "minilang/parser.py",
+          "tests/test_m1_lexer.py",
+          "tests/test_m2_parser.py",
+          "tests/test_m3_evaluator.py"
+        ]
+      },
+      "m4_bytecode_vm": {
+        "base_commit_sha": "da346ab6e349c1f1cdcc1d39257d3f22282db694",
+        "certified_commit_sha": "c7e1d45161d6f899460205a0ea6b2b71001ea570",
+        "git_tag": "hae-milestone-m4_bytecode_vm",
+        "tag_matches_sha": true,
+        "delta_added_lines": 342,
+        "delta_removed_lines": 1,
+        "delta_total_diff_lines": 364,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 1139,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minilang/__init__.py",
+          "minilang/ast_nodes.py",
+          "minilang/bytecode.py",
+          "minilang/evaluator.py",
+          "minilang/lexer.py",
+          "minilang/parser.py",
+          "tests/test_m1_lexer.py",
+          "tests/test_m2_parser.py",
+          "tests/test_m3_evaluator.py",
+          "tests/test_m4_bytecode.py"
+        ]
+      }
+    }
+  },
+  "ratchet_state_path": "/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/beam_macro_ratchet_eval_2026-10-21/.hae/ratchet_state.json"
+}

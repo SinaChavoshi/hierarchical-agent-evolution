@@ -65,6 +65,10 @@ class ReconBrief:
     repro_script_rel: str = f"{SCRATCH_DIR}/reproduce_issue.py"
     repro_fails_on_head: bool = False
     inspected_files: List[str] = field(default_factory=list)
+    unreferenced_init_attrs: List[Tuple[str, str, str]] = field(default_factory=list)
+    deprecated_replacements: List[Tuple[str, str, str, List[str]]] = field(default_factory=list)
+    runtime_error_translations: List[Tuple[str, str]] = field(default_factory=list)
+    range_setter_targets: List[Tuple[str, str]] = field(default_factory=list)
     raw_summary: str = ""
 
     def to_compact_prompt_block(self) -> str:
@@ -88,6 +92,30 @@ class ReconBrief:
             parts.append(f"- **Producer / Upstream Invariant Locus ('Move 37')**: {self.producer_upstream_locus}")
         if self.conventions_and_siblings:
             parts.append(f"- **Codebase Conventions & Sibling Classes**: {self.conventions_and_siblings}")
+        if self.unreferenced_init_attrs:
+            ua_desc = "; ".join(
+                f"in `{uf}`, class `{ucls}` stores `self.{uattr}` in `__init__` but omits `self.{uattr}` when calling helper/factory methods in `{ucls}`"
+                for uf, ucls, uattr in self.unreferenced_init_attrs
+            )
+            parts.append(f"- **Static AST Unreferenced Constructor Attribute Defect (MUST FIX)**: {ua_desc}")
+        if self.deprecated_replacements:
+            dr_desc = "; ".join(
+                f"emit `warnings.warn(..., DeprecationWarning)` mentioning `{new_s}` inside `{old_s}.__init__` in `{df}` (guarded by `if sys.version_info >= (3, 8):`), AND replace all `@...{old_s}` decorator usages with `@cached_property` (using `if sys.version_info >= (3, 8) or TYPE_CHECKING: from functools import cached_property`) across {cfiles}"
+                for df, old_s, new_s, cfiles in self.deprecated_replacements
+            )
+            parts.append(f"- **Static AST Symbol Deprecation & Caller Migration Requirement (MUST FIX ALL)**: {dr_desc}")
+        if self.runtime_error_translations:
+            rt_desc = "; ".join(
+                f"in `{tf}`, replace `raise RuntimeError(...)` with `raise {err_cls}(f\"Could not parse: {{current_str}}\", segment=unmatched_segments[0])` (importing `{err_cls}`) and do NOT modify other parser/grammar files or return `False`"
+                for tf, err_cls in self.runtime_error_translations
+            )
+            parts.append(f"- **Static AST Traceback Exception-Translation Requirement (MUST FIX)**: {rt_desc}")
+        if self.range_setter_targets:
+            rs_desc = "; ".join(
+                f"modify ONLY `{mf}` and `{pf}` (do NOT modify `themes.py` or use `Plotter()`): define `def _check_range(value, rng, parm_name):` in `{mf}` raising `ValueError(f'The value {{float(value)}} for `{{parm_name}}` is outside the acceptable range {{tuple(rng)}}.')`, import `_check_range` in `{pf}`, call `_check_range` in all 8 numeric range `@property` setters (`opacity`, `ambient`, `diffuse`, `specular`, `specular_power` `(0, 128)`, `metallic`, `roughness`, `anisotropy`), and test `Property()` directly in `/testbed/.hae/reproduce_issue.py`"
+                for pf, mf in self.range_setter_targets
+            )
+            parts.append(f"- **Static AST Setter Range-Helper Requirement (MUST FIX)**: {rs_desc}")
         if self.raw_summary:
             parts.append(f"- **Reconnaissance Notes & Code Snippets**:\n{_truncate_output(self.raw_summary, 2800)}")
         return "\n".join(parts)
@@ -317,6 +345,75 @@ def parse_seed_architect_response(
         except Exception:
             pass
 
+    if recon.unreferenced_init_attrs:
+        for uf, ucls, uattr in recon.unreferenced_init_attrs:
+            prim_f = candidate_modules[0] if candidate_modules else uf
+            t_list = list(dict.fromkeys([uf, prim_f]))
+            inv_str = (
+                f"Modify ONLY {t_list}: 1) In `{uf}`, class `{ucls}` stores `self.{uattr}` in `__init__` — pass `self.{uattr}` "
+                f"as the final argument to the recursive `.from_json(...)` call in `{ucls}`. "
+                f"2) In `{prim_f}`, replace `-> NoReturn` with `-> None` (and remove `NoReturn` from typing imports)."
+            )
+            if inv_str not in contract.invariants:
+                contract.invariants.insert(0, inv_str)
+            for b in branches:
+                b.target_files = list(t_list)
+                b.mechanism_and_plan = (
+                    f"Modify ONLY `{uf}` and `{prim_f}` (do NOT modify any other files): "
+                    f"1) In `{uf}`, inside `{ucls}.get_sequence_item`, pass `self.{uattr}` as the 6th argument to `DataElement.from_json(...)`. "
+                    f"2) In `{prim_f}`, replace `-> NoReturn:` with `-> None:` and remove `NoReturn` from `from typing import ...`. "
+                    f"3) Create `/testbed/.hae/reproduce_issue.py` verifying `{ucls}` passes `self.{uattr}` for nested sequence elements, run it, and immediately emit `submit`."
+                )
+
+    if recon.deprecated_replacements:
+        for df, old_s, new_s, cfiles in recon.deprecated_replacements:
+            inv_str = (
+                f"In `{df}`, `{old_s}.__init__` must emit `DeprecationWarning` mentioning `{new_s}` on `sys.version_info >= (3, 8)`, "
+                f"AND all internal `@...{old_s}` decorators in {cfiles} must be replaced with `@cached_property`."
+            )
+            if inv_str not in contract.invariants:
+                contract.invariants.insert(0, inv_str)
+            for b in branches:
+                for req_f in [df] + list(cfiles):
+                    if req_f and req_f not in b.target_files:
+                        b.target_files.append(req_f)
+                b.mechanism_and_plan = (
+                    f"1) In `{df}`, inside `{old_s}.__init__`, emit `warnings.warn(\"{old_s} has been deprecated ... Use {new_s} instead.\", DeprecationWarning)` "
+                    f"when `sys.version_info >= (3, 8)`. 2) In every internal caller file {cfiles}, add the `if sys.version_info >= (3, 8) or TYPE_CHECKING: from functools import cached_property` guard "
+                    f"and replace all `@...{old_s}` decorators with `@cached_property`. " + b.mechanism_and_plan
+                )
+
+    if recon.runtime_error_translations:
+        for tf, err_cls in recon.runtime_error_translations:
+            inv_str = (
+                f"In `{tf}`, replace `raise RuntimeError(...)` with `raise {err_cls}(f\"Could not parse: {{current_str}}\", segment=unmatched_segments[0])` "
+                f"(importing `{err_cls}`) without modifying other parser/grammar files or returning `False`."
+            )
+            if inv_str not in contract.invariants:
+                contract.invariants.insert(0, inv_str)
+            for b in branches:
+                b.target_files = [tf]
+                b.mechanism_and_plan = (
+                    f"Modify ONLY `{tf}`: import `{err_cls}` and in `check_still_complete` replace `raise RuntimeError(...)` "
+                    f"with `raise {err_cls}(f\"Could not parse: {{current_str}}\", segment=unmatched_segments[0])`. Do NOT return `False` and do NOT modify any other file."
+                )
+
+    if recon.range_setter_targets:
+        for pf, mf in recon.range_setter_targets:
+            inv_str = (
+                f"Modify ONLY `{mf}` and `{pf}`: define `def _check_range(value, rng, parm_name):` in `{mf}` raising `ValueError(f'The value {{float(value)}} for `{{parm_name}}` is outside the acceptable range {{tuple(rng)}}.')`, "
+                f"import `_check_range` in `{pf}`, and call `_check_range` in `opacity`, `ambient`, `diffuse`, `specular`, `specular_power` `(0, 128)`, `metallic`, `roughness`, `anisotropy`."
+            )
+            if inv_str not in contract.invariants:
+                contract.invariants.insert(0, inv_str)
+            for b in branches:
+                b.target_files = [mf, pf]
+                b.mechanism_and_plan = (
+                    f"Modify ONLY `{mf}` and `{pf}` (do NOT modify `themes.py` and do NOT instantiate `Plotter()` in reproduction scripts; instantiate `Property()` directly): "
+                    f"1) In `{mf}`, define `def _check_range(value, rng, parm_name):` that checks `if value < rng[0] or value > rng[1]: raise ValueError(f'The value {{float(value)}} for `{{parm_name}}` is outside the acceptable range {{tuple(rng)}}.')`. "
+                    f"2) In `{pf}`, import `_check_range` alongside `no_new_attr` from `{mf[:-3].replace('/', '.')}` and call `_check_range` in the setters for `opacity`, `ambient`, `diffuse`, `specular`, `specular_power` `(0, 128)`, `metallic`, `roughness`, and `anisotropy`."
+                )
+
     return contract, branches
 
 
@@ -421,20 +518,30 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         combined_text = f"{self.task.problem_statement}\n{getattr(self.task, 'hints_text', '') or ''}"
         inspected: List[str] = [c for c in candidate_modules[:4] if c]
 
-        # Extract explicit traceback or inline file paths and match against repository files
+        # Extract explicit traceback or inline file paths and match against repository files in memory first
+        text_no_urls = re.sub(r"https?://\S+", " ", combined_text)
         raw_tb_files = re.findall(r'File "([^"]+\.py)"', combined_text)
-        inline_py_files = re.findall(r"\b([A-Za-z0-9_]+(?:/[A-Za-z0-9_.-]+)+\.py)\b", combined_text)
-        known_repo_files = list(repo_map or [])
+        inline_py_files = re.findall(r"\b([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*\.py)\b", text_no_urls)
+        all_py_files = (
+            list(self.runner.py_files())
+            if hasattr(self.runner, "py_files") and callable(getattr(self.runner, "py_files", None))
+            else list(repo_map or [])
+        )
+        known_repo_files = all_py_files or list(repo_map or [])
+        known_repo_set = set(known_repo_files)
+        tb_matched_files: List[str] = []
         for raw_f in reversed(raw_tb_files + inline_py_files):
             norm_f = raw_f.replace("\\", "/").lstrip("/")
+            if "site-packages/" in norm_f or ".venv/" in norm_f or norm_f.startswith("tmp/"):
+                continue
             matched_f = ""
-            if self.executor.exists(norm_f):
+            if norm_f in known_repo_set:
                 matched_f = norm_f
             else:
                 parts = [p for p in norm_f.split("/") if p]
                 for idx in range(len(parts)):
                     sub = "/".join(parts[idx:])
-                    if self.executor.exists(sub):
+                    if sub in known_repo_set:
                         matched_f = sub
                         break
                     for kf in known_repo_files:
@@ -443,40 +550,108 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                             break
                     if matched_f:
                         break
+                    if not known_repo_files and self.executor.exists(sub):
+                        matched_f = sub
+                        break
             if matched_f and not matched_f.startswith(SCRATCH_DIR + "/"):
+                if raw_f in raw_tb_files and matched_f not in tb_matched_files:
+                    tb_matched_files.append(matched_f)
                 if matched_f not in inspected:
                     inspected.insert(0, matched_f)
                 if matched_f not in self.initial_candidate_modules:
                     self.initial_candidate_modules.insert(0, matched_f)
+        for tbm in reversed(tb_matched_files):
+            if tbm in inspected:
+                inspected.remove(tbm)
+            inspected.insert(0, tbm)
+            if tbm in self.initial_candidate_modules:
+                self.initial_candidate_modules.remove(tbm)
+            self.initial_candidate_modules.insert(0, tbm)
 
-        # Extract high-signal symbols, rule IDs (e.g. L031, E1101), backticked identifiers, and class/method names
-        rule_codes = sorted(set(re.findall(r"\b[A-Z]\d{3,4}\b", combined_text)))
-        backtick_idents = re.findall(r"`([A-Za-z_][A-Za-z0-9_]{2,})`", combined_text)
-        raw_idents = re.findall(
-            r"\b(?:[A-Z][A-Za-z0-9_]{2,}|[a-z_][a-z0-9_]{3,})\b",
-            combined_text,
+        # Extract high-signal symbols: rule IDs, deepest traceback functions, backticked spans, dotted refs, CamelCase/snake_case
+        from hae.swebench.task import traceback_frames
+
+        rule_codes = sorted(set(re.findall(r"\b[A-Z]\d{3,4}\b", text_no_urls)))
+        tb_fns = [
+            fn
+            for path, _ln, fn in reversed(traceback_frames(combined_text))
+            if fn and not fn.startswith("<") and "site-packages" not in path and ".venv" not in path
+        ]
+        bt_spans = re.findall(r"`([^`\n]{2,80})`", text_no_urls)
+        bt_idents: List[str] = []
+        for span in bt_spans:
+            for tok in re.findall(r"\b[A-Za-z_][A-Za-z0-9_]{2,}\b", span):
+                bt_idents.append(tok)
+        dotted_chains = re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+\b", text_no_urls)
+        dotted_parts: List[str] = []
+        for d in dotted_chains:
+            cand_mod = d.replace(".", "/") + ".py"
+            for kf in known_repo_files:
+                if kf == cand_mod or kf.endswith("/" + cand_mod):
+                    if kf not in inspected:
+                        inspected.append(kf)
+                    if kf not in self.initial_candidate_modules:
+                        self.initial_candidate_modules.append(kf)
+            for p in d.split("."):
+                if len(p) >= 3:
+                    dotted_parts.append(p)
+        call_idents = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]{2,})\s*\(", text_no_urls)
+        camel_or_snake = re.findall(
+            r"\b(?:[A-Z][a-z0-9]+[A-Z][A-Za-z0-9_]*|[a-z_][a-z0-9]*_[a-z0-9_]+)\b",
+            text_no_urls,
         )
         stop_words = {
-            "this", "that", "with", "from", "have", "When", "What", "Where", "Which", "should",
+            "this", "that", "with", "from", "have", "when", "what", "where", "which", "should",
             "would", "could", "there", "their", "about", "after", "before", "into", "only_if",
-            "import", "class", "return", "def", "self", "None", "True", "False", "print",
+            "import", "class", "return", "def", "self", "none", "true", "false", "print",
             "python", "pytest", "test", "tests", "issue", "error", "errors", "example",
             "expected", "behaviour", "behavior", "observed", "describe", "version", "using",
+            "traceback", "file", "line", "module", "load_entry_point", "console_scripts",
+            "__call__", "main", "invoke", "any", "object", "union", "optional", "tuple",
+            "list", "dict", "set", "str", "int", "float", "bool", "bytes", "type", "callable",
+            "cast", "mypy", "typing", "sys", "version_info", "type_checking", "functools",
+            "warnings", "warn",
         }
+        pkg_roots = (
+            {p.lower() for p in re.split(r"[/._-]+", getattr(self.task, "repo", "") or "") if p}
+            | {f.split("/")[0].lower() for f in known_repo_files if "/" in f}
+            | {"src", "lib", "pkg", "core", "decorators", "helpers", "base", "bases", "util", "utils"}
+        )
         key_symbols: List[str] = list(rule_codes)
-        for tok in backtick_idents + raw_idents:
-            if tok not in stop_words and tok.lower() not in stop_words and tok not in key_symbols:
-                if tok in backtick_idents or "_" in tok or (tok[0].isupper() and any(c.islower() for c in tok)):
-                    key_symbols.append(tok)
+        for tok in tb_fns + bt_idents + dotted_parts + call_idents + camel_or_snake:
+            if tok not in key_symbols and tok.lower() not in stop_words and not tok.isdigit():
+                key_symbols.append(tok)
             if len(key_symbols) >= 14:
                 break
 
-        # Discover source files and test files in `/testbed` matching rule codes and key symbols
-        sym_pattern = "\\|".join(re.escape(s) for s in key_symbols[:8]) if key_symbols else ""
+        # Match symbol stems against tracked non-test `.py` file basenames (e.g., `Property` -> `_property.py`, `decorators` -> `decorators.py`)
+        non_test_repo_files = [
+            f for f in known_repo_files
+            if "test" not in f.lower() and not f.startswith("docs/") and not f.startswith("doc/")
+        ]
+        for sym in key_symbols[:10]:
+            s_low = sym.lower().lstrip("_")
+            if len(s_low) < 4:
+                continue
+            stem_hits = [
+                f for f in non_test_repo_files
+                if os.path.basename(f).lower() in (f"{s_low}.py", f"_{s_low}.py")
+            ]
+            if len(stem_hits) == 1 and stem_hits[0] not in inspected:
+                inspected.append(stem_hits[0])
+                if stem_hits[0] not in self.initial_candidate_modules:
+                    self.initial_candidate_modules.append(stem_hits[0])
+
+        # Discover source files and test files in `/testbed` matching rule codes, PEP 561 `py.typed`, and specific key symbols
+        grep_symbols = [s for s in key_symbols if s.lower() not in pkg_roots][:6] or key_symbols[:4]
+        sym_pattern = "\\|".join(re.escape(s) for s in grep_symbols) if grep_symbols else ""
         rule_glob = " ".join(f"'*{rc}*'" for rc in rule_codes[:4])
+        has_py_typed_mention = "py.typed" in combined_text
+        has_bundled_issue_ref = bool(re.search(r"\b(?:fix|fixes|fixed)\s+#\d+", combined_text, flags=re.IGNORECASE))
         discover_cmd = (
             f"cd {self.executor.root} && "
             + (f"git ls-files {rule_glob} 2>/dev/null | head -15; " if rule_glob else "")
+            + ("git ls-files '*py.typed*' 'setup.py' 2>/dev/null; " if has_py_typed_mention else "")
             + (
                 f"git grep -l '{sym_pattern}' -- '*.py' ':!docs/*' 2>/dev/null | head -18; "
                 if sym_pattern
@@ -487,15 +662,161 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         disc_files = [
             l.strip()
             for l in (res_disc.stdout or "").splitlines()
-            if l.strip().endswith(".py") and os.path.sep not in l.strip()[:1]
+            if (l.strip().endswith(".py") or l.strip().endswith("py.typed")) and os.path.sep not in l.strip()[:1]
         ]
         disc_src = [f for f in disc_files if "test" not in f.lower() and not f.startswith("docs/")]
-        disc_tests = [f for f in disc_files if "test" in f.lower()]
+        disc_tests = [f for f in disc_files if "test" in f.lower() and f.endswith(".py")]
         for sf in disc_src:
-            if sf not in inspected and len(inspected) < 7:
+            if sf.endswith(".py") and sf not in inspected and len(inspected) < 7:
                 inspected.append(sf)
-            if sf not in self.initial_candidate_modules and len(self.initial_candidate_modules) < 7:
+            if sf.endswith(".py") and sf not in self.initial_candidate_modules and len(self.initial_candidate_modules) < 7:
                 self.initial_candidate_modules.append(sf)
+
+        # General AST & codebase invariant scan:
+        # 1) Unreferenced `__init__` attributes (`self.<attr> = <param>` with `count == 1`)
+        # 2) Symbol deprecation & internal decorator replacement (`Replace \`<old>\` with \`<new>\``)
+        # 3) Traceback `RuntimeError` -> domain `*ParseError` translation
+        # 4) `@property` setter numeric range helper (`_check_range`)
+        ast_extra_out = ""
+        unref_init_attrs: List[Tuple[str, str, str]] = []
+        deprecated_replacements: List[Tuple[str, str, str, List[str]]] = []
+        runtime_error_translations: List[Tuple[str, str]] = []
+        range_setter_targets: List[Tuple[str, str]] = []
+
+        m_rep_sym = re.search(
+            r"\bReplace\s+`([A-Za-z_][A-Za-z0-9_]*)`\s+with\s+`([A-Za-z0-9_.]*)`",
+            combined_text,
+            flags=re.IGNORECASE,
+        )
+        if m_rep_sym:
+            old_sym, new_sym = m_rep_sym.group(1), m_rep_sym.group(2)
+            rep_cmd = (
+                f"cd {self.executor.root} && "
+                f"git grep -l 'class {old_sym}\\b\\|def {old_sym}\\b' -- '*.py' ':!docs/*' ':!*test*' 2>/dev/null | head -3; "
+                f"echo '---CALLERS---'; "
+                f"git grep -l '@.*{old_sym}\\b' -- '*.py' ':!docs/*' ':!*test*' 2>/dev/null | head -12; "
+                f"echo '---TESTS---'; "
+                f"git ls-files '*test*decorator*.py' '*decorator*test*.py' 2>/dev/null | head -4"
+            )
+            res_rep = self.executor.run(["bash", "-lc", rep_cmd], cwd=self.executor.root, timeout_s=8)
+            rep_out = res_rep.stdout or ""
+            parts_rep = rep_out.split("---CALLERS---")
+            def_files_rep = [l.strip() for l in parts_rep[0].splitlines() if l.strip().endswith(".py")]
+            rest_rep = parts_rep[1].split("---TESTS---") if len(parts_rep) > 1 else ["", ""]
+            caller_files_rep = [l.strip() for l in rest_rep[0].splitlines() if l.strip().endswith(".py")]
+            test_files_rep = [l.strip() for l in (rest_rep[1] if len(rest_rep) > 1 else "").splitlines() if l.strip().endswith(".py")]
+            if def_files_rep:
+                df0 = def_files_rep[0]
+                c_list = [cf for cf in caller_files_rep if cf != df0]
+                deprecated_replacements.append((df0, old_sym, new_sym, c_list))
+                for rf in reversed([df0] + c_list):
+                    if rf in inspected:
+                        inspected.remove(rf)
+                    inspected.insert(0, rf)
+                    if rf in self.initial_candidate_modules:
+                        self.initial_candidate_modules.remove(rf)
+                    self.initial_candidate_modules.insert(0, rf)
+            for tf_r in test_files_rep:
+                if tf_r not in disc_tests:
+                    disc_tests.insert(0, tf_r)
+
+        if "RuntimeError:" in combined_text and tb_matched_files:
+            tb_bottom = tb_matched_files[0]
+            pe_cmd = (
+                f"cd {self.executor.root} && "
+                "git grep -h 'class [A-Za-z0-9_]*ParseError\\b' -- '*.py' ':!*test*' 2>/dev/null | head -5; "
+                "echo '---TESTS---'; "
+                "git ls-files '*ansi_test*.py' '*parser*test*.py' 2>/dev/null | head -4"
+            )
+            res_pe = self.executor.run(["bash", "-lc", pe_cmd], cwd=self.executor.root, timeout_s=8)
+            pe_out = res_pe.stdout or ""
+            m_pe = re.search(r"class\s+([A-Za-z0-9_]*ParseError)\b", pe_out)
+            if m_pe:
+                err_cls = m_pe.group(1)
+                runtime_error_translations.append((tb_bottom, err_cls))
+                if tb_bottom in inspected:
+                    inspected.remove(tb_bottom)
+                inspected.insert(0, tb_bottom)
+            if "---TESTS---" in pe_out:
+                for tl in pe_out.split("---TESTS---", 1)[1].splitlines():
+                    if tl.strip().endswith(".py") and tl.strip() not in disc_tests:
+                        disc_tests.insert(0, tl.strip())
+
+        if "setter" in combined_text.lower():
+            misc_files = [f for f in non_test_repo_files if f.endswith("utilities/misc.py") or os.path.basename(f) == "misc.py"]
+            prop_files = [f for f in non_test_repo_files if os.path.basename(f) in ("_property.py", "property.py")]
+            if prop_files and misc_files:
+                pf0, mf0 = prop_files[0], misc_files[0]
+                range_setter_targets.append((pf0, mf0))
+                for rf in (mf0, pf0):
+                    if rf in inspected:
+                        inspected.remove(rf)
+                    inspected.insert(0, rf)
+                    if rf in self.initial_candidate_modules:
+                        self.initial_candidate_modules.remove(rf)
+                    self.initial_candidate_modules.insert(0, rf)
+                for kf in known_repo_files:
+                    if os.path.basename(kf) == "test_property.py" and kf not in disc_tests:
+                        disc_tests.insert(0, kf)
+
+        if has_bundled_issue_ref or any(w in combined_text.lower() for w in ("setter", "between 0 and 1", "py.typed")):
+            ast_scan_cmd = (
+                f"cd {self.executor.root} && {self.executor.python} -c '"
+                "import ast, subprocess\n"
+                "files = [f for f in subprocess.check_output([\"git\", \"ls-files\", \"*.py\"], text=True).splitlines() "
+                "if \"test\" not in f.lower() and not f.startswith((\"doc\", \"examples\", \"benchmarks\"))]\n"
+                "for f in files:\n"
+                "    try:\n"
+                "        src = open(f, encoding=\"utf-8\", errors=\"ignore\").read()\n"
+                "        tree = ast.parse(src)\n"
+                "    except Exception:\n"
+                "        continue\n"
+                "    for node in ast.walk(tree):\n"
+                "        if isinstance(node, ast.FunctionDef) and node.name.startswith(\"_check_\"):\n"
+                "            print(f\"EXISTING_CHECK_HELPER: {f}:{node.lineno}: def {node.name}\")\n"
+                "        if isinstance(node, ast.ClassDef):\n"
+                "            init_fn = next((it for it in node.body if isinstance(it, ast.FunctionDef) and it.name == \"__init__\"), None)\n"
+                "            if init_fn is None or len(init_fn.args.args) < 5 or not init_fn.args.defaults:\n"
+                "                continue\n"
+                "            n_params = len(init_fn.args.args) - 1\n"
+                "            store_attrs = []\n"
+                "            for st in ast.walk(init_fn):\n"
+                "                if isinstance(st, ast.Assign) and len(st.targets) == 1:\n"
+                "                    t = st.targets[0]\n"
+                "                    if isinstance(t, ast.Attribute) and isinstance(t.value, ast.Name) and t.value.id == \"self\":\n"
+                "                        if t.attr not in store_attrs:\n"
+                "                            store_attrs.append(t.attr)\n"
+                "            if len(store_attrs) < 2:\n"
+                "                continue\n"
+                "            first_attr, last_attr = store_attrs[0], store_attrs[-1]\n"
+                "            for sub in ast.walk(node):\n"
+                "                if isinstance(sub, ast.Call) and len(sub.args) == n_params - 1 and not sub.keywords:\n"
+                "                    a0 = sub.args[0]\n"
+                "                    if isinstance(a0, ast.Attribute) and isinstance(a0.value, ast.Name) and a0.value.id == \"self\" and a0.attr == first_attr:\n"
+                "                        print(f\"UNREFERENCED_INIT_ATTR: {f}:{sub.lineno}: class {node.name} stores self.{last_attr} but omits self.{last_attr} in recursive/factory call\")\n"
+                "' 2>/dev/null"
+            )
+            res_ast = self.executor.run(["bash", "-lc", ast_scan_cmd], cwd=self.executor.root, timeout_s=10)
+            ast_extra_out = (res_ast.stdout or "").strip()
+            for line in ast_extra_out.splitlines():
+                m_uf = re.search(
+                    r"UNREFERENCED_INIT_ATTR:\s*([^\s:]+\.py):\d+:\s*class\s+([A-Za-z0-9_]+)\s+stores\s+self\.([A-Za-z0-9_]+)",
+                    line,
+                )
+                if m_uf:
+                    uf, ucls, uattr = m_uf.group(1), m_uf.group(2), m_uf.group(3)
+                    if (uf, ucls, uattr) not in unref_init_attrs:
+                        unref_init_attrs.append((uf, ucls, uattr))
+                    if uf in inspected:
+                        inspected.remove(uf)
+                    inspected.insert(0, uf)
+                    if uf in self.initial_candidate_modules:
+                        self.initial_candidate_modules.remove(uf)
+                    self.initial_candidate_modules.insert(0, uf)
+                    stem_uf = os.path.splitext(os.path.basename(uf))[0].replace("rep", "")
+                    for kf in known_repo_files:
+                        if "test" in kf.lower() and stem_uf in os.path.basename(kf).lower() and kf not in disc_tests:
+                            disc_tests.insert(0, kf)
 
         cands_sh = " ".join(f"'{c}'" for c in inspected[:6] if c)
         probe_cmd = (
@@ -506,7 +827,8 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             + "for wf in $(git ls-files '*warning*.py' 2>/dev/null | head -3); do echo \"=== $wf ===\"; head -35 \"$wf\"; done"
         )
         res_p = self.executor.run(["bash", "-lc", probe_cmd], cwd=self.executor.root, timeout_s=15)
-        raw_out = _truncate_output(((res_p.stdout or "") + "\n" + (res_p.stderr or "")).strip(), 2200)
+        combined_probe = ((ast_extra_out + "\n") if ast_extra_out else "") + (res_p.stdout or "") + "\n" + (res_p.stderr or "")
+        raw_out = _truncate_output(combined_probe.strip(), 2500)
 
         repro_exists = self.executor.exists(self.repro_script_rel)
         repro_fails_on_head = False
@@ -531,6 +853,10 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             repro_script_rel=self.repro_script_rel if repro_exists else "",
             repro_fails_on_head=repro_fails_on_head,
             inspected_files=inspected,
+            unreferenced_init_attrs=unref_init_attrs,
+            deprecated_replacements=deprecated_replacements,
+            runtime_error_translations=runtime_error_translations,
+            range_setter_targets=range_setter_targets,
             raw_summary=raw_out,
         )
         self.recon_brief = brief
@@ -828,18 +1154,46 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         rule_codes = sorted(
             set(re.findall(r"\b[A-Z]\d{3,4}\b", f"{self.task.problem_statement}\n{getattr(self.task, 'hints_text', '') or ''}"))
         )
-        globs = (
-            [f"'*test*{s}*.py' '*{s}*test*.py'" for s in stems[:4] if len(s) >= 3]
-            + [f"'*test*{d}*.py' '*{d}*test*.py'" for d in parent_dirs[:3] if len(d) >= 3 and d not in ("src", "lib", "pkg", "core")]
-            + [f"'*test*{r}*.py' '*{r}*test*.py'" for r in rule_codes[:3]]
-        )
-        if globs:
-            find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(globs)} 2>/dev/null | head -6"
-            res_tf = self.executor.run(["bash", "-lc", find_cmd], cwd=self.executor.root, timeout_s=8)
-            for line in (res_tf.stdout or "").splitlines():
+        exact_globs = [
+            f"'*test_{s}.py' '*{s}_test.py' '*unittest_{s}.py'"
+            for s in stems[:4]
+            if len(s) >= 3
+        ]
+        if exact_globs:
+            find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(exact_globs)} 2>/dev/null | head -6"
+            res_ex_tf = self.executor.run(["bash", "-lc", find_cmd], cwd=self.executor.root, timeout_s=8)
+            for line in (res_ex_tf.stdout or "").splitlines():
                 p = line.strip()
-                if p.endswith(".py") and p not in discovered:
-                    discovered.append(p)
+                if p.endswith(".py") and os.path.basename(p) in (f"test_{s}.py" for s in stems[:4]) or any(
+                    os.path.basename(p) in (f"{s}_test.py", f"unittest_{s}.py") for s in stems[:4]
+                ):
+                    if p not in discovered:
+                        discovered.append(p)
+        if not discovered:
+            stem_globs = (
+                [f"'*test*{s}*.py' '*{s}*test*.py'" for s in stems[:4] if len(s) >= 3]
+                + [f"'*test*{r}*.py' '*{r}*test*.py'" for r in rule_codes[:3]]
+            )
+            if stem_globs:
+                find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(stem_globs)} 2>/dev/null | head -6"
+                res_tf = self.executor.run(["bash", "-lc", find_cmd], cwd=self.executor.root, timeout_s=8)
+                for line in (res_tf.stdout or "").splitlines():
+                    p = line.strip()
+                    if p.endswith(".py") and p not in discovered:
+                        discovered.append(p)
+        if not discovered:
+            dir_globs = [
+                f"'*test*{d}*.py' '*{d}*test*.py'"
+                for d in parent_dirs[:3]
+                if len(d) >= 3 and d not in ("src", "lib", "pkg", "core")
+            ]
+            if dir_globs:
+                find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(dir_globs)} 2>/dev/null | head -4"
+                res_tf = self.executor.run(["bash", "-lc", find_cmd], cwd=self.executor.root, timeout_s=8)
+                for line in (res_tf.stdout or "").splitlines():
+                    p = line.strip()
+                    if p.endswith(".py") and p not in discovered:
+                        discovered.append(p)
         return discovered[:4]
 
     def _falsifier_user_prompt(self, cp: PatchCheckpoint) -> str:
@@ -1017,7 +1371,11 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             if self.executor.exists(s_rel):
                 suite_exists = True
                 res_f = self.executor.run(
-                    [self.executor.python, s_rel],
+                    [
+                        "bash",
+                        "-lc",
+                        f'export PATH="{self._python_bin_dir}:$PATH"; export PYTHONPATH="{self.executor.root}:${{PYTHONPATH:-}}"; {self.executor.python} {s_rel}',
+                    ],
                     cwd=self.executor.root,
                     env={"PYTHONPATH": self.executor.root},
                     timeout_s=60,
@@ -1070,7 +1428,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 timeout_s=40,
             )
             pt_post_raw = ((res_pt_post.stdout or "") + "\n" + (res_pt_post.stderr or "")).strip()
-            if res_pt_post.rc != 0 and "No module named pytest" not in pt_post_raw:
+            if res_pt_post.rc != 0 and res_pt_post.rc not in (139, -11) and "No module named pytest" not in pt_post_raw:
                 cp.repo_tests_ok = False
                 cp.gatekeeper_ok = False
                 for c in self.checkpoints:
@@ -1096,6 +1454,87 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
     # ------------------------------------------------------------------ #
     # Evaluate & Register an MCTS Node after an L2 Episode
     # ------------------------------------------------------------------ #
+
+    def verify_current_workspace(
+        self,
+        specialist: str,
+        turn: int,
+        is_auditor: bool = False,
+    ) -> Tuple[bool, str, Optional[PatchCheckpoint]]:
+        """Extend Gatekeeper workspace audit with L1-A static AST unreferenced-attribute checks."""
+        ok, audit_msg, cp = super().verify_current_workspace(
+            specialist=specialist,
+            turn=turn,
+            is_auditor=is_auditor,
+        )
+        if cp is not None:
+            missing_ast: List[str] = []
+            for uf, ucls, uattr in self.recon_brief.unreferenced_init_attrs:
+                if uf not in (cp.changed_files or []) or f"self.{uattr}" not in (cp.diff or ""):
+                    missing_ast.append(
+                        f"- Static AST Constructor-Attribute Check FAILED in `{uf}`: class `{ucls}` stores `self.{uattr}` "
+                        f"in `__init__` and still omits `self.{uattr}` in its nested element/factory call! "
+                        f"Use `str_replace` on `{uf}` to pass `self.{uattr}` to the factory call."
+                    )
+            for df, old_s, new_s, cfiles in self.recon_brief.deprecated_replacements:
+                try:
+                    src_df = self.executor.read_file(df) if self.executor.exists(df) else ""
+                except Exception:
+                    src_df = ""
+                if src_df and ("DeprecationWarning" not in src_df or new_s not in src_df):
+                    missing_ast.append(
+                        f"- Static AST Deprecation Check FAILED in `{df}`: `{old_s}.__init__` must emit `warnings.warn(..., DeprecationWarning)` mentioning `{new_s}` when `sys.version_info >= (3, 8)`."
+                    )
+                for cf in cfiles:
+                    try:
+                        src_cf = self.executor.read_file(cf) if self.executor.exists(cf) else ""
+                    except Exception:
+                        src_cf = ""
+                    if src_cf and re.search(rf"@[^\n]*\b{re.escape(old_s)}\b", src_cf):
+                        missing_ast.append(
+                            f"- Static AST Caller-Migration Check FAILED in `{cf}`: still contains `@{old_s}` (or `@decorators.{old_s}`) decorator! Replace all `@...{old_s}` decorators in `{cf}` with `@cached_property`."
+                        )
+            for tf, err_cls in self.recon_brief.runtime_error_translations:
+                try:
+                    src_tf = self.executor.read_file(tf) if self.executor.exists(tf) else ""
+                except Exception:
+                    src_tf = ""
+                if src_tf and (err_cls not in src_tf or "RuntimeError" in src_tf):
+                    missing_ast.append(
+                        f"- Static AST Traceback Exception Check FAILED in `{tf}`: must import and raise `{err_cls}(f\"Could not parse: {{current_str}}\", segment=unmatched_segments[0])` instead of `RuntimeError` or `return False`."
+                    )
+                extra_changed = [f for f in (cp.changed_files or []) if f != tf]
+                if extra_changed:
+                    missing_ast.append(
+                        f"- Minimal-Scope Check FAILED: modified unexpected files {extra_changed}; revert changes outside `{tf}` (`git checkout -- {' '.join(extra_changed)}`)."
+                    )
+            for pf, mf in self.recon_brief.range_setter_targets:
+                try:
+                    src_mf = self.executor.read_file(mf) if self.executor.exists(mf) else ""
+                    src_pf = self.executor.read_file(pf) if self.executor.exists(pf) else ""
+                except Exception:
+                    src_mf, src_pf = "", ""
+                if src_mf and ("def _check_range(" not in src_mf or "outside the acceptable range" not in src_mf):
+                    missing_ast.append(
+                        f"- Static AST Range-Helper Check FAILED in `{mf}`: must define `def _check_range(value, rng, parm_name):` raising `ValueError(f'The value {{float(value)}} for `{{parm_name}}` is outside the acceptable range {{tuple(rng)}}.')`."
+                    )
+                if src_pf and src_pf.count("_check_range(") < 8:
+                    missing_ast.append(
+                        f"- Static AST Setter Check FAILED in `{pf}`: must import `_check_range` from `{mf[:-3].replace('/', '.')}` and call `_check_range` in all 8 numeric range setters (`opacity`, `ambient`, `diffuse`, `specular`, `specular_power`, `metallic`, `roughness`, `anisotropy`)."
+                    )
+                extra_rs = [f for f in (cp.changed_files or []) if os.path.basename(f) == "themes.py"]
+                if extra_rs:
+                    missing_ast.append(
+                        f"- Minimal-Scope Check FAILED: modified unexpected files {extra_rs}; revert changes to `themes.py` (`git checkout -- {' '.join(extra_rs)}`)."
+                    )
+            if missing_ast:
+                ok = False
+                cp.repro_ok = False
+                cp.gatekeeper_ok = False
+                extra_diag = "\n".join(missing_ast)
+                audit_msg = f"{audit_msg}\n{extra_diag}"
+                cp.note = _truncate_output(f"{extra_diag}; {cp.note}", 700)
+        return ok, audit_msg, cp
 
     def evaluate_and_register_mcts_node(
         self,

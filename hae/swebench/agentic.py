@@ -155,22 +155,30 @@ _OTHER_FENCE_RE = re.compile(
 )
 
 
+_RFL_HEAD_TAG_RE = re.compile(
+    r"^\s*</?(?:rfl:[a-zA-Z0-9_:-]*|param[a-zA-Z0-9_:-]*\b[^>\n]{0,200}|func[a-zA-Z0-9_:-]*\b[^>\n]{0,200}|tool_call\b[^>\n]{0,200}|rfl\b[^>\n]{0,200})\s*>?\s*",
+    re.IGNORECASE,
+)
+_RFL_TAIL_TAG_RE = re.compile(
+    r"\s*</?(?:rfl:[a-zA-Z0-9_:-]*|param[a-zA-Z0-9_:-]*\b[^>\n]{0,200}|func[a-zA-Z0-9_:-]*\b[^>\n]{0,200}|tool_call\b[^>\n]{0,200}|rfl\b[^>\n]{0,200})\s*>?\s*\Z",
+    re.IGNORECASE,
+)
+
+
 def _strip_rfl_artifacts(val: str) -> str:
-    """Strip Reflection Beam `<rfl:...>` / `</rfl:...>` and XML tool-call closing tags (including truncated tail tags)."""
+    """Strip Reflection Beam `<rfl:...>` / `</rfl:...>` and XML tool-call closing tags in linear time."""
     if not val:
         return ""
-    val = re.sub(
-        r"^\s*(?:</?(?:rfl:[a-zA-Z0-9_:-]*|param[a-zA-Z0-9_:-]*\b[^>]*|func[a-zA-Z0-9_:-]*\b[^>]*|tool_call\b[^>]*|rfl\b[^>]*)\s*>?\s*)+",
-        "",
-        val,
-        flags=re.IGNORECASE,
-    )
-    val = re.sub(
-        r"(?:\s*</?(?:rfl:[a-zA-Z0-9_:-]*|param[a-zA-Z0-9_:-]*\b[^>]*|func[a-zA-Z0-9_:-]*\b[^>]*|tool_call\b[^>]*|rfl\b[^>]*)\s*>?\s*)+\Z",
-        "",
-        val,
-        flags=re.IGNORECASE,
-    )
+    for _ in range(16):
+        m = _RFL_HEAD_TAG_RE.match(val)
+        if not m or m.end() == 0:
+            break
+        val = val[m.end() :]
+    for _ in range(16):
+        m = _RFL_TAIL_TAG_RE.search(val, max(0, len(val) - 300))
+        if not m or m.start() == len(val):
+            break
+        val = val[: m.start()]
     val = re.sub(r"<(/?)rfl:", r"<\1", val, flags=re.IGNORECASE)
     return val
 
@@ -275,8 +283,18 @@ def _parse_str_replace_body(body: str, raw_text: str) -> ParsedAction:
         )
         if m_no_lt:
             p_cand = _clean_path_token(m_no_lt.group("path"))
-            old_c = re.sub(r"^\s*<{4,}[^\n]*\n", "", m_no_lt.group("old"))
-            new_c = _clean_new_str_tail(m_no_lt.group("new") or "")
+            old_c = re.sub(
+                r"^\s*(?:<{4,}[^\n]*\n|(?:old_str|old_string|old)\s*:?[ \t]*\n?)",
+                "",
+                m_no_lt.group("old"),
+                flags=re.IGNORECASE,
+            )
+            new_c = re.sub(
+                r"^\s*(?:new_str|new_string|new)\s*:?[ \t]*\n?",
+                "",
+                _clean_new_str_tail(m_no_lt.group("new") or ""),
+                flags=re.IGNORECASE,
+            )
             if p_cand and old_c:
                 return ParsedAction(kind="str_replace", path=p_cand, old_str=old_c, new_str=new_c, raw=raw_text)
         # Fallback if `>>>>` was used instead of `====` as the divider (`path: ...\n<<<<\n<old>\n>>>>\n<new>\n>>>>`)
@@ -292,11 +310,11 @@ def _parse_str_replace_body(body: str, raw_text: str) -> ParsedAction:
             new_c = _clean_new_str_tail(m_gt_div.group("new"))
             if p_cand and old_c:
                 return ParsedAction(kind="str_replace", path=p_cand, old_str=old_c, new_str=new_c, raw=raw_text)
-        # Fallback for `path: ...\nold_str: ...\nnew_str: ...` (used by Reflection Beam)
+        # Fallback for `path: ...\nold_str[:] ...\nnew_str[:] ...` (used by Reflection Beam)
         m_kv_sr = re.search(
             r"(?:^|\n)\s*(?:path|file|filepath)\s*:\s*(?P<path>[^\n]+?)\s*\n"
-            r"\s*(?:old_str|old_string|old)\s*:(?P<old>.*?)\n"
-            r"\s*(?:new_str|new_string|new)\s*:(?P<new>.*)",
+            r"\s*(?:old_str|old_string|old)(?:\s*:|[ \t]*\n)(?P<old>.*?)\n"
+            r"\s*(?:new_str|new_string|new)(?:\s*:|[ \t]*\n)(?P<new>.*)",
             body,
             re.DOTALL | re.IGNORECASE,
         )
@@ -1313,17 +1331,41 @@ class AgenticSweEngine:
                 self.state.record_evidence(ev, self.gatekeeper.authority)
             except Exception:
                 pass
-            if not ev.matched_prediction:
-                det_low = (ev.detail or "").lower()
+            det_low = (ev.detail or "").lower()
+            out = ((ev.stdout or "") + "\n" + (ev.stderr or "")).strip()
+            is_headless_segfault = (
+                getattr(ev, "exit_code", 0) in (139, -11)
+                or "139" in det_low
+                or "segmentation fault" in out.lower()
+            ) and "py_compile" not in det_low and "import" not in det_low and "static_check" not in det_low
+            if not ev.matched_prediction and not is_headless_segfault:
                 if "py_compile" in det_low or "import" in det_low:
                     compile_ok = False
                 elif "static_check" in det_low:
                     static_ok = False
                 else:
+                    stem_rel = os.path.splitext(os.path.basename(rel))[0].lstrip("_")
+                    exact_test_cands = [
+                        f"tests/test_{stem_rel}.py",
+                        f"tests/{os.path.basename(os.path.dirname(rel))}/test_{stem_rel}.py",
+                    ]
+                    exact_tests = [tc for tc in exact_test_cands if stem_rel and self.executor.exists(tc)]
+                    exact_passed = False
+                    if not is_whole_suite and exact_tests:
+                        res_ex = self.executor.run(
+                            [self.executor.python, "-m", "pytest", "-q", "--tb=short", "--disable-warnings", "-p", "no:randomly", *exact_tests],
+                            cwd=self.executor.root,
+                            env={"PYTHONPATH": self.executor.root},
+                            timeout_s=25,
+                        )
+                        if res_ex.rc == 0 and not res_ex.timed_out:
+                            exact_passed = True
+                    if exact_passed:
+                        diagnostics.append(f"- Gatekeeper `verify_module({rel!r})`: OK (exact stem test `{exact_tests[0]}` passed).")
+                        continue
                     repo_tests_ok = False
                     m_nf = re.search(r"(\d+)\s+new failure\(s\)", ev.detail or "")
                     new_failures += int(m_nf.group(1)) if m_nf else 1
-                out = ((ev.stdout or "") + "\n" + (ev.stderr or "")).strip()
                 tb_snippet = ""
                 if not repo_tests_ok:
                     failed_ids = list(

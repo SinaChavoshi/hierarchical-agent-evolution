@@ -321,6 +321,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         with lock:
             if args.valid_target is not None and valid_count[0] >= args.valid_target:
                 return
+        cached_scr: Optional[Dict[str, Any]] = None
         cached_screen = os.path.join(args.out_root, "screen", iid, "screen.json")
         if os.path.exists(cached_screen):
             try:
@@ -330,6 +331,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         screen_rows.append(scr)
                         print(json.dumps({"event": "screen", **scr}), flush=True)
                     return
+                cached_scr = scr
                 if not args.screen_only and all(
                     os.path.exists(os.path.join(args.out_root, tag, iid, "prediction.json"))
                     and os.path.exists(os.path.join(args.out_root, tag, iid, "record.json"))
@@ -363,7 +365,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 delete_pod(pod, args.context)
             return
         try:
-            scr = screen_instance(iid, pod, args.dataset, os.path.join(args.out_root, "screen", iid))
+            scr = (
+                cached_scr
+                if (cached_scr is not None and cached_scr.get("valid"))
+                else screen_instance(iid, pod, args.dataset, os.path.join(args.out_root, "screen", iid))
+            )
             with lock:
                 screen_rows.append(scr)
                 print(json.dumps({"event": "screen", **scr}), flush=True)

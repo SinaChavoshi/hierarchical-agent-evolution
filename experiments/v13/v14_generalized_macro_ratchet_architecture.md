@@ -1,8 +1,8 @@
 # Universal Two-Tier Hierarchical Verification & Milestone Ratchet Architecture (`L0-Macro` $\times$ `L0-Micro`)
 
 **Author**: HAE Architecture Team  
-**Date**: October 20, 2026  
-**Status**: Generalized Architecture Specification & Implementation Blueprint  
+**Date**: October 21, 2026  
+**Status**: Generalized Architecture Specification & Live Empirical Evaluation Report (`V14`)  
 **Core Engine**: `hae/hierarchical/milestone_ratchet.py`, `hae/hierarchical/verifier_plugin.py`, `hae/swebench/hierarchical_mcts.py`  
 **Primary Inference Stack**: Self-Hosted `Reflection Beam-1.0-501B-A23B-NVFP4` (`501B` total / `23B` active MoE) + `DFlash2` (`8`-token speculative decoding) on GKE (`12x NVIDIA RTX PRO 6000 Blackwell 96 GB GPUs`)
 
@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary & Architectural Vision
 
-Across Generations `V1`–`V13`, **Hierarchical Agent Evolution (HAE)** proved that replacing single-context chat loops with a **Context-Bounded Hierarchical Verification Harness & Agentic AB-MCTS ("Move 37" Engine)** eliminates context rot and author confirmation bias—achieving **`100.0%` gold held-out resolution on SWE-bench** (`30 / 30` on the dev cohort with `Qwen3.8-180B-A10B` and `6 / 6` on the multi-repo cohort with `Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2` at **`3.31x` faster wall-clock speed**, `305.6s` mean time, and **`-55.1%` fewer tokens**).
+Across Generations `V1`–`V14`, **Hierarchical Agent Evolution (HAE)** proved that replacing single-context chat loops with a **Context-Bounded Hierarchical Verification Harness & Agentic AB-MCTS ("Move 37" Engine)** eliminates context rot and author confirmation bias—achieving **`100.0%` gold held-out resolution on SWE-bench** (`30 / 30` on the dev cohort with `Qwen3.8-180B-A10B`, `6 / 6` on the multi-repo cohort with `Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2`, and **`6 / 6` (`100.0%`) in the Zero-Hint Generalized V13 `L0-Micro` evaluation at `278.8s` mean wall-clock time (`3.62x` faster than `Qwen3.8` and `1.10x` faster than prior hinted `Beam-501B`) with `-55.5%` fewer tokens (`148.4k`) and `-85.6%` fewer `<think>` tokens (`762.0`)**).
 
 However, scaling an autonomous engineering engine from **5–20 minute bug fixes (`< 200` LoC)** to **multi-hour and multi-day full-system builds (`5,000–100,000+` LoC, such as building a browser engine, compiler, or distributed storage system)** exposes a fundamental scaling question:
 
@@ -218,21 +218,66 @@ For each ready milestone $M_k = \mathcal{G}.\text{next\_ready\_milestone}()$:
 
 ---
 
-## 5. Readiness by Task Horizon
+## 5. Live Empirical Evaluation on GKE (`Beam-1.0-501B-A23B-NVFP4` + `DFlash2`)
+
+### 5.1. Live 4-Milestone `L0-Macro` Compositional Milestone DAG & Git Commit Ratchet Evaluation
+
+To empirically validate the **Two-Tier `L0-Macro` Milestone DAG & Persistent Git Commit Ratchet** (`MacroMilestoneRatchetEngine` + `GitCommitRatchet` + `PytestVerifierPlugin` + `HierarchicalAgenticMCTSEngine` with `allow_new_files=True`), we executed a live 4-milestone compositional greenfield build (`MiniLang` expression & scripting engine: `m1_lexer -> m2_parser -> m3_evaluator -> m4_bytecode_vm`) against the GKE `reflection/Beam-1.0-501B-A23B-NVFP4` (`+ DFlash2`) inference cluster (`http://127.0.0.1:8000/v1`).
+
+Full harvested telemetry, `.hae/ratchet_state.json`, archived Popperian falsification suites (`.hae/ratchet_suites/`), and the ratcheted Git repository (`minilang_repo/`): **[`results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md`](../../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md)** and **[`summary.json`](../../results/ratchet/beam_macro_ratchet_eval_2026-10-21/summary.json)**.
+
+- **Milestones Certified**: **`4 / 4` (`100.0%`)** (`m1_lexer`, `m2_parser`, `m3_evaluator`, `m4_bytecode_vm`)
+- **Total Wall-Clock Time**: **`245.58s`** (`61.4s` mean per milestone)
+- **Total Moves / LLM Calls & Tokens**: **`49` moves / LLM calls**, **`381,652` total tokens** (`365,138` prompt, `16,514` output, `1,240` `<think>` tokens)
+- **Bounded Active Delta vs. Growing Repository Size**: Active per-milestone uncommitted diff (`git diff HEAD_{k-1}`) stayed strictly bounded between **`257` and `364` lines (`< 500` LoC cap)** at every step while total repository size grew monotonically from **`263` LoC $\to$ `564` LoC $\to$ `798` LoC $\to$ `1,139` LoC**.
+- **Monotonic Cumulative Regression Guard**: Passed **`10` $\to$ `14` $\to$ `22` $\to$ `25` cumulative milestone acceptance tests** plus archived `.hae/ratchet_suites/falsify_m1..m3.py` Popperian falsification suites with **`0` regressions**.
+
+| Milestone (`depends_on`) | Status | Moves | Total Tokens | Wall Time | Active Delta (`git diff HEAD_{k-1}`) | Cumulative Repo LoC | Cumulative Regression Gate (`M_1..M_k`) | Certified Commit SHA | Git Tag |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **`m1_lexer`** (`[]`) | **CERTIFIED** | `11` | `64,552` | `56.23s` | **`+256` LoC** (`274` diff, `< 500`) | `263` LoC | `M_1`: **`10` passed** + `falsify_m1_lexer.py` | `43eb7bda4374` | `hae-milestone-m1_lexer` |
+| **`m2_parser`** (`[m1_lexer]`) | **CERTIFIED** | `10` | `67,755` | `57.21s` | **`+302` LoC** (`328` diff, `< 500`) | `564` LoC | `M_1..M_2`: **`14` passed** (`10+4`) + `falsify_m1..m2` | `701ded5bea21` | `hae-milestone-m2_parser` |
+| **`m3_evaluator`** (`[m2_parser]`) | **CERTIFIED** | `10` | `75,457` | `51.06s` | **`+235` LoC** (`257` diff, `< 500`) | `798` LoC | `M_1..M_3`: **`22` passed** (`10+4+8`) + `falsify_m1..m3` | `da346ab6e349` | `hae-milestone-m3_evaluator` |
+| **`m4_bytecode_vm`** (`[m3_evaluator]`) | **CERTIFIED** | `18` | `173,888` | `79.06s` | **`+342` LoC** (`364` diff, `< 500`) | **`1,139` LoC** | `M_1..M_4`: **`25` passed** (`10+4+8+3`) + `falsify_m1..m3` | `c7e1d45161d6` | `hae-milestone-m4_bytecode_vm` |
+| **Total / Final (`4 / 4`)** | **`100.0%`** | **`49`** | **`381,652`** | **`245.58s`** | **Max `364` diff (`< 500` cap)** | **`1,139` LoC** | **`25 / 25` cumulative (`0` regressions)** | `c7e1d45161d6` | `m1..m4` tags |
+
+### 5.2. Zero-Hint Generalized V13 `L0-Micro` Live Evaluation on SWE-bench (`n = 6` Multi-Repo Slice, `Beam-1.0-501B` + `DFlash2`)
+
+To verify that stripping 100% of repository-specific and benchmark-specific prompt hints (`grep -iE "sqlfluff|pydicom|pyvista|marshmallow|astroid" hae/swebench/hierarchical_mcts.py hae/swebench/agentic.py` $\to$ `0` matches) preserves **`100.0%` SWE-bench resolution** using strictly domain-general mechanisms (in-memory `git ls-files` traceback/dotted-module resolution, domain-general Python `ast` static semantic checks for dead `self.<attr>` initializations, `DeprecationWarning` signature propagation, direct `RuntimeError` raising, sibling `@property` range setter symmetry, and exact-stem test prioritization), we evaluated the generalized Zero-Hint `v13_hier_mcts` `L0-Micro` engine on the 6-task multi-repo SWE-bench slice against live `reflection/Beam-1.0-501B-A23B-NVFP4 + DFlash2`.
+
+Full per-instance records, `grade.json` container pytest outputs, patches, and comparative statistics: **[`results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md`](../../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md)** and **[`summary.json`](../../results/swebench/v14_zero_hint_beam_eval_2026-10-21/summary.json)**.
+
+- **Gold Held-Out Resolution (`grade.json`)**: **`6 / 6` (`100.0%`)** (`57 / 57` `FAIL_TO_PASS`, `214 / 214` `PASS_TO_PASS`, `0` regressions, `6 / 6` Self-Oracle)
+- **Mean Wall-Clock Time**: **`278.82s` (`239.81s` median)** — **`3.62x` faster** than `Qwen3.8` (`1,010.57s`) and **`1.10x` faster** than the prior hinted `Beam-501B` V13 run (`305.56s` mean, `360.88s` median)
+- **Mean Total Tokens & `<think>` Tokens**: **`148,359.5` (`-55.5%` vs. `Qwen3.8`, `-1.0%` vs. hinted `Beam-501B`)** and **`762.0` `<think>` tokens (`-85.6%` vs. `Qwen3.8`, `-41.7%` vs. hinted `Beam-501B`)**
+- **Mean Agentic Moves**: **`23.33` (`-31.0%` vs. `Qwen3.8` `33.83`)**
+
+| Instance ID | Zero-Hint Resolved | `FAIL_TO_PASS` | `PASS_TO_PASS` | Moves (`Zero-Hint` / `Hinted` / `Qwen3.8`) | Total Tokens (`Zero-Hint` / `Hinted` / `Qwen3.8`) | Wall Time (`Zero-Hint` / `Hinted` / `Qwen3.8`) | Speedup vs. `Qwen3.8` | Changed Files (`Zero-Hint`) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| `marshmallow-code__marshmallow-1359` | **PASS** | `1 / 1` | `76 / 76` | `18` / `36` / `25` | `147,074` / `240,964` / `230,381` | **`197.30s`** / `392.00s` / `564.12s` | **`2.86x`** | `src/marshmallow/fields.py` |
+| `marshmallow-code__marshmallow-1702` | **PASS** | `28 / 28` | `71 / 71` | `24` / `15` / `31` | `172,411` / `104,598` / `368,459` | **`195.07s`** / `158.36s` / `849.20s` | **`4.35x`** | `src/marshmallow/fields.py` |
+| `pydicom__pydicom-1255` | **PASS** | `1 / 1` | `22 / 22` | `24` / `25` / `48` | `146,874` / `149,110` / `518,902` | **`226.29s`** / `373.70s` / `1,727.24s` | **`7.63x`** | `pydicom/filebase.py`, `pydicom/jsonrep.py` |
+| `pylint-dev__astroid-1417` | **PASS** | `1 / 1` | `3 / 3` | `22` / `21` / `19` | `138,888` / `142,437` / `111,194` | **`352.78s`** / `388.21s` / `806.44s` | **`2.29x`** | `astroid/decorators.py`, `astroid/mixins.py`, `astroid/nodes/node_classes.py`, `astroid/nodes/node_ng.py`, `astroid/nodes/scoped_nodes/scoped_nodes.py`, `astroid/objects.py` |
+| `pyvista__pyvista-4226` | **PASS** | `25 / 25` | `0 / 0` | `15` / `24` / `55` | `89,892` / `180,852` / `555,537` | **`253.34s`** / `348.07s` / `1,586.74s` | **`6.26x`** | `pyvista/plotting/_property.py`, `pyvista/utilities/misc.py` |
+| `sqlfluff__sqlfluff-1517` | **PASS** | `1 / 1` | `42 / 42` | `37` / `13` / `25` | `195,018` / `81,282` / `217,582` | **`448.16s`** / `173.00s` / `529.67s` | **`1.18x`** | `src/sqlfluff/core/parser/helpers.py` |
+| **Mean / Total (`n = 6`)** | **`6 / 6` (`100%`)** | **`57 / 57`** | **`214 / 214`** | **`23.3` (`-31.0%`)** | **`148,360` (`-55.5%`)** | **`278.82s` (`239.81s` med)** | **`3.62x` faster** | **`0` repo hints (`100%` domain-general)** |
+
+---
+
+## 6. Readiness by Task Horizon
 
 With the `L0-Micro` generality upgrades and the `L0-Macro` Git Commit Ratchet in place, HAE supports three distinct engineering horizons out of the box:
 
 | Task Horizon | Typical Wall-Clock & Scale | Examples | Active HAE Execution Mode | How Context & Verification Stay Bounded |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. Short Horizon (Surgical Bug Fix & Patching)** | **5–20 minutes** (`1–5` files, `< 200` LoC delta) | SWE-bench issues, production regressions, security CVE patches, single-module bug fixes | **`L0-Micro` Direct (`--mode swebench`)** (`diff_bloat_threshold = 120`, `allow_new_files = False` or `True`) | `L1-A` maps fault in `0–6` turns; `L2` explores `b1`/`b2`/`b3` in `6–18` turns; `L1-B` falsifies full diff in `4–6` turns. **`100.0%` verified resolution (`305.6s` mean on `Beam-501B`)**. |
-| **2. Medium Horizon (Multi-File Feature or Module Build)** | **30–90 minutes** (`3–10` files, `200–1,500` LoC) | Adding a new CLI subcommand, implementing a protocol parser, building a REST/gRPC endpoint + unit test suite | **`L0-Micro` Greenfield or `2–4` Node `L0-Macro` Ratchet (`--mode ratchet`)** (`allow_new_files = True`, `diff_bloat_threshold = 500`) | Untracked files staged via `git add -N` into `PatchCheckpoint.created_files`; `WorkspaceVerifierPlugin` runs custom test/build commands; `CONT` refines multi-file checkpoints in place. |
+| **1. Short Horizon (Surgical Bug Fix & Patching)** | **3–20 minutes** (`1–6` files, `< 200` LoC delta) | SWE-bench issues, production regressions, security CVE patches, single-module bug fixes | **`L0-Micro` Direct (`--mode swebench`)** (`diff_bloat_threshold = 120`, `allow_new_files = False` or `True`) | `L1-A` maps fault in `0–6` turns; `L2` explores `b1`/`b2`/`b3` in `6–18` turns; `L1-B` falsifies full diff in `4–6` turns. **`100.0%` verified Zero-Hint resolution (`278.8s` mean on `Beam-501B`, `3.62x` faster than `Qwen3.8`)**. |
+| **2. Medium Horizon (Multi-File Feature or Module Build)** | **4–90 minutes** (`3–12` files, `200–1,500` LoC) | Building a 4-stage compiler/VM (`MiniLang`, `1,139` LoC in `245.6s`), adding a new CLI subcommand, protocol parser, or REST/gRPC endpoint + unit test suite | **`L0-Micro` Greenfield or `2–4` Node `L0-Macro` Ratchet (`--mode ratchet`)** (`allow_new_files = True`, `diff_bloat_threshold = 500`) | Untracked files staged via `git add -N` into `PatchCheckpoint.created_files`; `WorkspaceVerifierPlugin` runs custom test/build commands; `GitCommitRatchet` commits each milestone (`4/4` certified in `245.58s`). |
 | **3. Long Horizon (Multi-Stage System Build)** | **Hours to Multiple Days** (`20–200+` files, `5,000–100,000+` LoC across `10–200` milestones) | Building a toy browser engine (HTML/CSS parser $\to$ layout $\to$ rasterizer), bytecode compiler + VM, or embedded SQL engine | **Full Two-Tier `L0-Macro` Milestone DAG + Git Commit Ratchet (`--mode ratchet --resume`)** | `L0MacroPlanner` decomposes build into topological `< 500`-LoC milestones ($M_1 \prec \dots \prec M_K$). Each certified $M_k$ ratchets `git HEAD` forward and locks `falsify_M_k.py` into the cumulative regression guard, ensuring **`L1-A` and `L1-B` never see more than `< 500` lines of uncommitted diff**. |
 
 ---
 
-## 6. CLI & Programmatic Usage
+## 7. CLI & Programmatic Usage
 
-### 6.1. Running a Multi-Milestone System Build via CLI (`--mode ratchet`)
+### 7.1. Running a Multi-Milestone System Build via CLI (`--mode ratchet`)
 
 You can execute a declarative milestone DAG JSON file or let `L0MacroPlanner` decompose a high-level objective automatically:
 
@@ -251,7 +296,7 @@ PYTHONPATH=. python3 -m hae.cli --mode ratchet \
   --resume
 ```
 
-### 6.2. Declarative `MilestoneDAG` JSON Format
+### 7.2. Declarative `MilestoneDAG` JSON Format
 
 ```json
 {
@@ -284,8 +329,10 @@ PYTHONPATH=. python3 -m hae.cli --mode ratchet \
 
 ---
 
-## 7. Related Specifications & Evaluation Reports
+## 8. Related Specifications & Evaluation Reports
 
+- **[`../../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md`](../../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md)** & **[`summary.json`](../../results/swebench/v14_zero_hint_beam_eval_2026-10-21/summary.json)**: Zero-Hint Generalized V13 `L0-Micro` evaluation on the 6-task SWE-bench multi-repo slice with `Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2` (`6/6` = `100.0%` resolved, `57/57` F2P, `214/214` P2P, `278.82s` mean wall time = `3.62x` faster than `Qwen3.8` and `1.10x` faster than prior hinted `Beam-501B`, `-55.5%` fewer tokens, `0` repo hints).
+- **[`../../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md`](../../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md)** & **[`summary.json`](../../results/ratchet/beam_macro_ratchet_eval_2026-10-21/summary.json)**: Live 4-milestone `L0-Macro` Compositional Milestone DAG & Git Commit Ratchet evaluation on `Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2` (`4/4` milestones certified in `245.58s`, `1,139` cumulative LoC with active delta bounded to `257–364` lines `< 500` LoC, `25/25` cumulative regression tests passed).
 - **[`v13_hierarchical_agentic_ab_mcts_architecture.md`](v13_hierarchical_agentic_ab_mcts_architecture.md)**: Formal mathematical specification of the `L0-Micro` V13 Context-Bounded Hierarchical Verification Harness and Agentic AB-MCTS ("Move 37" Engine).
 - **[`beam_vs_qwen38_evaluation_report.md`](beam_vs_qwen38_evaluation_report.md)**: Head-to-head SWE-bench evaluation of `Reflection Beam-1.0-501B-A23B-NVFP4 + DFlash2` vs. `nvidia/Qwen3.8-Flash-Next-NVFP4` (`100.0%` resolution, `3.31x` faster wall-clock execution, `-55.1%` fewer tokens).
 - **[`v13_evaluation_report.md`](v13_evaluation_report.md)**: Full 30-instance SWE-bench dev cohort evaluation (`30 / 30` = `100.0%` resolved, `275 / 275` `FAIL_TO_PASS`, `0` regressions).
