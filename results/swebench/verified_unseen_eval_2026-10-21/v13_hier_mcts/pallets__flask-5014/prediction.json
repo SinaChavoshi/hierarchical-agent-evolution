@@ -1,0 +1,5 @@
+{
+ "instance_id": "pallets__flask-5014",
+ "model_name_or_path": "hae-v13-hier-mcts/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/src/flask/blueprints.py b/src/flask/blueprints.py\nindex eb50585d..54be320b 100644\n--- a/src/flask/blueprints.py\n+++ b/src/flask/blueprints.py\n@@ -190,6 +190,8 @@ class Blueprint(Scaffold):\n             root_path=root_path,\n         )\n \n+        if not name:\n+            raise ValueError(\"'name' may not be empty.\")\n         if \".\" in name:\n             raise ValueError(\"'name' may not contain a dot '.' character.\")\n \n"
+}

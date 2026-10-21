@@ -1,0 +1,676 @@
+{
+ "authored_files": [
+  "seaborn/_core/scales.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 304.98,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.0225,
+  "calibration_tested": 1,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 6,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 1,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 1,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "27263c835b53a71761f80e7cc03151d8df7c05776bb813dba8c03c433bbaaf80",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 1,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 0,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 0.02,
+  "resolved_fraction": 0.98,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 112243,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v12_agentic_swebench_firm_0",
+  "counters": {
+   "e": 6,
+   "h": 1,
+   "q": 1
+  },
+  "created_at": 1792608364.509,
+  "evidence_log": [
+   {
+    "command": "verify_module seaborn/_core/scales.py (in place via kubectl:default/swebench-tb-mwaskom-seaborn-3069/testbed:/testbed)",
+    "created_at": 1792608455.91,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e1",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "9163f0867bfc242b0376a269b679bda2cb769b8f0676d30c0727e897d05c1d51",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK seaborn/_core/scales.py\n\n[import] IMPORT_OK seaborn._core.scales\n\n[static_check] no undefined names (976 lines)\n[repo_tests] proximity tests passed: tests/_core/test_scales.py\n.....................................................x.................. [ 86%]\n...........                                                              [100%]\n=============================== warnings summary ===============================\ntests/_core/test_scales.py::TestNominal::test_color_numeric_with_order_subset\n  /testbed/seaborn/_core/properties.py:643: RuntimeWarning: invalid value encountered in cast\n    ixs = np.asarray(x, np.intp)\n\ntests/_core/test_scales.py::TestNominal::test_object_order_subset\n  /testbed/seaborn/_core/properties.py:366: RuntimeWarning: invalid value encountered in cast\n    ixs = np.asarray(x, np.intp)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n82 passed, 1 xfailed, 2 warnings in 1.54s\n"
+   },
+   {
+    "command": "mkdir -p /testbed/.hae && cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nimport matplotlib as mpl\nimport numpy as np\nimport pandas as pd\nfrom seaborn._core.scales import Nominal\nfrom seaborn._core.pr",
+    "created_at": 1792608463.084,
+    "detail": "agentic reproduction probe reproduced bug",
+    "evidence_id": "e2",
+    "exit_code": 1,
+    "hypothesis_id": "h1",
+    "kind": "probe",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "question_id": "q1",
+    "sha256": "a824e2f5f98113318ed94531ef2a25f889d64908d23e1e569d772c0496a06e79",
+    "stderr": "Traceback (most recent call last):\n  File \"/testbed/.hae/reproduce_issue.py\", line 11, in <module>\n    assert ax.yaxis.get_inverted() is True\nAssertionError\ncommand terminated with exit code 1\n",
+    "stdout": "inverted: True\n"
+   },
+   {
+    "command": "verify_module seaborn/_core/scales.py (in place via kubectl:default/swebench-tb-mwaskom-seaborn-3069/testbed:/testbed)",
+    "created_at": 1792608508.745,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e3",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "3e4868258199f34e610d035a5292084fb2402704a0ab9daab55869aad5cc2d14",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK seaborn/_core/scales.py\n\n[import] IMPORT_OK seaborn._core.scales\n\n[static_check] no undefined names (976 lines)\n[repo_tests] proximity tests passed: tests/_core/test_scales.py\n.....................................................x.................. [ 86%]\n...........                                                              [100%]\n=============================== warnings summary ===============================\ntests/_core/test_scales.py::TestNominal::test_color_numeric_with_order_subset\n  /testbed/seaborn/_core/properties.py:643: RuntimeWarning: invalid value encountered in cast\n    ixs = np.asarray(x, np.intp)\n\ntests/_core/test_scales.py::TestNominal::test_object_order_subset\n  /testbed/seaborn/_core/properties.py:366: RuntimeWarning: invalid value encountered in cast\n    ixs = np.asarray(x, np.intp)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n82 passed, 1 xfailed, 2 warnings in 1.49s\n"
+   },
+   {
+    "command": "verify_module seaborn/_core/scales.py (in place via kubectl:default/swebench-tb-mwaskom-seaborn-3069/testbed:/testbed)",
+    "created_at": 1792608597.344,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e4",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "06657947f821b2e874d9c459023f496ece4596e824f2b4f8708bf30115d97447",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK seaborn/_core/scales.py\n\n[import] IMPORT_OK seaborn._core.scales\n\n[static_check] no undefined names (976 lines)\n[repo_tests] proximity tests passed: tests/_core/test_scales.py\n.....................................................x.................. [ 86%]\n...........                                                              [100%]\n=============================== warnings summary ===============================\ntests/_core/test_scales.py::TestNominal::test_color_numeric_with_order_subset\n  /testbed/seaborn/_core/properties.py:643: RuntimeWarning: invalid value encountered in cast\n    ixs = np.asarray(x, np.intp)\n\ntests/_core/test_scales.py::TestNominal::test_object_order_subset\n  /testbed/seaborn/_core/properties.py:366: RuntimeWarning: invalid value encountered in cast\n    ixs = np.asarray(x, np.intp)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n82 passed, 1 xfailed, 2 warnings in 1.48s\n"
+   },
+   {
+    "command": "verify_module seaborn/_core/scales.py (in place via kubectl:default/swebench-tb-mwaskom-seaborn-3069/testbed:/testbed)",
+    "created_at": 1792608629.85,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e5",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "6584282b582a85c10919f96605a62868ec2d2f05ae65b7f9a11ea2a84a7e228c",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK seaborn/_core/scales.py\n\n[import] IMPORT_OK seaborn._core.scales\n\n[static_check] no undefined names (976 lines)\n[repo_tests] proximity tests passed: tests/_core/test_scales.py\n.....................................................x.................. [ 86%]\n...........                                                              [100%]\n=============================== warnings summary ===============================\ntests/_core/test_scales.py::TestNominal::test_color_numeric_with_order_subset\n  /testbed/seaborn/_core/properties.py:643: RuntimeWarning: invalid value encountered in cast\n    ixs = np.asarray(x, np.intp)\n\ntests/_core/test_scales.py::TestNominal::test_object_order_subset\n  /testbed/seaborn/_core/properties.py:366: RuntimeWarning: invalid value encountered in cast\n    ixs = np.asarray(x, np.intp)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n82 passed, 1 xfailed, 2 warnings in 1.64s\n"
+   },
+   {
+    "command": "verify_module seaborn/_core/scales.py (in place via kubectl:default/swebench-tb-mwaskom-seaborn-3069/testbed:/testbed)",
+    "created_at": 1792608649.016,
+    "detail": "module check passed: py_compile, import, static_check, repo_tests",
+    "evidence_id": "e6",
+    "exit_code": 0,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "40f6eaf5db60de1ee558fef76c158b70b67464e5112ad38e0b2aebab165b73c8",
+    "stderr": "",
+    "stdout": "[py_compile] COMPILE_OK seaborn/_core/scales.py\n\n[import] IMPORT_OK seaborn._core.scales\n\n[static_check] no undefined names (976 lines)\n[repo_tests] proximity tests passed: tests/_core/test_scales.py\n.....................................................x.................. [ 86%]\n...........                                                              [100%]\n=============================== warnings summary ===============================\ntests/_core/test_scales.py::TestNominal::test_color_numeric_with_order_subset\n  /testbed/seaborn/_core/properties.py:643: RuntimeWarning: invalid value encountered in cast\n    ixs = np.asarray(x, np.intp)\n\ntests/_core/test_scales.py::TestNominal::test_object_order_subset\n  /testbed/seaborn/_core/properties.py:366: RuntimeWarning: invalid value encountered in cast\n    ixs = np.asarray(x, np.intp)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n82 passed, 1 xfailed, 2 warnings in 1.52s\n"
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Standalone reproduction script `.hae/reproduce_issue.py` reproduces the issue failure (exit 1).",
+    "created_at": 1792608463.084,
+    "epoch": 0,
+    "evidence_ids": [
+     "e2"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "inverted: True Traceback (most recent call last): File \"/testbed/.hae/reproduce_issue.py\", line 11, in <module> assert ax.yaxis.get_inverted() is True AssertionError command terminated with exit code 1",
+    "mechanism_signature": "assertionerror call command exit file get_inverted hae invert issue last recent reproduc reproduce_issue reproduction script standalone terminat testb traceback true yaxi",
+    "patch_applied": false,
+    "posterior": 0.92,
+    "prediction": {
+     "expect_exit_code": 1
+    },
+    "prior": 0.85,
+    "probe_code": "import matplotlib as mpl\nimport numpy as np\nimport pandas as pd\nfrom seaborn._core.scales import Nominal\nfrom seaborn._core.properties import Coordinate\n\ny = pd.Series([-1.5, 1.0, 3.0, 1.0])\nax = mpl.figure.Figure().subplots()\ns = Nominal()._setup(y, Coordinate(), ax.yaxis)\nprint(\"inverted:\", ax.yaxis.get_inverted())\nassert ax.yaxis.get_inverted() is True\nprint(\"OK\")\n",
+    "probe_rejections": 0,
+    "proposed_by": "AgenticReproductionSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1792608365.793,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "seaborn/_core/scales.py",
+    "question_id": "q1",
+    "source_failure": "Nominal scale should be drawn the same way as categorical scales",
+    "source_failure_key": "swebench:mwaskom__seaborn-3069",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: Nominal scale should be drawn the same way as categorical scales -- Three distinctive things happen on the categorical axis in seaborn's categorical plots: 1. The scale is drawn to +/- 0.5 from the first and last tick, rather than using the normal margin logic 2. A grid is not shown, even when it otherwise would be with the active style 3. If on the y axis, the axis is inverted It probably makes sense to have `so.Nominal` scales (including inferred ones) do this too. Some comments on implementation: 1. This is actually trickier than you'd think; I may have posted an issue over in matplotlib about this at one point, or just discussed on their gitter. I believe ...",
+    "uncertainty": 0.02
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "27263c835b53a71761f80e7cc03151d8df7c05776bb813dba8c03c433bbaaf80"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 25,
+   "stats": {
+    "best_checkpoint": {
+     "changed_files": [
+      "seaborn/_core/scales.py"
+     ],
+     "note": "- Gatekeeper `verify_module('seaborn/_core/scales.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 14
+    },
+    "checkpoints_recorded": 6,
+    "mode": "v12_agentic"
+   },
+   "stop_reason": "resolved_by_agentic_gatekeeper",
+   "synthesized_paths": [
+    "seaborn/_core/scales.py"
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-mwaskom-seaborn-3069/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v12_agentic_swebench_firm_0",
+ "instance_id": "mwaskom__seaborn-3069",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.91,
+  "estimated_cost_usd": 0.0093,
+  "flash_count": 26,
+  "flash_input_tokens": 108498,
+  "flash_output_tokens": 3745,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 112243
+ },
+ "prediction_chars": 570,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "bash",
+    "command": "cd /testbed && git log --oneline -5 && ls .hae 2>/dev/null; echo \"---\"; git grep -n \"class Nominal\" seaborn/",
+    "elapsed_s": 1.61,
+    "reasoning_chars": 186,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '120,260p' seaborn/_core/scales.py",
+    "elapsed_s": 1.47,
+    "reasoning_chars": 45,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && ls tests/ | grep -i scale; find tests -name \"*scale*\"",
+    "elapsed_s": 2.07,
+    "reasoning_chars": 95,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -n \"Nominal\\|inverted\\|grid\\|sticky\\|margin\" tests/_core/test_scales.py | head -40",
+    "elapsed_s": 0.94,
+    "reasoning_chars": 53,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '360,390p' tests/_core/test_scales.py",
+    "elapsed_s": 3.53,
+    "reasoning_chars": 520,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -c \"import matplotlib.axis as a; print([m for m in dir(a.Axis) if 'invert' in m.lower()])\"",
+    "elapsed_s": 3.38,
+    "reasoning_chars": 530,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 1.26,
+    "path": "seaborn/_core/scales.py",
+    "reasoning_chars": 48,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest tests/_core/test_scales.py -q 2>&1 | tail -15",
+    "elapsed_s": 0.8,
+    "reasoning_chars": 20,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('seaborn/_core/scales.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- WARNING: `.hae/reproduce_issue.py` does not exist. Create `.hae/reproduce_issue.py` to verify the reported issue is fixed!",
+    "elapsed_s": 0.7,
+    "gatekeeper_ok": false,
+    "reasoning_chars": 19,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae && cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nimport matplotlib as mpl\nimport numpy as np\nimport pandas as pd\nfrom seaborn._core.scales import Nominal\nfrom seaborn._core.properties import Coordinate\n\ny = pd.Series([-1.5, 1.0, 3.0, 1.0])\nax = mpl.figure.Figure().subplots()",
+    "elapsed_s": 1.35,
+    "reasoning_chars": 69,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -c \"import matplotlib as mpl; ax=mpl.figure.Figure().subplots(); ax.yaxis.set_inverted(True); print(repr(ax.yaxis.get_inverted()))\"",
+    "elapsed_s": 2.73,
+    "reasoning_chars": 55,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 11
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -c \"import matplotlib.pyplot as plt; fig,ax=plt.subplots(); ax.yaxis.set_inverted(True); print(repr(ax.yaxis.get_inverted()))\"",
+    "elapsed_s": 0.89,
+    "reasoning_chars": 47,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 12
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -i 's/assert ax.yaxis.get_inverted() is True/assert bool(ax.yaxis.get_inverted())/' .hae/reproduce_issue.py && python .hae/reproduce_issue.py",
+    "elapsed_s": 3.44,
+    "reasoning_chars": 293,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 13
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('seaborn/_core/scales.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "elapsed_s": 2.25,
+    "gatekeeper_ok": true,
+    "reasoning_chars": 11,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 14
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && git diff && echo \"---\" && git log --oneline -5",
+    "elapsed_s": 2.39,
+    "reasoning_chars": 447,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '150,260p' seaborn/_core/scales.py",
+    "elapsed_s": 1.65,
+    "reasoning_chars": 57,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 2
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -rn \"sticky_edges\\|set_inverted\\|\\.grid(\" seaborn/ | head -40",
+    "elapsed_s": 1.76,
+    "reasoning_chars": 157,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -n \"class .*Scale\\|Nominal\\|inferred\" seaborn/_core/scales.py | head -40",
+    "elapsed_s": 2.96,
+    "reasoning_chars": 693,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 4
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -n '302,320p' seaborn/_core/scales.py",
+    "elapsed_s": 1.26,
+    "reasoning_chars": 99,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && grep -rn \"Nominal()\" seaborn/ | head",
+    "elapsed_s": 1.23,
+    "reasoning_chars": 262,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && mkdir -p .hae && cat > .hae/audit_edge_cases.py << 'EOF'\nimport seaborn as so\nimport matplotlib.pyplot as plt\n\n# y axis inversion check\nfig, ax = plt.subplots()\np = so.Plot(x=[1,2,3], y=[\"a\",\"b\",\"c\"]).add(so.Dot()).on(ax).plot()\nprint(\"y inverted:\", ax.yaxis_inverted())\nassert ax.yaxi",
+    "elapsed_s": 3.5,
+    "reasoning_chars": 278,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && sed -i 's/import seaborn as so/import seaborn.objects as so/' .hae/audit_edge_cases.py && python .hae/audit_edge_cases.py",
+    "elapsed_s": 0.95,
+    "reasoning_chars": 46,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && python -m pytest tests/_core/test_scales.py -q 2>&1 | tail -20",
+    "elapsed_s": 1.02,
+    "reasoning_chars": 65,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 9
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('seaborn/_core/scales.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).\n- Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).\n- Adversarial edge-case script `.hae/audit_edge_cases.py` FAILED (exit 1):\nTraceback (most recent call last):\n  File \"/testbed/.hae/audit_edge_cases.py\", line 6, in <module>\n    p = so.Plot(x=[1,2,3], y=[\"a\",\"b\",\"c\"]).add(so.Dot()).on(ax).plot()\n  File \"/testbed/seaborn/_core/plot.py\", line 820, in plot\n    return self._plot(pyplot)\n  File \"/testbed/seaborn/_core/plot.p",
+    "elapsed_s": 1.53,
+    "gatekeeper_ok": false,
+    "reasoning_chars": 195,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "cd /testbed && cat > .hae/audit_edge_cases.py << 'EOF'\nimport seaborn.objects as so\nimport matplotlib.pyplot as plt\n\nfig, ax = plt.subplots()\nso.Plot(x=[1,2,3], y=[\"a\",\"b\",\"c\"]).add(so.Dot()).on(ax).plot()\nprint(\"y inverted:\", ax.yaxis_inverted())\nassert ax.yaxis_inverted()\n\nfig, ax = plt.subplots()",
+    "elapsed_s": 4.99,
+    "reasoning_chars": 279,
+    "specialist": "AdversarialEdgeCaseAuditor",
+    "turn": 11
+   }
+  ],
+  "base_commit": "54cab15bdacfaa05a88fbc5502a5b322d99f148e",
+  "best_checkpoint": {
+   "changed_files": [
+    "seaborn/_core/scales.py"
+   ],
+   "note": "- Gatekeeper `verify_module('seaborn/_core/scales.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+   "rank_key": [
+    1,
+    1,
+    0,
+    1,
+    1,
+    1,
+    0
+   ],
+   "specialist": "PrimaryRepairSpecialist",
+   "turn": 14
+  },
+  "budget_moves": 30,
+  "changed_files": [
+   "seaborn/_core/scales.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-mwaskom-seaborn-3069/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "mwaskom__seaborn-3069",
+  "iterations": [
+   {
+    "best_checkpoint": {
+     "changed_files": [
+      "seaborn/_core/scales.py"
+     ],
+     "note": "- Gatekeeper `verify_module('seaborn/_core/scales.py')`: OK (module check passed: py_compile, import, static_check, repo_tests).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "PrimaryRepairSpecialist",
+     "turn": 14
+    },
+    "iteration": 1,
+    "moves_used": 25,
+    "patched": true,
+    "recheck": {
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "resolved_by_agentic_gatekeeper",
+    "synthesized_paths": [
+     "seaborn/_core/scales.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "seaborn/_core/scales.py",
+    "rationale": "Nominal scale definition and categorical axis handling live in the scales module.",
+    "resolved": "seaborn/_core/scales.py"
+   }
+  ],
+  "moves_used": 25,
+  "patch_chars": 570,
+  "preflight": {
+   "error": "",
+   "ok": true,
+   "package": "seaborn",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 15.0,
+    "duration_s": 15.72,
+    "mode": "proximity",
+    "reason": "whole suite did not finish within 15s",
+    "target": "tests"
+   },
+   "tried": [
+    "seaborn"
+   ]
+  },
+  "repo": "mwaskom/seaborn",
+  "reproduction": [],
+  "resolved_by_self_oracle": true,
+  "root_module": "seaborn/_core/scales.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [],
+   "failure": "Nominal scale should be drawn the same way as categorical scales",
+   "paths": [
+    "seaborn/_core/scales.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "resolved_by_agentic_gatekeeper",
+  "task_features": {
+   "complexity": 0.2188,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 1,
+   "n_paths_mentioned": 1,
+   "source": "problem_statement",
+   "statement_chars": 1188,
+   "tags": [
+    "seaborn",
+    "_core",
+    "scales",
+    "nominal",
+    "scale",
+    "drawn",
+    "same",
+    "way",
+    "categorical",
+    "three",
+    "distinctive",
+    "things",
+    "happen",
+    "axis",
+    "plots",
+    "first",
+    "last",
+    "tick",
+    "rather",
+    "using",
+    "normal",
+    "margin",
+    "logic",
+    "grid",
+    "shown",
+    "even",
+    "otherwise",
+    "active",
+    "style",
+    "inverted",
+    "probably",
+    "makes",
+    "sense",
+    "including",
+    "inferred",
+    "ones",
+    "too",
+    "some",
+    "comments",
+    "implementation",
+    "actually",
+    "trickier",
+    "you",
+    "think",
+    "may",
+    "posted",
+    "issue",
+    "over",
+    "matplotlib",
+    "about",
+    "one",
+    "point",
+    "just"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "54cab15bdacfaa05a88fbc5502a5b322d99f148e",
+  "created_at": "2022-10-09T23:31:20Z",
+  "environment_setup_commit": "d25872b0fc99dbf7e666a91f59bd4ed125186aa1",
+  "hints_text": "",
+  "instance_id": "mwaskom__seaborn-3069",
+  "problem_statement": "Nominal scale should be drawn the same way as categorical scales\nThree distinctive things happen on the categorical axis in seaborn's categorical plots:\r\n\r\n1. The scale is drawn to +/- 0.5 from the first and last tick, rather than using the normal margin logic\r\n2. A grid is not shown, even when it otherwise would be with the active style\r\n3. If on the y axis, the axis is inverted\r\n\r\nIt probably makes sense to have `so.Nominal` scales (including inferred ones) do this too. Some comments on implementation:\r\n\r\n1. This is actually trickier than you'd think; I may have posted an issue over in matplotlib about this at one point, or just discussed on their gitter. I believe the suggested approach is to add an invisible artist with sticky edges and set the margin to 0. Feels like a hack! I might have looked into setting the sticky edges _on the spine artist_ at one point?\r\n\r\n2. Probably straightforward to do in `Plotter._finalize_figure`. Always a good idea? How do we defer to the theme if the user wants to force a grid? Should the grid be something that is set in the scale object itself\r\n\r\n3. Probably straightforward to implement but I am not exactly sure where would be best.\n",
+  "repo": "mwaskom/seaborn",
+  "version": "0.12"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 26,
+  "thought_tokens": 1157
+ },
+ "token_usage": 112243,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

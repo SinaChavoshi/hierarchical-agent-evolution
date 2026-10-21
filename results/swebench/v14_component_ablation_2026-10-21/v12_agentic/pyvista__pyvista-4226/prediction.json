@@ -1,0 +1,5 @@
+{
+ "instance_id": "pyvista__pyvista-4226",
+ "model_name_or_path": "hae-v12-agentic/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/pyvista/plotting/_property.py b/pyvista/plotting/_property.py\nindex 0aa2b5b7..23015e85 100644\n--- a/pyvista/plotting/_property.py\n+++ b/pyvista/plotting/_property.py\n@@ -493,6 +493,8 @@ class Property(_vtk.vtkProperty):\n \n     @ambient.setter\n     def ambient(self, value: float):\n+        if value < 0 or value > 1:\n+            raise ValueError('ambient must be between 0 and 1')\n         self.SetAmbient(value)\n \n     @property\n@@ -533,6 +535,8 @@ class Property(_vtk.vtkProperty):\n \n     @diffuse.setter\n     def diffuse(self, value: float):\n+        if value < 0 or value > 1:\n+            raise ValueError('diffuse must be between 0 and 1')\n         self.SetDiffuse(value)\n \n     @property\n@@ -572,6 +576,8 @@ class Property(_vtk.vtkProperty):\n \n     @specular.setter\n     def specular(self, value: float):\n+        if value < 0 or value > 1:\n+            raise ValueError('specular must be between 0 and 1')\n         self.SetSpecular(value)\n \n     @property\n"
+}

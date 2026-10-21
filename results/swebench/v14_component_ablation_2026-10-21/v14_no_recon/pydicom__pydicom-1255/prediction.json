@@ -1,0 +1,5 @@
+{
+ "instance_id": "pydicom__pydicom-1255",
+ "model_name_or_path": "hae-v14-no-recon/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/pydicom/filebase.py b/pydicom/filebase.py\nindex 8e1687b65..eabe935bf 100644\n--- a/pydicom/filebase.py\n+++ b/pydicom/filebase.py\n@@ -5,10 +5,16 @@ from io import BytesIO\n from struct import unpack, pack\n from types import TracebackType\n from typing import (\n-    Tuple, Optional, NoReturn, BinaryIO, Callable, Type, Union, cast, TextIO,\n+    Tuple, Optional, BinaryIO, Callable, Type, Union, cast, TextIO,\n     TYPE_CHECKING, Any\n )\n \n+try:\n+    from typing import NoReturn\n+except ImportError:  # Python < 3.6.2\n+    NoReturn = None\n+\n+\n try:\n     from typing import Protocol  # added in 3.8\n except ImportError:\n"
+}

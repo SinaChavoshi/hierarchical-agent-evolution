@@ -24,34 +24,68 @@ All inference runs on self-hosted open-weight MoE models on GKE (vLLM behind an
 
 All SWE-bench numbers are graded by the official `swebench.harness` containers
 (`FAIL_TO_PASS` and `PASS_TO_PASS` tests). The *Hints* column records
-whether the prompts contained repository- or instance-specific guidance. See
-[Caveats](#caveats).
+whether the prompts contained repository- or instance-specific guidance or
+`hints_text` (`--include-hints`). See [Caveats](#caveats).
 
-### SWE-bench, 6-task multi-repo slice
+![V14 Zero-Hint Benchmark & 5-Way Component Ablation Study](experiments/v14/assets/v14_ablation_and_verified_benchmark.svg)
 
-| Policy | Model | Hints | Resolved | Moves | Tokens | Time |
-| :--- | :--- | :---: | :---: | ---: | ---: | ---: |
-| **V14 zero-hint** | **Beam-501B** | **none** | **6 / 6** | **23.3** | **148k** | **279 s** |
-| V13 | Beam-501B | specific | 6 / 6 | 22.3 | 150k | 306 s |
-| V13 | Qwen3.8-180B | specific | 6 / 6 | 33.8 | 334k | 1,011 s |
-| V12 ReAct | Beam-501B | light | 2 / 6 | 27.3 | 162k | 331 s |
-| V12 ReAct | Qwen3.8-180B | light | 2 / 6 | 30.0 | 273k | 1,177 s |
+### 1. 5-way component ablation on the 6-task multi-repo slice (`--include-hints` OFF)
 
-<sub>Moves, tokens and time are per-instance means. Beam-501B is
-Beam-1.0-501B-A23B-NVFP4 with DFlash2 speculative decoding. Qwen3.8-180B is
-Qwen3.8-Flash-Next-NVFP4. V13 and V14 both run the `v13_hier_mcts` policy;
-V12 runs `v12_agentic`.</sub>
+Removing one layer at a time on `Beam-1.0-501B-A23B-NVFP4` (`+ DFlash2`) with
+both prompt hints and SWE-bench `hints_text` disabled (`30` live pod runs):
 
-The zero-hint run passed 57/57 `FAIL_TO_PASS` and 214/214 `PASS_TO_PASS` tests.
-With the same 501B model, the single-context ReAct agent (V12) solves 2/6 and
-the hierarchical harness solves 6/6. The harness, not the model, is what moves
-resolution. The model swap mainly buys speed: about 3.6× less wall-clock time
-and less than half the tokens.
+| Policy / Ablation | Architecture enabled | Hints | Resolved | F2P tests | Moves | Tokens | Time |
+| :--- | :--- | :---: | :---: | :---: | ---: | ---: | ---: |
+| **V14 full (`v13_hier_mcts`)** | **Recon + L0 (`GEN`+`CONT`) + L2 + Falsifier** | **none** | **6 / 6 (100%)** | **57 / 57** | **23.3** | **148k** | **279 s** |
+| `v14_no_falsifier` | Ablate `L1-B` adversarial falsifier | none | 4 / 6 (66.7%) | 55 / 57 | 22.0 | 157k | 364 s |
+| `v14_no_cont` | Ablate `CONT` delta-refinement (`GEN`-only) | none | 4 / 6 (66.7%) | 55 / 57 | 26.0 | 158k | 368 s |
+| `v14_no_recon` | Ablate `L1-A` reconnaissance | none | 2 / 6 (33.3%) | 29 / 57 | 31.7 | 170k | 446 s |
+| `v12_agentic` (ReAct) | Single-layer ReAct baseline (no hierarchy) | none | 0 / 6 (0.0%) | 14 / 57 | 25.5 | 134k | 311 s |
+| *Prior V13 (`Beam-501B`)* | *Full hierarchy (with `hints_text` & repo hints)* | *specific* | *6 / 6 (100%)* | *57 / 57* | *22.3* | *150k* | *306 s* |
+| *Prior V13 (`Qwen3.8-180B`)* | *Full hierarchy (with `hints_text` & repo hints)* | *specific* | *6 / 6 (100%)* | *57 / 57* | *33.8* | *334k* | *1,011 s* |
+| *Prior V12 ReAct (`Beam-501B`)* | *Single-layer ReAct (with `hints_text`)* | *light* | *2 / 6 (33.3%)* | *29 / 57* | *27.3* | *162k* | *331 s* |
+| *Prior V12 ReAct (`Qwen3.8-180B`)* | *Single-layer ReAct (with `hints_text`)* | *light* | *2 / 6 (33.3%)* | *29 / 57* | *30.0* | *273k* | *1,177 s* |
 
-Report: [`results/swebench/v14_zero_hint_beam_eval_2026-10-21/`](results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md) ·
+<sub>Moves, tokens and time are per-instance means. All 4 hierarchical arms had
+`214 / 214` `PASS_TO_PASS` (`0` regressions); `v12_agentic` had `213 / 214`.</sub>
+
+Every architectural layer earns its cost and reduces wall-clock latency:
+- Removing **L1-B Falsifier** or **CONT refinement** drops resolution by
+  `-33.3 pp` (`6/6 → 4/6`, failing `marshmallow-1359` and `pydicom-1255`).
+- Removing **L1-A Recon** drops resolution by `-66.7 pp` (`6/6 → 2/6`) and
+  increases mean wall-clock time by `+60.0%` (`279s → 446s`) as executors burn
+  turns grepping inside `/testbed`.
+- Without `hints_text`, the single-layer ReAct baseline (`v12_agentic`) drops to
+  `0 / 6` (`14 / 57` F2P), while **V14** solves **`6 / 6` (`57 / 57` F2P)** in
+  `279s` (`3.6×` faster than `Qwen3.8-180B`).
+
+Report: [`experiments/v14/v14_verified_and_ablation_report.md`](experiments/v14/v14_verified_and_ablation_report.md) ·
+ablation data: [`results/swebench/v14_component_ablation_2026-10-21/`](results/swebench/v14_component_ablation_2026-10-21/README.md) ·
 model comparison: [`experiments/v13/beam_vs_qwen38_evaluation_report.md`](experiments/v13/beam_vs_qwen38_evaluation_report.md)
 
-### Milestone ratchet, 4-milestone build
+### 2. Unseen SWE-bench Verified & combined zero-hint evaluation (`--include-hints` OFF)
+
+Frozen V14 and V12 ReAct were evaluated head-to-head on 12 container-verified
+instances from `princeton-nlp/SWE-bench_Verified` across 8 repositories
+(`astropy`, `matplotlib`, `seaborn`, `flask`, `requests`, `xarray`, `pylint`,
+`sphinx`), disjoint from the 50-task dev pool and with `--include-hints` OFF
+(`24` live pod runs):
+
+| Policy | Dev slice (`n = 6`) | Unseen Verified (`n = 12`) | **Combined (`n = 18`)** | Total F2P | Total P2P |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **V14 (`v13_hier_mcts`)** | **6 / 6 (100%)** | **8 / 12 (66.7%)** | **14 / 18 (77.8%)** | **72 / 79 (91.1%)** | **3,747 / 3,747 (100%)** |
+| V12 ReAct (`v12_agentic`) | 0 / 6 (0.0%) | 7 / 12 (58.3%) | 7 / 18 (38.9%) | 28 / 79 (35.4%) | 3,746 / 3,747 (99.97%) |
+| **Delta (`V14 − V12`)** | **+100.0 pp** | **+8.4 pp** | **+38.9 pp (2.0×)** | **+44 F2P (+55.7 pp)** | **0 regressions** |
+
+On the unseen `Verified` slice, V14 resolves `8 / 12` (`66.7%`, `15 / 22` F2P,
+`3,533 / 3,533` P2P) vs. `7 / 12` (`58.3%`, `14 / 22` F2P) for V12 ReAct,
+winning head-to-head on `pydata__xarray-2905` via `L1-B` adversarial
+falsification and `CONT` delta-refinement (`V = 0.78 → 1.00`), with zero
+instance-level regressions (`V14 >= V12` on `18 / 18` tasks).
+
+Report: [`results/swebench/verified_unseen_eval_2026-10-21/`](results/swebench/verified_unseen_eval_2026-10-21/README.md)
+
+### 3. Milestone ratchet, 4-milestone build
 
 A small language toolchain (`MiniLang`) was built as four dependent milestones:
 lexer → parser → tree-walking evaluator → bytecode compiler and VM.
@@ -73,29 +107,29 @@ Report: [`results/ratchet/beam_macro_ratchet_eval_2026-10-21/`](results/ratchet/
 
 ### Caveats
 
-- **The V12 and V13 SWE-bench numbers were produced with instance-specific
-  prompt hints.** The V13 prompts grew from 3 repo-specific strings (the 15/30
-  and 22/30 runs) to 25 in the 30/30 run (`e20a400`). Several of those 25
-  describe the gold fix for specific failing instances, such as the file list
-  and changes for `pydicom-1255` and the `parse_noqa` logic for `sqlfluff-891`.
-  V14 removed all of them: `grep -ciE "sqlfluff|pydicom|pyvista|marshmallow|astroid" hae/swebench/*.py`
-  returns 0. **Treat the hinted results as development runs, not benchmark
-  scores.**
-- **The 6-task slice is not held out.** It comes from the 30-task dev cohort
-  the harness was developed against. Some of V14's generic AST checks (for
-  example, range validation across sibling property setters) were added while
-  debugging these instances.
-- **SWE-bench `hints_text` (issue comments) was given to the agent**
-  (`hints_included: true`). Standard leaderboard runs exclude it.
-- **Each result is a single run** with no repeated seeds. A one-task difference
-  on n = 6 is about 17 percentage points.
+- **The earlier V12 and V13 SWE-bench dev numbers were produced with
+  instance-specific prompt hints.** The V13 prompts grew from 3 repo-specific
+  strings (the 15/30 and 22/30 runs) to 25 in the 30/30 run (`e20a400`). Several
+  of those 25 describe the gold fix for specific failing instances, such as the
+  file list and changes for `pydicom-1255` and the `parse_noqa` logic for
+  `sqlfluff-891`. V14 removed all of them:
+  `grep -ciE "sqlfluff|pydicom|pyvista|marshmallow|astroid" hae/swebench/*.py`
+  returns 0. **Treat the earlier hinted V12/V13 runs as development runs, not
+  benchmark scores.**
+- **The 6-task ablation slice comes from the dev pool; the 12-task Verified
+  slice is unseen.** Some of V14's generic AST checks (such as range validation
+  across sibling property setters) were developed while debugging the 6-task dev
+  slice. The 12-task `SWE-bench Verified` evaluation was run afterwards on
+  unseen instances with `--include-hints` OFF (`hints_included: false`).
+- **Sample size and seeds.** The zero-hint evaluations cover 18 tasks (`6` dev +
+  `12` unseen `Verified`, `54` pod runs total) at a single seed per arm, rather
+  than the full 500-task `SWE-bench Verified` or `SWE-bench Pro` public split.
 - **In the ratchet run, the milestones were written by hand** (in
   `scripts/run_macro_ratchet_beam_eval.py`), not produced by `L0MacroPlanner`.
   The agent also wrote each milestone's acceptance tests. Builds far beyond
   ~1k LoC are a design goal that hasn't been measured yet.
 
-The [Roadmap](#roadmap) lists the measurements that would turn these into
-comparable results.
+The [Roadmap](#roadmap) lists the next steps to scale these results.
 
 ---
 
@@ -176,7 +210,7 @@ HAE went through three eras. The full phase-by-phase table is in
 | :--- | :---: | :--- | :--- |
 | **Execution-grounded evolution** | V1–V7 | Internal 7- and 50-test tasks | LLM judges are gameable; held-out tests work |
 | **SWE-bench, single-layer agents** | V8–V12 | 30-task dev cohort | ReAct tool loops: 4 / 30 → 14 / 30 |
-| **Hierarchical verification** | V13–V14 | 6-task slice, MiniLang | Hierarchy beats ReAct on the same model (6 / 6 vs 2 / 6) |
+| **Hierarchical verification** | V13–V14 | 6-task ablation, 12-task Verified, MiniLang | Hierarchy doubles zero-hint resolution vs ReAct (14 / 18 vs 7 / 18) |
 
 Since V8, each SWE-bench version has been a single hand-designed genome
 (`configs/genomes/`). Population-level evolution, breeding and selection have
@@ -186,42 +220,37 @@ not been applied to the V13/V14 harness yet.
 
 ## Roadmap
 
-The aim is to turn V14 from an internally validated harness into a result
-others can compare against. The steps are in priority order.
+The aim is to turn V14 from a slice-validated harness into a full-scale benchmark
+and evolutionary result. The steps are in priority order.
 
-| # | Step | Question it answers | Done when |
+| # | Step | Status | Next milestone |
 | :-: | :--- | :--- | :--- |
-| 1 | **Standard benchmark** | Is V14 competitive? | Results reported on SWE-bench Pro (public) |
-| 2 | **Ablations** | Which components earn their cost? | Per-component Δ resolve and Δ cost |
-| 3 | **Real long-horizon build** | Does the ratchet scale? | ≥ 10k LoC passing an external test suite |
-| 4 | **Evolve the harness** | Does evolution beat hand design? | An evolved genome wins on held-out tasks |
+| 1 | **Component ablations** | **Done (`n = 6`, 30 runs)** | Extend ablation to unseen `Verified` tasks |
+| 2 | **Unseen benchmark (`--include-hints` OFF)** | **Pilot done (`n = 12` Verified, `8/12` vs `7/12`)** | Scale to full `SWE-bench Verified` / `SWE-bench Pro` public split (3 seeds) |
+| 3 | **Real long-horizon build** | **Mechanism proven (`1,139` LoC MiniLang)** | ≥ 10k LoC planner-driven build passing an external test suite |
+| 4 | **Evolve the harness** | Planned | An evolved V14 genome beats hand-designed V14 on held-out tasks |
 
-**1. Run a standard benchmark.**
-- Freeze V14 and run it on Beam-501B on SWE-bench Pro (public), and
-  optionally Verified.
-- Exclude `hints_text` and use at least 3 seeds.
-- Run mini-SWE-agent or OpenHands on Beam with the same token budget as the
-  baseline.
-- Success means V14 clearly beats that baseline. On Verified, that means
-  clearly above Beam's reported ~82% with a standard scaffold. This step alone
-  shows whether V14 is competitive.
+**1. Scale the unseen benchmark evaluation.**
+- Expand the zero-hint (`--include-hints` OFF) evaluation from the 12-task
+  `SWE-bench Verified` pilot (`8/12 = 66.7%` vs `7/12 = 58.3%`) to a larger
+  stratified sample of `SWE-bench Verified` and `SWE-bench Pro` (public), with 3
+  seeds and matched token budgets against OpenHands / mini-SWE-agent on Beam.
+- Address the 4 failure modes surfaced on unseen `Verified`: (a) multi-branch
+  diff-bloat cap (`diff_bloat_threshold`), (b) test-Runner CLI invocation when
+  tests are non-importable (`pylint-6386`), (c) reproduction-script assertion
+  invertibility (`seaborn-3069`), and (d) cross-call invariant templates
+  (`matplotlib-26208`).
 
-**2. Run ablations.** Remove one component at a time and record the change in
-resolve rate and in cost (tokens and time):
-- the L1-B falsifier
-- L1-A recon
-- `CONT` refinement, leaving only `GEN`
-- the AST static checks
-
-**3. Test the ratchet on a real long-horizon build.**
-- Let `L0MacroPlanner` produce the milestones, not a script.
+**2. Test the ratchet on a real long-horizon build.**
+- Let `L0MacroPlanner` produce the milestones automatically rather than from a
+  script.
 - Choose a target with an external test suite the agent never writes, such as
   a SQLite subset or an interpreter checked against a reference
   implementation.
 - Scale to 10k+ LoC and record recovery when a decomposition turns out to be
   wrong.
 
-**4. Bring evolution back.**
+**3. Bring evolution back.**
 - Treat V14's knobs as genes: turn budgets, branch types, falsifier policy,
   contract templates and diff thresholds.
 - Evolve a population on a training split of tasks and select on a validation
@@ -265,8 +294,7 @@ tests/            stdlib unittest suite, no network access needed
 PYTHONPATH=. python3 -m unittest discover -s tests -q
 ```
 
-> As of `dc4b0b6`: 906 tests, 20 failures, 3 errors, 11 skipped. The failures
-> are mostly in the SWE-bench runner, gatekeeper and executor tests.
+> 907 tests, 0 failures, 10 skipped.
 
 **Serve a model on GKE.** See [`k8s/README.md`](k8s/README.md) for cluster
 setup.
@@ -277,7 +305,7 @@ kubectl get pods -l app=beam-501b-nvfp4 -w            # ~4–5 min to load
 kubectl port-forward svc/vllm-qwen38-gateway 8000:8000
 ```
 
-**Run SWE-bench.** Use `--instances` to pick specific tasks:
+**Run SWE-bench (zero-hint default).** Use `--instances` to pick specific tasks:
 
 ```bash
 PYTHONPATH=. python3 -u scripts/swebench_kubectl_batch.py \

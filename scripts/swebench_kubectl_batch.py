@@ -42,6 +42,9 @@ DEFAULT_POLICIES: List[Tuple[str, str, str]] = [
     ("v11_ab_mcts", "configs/genomes/v11_ab_mcts_swebench_firm_0.json", "hae-v11-ab/nvidia-Qwen3.8-Flash-Next-NVFP4"),
     ("v12_agentic", "configs/genomes/v12_agentic_swebench_firm_0.json", "hae-v12-agentic/nvidia-Qwen3.8-Flash-Next-NVFP4"),
     ("v13_hier_mcts", "configs/genomes/v13_hierarchical_ab_mcts_firm_0.json", "hae-v13-hier-mcts/nvidia-Qwen3.8-Flash-Next-NVFP4"),
+    ("v14_no_falsifier", "configs/genomes/v14_ablation_no_falsifier_firm_0.json", "hae-v14-no-falsifier/nvidia-Qwen3.8-Flash-Next-NVFP4"),
+    ("v14_no_cont", "configs/genomes/v14_ablation_no_cont_firm_0.json", "hae-v14-no-cont/nvidia-Qwen3.8-Flash-Next-NVFP4"),
+    ("v14_no_recon", "configs/genomes/v14_ablation_no_recon_firm_0.json", "hae-v14-no-recon/nvidia-Qwen3.8-Flash-Next-NVFP4"),
 ]
 
 
@@ -188,7 +191,8 @@ def run_policy_on_instance(instance_id: str, pod: str, dataset: str, policy_tag:
                            genome_path: str, model_name: str, out_root: str,
                            context: str, budget_moves: int = 30, max_iterations: int = 2,
                            instance_timeout_s: int = 2400, vllm_url: str = "http://127.0.0.1:8000/v1",
-                           vllm_model: str = "nvidia/Qwen3.8-Flash-Next-NVFP4") -> Dict[str, Any]:
+                           vllm_model: str = "nvidia/Qwen3.8-Flash-Next-NVFP4",
+                           include_hints: bool = False) -> Dict[str, Any]:
     out_dir = os.path.join(out_root, policy_tag, instance_id)
     os.makedirs(out_dir, exist_ok=True)
     pred_path = os.path.join(out_dir, "prediction.json")
@@ -218,8 +222,9 @@ def run_policy_on_instance(instance_id: str, pod: str, dataset: str, policy_tag:
             "--budget-moves", str(budget_moves),
             "--max-iterations", str(max_iterations),
             "--model-name", model_name,
-            "--include-hints",
         ]
+        if include_hints:
+            cmd.append("--include-hints")
         started = time.time()
         try:
             with open(stdout_log, "w", encoding="utf-8") as fh:
@@ -293,6 +298,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--nodepool", default="firm-pool")
     ap.add_argument("--vllm-url", default=os.environ.get("VLLM_BASE_URL", "http://127.0.0.1:8000/v1"))
     ap.add_argument("--vllm-model", default=os.environ.get("VLLM_MODEL", "nvidia/Qwen3.8-Flash-Next-NVFP4"))
+    ap.add_argument("--include-hints", action="store_true", help="Include issue discussion hints_text (default: False for standard evaluation)")
     args = ap.parse_args(list(argv) if argv is not None else None)
 
     if args.instances:
@@ -348,6 +354,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                             args.out_root, args.context,
                             budget_moves=args.budget_moves, max_iterations=args.max_iterations,
                             vllm_url=args.vllm_url, vllm_model=args.vllm_model,
+                            include_hints=args.include_hints,
                         )
                         with lock:
                             run_rows.append(res)
@@ -385,6 +392,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                             args.out_root, args.context,
                             budget_moves=args.budget_moves, max_iterations=args.max_iterations,
                             vllm_url=args.vllm_url, vllm_model=args.vllm_model,
+                            include_hints=args.include_hints,
                         )
                     except Exception as exc:
                         res = {"instance_id": iid, "policy": tag, "status": f"error: {type(exc).__name__}: {exc}"}

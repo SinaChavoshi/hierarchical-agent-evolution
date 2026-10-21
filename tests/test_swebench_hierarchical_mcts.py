@@ -474,6 +474,65 @@ class TestABMCTSSelectionAndEndToEnd(unittest.TestCase):
         tfiles = engine._discover_targeted_test_files(cp_good)
         self.assertIn("tests/test_calc.py", tfiles)
 
+    def test_ablation_switches_and_zero_hints_enforcement(self):
+        executor = LocalExecutor(root=self.root, python=sys.executable)
+        task = SweTask(
+            instance_id="demo__ablation-1",
+            repo="demo/calc",
+            base_commit="HEAD",
+            version="1.0",
+            problem_statement="Support extra parameter in add_items.",
+            hints_text="SECRET_HINT_FROM_ISSUE_DISCUSSION_SHOULD_BE_EXCLUDED",
+        )
+        state = EpistemicState(company_id="test_company")
+        state.add_question("Root question", module="pkg/calc.py", uncertainty=0.9)
+        gk = EvidenceGatekeeper(workspace=self.root, python_executable=sys.executable, executor=executor, logger=lambda _: None)
+        runner = _DummyRunner(self.root)
+        runner.include_hints = False
+
+        # 1. Verify _task_text excludes hints_text when runner.include_hints is False
+        engine_no_cont = HierarchicalMCTSSweEngine(
+            runner,
+            executor,
+            task,
+            state,
+            gk,
+            logger=lambda m: None,
+            enable_recon=False,
+            enable_falsifier=False,
+            enable_cont_refinement=False,
+        )
+        self.assertNotIn("SECRET_HINT_FROM_ISSUE_DISCUSSION_SHOULD_BE_EXCLUDED", engine_no_cont._task_text())
+        runner.include_hints = True
+        self.assertIn("SECRET_HINT_FROM_ISSUE_DISCUSSION_SHOULD_BE_EXCLUDED", engine_no_cont._task_text())
+        runner.include_hints = False
+
+        # 2. Verify enable_cont_refinement=False forces GEN even when a near-miss repro_ok=True node exists
+        cp_near = PatchCheckpoint(
+            diff="diff --git a/pkg/calc.py b/pkg/calc.py\n+x = 1\n",
+            changed_files=["pkg/calc.py"],
+            file_contents={"pkg/calc.py": "x = 1\n"},
+            compile_ok=True,
+            static_ok=True,
+            repro_ok=True,
+            repo_tests_ok=False,
+        )
+        engine_no_cont.mcts_nodes["b1"] = AgenticMCTSNode(
+            node_id="b1",
+            parent_id="root",
+            locus="consumer_local",
+            hypothesis_claim="near miss",
+            checkpoint=cp_near,
+            value=0.70,
+            alpha=3.8,
+            beta=2.2,
+            stagnant_steps=0,
+        )
+        op_kind, target_nid, branch_spec = engine_no_cont.select_next_mcts_operation(["pkg/calc.py"])
+        self.assertEqual(op_kind, "GEN")
+        self.assertEqual(target_nid, "root")
+        self.assertIsNotNone(branch_spec)
+
 
 if __name__ == "__main__":
     unittest.main()

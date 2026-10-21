@@ -1,0 +1,5 @@
+{
+ "instance_id": "marshmallow-code__marshmallow-1359",
+ "model_name_or_path": "hae-v14-no-falsifier/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/src/marshmallow/fields.py b/src/marshmallow/fields.py\nindex 0b18e7dd..3fecc80e 100644\n--- a/src/marshmallow/fields.py\n+++ b/src/marshmallow/fields.py\n@@ -1112,9 +1112,16 @@ class DateTime(Field):\n \n     def _bind_to_schema(self, field_name, schema):\n         super()._bind_to_schema(field_name, schema)\n+        if hasattr(schema, \"opts\"):\n+            opts_schema = schema\n+        else:\n+            opts_schema = getattr(schema, \"schema\", None)\n+        opts_value = None\n+        if opts_schema is not None and hasattr(opts_schema, \"opts\"):\n+            opts_value = getattr(opts_schema.opts, self.SCHEMA_OPTS_VAR_NAME, None)\n         self.format = (\n             self.format\n-            or getattr(schema.opts, self.SCHEMA_OPTS_VAR_NAME)\n+            or opts_value\n             or self.DEFAULT_FORMAT\n         )\n \n"
+}

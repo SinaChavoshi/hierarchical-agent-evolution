@@ -1,0 +1,50 @@
+{
+ "FAIL_TO_PASS": {
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_pass_cell_data": "FAILED",
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_pass_cell_ids": "FAILED"
+ },
+ "PASS_TO_PASS_failures": [
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[12]",
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[5]",
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[6]",
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_edge_case",
+  "tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_mixed"
+ ],
+ "PASS_TO_PASS_summary": {
+  "ERROR": 0,
+  "FAILED": 5,
+  "MISSING": 0,
+  "PASSED": 1,
+  "SKIPPED": 0
+ },
+ "elapsed_seconds": 8.9,
+ "executor": "kubectl:default/swebench-tb-pyvista-pyvista-4311/testbed:/testbed",
+ "f2p_passed": 0,
+ "f2p_total": 2,
+ "instance_id": "pyvista__pyvista-4311",
+ "patch_chars": 3385,
+ "patch_source": "gold",
+ "pytest": {
+  "files": [
+   "tests/filters/test_rectilinear_grid.py"
+  ],
+  "log_tail": "es'\n\npyvista/core/dataset.py:132: AttributeError\n______________________ test_to_tetrahedral_pass_cell_data ______________________\n\ntiny_rectilinear = RectilinearGrid (0x7ef8b62f1e20)\n  N Cells:      60\n  N Points:     120\n  X Bounds:     0.000e+00, 3.000e+00\n  Y Bounds:     0.000e+00, 3.000e+00\n  Z Bounds:     0.000e+00, 3.000e+00\n  Dimensions:   4, 5, 6\n  N Arrays:     1\n\n\n    def test_to_tetrahedral_pass_cell_data(tiny_rectilinear):\n        tiny_rectilinear[\"cell_data\"] = np.ones(tiny_rectilinear.n_cells)\n    \n>       tet_grid = tiny_rectilinear.to_tetrahedra(pass_cell_ids=False, pass_cell_data=False)\n\ntests/filters/test_rectilinear_grid.py:61: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npyvista/core/filters/rectilinear_grid.py:118: in to_tetrahedra\n    out = _get_output(alg)\npyvista/core/filters/__init__.py:46: in _get_output\n    data.copy_meta_from(ido, deep=True)\npyvista/core/dataset.py:1404: in copy_meta_from\n    self.clear_textures()\npyvista/core/dataset.py:540: in clear_textures\n    self._textures.clear()\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = UnstructuredGrid (0x7ef8b62f1d00)\n  N Cells:    300\n  N Points:   120\n  X Bounds:   0.000e+00, 3.000e+00\n  Y Bounds:   0.000e+00, 3.000e+00\n  Z Bounds:   0.000e+00, 3.000e+00\n  N Arrays:   0\n\nitem = '_textures'\n\n    def __getattr__(self, item) -> Any:\n        \"\"\"Get attribute from base class if not found.\"\"\"\n>       return super().__getattribute__(item)\nE       AttributeError: 'UnstructuredGrid' object has no attribute '_textures'\n\npyvista/core/dataset.py:132: AttributeError\n==================================== PASSES ====================================\n=========================== short test summary info ============================\nPASSED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_raise\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[5] - Attri...\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[6] - Attri...\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral[12] - Attr...\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_mixed - At...\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_edge_case\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_pass_cell_ids\nFAILED tests/filters/test_rectilinear_grid.py::test_to_tetrahedral_pass_cell_data\n7 failed, 1 passed in 0.45s\n\ncommand terminated with exit code 1\n",
+  "rc": 1,
+  "reported": 9
+ },
+ "resolved": false,
+ "steps": {
+  "apply_model_patch": {
+   "note": "",
+   "ok": true
+  },
+  "apply_test_patch": {
+   "note": "",
+   "ok": true
+  },
+  "reset": {
+   "dirty_after": "0",
+   "rc": 0
+  }
+ }
+}

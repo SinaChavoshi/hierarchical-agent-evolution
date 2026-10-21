@@ -1,0 +1,5 @@
+{
+ "instance_id": "mwaskom__seaborn-3187",
+ "model_name_or_path": "hae-v12-agentic/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py\nindex 55874bf2..360607ba 100644\n--- a/seaborn/_core/scales.py\n+++ b/seaborn/_core/scales.py\n@@ -378,7 +378,10 @@ class ContinuousBase(Scale):\n             axis.set_view_interval(vmin, vmax)\n             locs = axis.major.locator()\n             locs = locs[(vmin <= locs) & (locs <= vmax)]\n-            labels = axis.major.formatter.format_ticks(locs)\n+            formatter = axis.major.formatter\n+            if hasattr(formatter, \"set_useOffset\"):\n+                formatter.set_useOffset(False)\n+            labels = formatter.format_ticks(locs)\n             new._legend = list(locs), list(labels)\n \n         return new\n"
+}

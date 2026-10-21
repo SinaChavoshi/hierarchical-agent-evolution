@@ -432,6 +432,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         base_ref: str = "HEAD",
         diff_bloat_threshold: int = 120,
         custom_test_cmd: Optional[str] = None,
+        enable_recon: bool = True,
+        enable_falsifier: bool = True,
+        enable_cont_refinement: bool = True,
     ) -> None:
         if isinstance(executor, SweTask) and isinstance(task, CommandExecutor):
             executor, task = task, executor  # type: ignore[assignment]
@@ -449,6 +452,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             diff_bloat_threshold=diff_bloat_threshold,
             custom_test_cmd=custom_test_cmd,
         )
+        self.enable_recon = bool(enable_recon)
+        self.enable_falsifier = bool(enable_falsifier)
+        self.enable_cont_refinement = bool(enable_cont_refinement)
         self.falsification_script_rel = FALSIFICATION_SCRIPT_REL
         self.mcts_nodes: Dict[str, AgenticMCTSNode] = {
             "root": AgenticMCTSNode(
@@ -466,6 +472,11 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         self.recon_brief: ReconBrief = ReconBrief()
         self.initial_candidate_modules: List[str] = []
         self.rng = random.Random(42)
+
+    def _task_text(self) -> str:
+        use_hints = bool(getattr(self.runner, "include_hints", False))
+        hints = (getattr(self.task, "hints_text", "") or "") if use_hints else ""
+        return f"{self.task.problem_statement}\n{hints}".strip()
 
     # ------------------------------------------------------------------ #
     # Layer L1-A: Reconnaissance Sub-Agent (Fresh Context, 4-6 Turns)
@@ -515,7 +526,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
     ) -> ReconBrief:
         """Run fast deterministic Layer L1-A Reconnaissance inside `/testbed` (0 LLM moves, < 3s)."""
         self.logger("[v13-hier-mcts] Layer L1-A: Running fast deterministic ReconnaissanceSubAgent probe")
-        combined_text = f"{self.task.problem_statement}\n{getattr(self.task, 'hints_text', '') or ''}"
+        combined_text = self._task_text()
         inspected: List[str] = [c for c in candidate_modules[:4] if c]
 
         # Extract explicit traceback or inline file paths and match against repository files in memory first
@@ -975,7 +986,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
           - `GEN("root")`: launching the next orthogonal `CausalBranchSpec` ("Move 37") from clean HEAD.
         """
         non_root = [n for nid, n in self.mcts_nodes.items() if nid != "root"]
-        if not non_root:
+        if not non_root or not self.enable_cont_refinement:
             spec = self.branch_queue.pop(0) if self.branch_queue else self.synthesize_move37_counterfactual_branch(candidate_modules)
             return "GEN", "root", spec
 
@@ -1152,7 +1163,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             if f and os.path.dirname(f)
         ]
         rule_codes = sorted(
-            set(re.findall(r"\b[A-Z]\d{3,4}\b", f"{self.task.problem_statement}\n{getattr(self.task, 'hints_text', '') or ''}"))
+            set(re.findall(r"\b[A-Z]\d{3,4}\b", self._task_text()))
         )
         exact_globs = [
             f"'*test_{s}.py' '*{s}_test.py' '*unittest_{s}.py'"
@@ -1607,22 +1618,27 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             and cp.repo_tests_ok
             and existing_falsify_ok
             and run_falsifier_if_gate_ok
-            and self.runner._may_call("L1B falsifier")
-            and (time.time() - self.run_start_time < self.max_wall_s - 60)
         ):
-            falsifier_ran = True
-            falsifier_ok, falsifier_msg = self.run_falsifier_episode(cp, max_turns=6)
-            critique = f"- L1-B Adversarial Falsifier: {falsifier_msg}\n\n{audit_msg}"
-            if falsifier_ok:
+            if not self.enable_falsifier:
+                falsifier_ran = False
+                falsifier_ok = True
                 cp.audit_ok = True
                 cp.gatekeeper_ok = True
-            else:
-                cp.audit_ok = False
-                cp.gatekeeper_ok = False
+                critique = f"- Stage A Gatekeeper ONLY (L1-B Falsifier ablated/disabled): passed compile, reproduction, and repo_tests.\n\n{audit_msg}"
+            elif self.runner._may_call("L1B falsifier") and (time.time() - self.run_start_time < self.max_wall_s - 60):
+                falsifier_ran = True
+                falsifier_ok, falsifier_msg = self.run_falsifier_episode(cp, max_turns=6)
+                critique = f"- L1-B Adversarial Falsifier: {falsifier_msg}\n\n{audit_msg}"
+                if falsifier_ok:
+                    cp.audit_ok = True
+                    cp.gatekeeper_ok = True
+                else:
+                    cp.audit_ok = False
+                    cp.gatekeeper_ok = False
 
         val = compute_node_empirical_value(
             cp,
-            falsifier_ran=falsifier_ran,
+            falsifier_ran=(falsifier_ran or (not self.enable_falsifier and falsifier_ok)),
             falsifier_ok=falsifier_ok,
             diff_bloat_threshold=self.diff_bloat_threshold,
         )
@@ -1681,7 +1697,20 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         repo_map = self.runner.repo_map()
 
         # --- Stage 1: Layer L1-A Fast Reconnaissance Episode (Fresh Context, 2-3 turns) ---
-        recon = self.run_recon_episode(candidate_modules, repo_map, max_turns=3)
+        if self.enable_recon:
+            recon = self.run_recon_episode(candidate_modules, repo_map, max_turns=3)
+        else:
+            self.logger("[v13-hier-mcts] Layer L1-A Reconnaissance ABLATED (enable_recon=False); starting L0 with bare seed candidates")
+            cands_top = [c for c in candidate_modules[:4] if c]
+            recon = ReconBrief(
+                consumer_locus=", ".join(cands_top[:2]) if cands_top else "(see repo map)",
+                producer_upstream_locus=", ".join(cands_top[1:4]) if len(cands_top) > 1 else "(see repo map)",
+                conventions_and_siblings="",
+                repro_script_rel="",
+                repro_fails_on_head=False,
+                inspected_files=cands_top,
+            )
+            self.recon_brief = recon
 
         # --- Stage 2: Layer L0 Seed Architect & Contract Formulation (Clean Context, 1 turn) ---
         if self.runner._may_call("L0 seed architect"):
@@ -1901,6 +1930,11 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 "note": best_cp.note,
             } if best_cp else None,
             "mcts_tree": mcts_tree_summary,
+            "ablation_flags": {
+                "enable_recon": self.enable_recon,
+                "enable_falsifier": self.enable_falsifier,
+                "enable_cont_refinement": self.enable_cont_refinement,
+            },
             "trajectory": self.trajectory_log,
         }
 

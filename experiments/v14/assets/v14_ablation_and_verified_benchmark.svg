@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 680" width="1440" height="680" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1020"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#0b1325"/>
+    </linearGradient>
+    <linearGradient id="emerald" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="indigo" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+    <linearGradient id="rose" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e11d48"/>
+      <stop offset="100%" stop-color="#fb7185"/>
+    </linearGradient>
+    <linearGradient id="slate" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="100%" stop-color="#94a3b8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1440" height="680" rx="18" fill="url(#bg)"/>
+  <rect x="16" y="16" width="1408" height="648" rx="14" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- Header -->
+  <text x="44" y="56" fill="#f8fafc" font-size="24" font-weight="800">V14 Zero-Hint Benchmark &amp; 5-Way Component Ablation Study (Reflection Beam-501B + DFlash2)</text>
+  <text x="44" y="82" fill="#94a3b8" font-size="14" font-weight="500">54 Live GKE Pod Evaluations • Strict Zero-Hint Protocol (--include-hints OFF) • 12 Distinct Repositories • 3,747 PASS_TO_PASS Regression Tests (100.0% Passed)</text>
+
+  <!-- Left Card: 5-Way Component Ablation Staircase -->
+  <rect x="40" y="106" width="668" height="530" rx="14" fill="#111c33" stroke="#1e293b" stroke-width="1.5"/>
+  <text x="64" y="142" fill="#34d399" font-size="17" font-weight="700">A. 5-Way Component Ablation Staircase (Zero Hints, 30 Pod Runs)</text>
+  <text x="64" y="164" fill="#94a3b8" font-size="12.5">Each architectural layer of V14 earns its cost when ablated individually on identical Beam-501B + DFlash2</text>
+
+  <!-- Ablation Row 1: Full V14 -->
+  <text x="64" y="206" fill="#f8fafc" font-size="14" font-weight="700">1. Full V14 Hierarchy (v13_hier_mcts)</text>
+  <text x="64" y="224" fill="#94a3b8" font-size="11.5">L1-A Recon + L0 Seed Architect + AB-MCTS (GEN+CONT) + L1-B Falsifier</text>
+  <rect x="64" y="232" width="460" height="26" rx="6" fill="url(#emerald)"/>
+  <text x="536" y="250" fill="#34d399" font-size="14" font-weight="800">6/6 (100.0%) • 278.8s • 23.3m</text>
+
+  <!-- Ablation Row 2: No Falsifier -->
+  <text x="64" y="286" fill="#e2e8f0" font-size="14" font-weight="700">2. Ablate L1-B Adversarial Falsifier (v14_no_falsifier)</text>
+  <text x="64" y="304" fill="#94a3b8" font-size="11.5">Stage A Gatekeeper only; prematurely accepts partial fixes (marshmallow-1359, pydicom-1255)</text>
+  <rect x="64" y="312" width="306.7" height="26" rx="6" fill="url(#cyan)"/>
+  <text x="382" y="330" fill="#38bdf8" font-size="14" font-weight="700">4/6 (66.7%, -33.3 pp) • 363.7s • 22.0m</text>
+
+  <!-- Ablation Row 3: No CONT -->
+  <text x="64" y="366" fill="#e2e8f0" font-size="14" font-weight="700">3. Ablate CONT Delta-Refinement (v14_no_cont, GEN-only)</text>
+  <text x="64" y="384" fill="#94a3b8" font-size="11.5">Resets to HEAD after every episode; discards near-miss checkpoints (V=0.55–0.78)</text>
+  <rect x="64" y="392" width="306.7" height="26" rx="6" fill="url(#indigo)"/>
+  <text x="382" y="410" fill="#818cf8" font-size="14" font-weight="700">4/6 (66.7%, -33.3 pp) • 367.8s • 26.0m</text>
+
+  <!-- Ablation Row 4: No Recon -->
+  <text x="64" y="446" fill="#e2e8f0" font-size="14" font-weight="700">4. Ablate L1-A Reconnaissance Probe (v14_no_recon)</text>
+  <text x="64" y="464" fill="#94a3b8" font-size="11.5">L0/L2 grep blind without ReconBrief; +60% latency &amp; 3.1x moves on pyvista-4226</text>
+  <rect x="64" y="472" width="153.3" height="26" rx="6" fill="url(#amber)"/>
+  <text x="230" y="490" fill="#fbbf24" font-size="14" font-weight="700">2/6 (33.3%, -66.7 pp) • 446.1s • 31.7m</text>
+
+  <!-- Ablation Row 5: Flat V12 ReAct -->
+  <text x="64" y="526" fill="#e2e8f0" font-size="14" font-weight="700">5. Single-Layer ReAct Baseline (v12_agentic, Zero Hints)</text>
+  <text x="64" y="544" fill="#94a3b8" font-size="11.5">Without hints_text, single-layer ReAct drops from 2/6 (33.3%) to 0/6 (0.0%, 14/57 F2P)</text>
+  <rect x="64" y="552" width="12" height="26" rx="6" fill="url(#rose)"/>
+  <text x="88" y="570" fill="#fb7185" font-size="14" font-weight="700">0/6 (0.0%, -100.0 pp) • 310.8s • 25.5m (14/57 F2P)</text>
+
+  <!-- Ablation Footer Box -->
+  <rect x="64" y="592" width="620" height="30" rx="6" fill="#0f172a" stroke="#1e293b"/>
+  <text x="78" y="611" fill="#cbd5e1" font-size="11.2" font-weight="600">Takeaway: Full V14 is both highest-resolving (100.0%) and fastest (278.8s) via L1-A Recon + CONT refinement.</text>
+
+  <!-- Right Card: Unseen SWE-bench Verified & Combined Benchmark -->
+  <rect x="732" y="106" width="668" height="530" rx="14" fill="#111c33" stroke="#1e293b" stroke-width="1.5"/>
+  <text x="756" y="142" fill="#38bdf8" font-size="17" font-weight="700">B. Unseen SWE-bench Verified &amp; Combined Zero-Hint Evaluation</text>
+  <text x="756" y="164" fill="#94a3b8" font-size="12.5">Frozen V14 vs. Single-Layer ReAct across 18 Valid Instances (12 Repositories, --include-hints OFF)</text>
+
+  <!-- Group 1: Dev Cohort (n=6, Zero Hints) -->
+  <text x="756" y="204" fill="#f8fafc" font-size="14" font-weight="700">Hard Multi-File Dev Cohort (n=6, 4 Repositories, Zero Hints)</text>
+  <rect x="756" y="214" width="440" height="22" rx="5" fill="url(#emerald)"/>
+  <text x="1206" y="230" fill="#34d399" font-size="13.5" font-weight="800">V14: 6/6 (100.0%) • 57/57 F2P</text>
+  <rect x="756" y="240" width="12" height="22" rx="5" fill="url(#slate)"/>
+  <text x="780" y="256" fill="#94a3b8" font-size="13.5" font-weight="700">V12 Flat ReAct: 0/6 (0.0%) • 14/57 F2P</text>
+
+  <!-- Group 2: Unseen SWE-bench Verified (n=12, Zero Hints) -->
+  <text x="756" y="294" fill="#f8fafc" font-size="14" font-weight="700">Unseen SWE-bench Verified Slice (n=12, 8 Repositories, Zero Hints)</text>
+  <rect x="756" y="304" width="293.3" height="22" rx="5" fill="url(#cyan)"/>
+  <text x="1060" y="320" fill="#38bdf8" font-size="13.5" font-weight="800">V14: 8/12 (66.7%) • 3,533/3,533 P2P</text>
+  <rect x="756" y="330" width="256.7" height="22" rx="5" fill="url(#slate)"/>
+  <text x="1024" y="346" fill="#94a3b8" font-size="13.5" font-weight="700">V12 Flat ReAct: 7/12 (58.3%) • 3,533/3,533 P2P</text>
+
+  <!-- Group 3: Combined Total (n=18, Zero Hints) -->
+  <text x="756" y="384" fill="#f8fafc" font-size="14" font-weight="700">Combined Zero-Hint Benchmark (n=18, 12 Repositories, 79 F2P Tests)</text>
+  <rect x="756" y="394" width="342.2" height="24" rx="5" fill="url(#emerald)"/>
+  <text x="1108" y="411" fill="#34d399" font-size="14" font-weight="800">V14: 14/18 (77.8%) • 72/79 F2P (91.1%)</text>
+  <rect x="756" y="422" width="171.1" height="24" rx="5" fill="url(#slate)"/>
+  <text x="938" y="439" fill="#94a3b8" font-size="14" font-weight="700">V12 Flat ReAct: 7/18 (38.9%) • 28/79 F2P (35.4%)</text>
+
+  <!-- Unseen Verified Breakdown Box -->
+  <rect x="756" y="464" width="620" height="158" rx="10" fill="#0f172a" stroke="#1e293b"/>
+  <text x="774" y="488" fill="#f8fafc" font-size="13.5" font-weight="700">Unseen SWE-bench Verified Highlights &amp; Diagnostic Findings (Zero Hints):</text>
+  <text x="774" y="510" fill="#cbd5e1" font-size="12">• Solved by V14 (8/12): astropy-8872, astropy-13579, flask-5014, matplotlib-25287, requests-1766,</text>
+  <text x="786" y="528" fill="#cbd5e1" font-size="12">sphinx-8269, xarray-4075 (11m vs 16m), and head-to-head win on xarray-2905 (V14 PASS vs V12 FAIL).</text>
+  <text x="774" y="550" fill="#cbd5e1" font-size="12">• Strict Monotonicity: V14 &gt;= V12 on 18/18 instances (+7 net wins, 0 regressions across 3,747 P2P tests).</text>
+  <text x="774" y="572" fill="#cbd5e1" font-size="12">• Why xarray-2905 Won on V14: V12 used a fragile module-prefix heuristic that failed on test classes</text>
+  <text x="786" y="590" fill="#cbd5e1" font-size="12">defined inside xarray.tests; V14 L0+L1-B enforced explicit isinstance(Variable, DataArray, Series, ...).</text>
+  <text x="774" y="610" fill="#94a3b8" font-size="11.2">• Remaining Unseen Bottlenecks: dual-surface tests when hints_text is off (seaborn-3187) &amp; slow figure suites.</text>
+</svg>

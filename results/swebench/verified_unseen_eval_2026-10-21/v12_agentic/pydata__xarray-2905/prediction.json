@@ -1,0 +1,5 @@
+{
+ "instance_id": "pydata__xarray-2905",
+ "model_name_or_path": "hae-v12-agentic/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/xarray/core/variable.py b/xarray/core/variable.py\nindex 45553eb9..21f576d3 100644\n--- a/xarray/core/variable.py\n+++ b/xarray/core/variable.py\n@@ -217,8 +217,14 @@ def as_compatible_data(data, fastpath=False):\n     if isinstance(data, timedelta):\n         data = np.timedelta64(getattr(data, \"value\", data), \"ns\")\n \n-    # we don't want nested self-described arrays\n-    data = getattr(data, \"values\", data)\n+        # we don't want nested self-described arrays, but avoid coercing\n+    # arbitrary objects that happen to expose a ``values`` attribute\n+    if isinstance(data, (pd.Series, pd.DataFrame, pd.Index, Variable)):\n+        data = data.values\n+    elif isinstance(data, xr.DataArray):\n+        data = data.values\n+    else:\n+        data = getattr(data, \"values\", data) if type(data).__module__.startswith((\"pandas\", \"xarray\")) else data\n \n     if isinstance(data, np.ma.MaskedArray):\n         mask = np.ma.getmaskarray(data)\n"
+}

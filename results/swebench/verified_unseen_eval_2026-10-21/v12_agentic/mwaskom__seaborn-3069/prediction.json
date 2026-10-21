@@ -1,0 +1,5 @@
+{
+ "instance_id": "mwaskom__seaborn-3069",
+ "model_name_or_path": "hae-v12-agentic/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py\nindex bbd71ec1..8b67b0af 100644\n--- a/seaborn/_core/scales.py\n+++ b/seaborn/_core/scales.py\n@@ -199,6 +199,9 @@ class Nominal(Scale):\n         # (i.e. if we have [1, 2.5], do we want [1.0, 2.5]? Unclear)\n         axis.update_units(stringify(np.array(units_seed)))\n \n+        if axis is not None and getattr(axis, \"axis_name\", None) == \"y\":\n+            axis.set_inverted(True)\n+\n         # TODO define this more centrally\n         def convert_units(x):\n             # TODO only do this with explicit order?\n"
+}

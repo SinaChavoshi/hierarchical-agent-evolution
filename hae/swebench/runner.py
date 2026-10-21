@@ -358,7 +358,8 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
 
     def objective_text(self) -> str:
         t = self.task
-        hints = f"\n\nISSUE DISCUSSION (hints_text, enabled explicitly):\n{t.hints_text[:4000]}" if t.hints_text else ""
+        use_hints = bool(getattr(self, "include_hints", False) and t.hints_text)
+        hints = f"\n\nISSUE DISCUSSION (hints_text, enabled explicitly):\n{t.hints_text[:4000]}" if use_hints else ""
         return (f"SWE-bench instance {t.instance_id}: repository {t.repo} at commit {t.base_commit[:12]}"
                 f" (version {t.version or '?'}).\n\nPROBLEM STATEMENT (GitHub issue):\n"
                 f"{t.problem_statement[:STATEMENT_PROMPT_CHARS]}{hints}")
@@ -580,6 +581,15 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
             if is_v13_hierarchical_mcts:
                 from hae.swebench.hierarchical_mcts import HierarchicalAgenticMCTSEngine
 
+                enable_recon = bool(
+                    pol_extra.get("enable_recon", nested_extra.get("enable_recon", True))
+                )
+                enable_falsifier = bool(
+                    pol_extra.get("enable_falsifier", nested_extra.get("enable_falsifier", True))
+                )
+                enable_cont_refinement = bool(
+                    pol_extra.get("enable_cont_refinement", nested_extra.get("enable_cont_refinement", True))
+                )
                 engine = HierarchicalAgenticMCTSEngine(
                     runner=self,
                     task=self.task,
@@ -587,6 +597,9 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
                     gatekeeper=gatekeeper,
                     state=state,
                     logger=lambda m: print(m, flush=True),
+                    enable_recon=enable_recon,
+                    enable_falsifier=enable_falsifier,
+                    enable_cont_refinement=enable_cont_refinement,
                 )
                 engine_mode = "v13_hierarchical_mcts"
             else:
@@ -612,6 +625,8 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
                 "checkpoints_recorded": ag_res.get("checkpoints_recorded", 0),
                 "best_checkpoint": ag_res.get("best_checkpoint"),
             }
+            if ag_res.get("ablation_flags"):
+                stats_dict["ablation_flags"] = ag_res.get("ablation_flags")
             if ag_res.get("mcts_tree"):
                 stats_dict["mcts_tree"] = ag_res.get("mcts_tree")
             last_search = {
