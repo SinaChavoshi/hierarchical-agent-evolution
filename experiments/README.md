@@ -1,71 +1,80 @@
-# Experiments & Multi-Generation Phase Index (`V1` $\rightarrow$ `V14`)
+# Experiments index (V1 → V14)
 
-This directory holds the design notes, architecture specifications, evaluation
-reports, harvested telemetry, and errata of every phase of the **Hierarchical
-Agent Evolution (HAE)** program (`V1` through `V14`). Each phase changed a
-specific axis of how firms are scored, how tasks are verified in sandboxes, or
-how multi-agent hierarchy, speculative MoE inference, and compositional tree
-search are structured.
-
-![Universal Two-Tier Hierarchical Verification & Milestone Ratchet Architecture](v13/assets/v14_macro_ratchet_architecture.svg)
-
-*(High-res V14 Two-Tier Ratchet PNG: [`v14_macro_ratchet_architecture.png`](v13/assets/v14_macro_ratchet_architecture.png) | V1–V13+ Trajectory SVG/PNG: [`v1_to_v13_beam_trajectory.svg`](v13/assets/v1_to_v13_beam_trajectory.svg) / [`v1_to_v13_beam_trajectory.png`](v13/assets/v1_to_v13_beam_trajectory.png) | Early V2–V3 held-out trajectory: [`v2_v3_evolutionary_trajectory.png`](v2/assets/v2_v3_evolutionary_trajectory.png))*
+This directory holds the design notes, evaluation reports and errata for every
+HAE version. Each version changed one part of the system: how firms are
+scored, how work is verified, or how the agent hierarchy and search are
+structured. Raw outputs (patches, `grade.json`, records) are in
+[`../results/`](../results/). For the project overview and headline results,
+see the [top-level README](../README.md).
 
 ---
 
-## Complete Phase Index (`V1` $\rightarrow$ `V14`)
+## Era 1 · Execution-grounded evolution
 
-| Phase | Generations / Cohort | What was tested | Outcome | Status | Primary Write-ups & Artifacts |
-|---|---|---|---|---|---|
-| **V1** | Pilot to Gen 10 (13 runs, ~100 firms) | Evolving 31–34-agent hierarchies on open-ended prompts, graded 95% by an LLM judge plus four regex "sandbox" gates | Judged fitness climbed from `25.25` to `96.75`. Re-executing the artifacts afterwards gave `corr(generation, execution) = +0.045` and `0/60` firms in Gen 5–10 passing all five execution gates. | Closed, audited | [v1/README.md](v1/README.md), [execution_grounded_correction.md](v1/execution_grounded_correction.md) |
-| **V2** | Gen 1 to 6 (60 firms, \$28.18) | Held-out unit tests as fitness (`artifacts.py`, 7 tests under `unshare -rn`), zero-seed workspaces; single pass in Gen 1–3, 10-iteration test-and-repair loop with monotonic verification guard in Gen 4–6 | Gen 1–3: elite fitness up `14.56` points, `0/30` firms at `7/7`. Gen 4–6: **`30/30` at `7/7`**, peak net fitness `98.81`, mean iterations `2.20` $\rightarrow$ `1.30`, spend \$7.26 $\rightarrow$ \$4.87/gen. | Complete | [v2/README.md](v2/README.md), [ledger.json](v2/ledger.json), [ledger_iter10.json](v2/ledger_iter10.json) |
-| **V3** | Gen 7 to 9 (30 firms, \$18.92) | Firms re-implement HAE's own breeding engine (`code_overlays`); the breeder compiles and runs the winning overlays to breed the next generation | Gen 7 (zero-seed): **`10/10` at `7/7`**, peak `96.83`. Gen 8–9 bred with evolved overlays (peaks `97.92` and `94.89`). Audit found a `worker.py` filter bug that let Gen 8–9 inherit workspaces (fixed in `71a7da4`) and ~56 KB/run of inter-agent memo text. | Complete | [v3_rsi/README.md](v3_rsi/README.md), [CAMPAIGN_STATUS.md](v3_rsi/CAMPAIGN_STATUS.md), [overlays/](v3_rsi/overlays/) |
-| **V4** | Gen 10 to 11 | True zero-seed runs after fix; three `Qwen3.8-Flash-Next-NVFP4` (`180B` MoE) replicas behind an `llm-d` gateway (prefix-affinity routing, request coalescing, KV-cache offload); soft token-efficiency scoring | Gen 10: `6/10` at `7/7` (peak `78.92`). Gen 11: **`10/10` at `7/7`** on iteration 1 (peak `95.29`, mean `91.08`). Gateway: `0.74 ms` short-circuit, `37–73%` of requests served without GPU work, `455/455` prefix-affinity hits. | Complete | [v4_llmd/README.md](v4_llmd/README.md) |
-| **V5** | Gen 12 to 15 | Inter-agent packets as JSON schemas enforced by vLLM's grammar-constrained decoder (`xgrammar`); 4-module `full_stack_hae` benchmark with `50` held-out tests and no cross-firm caching of synthesis | Output tokens per call fell `1,420` $\rightarrow$ `115` (**-91.9%**). Gen 13: `3/10` at `40–42/50`; Gen 14: `9/10` at `39–44/50`; Gen 15: **`10/10` at `46–50/50`**, two at `50/50`. Gen 12 retracted (cache seed, `6818d8a`). | Complete | [v5_typesafe_xgrammar/README.md](v5_typesafe_xgrammar/README.md) |
-| **V6** | Gen 16 (pilot + 3 cohort runs of 26) | Repair iterations as an explicit epistemic search: `EpistemicState` ledger, falsifiable hypotheses with sandbox probes, non-LLM `EvidenceGatekeeper`, PUCT with low-prior quota, composite fitness (`60/25/15`) | Pilot: plateaued genome reached `50/50` via a `0.10`-prior hypothesis. Cohorts: catastrophic first passes recover once a missing module can be authored (`6/9` in run 2 vs `1/7` in run 1); LLM self-stated priors shown to be uncalibrated (flat hit rate across prior bins). | Complete | [v6_epistemic_search/README.md](v6_epistemic_search/README.md), [results](../results/hae_gen16_v6_cohort/README.md) |
-| **V7** | Out-of-fold evaluation | Logistic value and prior heads trained on 48 V6 cohort trees, evaluated out of fold by firm | State-value head beats base rate out of fold (Brier `0.186` vs `0.202`). Hypothesis-prior head no better than base rate (`0.0863` vs `0.0862`). Shipped in shadow mode. | Complete | [results/v7_value_heads](../results/v7_value_heads/README.md) |
-| **V8** | SWE-bench Dev Cohort (`30` valid tasks) | Role library and CEO-policy genes, Turn-0 team sizing, `recruit_specialist` moves with per-role credit, evidence-conditioned role mutation (`role_mutation.py`), and SWE-bench container harness (`swebench.harness`) | **`4/30` resolved (`13.3%`)** on the 30 valid SWE-bench dev cohort (`7` self-oracle claims $\rightarrow$ `4` false positives, `153.7 tokens/s` effective throughput, `391.2s` mean wall time). | Complete | [v8/v8_role_evolution_and_swebench_roadmap.md](v8/v8_role_evolution_and_swebench_roadmap.md), [v9/v8_v9_evaluation_report.md](v9/v8_v9_evaluation_report.md) |
-| **V9** | SWE-bench Dev Cohort (`30` valid tasks) | Adaptive Branching MCTS ([AB-MCTS, arXiv:2503.04412](https://arxiv.org/abs/2503.04412)): Thompson sampling over Beta arms (`experiment`, `synthesize`, `gen_hypothesis(r)`, `gen_specialist(ceo)`) replaces fixed-width PUCT waterfall | **`3/30` resolved (`10.0%`)** (`207.2 tokens/s`, **+34.8%** throughput over V8). Diagnosed multi-role `GEN` order-statistic inflation (`256` proposals vs `140` experiments: `52.9%` of proposed hypotheses never tested). | Complete | [v9/ab_mcts.md](v9/ab_mcts.md), [v9/v8_v9_evaluation_report.md](v9/v8_v9_evaluation_report.md) |
-| **V10** | SWE-bench Dev Cohort (`30` valid tasks) | Empirical AB-MCTS (`ab_pending_loss = 1.5` virtual losses on untested backlog + `ab_deepen_boost = 0.20` for empirical verification) + GKE MoE Expert Parallelism & EPLB (`--enable-expert-parallel --enable-eplb`) | **`5/30` resolved (`16.7%`)** (**+66.7% over V9, +25.0% over V8**; false positives reduced to `3`; proposal-to-experiment ratio balanced to `1.12 : 1`). Cluster throughput rose **+7.2%** (`769.2` $\rightarrow$ **`824.4 tok/s`**, `533.4 ms` mean TTFT). | Complete | [v10/v10_eplb_evaluation_report.md](v10/v10_eplb_evaluation_report.md) |
-| **V11** | SWE-bench Dev Cohort (`30` valid tasks) | Synthesis-Handoff Closure & Multi-Specialist Corroboration: error-conditioned retries (`Hypothesis.synthesis_attempts`), strict probe inversion (`strict_probe_inversion = True`), multi-hunk/multi-file `REPAIR_PLAN` (`secondary_edits`), Rung 1b exact-window re-anchoring on `>20k`-char modules, 3-way escape-preserving splicing | **`6/30` resolved (`20.0%`)** (**+100% over V9, +50% over V8, +20% over V10**; **100% superset (`6/6`) of all prior generations**; large-module unwritten skips reduced **-57.1%** from `7` $\rightarrow$ `3`; `99.1k` mean tokens/instance). | Complete | [v11/v11_evaluation_report.md](v11/v11_evaluation_report.md) |
-| **V12** | SWE-bench Dev Cohort (`30` valid tasks) | **Agentic ReAct + Best-of-N Ensemble & Empirical Gatekeeper** (`hae/swebench/agentic.py`): Eliminated V6 rigid JSON-schema packet bottlenecks; gave specialists multi-turn interactive ReAct tool loops (`view_file`, `bash`, `str_replace`, `submit`) inside `/testbed` + mandatory `/testbed/reproduce_issue.py` + Best-of-3 diverse causal framing with Negative Evidence Ledger | **`14/30` resolved (`46.7%`)** (**2.33x V11 (`20.0%`), 3.50x V8 (`13.3%`), 4.67x V9 (`10.0%`), `98` individual `FAIL_TO_PASS` tests passed vs `6` in V11, 100% superset of all prior generations**). Also achieved partial `FAIL_TO_PASS` passes on `marshmallow-1702` (`14/28`), `astroid-934` (`1/1`), `astroid-983` (`2/2`), and `sqlfluff-1703` (`1/2`). | Complete | [v12/v12_evaluation_report.md](v12/v12_evaluation_report.md), [results/swebench/dev_eval_2026-10-09](../results/swebench/dev_eval_2026-10-09/README.md) |
-| **V13** | SWE-bench Dev Cohort (`30` valid tasks) | **Hierarchical Verification Harness + Agentic AB-MCTS ("Move 37" Engine)** (`hae/swebench/hierarchical_mcts.py`): Re-architects hierarchy into **Context-Bounded Verification Layers ($L_0 \to L_1 \to L_2$)** combined with **Agentic AB-MCTS over Git Workspace Checkpoints** (`CONT(s_i)` Delta-Refinement in fresh context vs. `GEN` across `consumer_local`, `producer_upstream` / "Move 37", and `codebase_symmetry`), deterministic zero-turn `L1-A` reconnaissance, Turn-1-only thinking budgets, and multi-file-aware Popperian `AdversarialFalsifierSubAgent` (`/testbed/.hae/falsification_suite.py`) | **`30/30` resolved (`100.0%`)** (**`275/275` (`100.0%`) individual `FAIL_TO_PASS` tests passed, `30/30` (`100.0%`) zero `PASS_TO_PASS` regressions, `30/30` (`100.0%`) non-empty verified patches, `1,210.5s` mean wall time (`-7.6%` faster than V12)**). Solved **all 16 instances that failed in V12** (**`100%` superset of V8–V12**). | Complete | [v13/v13_evaluation_report.md](v13/v13_evaluation_report.md), [v13/v13_hierarchical_agentic_ab_mcts_architecture.md](v13/v13_hierarchical_agentic_ab_mcts_architecture.md) |
-| **V13 + Beam-501B** | SWE-bench Multi-Repo Slice (`6` tasks) | **Reflection `Beam-1.0-501B-A23B-NVFP4` + `DFlash2` Speculative Decoding** (`k8s/beam-501b-nvfp4-serving.yaml`): 3 multi-node Ray `TP=4` replicas (`12x RTX PRO 6000 96 GB`, `2.51M` KV-cache tokens) + Harmony chat template & `<rfl:tool_call>` adapter compared head-to-head against `Qwen3.8-Flash-Next-NVFP4` (`180B-A10B`) | **`6/6` (`100.0%`) resolved on `v13_hier_mcts`** (`57/57` F2P, `214/214` P2P) at **`305.6s` mean wall time (`3.31x` faster than `Qwen3.8`'s `1,010.6s`, up to `5.36x` faster)**, **`-34.0%` fewer moves (`22.3` vs `33.8`)**, **`-55.1%` fewer tokens (`149.9k` vs `333.7k`)**, and **`-75.3%` fewer `<think>` tokens**; **`3.56x` faster on `v12_agentic`** (`331.0s` vs `1,177.2s`). | Complete | [v13/beam_vs_qwen38_evaluation_report.md](v13/beam_vs_qwen38_evaluation_report.md), [results/swebench/beam_eval_2026-10-20](../results/swebench/beam_eval_2026-10-20/README.md) |
-| **V14 (`L0-Macro` Ratchet + Zero-Hint `L0-Micro` V13 + `Beam-501B`)** | Universal Multi-Horizon (`5 min` Zero-Hint SWE-bench $\to$ Multi-Day `100K+` LoC Build) | **Two-Tier `L0-Macro` Compositional Milestone DAG & Persistent Git Commit Ratchet** (`hae/hierarchical/milestone_ratchet.py`, `hae/hierarchical/verifier_plugin.py`) + **Domain-General Zero-Hint `L0-Micro` V13** (`0` repo hints, AST static checks, `allow_new_files=True`, configurable `diff_bloat_threshold`, `PytestVerifierPlugin` & `ShellCommandVerifierPlugin`, `--mode ratchet`) | **1. Zero-Hint SWE-bench (`n=6` on `Beam-501B`)**: **`6/6` (`100.0%`) resolved** (`57/57` F2P, `214/214` P2P) in **`278.82s` mean (`239.81s` med, `3.62x` faster than `Qwen3.8`, `1.10x` faster than hinted `Beam-501B`)**, `148.4k` tokens (`-55.5%`), `762` `<think>` tokens (`-85.6%`). **2. Live 4-Milestone `L0-Macro` Build (`MiniLang`)**: **`4/4` (`100.0%`) certified in `245.58s`** (`1,139` LoC, active diff `257–364` lines `< 500`, `25/25` cumulative tests). | Complete | [v13/v14_generalized_macro_ratchet_architecture.md](v13/v14_generalized_macro_ratchet_architecture.md), [results/swebench/v14_zero_hint_beam_eval_2026-10-21](../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md) ([summary.json](../results/swebench/v14_zero_hint_beam_eval_2026-10-21/summary.json)), [results/ratchet/beam_macro_ratchet_eval_2026-10-21](../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md) ([summary.json](../results/ratchet/beam_macro_ratchet_eval_2026-10-21/summary.json)) |
+*Evolved populations of firms. Benchmarks: a 7-test task (V1–V4), then a
+50-test, 4-module task (V5–V6).*
+
+| Version | Change | Key result | Docs |
+| :--- | :--- | :--- | :--- |
+| **V1** | LLM-judge fitness | Judge 25 → 97; exec. corr. +0.045 ¹ | [readme](v1/README.md) · [audit](v1/execution_grounded_correction.md) |
+| **V2** | Held-out unit tests as fitness | 30 / 30 firms at 7 / 7 | [readme](v2/README.md) |
+| **V3** | Firms rewrite the breeder | 10 / 10 at 7 / 7 (Gen 7) ² | [readme](v3_rsi/README.md) |
+| **V4** | Self-hosted 180B MoE | 10 / 10 at 7 / 7 via `llm-d` | [readme](v4_llmd/README.md) |
+| **V5** | Grammar-constrained JSON | −92 % output tokens; 10 / 10 at 46–50 / 50 | [readme](v5_typesafe_xgrammar/README.md) |
+| **V6** | Evidence-gated search | 6 / 9 failed first passes recovered | [readme](v6_epistemic_search/README.md) · [results](../results/hae_gen16_v6_cohort_r2/README.md) |
+| **V7** | Learned value / prior heads | Value head beats base rate; prior head doesn't | [results](../results/v7_value_heads/README.md) |
+
+<sub>¹ 0/60 late firms passed all execution gates; LLM judging was abandoned.
+² Gen 8–9 inherited workspaces through a bug, fixed in `71a7da4`.</sub>
 
 ---
 
-## SWE-bench Dev Cohort Progression (`V8` $\rightarrow$ `V14`)
+## Era 2 · SWE-bench, single-layer agents
 
-Beginning in **V8**, evaluation moved from the internal 50-test `full_stack_hae`
-benchmark to the official containerized **SWE-bench** benchmark (`dev_slice_50.json`,
-verified disjoint from the 500-task `SWE-bench Verified` test split; `30` valid
-executable container environments after preflight screening in
-[`results/swebench/dev_eval_2026-10-09/`](../results/swebench/dev_eval_2026-10-09/README.md)):
+*One hand-designed genome per version. Run on a 30-instance dev cohort from
+the [50-instance pool](../data/swebench/) (disjoint from SWE-bench Verified).
+Graded with the official containers.*
 
-| Metric | V8 (`puct`) | V9 (`ab_mcts`) | V10 (`ab_mcts` + EPLB) | V11 (`ab_mcts` + Multi-Hunk) | V12 (`v12_agentic` ReAct + Best-of-N) | **V13 (`v13_hier_mcts` on `Qwen3.8`)** | **`V13 + Beam-501B` (Hinted, `n = 6`)** | **`V14 Zero-Hint + Beam-501B` (`0` Hints, `n = 6`)** |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Official Resolved (`grade.json`)** | `4 / 30` (`13.3%`) | `3 / 30` (`10.0%`) | `5 / 30` (`16.7%`) | `6 / 30` (`20.0%`) | `14 / 30` (`46.7%`) | **`30 / 30` (`100.0%`)** (**`275 / 275` (`100.0%`) `FAIL_TO_PASS`**) | **`6 / 6` (`100.0%`)** (**`57 / 57` `FAIL_TO_PASS`**) | **`6 / 6` (`100.0%`)** (**`57 / 57` `FAIL_TO_PASS`**) |
-| **Non-Empty Verified Patches** | `9 / 30` (`30.0%`) | `8 / 30` (`26.7%`) | `11 / 30` (`36.7%`) | `11 / 30` (`36.7%`) | `26 / 30` (`86.7%`) | **`30 / 30` (`100.0%`)** | **`6 / 6` (`100.0%`)** | **`6 / 6` (`100.0%`)** |
-| **Zero-Regression on `PASS_TO_PASS`** | `28 / 30` (`93.3%`) | `30 / 30` (`100.0%`) | `29 / 30` (`96.7%`) | `30 / 30` (`100.0%`) | `28 / 30` (`93.3%`) | **`30 / 30` (`100.0%`)** | **`6 / 6` (`100.0%`, `214 / 214` P2P)** | **`6 / 6` (`100.0%`, `214 / 214` P2P)** |
-| **Mean Wall-Clock Time per Task** | `555.8s` | `463.8s` | `539.8s` | `519.5s` | `1,310.7s` | **`1,210.5s`** (**`-7.6%` faster than V12**) | **`305.6s`** (**`3.31x` faster than `Qwen3.8`**) | **`278.8s` (`239.8s` med, `3.62x` faster than `Qwen3.8`)** |
-| **Context Management** | Cumulative Epistemic Ledger | Cumulative Epistemic Ledger | Cumulative Epistemic Ledger | Cumulative Epistemic Ledger | Per-Specialist ReAct (`18` turns) | **3-Layer Clean-Context Ephemeral Sub-Agents (`8–22` turns)** | **3-Layer Clean-Context + Harmony `reasoning_effort` (`-55.1%` tokens)** | **Zero-Hint `L0-Micro` + Domain-General AST Static Gatekeeper (`-55.5%` tokens)** |
-| **Search & Local-Optima Escape** | Fixed-width PUCT (`k=3`) | Packet-level AB-MCTS | Empirical AB-MCTS (`pending_loss=1.5`) | Empirical AB-MCTS + Corroboration | Linear Best-of-3 Restart from `HEAD` | **Agentic AB-MCTS (`CONT` Delta-Refinement vs. `GEN` "Move 37" Pivot)** | **Agentic AB-MCTS + `Beam-501B` (`DFlash2` `8`-token speculative decoding)** | **Two-Tier `L0-Macro` Ratchet $\times$ Zero-Hint `L0-Micro` AB-MCTS + `Beam-501B`** |
+| Version | Change | Resolved | Docs |
+| :--- | :--- | :---: | :--- |
+| **V8** | SWE-bench harness + dynamic org | 4 / 30 | [roadmap](v8/v8_role_evolution_and_swebench_roadmap.md) · [report](v9/v8_v9_evaluation_report.md) |
+| **V9** | AB-MCTS replaces PUCT | 3 / 30 | [spec](v9/ab_mcts.md) · [report](v9/v8_v9_evaluation_report.md) |
+| **V10** | Virtual loss + EPLB serving | 5 / 30 | [report](v10/v10_eplb_evaluation_report.md) |
+| **V11** | Multi-file repair plans | 6 / 30 | [report](v11/v11_evaluation_report.md) |
+| **V12** | Interactive ReAct tool loops | 14 / 30 ³ | [report](v12/v12_evaluation_report.md) · [results](../results/swebench/dev_eval_2026-10-09/README.md) |
+
+<sub>³ Prompts include a few instance-targeted hints.</sub>
 
 ---
 
-## Reading Order
+## Era 3 · Hierarchical verification
 
-If you are new to the project:
-1. **Why Execution-Grounded Verification Matters (`V1` $\rightarrow$ `V2`)**:
-   - [v1/README.md](v1/README.md) and [v1/execution_grounded_correction.md](v1/execution_grounded_correction.md) explain why prose LLM judges fail (`corr = +0.045` with actual code execution) and why every subsequent generation is graded strictly by container execution.
-2. **Infrastructure & Epistemic Search Foundations (`V3` $\rightarrow$ `V7`)**:
-   - [v4_llmd/README.md](v4_llmd/README.md), [v5_typesafe_xgrammar/README.md](v5_typesafe_xgrammar/README.md), and [v6_epistemic_search/README.md](v6_epistemic_search/README.md) cover the self-hosted `Qwen3.8-Flash-Next-NVFP4` (`180B` MoE) cluster and the V6 epistemic ledger.
-3. **SWE-bench Evolution & The Agentic Breakthrough (`V8` $\rightarrow$ `V12`)**:
-   - [v11/v11_evaluation_report.md](v11/v11_evaluation_report.md) and [v12/v12_evaluation_report.md](v12/v12_evaluation_report.md) document why rigid V6 JSON-schema packets (`PROPOSE_HYPOTHESES` / `REPAIR_PLAN`) capped SWE-bench resolution at `20.0%` (`6/30`), and how replacing them with interactive ReAct tool loops + Best-of-$N$ diverse causal framing more than doubled performance to **`46.7%` (`14/30`)**.
-4. **V13 Hierarchical Verification Harness + Agentic AB-MCTS ("Move 37" Engine)**:
-   - [v13/v13_evaluation_report.md](v13/v13_evaluation_report.md) and [v13/v13_hierarchical_agentic_ab_mcts_architecture.md](v13/v13_hierarchical_agentic_ab_mcts_architecture.md) detail the V13 paradigm shift and its **`100.0%` (`30/30`)** cohort evaluation (**`275/275` (`100.0%`)** individual `FAIL_TO_PASS` tests passed).
-5. **Reflection `Beam-1.0-501B-A23B-NVFP4` (`+ DFlash2`) Comparative Evaluation & GKE Topology**:
-   - [v13/beam_vs_qwen38_evaluation_report.md](v13/beam_vs_qwen38_evaluation_report.md) and [../k8s/README.md](../k8s/README.md) document the multi-node Ray `TP=4` GKE deployment (`12x RTX PRO 6000 Blackwell 96 GB`, `2.51M` KV-cache tokens) and the **`3.31x` wall-clock speedup (`305.6s` vs. `1,010.6s`, up to `5.36x` faster)** with **`-55.1%` fewer tokens** while preserving **`100.0%` (`6/6`)** SWE-bench resolution.
-6. **Universal Two-Tier `L0-Macro` Milestone Ratchet & Domain-General Zero-Hint `L0-Micro` Architecture (`V14`)**:
-   - [v13/v14_generalized_macro_ratchet_architecture.md](v13/v14_generalized_macro_ratchet_architecture.md) (diagram: [v13/assets/v14_macro_ratchet_architecture.png](v13/assets/v14_macro_ratchet_architecture.png)), Zero-Hint SWE-bench evaluation in [../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md](../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md) & [summary.json](../results/swebench/v14_zero_hint_beam_eval_2026-10-21/summary.json) (`6/6` = `100.0%` resolved at `278.82s` mean time, `3.62x` faster than `Qwen3.8`, `0` repo hints), and live 4-milestone `L0-Macro` Ratchet evaluation in [../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md](../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md) & [summary.json](../results/ratchet/beam_macro_ratchet_eval_2026-10-21/summary.json) (`4/4` milestones certified in `245.58s`, `1,139` LoC with `< 500`-LoC active diffs and `25/25` cumulative regression tests passed).
+| Version | Change | Tasks | Resolved | Time | Docs |
+| :--- | :--- | :--- | :---: | ---: | :--- |
+| **V13** | Layered agents + tree search | 30 tasks | 30 / 30 ⁴ | 1,211 s | [spec](v13/v13_hierarchical_agentic_ab_mcts_architecture.md) · [report](v13/v13_evaluation_report.md) |
+| **V13** | Same, on Beam-501B | 6 tasks | 6 / 6 ⁴ | 306 s | [report](v13/beam_vs_qwen38_evaluation_report.md) |
+| **V14** | Zero-hint prompts | 6 tasks | **6 / 6** | **279 s** | [results](../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md) |
+| **V14** | Milestone ratchet | MiniLang | **4 / 4** ⁵ | 246 s | [spec](v13/v14_generalized_macro_ratchet_architecture.md) · [results](../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md) |
+
+<sub>⁴ Instance-specific hints in the prompts: 3 repo-specific strings for the
+earlier 15/30 and 22/30 runs, and 25 for the 30/30 run (`e20a400`), several of
+which describe gold fixes. Read these as development runs, not benchmark scores.
+⁵ Hand-written milestones; the agent wrote its own acceptance tests; 1,139 LoC
+total. See the [Caveats](../README.md#caveats) in the top-level README.</sub>
+
+---
+
+## Reading order
+
+1. **Why execution grounding matters:** [V1](v1/README.md) and its [audit](v1/execution_grounded_correction.md)
+2. **Search and serving foundations:** [V4](v4_llmd/README.md), [V5](v5_typesafe_xgrammar/README.md), [V6](v6_epistemic_search/README.md)
+3. **From packets to tool-using agents:** [V11](v11/v11_evaluation_report.md), [V12](v12/v12_evaluation_report.md)
+4. **The hierarchical harness:** the [V13 spec](v13/v13_hierarchical_agentic_ab_mcts_architecture.md) and the [Beam vs Qwen comparison](v13/beam_vs_qwen38_evaluation_report.md)
+5. **Current system:** the [V14 spec](v13/v14_generalized_macro_ratchet_architecture.md) and the two V14 result folders
+
+Raw runs: [V13 + Beam results](../results/swebench/beam_eval_2026-10-20/README.md)
+
+Diagrams: [V14 architecture](v13/assets/v14_macro_ratchet_architecture.svg) ·
+[V13 architecture](v13/assets/v13_beam_architecture.svg) ·
+[GKE topology](v13/assets/gke_beam_501b_topology.svg) ·
+[V2–V3 trajectory](v2/assets/v2_v3_evolutionary_trajectory.png)
