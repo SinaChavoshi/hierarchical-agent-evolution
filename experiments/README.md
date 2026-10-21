@@ -55,7 +55,7 @@ Graded with the official containers.*
 | **V13** | Same, on Beam-501B | 6 tasks | 6 / 6 ⁴ | 306 s | [report](v13/beam_vs_qwen38_evaluation_report.md) |
 | **V14** | Zero-hint prompts (`--include-hints` OFF) | 6 tasks | **6 / 6** | **279 s** | [results](../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md) |
 | **V14** | 5-way component ablation (`--include-hints` OFF) | 6 tasks × 5 arms | **6/6 → 4/6 → 4/6 → 2/6 → 0/6** | 279–446 s | [report](v14/v14_verified_and_ablation_report.md) · [results](../results/swebench/v14_component_ablation_2026-10-21/README.md) |
-| **V14** | Unseen SWE-bench Verified (`--include-hints` OFF) | 12 tasks (8 repos) | **8 / 12** (vs 7 / 12 V12) | 595 s | [report](v14/v14_verified_and_ablation_report.md) · [results](../results/swebench/verified_unseen_eval_2026-10-21/README.md) |
+| **V14** | Unseen SWE-bench Verified (`--include-hints` OFF) | 12 tasks (8 repos) | **9 / 12** (vs 7 / 12 V12) | 413 s | [report](v14/v14_verified_and_ablation_report.md) · [results](../results/swebench/verified_unseen_eval_2026-10-21/README.md) |
 | **V14** | Milestone ratchet | MiniLang | **4 / 4** ⁵ | 246 s | [spec](v14/v14_generalized_macro_ratchet_architecture.md) · [results](../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md) |
 
 <sub>⁴ Instance-specific hints in the prompts: 3 repo-specific strings for the

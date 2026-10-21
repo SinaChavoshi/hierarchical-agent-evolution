@@ -1,5 +1,5 @@
 {
  "instance_id": "pylint-dev__pylint-6386",
  "model_name_or_path": "hae-v13-hier-mcts/reflection-Beam-1.0-501B-A23B-NVFP4",
- "model_patch": "diff --git a/pylint/lint/base_options.py b/pylint/lint/base_options.py\nindex c793cc85..9e56bbdc 100644\n--- a/pylint/lint/base_options.py\n+++ b/pylint/lint/base_options.py\n@@ -541,6 +541,7 @@ def _make_run_options(self: Run) -> Options:\n                 \"action\": _DoNothingAction,\n                 \"kwargs\": {},\n                 \"short\": \"v\",\n+                \"metavar\": \"\",\n                 \"help\": \"In verbose mode, extra non-checker-related info \"\n                 \"will be displayed.\",\n                 \"hide_from_config_file\": True,\n"
+ "model_patch": "diff --git a/pylint/config/utils.py b/pylint/config/utils.py\nindex 8c790416..f46b89ec 100644\n--- a/pylint/config/utils.py\n+++ b/pylint/config/utils.py\n@@ -218,6 +218,8 @@ def _preprocess_options(run: Run, args: Sequence[str]) -> list[str]:\n     i = 0\n     while i < len(args):\n         argument = args[i]\n+        if argument == \"-v\":\n+            argument = \"--verbose\"\n         if not argument.startswith(\"--\"):\n             processed_args.append(argument)\n             i += 1\n"
 }

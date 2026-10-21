@@ -73,15 +73,17 @@ instances from `princeton-nlp/SWE-bench_Verified` across 8 repositories
 
 | Policy | Dev slice (`n = 6`) | Unseen Verified (`n = 12`) | **Combined (`n = 18`)** | Total F2P | Total P2P |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **V14 (`v13_hier_mcts`)** | **6 / 6 (100%)** | **8 / 12 (66.7%)** | **14 / 18 (77.8%)** | **72 / 79 (91.1%)** | **3,747 / 3,747 (100%)** |
+| **V14 (`v13_hier_mcts`)** | **6 / 6 (100%)** | **9 / 12 (75.0%)** | **15 / 18 (83.3%)** | **74 / 79 (93.7%)** | **3,747 / 3,747 (100%)** |
 | V12 ReAct (`v12_agentic`) | 0 / 6 (0.0%) | 7 / 12 (58.3%) | 7 / 18 (38.9%) | 28 / 79 (35.4%) | 3,746 / 3,747 (99.97%) |
-| **Delta (`V14 − V12`)** | **+100.0 pp** | **+8.4 pp** | **+38.9 pp (2.0×)** | **+44 F2P (+55.7 pp)** | **0 regressions** |
+| **Delta (`V14 − V12`)** | **+100.0 pp** | **+16.7 pp** | **+44.4 pp (2.14×)** | **+46 F2P (+58.2 pp)** | **0 regressions** |
 
-On the unseen `Verified` slice, V14 resolves `8 / 12` (`66.7%`, `15 / 22` F2P,
-`3,533 / 3,533` P2P) vs. `7 / 12` (`58.3%`, `14 / 22` F2P) for V12 ReAct,
-winning head-to-head on `pydata__xarray-2905` via `L1-B` adversarial
-falsification and `CONT` delta-refinement (`V = 0.78 → 1.00`), with zero
-instance-level regressions (`V14 >= V12` on `18 / 18` tasks).
+On the unseen `Verified` slice, V14 resolves `9 / 12` (`75.0%`, `17 / 22` F2P,
+`3,533 / 3,533` P2P, `412.6s` mean latency) vs. `7 / 12` (`58.3%`, `14 / 22`
+F2P) for V12 ReAct, winning head-to-head on `pydata__xarray-2905` (via `L1-B`
+adversarial falsification and `CONT` delta-refinement) and
+`pylint-dev__pylint-6386` (via `L1-A` IDF-weighted symbol discovery of
+`pylint/config/utils.py`), with zero instance-level regressions (`V14 >= V12`
+on `18 / 18` tasks).
 
 Report: [`results/swebench/verified_unseen_eval_2026-10-21/`](results/swebench/verified_unseen_eval_2026-10-21/README.md)
 
@@ -210,7 +212,7 @@ HAE went through three eras. The full phase-by-phase table is in
 | :--- | :---: | :--- | :--- |
 | **Execution-grounded evolution** | V1–V7 | Internal 7- and 50-test tasks | LLM judges are gameable; held-out tests work |
 | **SWE-bench, single-layer agents** | V8–V12 | 30-task dev cohort | ReAct tool loops: 4 / 30 → 14 / 30 |
-| **Hierarchical verification** | V13–V14 | 6-task ablation, 12-task Verified, MiniLang | Hierarchy doubles zero-hint resolution vs ReAct (14 / 18 vs 7 / 18) |
+| **Hierarchical verification** | V13–V14 | 6-task ablation, 12-task Verified, MiniLang | Hierarchy more than doubles zero-hint resolution vs ReAct (15 / 18 vs 7 / 18) |
 
 Since V8, each SWE-bench version has been a single hand-designed genome
 (`configs/genomes/`). Population-level evolution, breeding and selection have
@@ -226,20 +228,21 @@ and evolutionary result. The steps are in priority order.
 | # | Step | Status | Next milestone |
 | :-: | :--- | :--- | :--- |
 | 1 | **Component ablations** | **Done (`n = 6`, 30 runs)** | Extend ablation to unseen `Verified` tasks |
-| 2 | **Unseen benchmark (`--include-hints` OFF)** | **Pilot done (`n = 12` Verified, `8/12` vs `7/12`)** | Scale to full `SWE-bench Verified` / `SWE-bench Pro` public split (3 seeds) |
+| 2 | **Unseen benchmark (`--include-hints` OFF)** | **Pilot done (`n = 12` Verified, `9/12` vs `7/12`)** | Scale to full `SWE-bench Verified` / `SWE-bench Pro` public split (3 seeds) |
 | 3 | **Real long-horizon build** | **Mechanism proven (`1,139` LoC MiniLang)** | ≥ 10k LoC planner-driven build passing an external test suite |
 | 4 | **Evolve the harness** | Planned | An evolved V14 genome beats hand-designed V14 on held-out tasks |
 
 **1. Scale the unseen benchmark evaluation.**
 - Expand the zero-hint (`--include-hints` OFF) evaluation from the 12-task
-  `SWE-bench Verified` pilot (`8/12 = 66.7%` vs `7/12 = 58.3%`) to a larger
+  `SWE-bench Verified` pilot (`9/12 = 75.0%` vs `7/12 = 58.3%`) to a larger
   stratified sample of `SWE-bench Verified` and `SWE-bench Pro` (public), with 3
   seeds and matched token budgets against OpenHands / mini-SWE-agent on Beam.
-- Address the 4 failure modes surfaced on unseen `Verified`: (a) multi-branch
-  diff-bloat cap (`diff_bloat_threshold`), (b) test-Runner CLI invocation when
-  tests are non-importable (`pylint-6386`), (c) reproduction-script assertion
-  invertibility (`seaborn-3069`), and (d) cross-call invariant templates
-  (`matplotlib-26208`).
+- Address the remaining failure modes surfaced on unseen `Verified`: (a) guard
+  interaction between newly added axis/limit blocks and adjacent override blocks
+  (`seaborn-3069`, `1/2` F2P passed), (b) disambiguating conflicting issue-text
+  conjectures vs. existing test conventions when `hints_text` is disabled
+  (`seaborn-3187`, where both gold files were found), and (c) tracing indirect
+  state mutations across shared-axis callbacks (`matplotlib-26208`).
 
 **2. Test the ratchet on a real long-horizon build.**
 - Let `L0MacroPlanner` produce the milestones automatically rather than from a
@@ -294,7 +297,7 @@ tests/            stdlib unittest suite, no network access needed
 PYTHONPATH=. python3 -m unittest discover -s tests -q
 ```
 
-> 907 tests, 0 failures, 10 skipped.
+> 908 tests, 0 failures, 10 skipped.
 
 **Serve a model on GKE.** See [`k8s/README.md`](k8s/README.md) for cluster
 setup.

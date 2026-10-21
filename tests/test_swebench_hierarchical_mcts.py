@@ -533,6 +533,85 @@ class TestABMCTSSelectionAndEndToEnd(unittest.TestCase):
         self.assertEqual(target_nid, "root")
         self.assertIsNotNone(branch_spec)
 
+    def test_domain_general_harness_improvements(self):
+        executor = LocalExecutor(root=self.root, python=sys.executable)
+        task = SweTask(
+            instance_id="demo__domain-general-1",
+            repo="demo/calc",
+            base_commit="HEAD",
+            version="1.0",
+            problem_statement="Running with `--verbose-calc` fails because `add_items(2, 3, extra=4)` ignores `extra`.",
+        )
+        state = EpistemicState(company_id="test_company")
+        state.add_question("Root question", module="pkg/calc.py", uncertainty=0.9)
+        gk = EvidenceGatekeeper(workspace=self.root, python_executable=sys.executable, executor=executor, logger=lambda _: None)
+        runner = _DummyRunner(self.root)
+        engine = HierarchicalMCTSSweEngine(runner, executor, task, state, gk, logger=lambda m: None)
+
+        # 1. Rank key prioritizes repro_ok=True over repo_tests_ok=True with repro_ok=False
+        cp_repro = PatchCheckpoint(
+            diff="diff",
+            changed_files=["pkg/calc.py"],
+            file_contents={"pkg/calc.py": "x=1\n"},
+            repro_ok=True,
+            repo_tests_ok=False,
+            compile_ok=True,
+            static_ok=True,
+        )
+        cp_no_repro = PatchCheckpoint(
+            diff="diff",
+            changed_files=["pkg/calc.py"],
+            file_contents={"pkg/calc.py": "x=1\n"},
+            repro_ok=False,
+            repo_tests_ok=True,
+            compile_ok=True,
+            static_ok=True,
+        )
+        self.assertGreater(cp_repro.rank_key(), cp_no_repro.rank_key())
+
+        # 2. Clean-HEAD non-triviality check rejects trivial reproduce_issue.py that passes on HEAD
+        executor.write_file(".hae/reproduce_issue.py", "print('trivial pass on HEAD')\n")
+        engine.execute_str_replace_tool(
+            "pkg/calc.py",
+            "def add_items(a, b=0, extra=None):\n    return a + b",
+            "def add_items(a, b=0, extra=None):\n    return a + b + (extra or 0)",
+            "L2_test",
+            1,
+        )
+        ok_triv, msg_triv, cp_triv = engine.verify_current_workspace("L2_test", 1)
+        self.assertFalse(ok_triv)
+        self.assertFalse(cp_triv.repro_ok)
+        self.assertIn("exited 0 on clean head", msg_triv.lower())
+
+        # Now write a genuine reproduce_issue.py that fails on clean HEAD and passes on the fix
+        executor.write_file(
+            ".hae/reproduce_issue.py",
+            "from pkg.calc import add_items\nassert add_items(2, 3, extra=4) == 9\n",
+        )
+        ok_real, msg_real, cp_real = engine.verify_current_workspace("L2_test", 2)
+        self.assertTrue(ok_real, msg_real)
+        self.assertTrue(cp_real.repro_ok)
+
+        # 3. Clean-HEAD baseline test failure diffing ignores pre-existing HEAD failure
+        engine._head_test_baseline_cache["tests/test_calc.py::test_preexisting_broken"] = False
+        engine._head_test_baseline_cache["tests/test_calc.py::test_newly_broken"] = True
+        only_base, note, new_fails = engine._check_only_baseline_test_failures(
+            ["tests/test_calc.py"],
+            "FAILED tests/test_calc.py::test_preexisting_broken - ValueError\n1 failed, 5 passed in 0.12s\n",
+            {},
+        )
+        self.assertTrue(only_base)
+        self.assertEqual(new_fails, [])
+        self.assertIn("pre-existing", note)
+
+        only_base_new, _, new_fails_bad = engine._check_only_baseline_test_failures(
+            ["tests/test_calc.py"],
+            "FAILED tests/test_calc.py::test_newly_broken - AssertionError\n1 failed, 5 passed in 0.12s\n",
+            {},
+        )
+        self.assertFalse(only_base_new)
+        self.assertEqual(new_fails_bad, ["tests/test_calc.py::test_newly_broken"])
+
 
 if __name__ == "__main__":
     unittest.main()

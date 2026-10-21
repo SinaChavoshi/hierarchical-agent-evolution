@@ -188,10 +188,11 @@ class AgenticMCTSNode:
             and self.falsifier_ok
         )
 
-    def rank_key(self) -> Tuple[int, int, int, int, int, int, int, int, float, int]:
+    def rank_key(self) -> Tuple[int, int, int, int, int, int, int, int, float, int, int]:
         if self.checkpoint is None or not self.checkpoint.diff.strip() or not self.checkpoint.compile_ok:
-            return (0, 0, 0, 0, 0, 0, 0, -999, 0.0, self.episode_index)
+            return (0, 0, 0, 0, 0, 0, 0, -999, 0.0, 0, -self.episode_index)
         cp = self.checkpoint
+        is_cont_child = 1 if (self.parent_id and self.parent_id != "root") else 0
         return (
             int(self.is_certified_global_optimum),
             int(cp.repro_ok and cp.repo_tests_ok and self.falsifier_ok),
@@ -202,7 +203,8 @@ class AgenticMCTSNode:
             int(cp.static_ok),
             -int(cp.new_test_failures),
             round(self.value, 4),
-            self.episode_index,
+            is_cont_child,
+            -self.episode_index,
         )
 
 
@@ -588,13 +590,25 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             for path, _ln, fn in reversed(traceback_frames(combined_text))
             if fn and not fn.startswith("<") and "site-packages" not in path and ".venv" not in path
         ]
+        local_defs: set[str] = set()
+        for m_ld in re.finditer(
+            r"^\s*(?:def\s+([A-Za-z_][A-Za-z0-9_]*)|([A-Za-z_][A-Za-z0-9_]*)\s*=)",
+            text_no_urls,
+            flags=re.MULTILINE,
+        ):
+            tok_ld = m_ld.group(1) or m_ld.group(2)
+            if tok_ld:
+                local_defs.add(tok_ld)
+        cli_flags = re.findall(r"(?:^|[\s`'\"/])(--[A-Za-z0-9][A-Za-z0-9_-]{2,})\b", text_no_urls)
         bt_spans = re.findall(r"`([^`\n]{2,80})`", text_no_urls)
         bt_idents: List[str] = []
         for span in bt_spans:
             for tok in re.findall(r"\b[A-Za-z_][A-Za-z0-9_]{2,}\b", span):
-                bt_idents.append(tok)
+                if tok not in local_defs:
+                    bt_idents.append(tok)
         dotted_chains = re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+\b", text_no_urls)
-        dotted_parts: List[str] = []
+        dotted_attrs: List[str] = []
+        dotted_roots: List[str] = []
         for d in dotted_chains:
             cand_mod = d.replace(".", "/") + ".py"
             for kf in known_repo_files:
@@ -603,14 +617,23 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                         inspected.append(kf)
                     if kf not in self.initial_candidate_modules:
                         self.initial_candidate_modules.append(kf)
-            for p in d.split("."):
-                if len(p) >= 3:
-                    dotted_parts.append(p)
-        call_idents = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]{2,})\s*\(", text_no_urls)
-        camel_or_snake = re.findall(
-            r"\b(?:[A-Z][a-z0-9]+[A-Z][A-Za-z0-9_]*|[a-z_][a-z0-9]*_[a-z0-9_]+)\b",
-            text_no_urls,
-        )
+            parts_d = d.split(".")
+            for p in parts_d[1:]:
+                if len(p) >= 3 and p not in local_defs:
+                    dotted_attrs.append(p)
+            if len(parts_d[0]) >= 4 and parts_d[0] not in local_defs:
+                dotted_roots.append(parts_d[0])
+        call_idents = [
+            c for c in re.findall(r"\b([A-Za-z_][A-Za-z0-9_]{2,})\s*\(", text_no_urls)
+            if c not in local_defs
+        ]
+        camel_or_snake = [
+            c for c in re.findall(
+                r"\b(?:[A-Z][a-z0-9]+[A-Z][A-Za-z0-9_]*|[a-z_][a-z0-9]*_[a-z0-9_]+)\b",
+                text_no_urls,
+            )
+            if c not in local_defs
+        ]
         stop_words = {
             "this", "that", "with", "from", "have", "when", "what", "where", "which", "should",
             "would", "could", "there", "their", "about", "after", "before", "into", "only_if",
@@ -621,7 +644,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             "__call__", "main", "invoke", "any", "object", "union", "optional", "tuple",
             "list", "dict", "set", "str", "int", "float", "bool", "bytes", "type", "callable",
             "cast", "mypy", "typing", "sys", "version_info", "type_checking", "functools",
-            "warnings", "warn",
+            "warnings", "warn", "mytest", "pyplot", "subplots",
         }
         pkg_roots = (
             {p.lower() for p in re.split(r"[/._-]+", getattr(self.task, "repo", "") or "") if p}
@@ -629,10 +652,10 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             | {"src", "lib", "pkg", "core", "decorators", "helpers", "base", "bases", "util", "utils"}
         )
         key_symbols: List[str] = list(rule_codes)
-        for tok in tb_fns + bt_idents + dotted_parts + call_idents + camel_or_snake:
+        for tok in tb_fns + cli_flags + bt_idents + dotted_attrs + call_idents + camel_or_snake + dotted_roots:
             if tok not in key_symbols and tok.lower() not in stop_words and not tok.isdigit():
                 key_symbols.append(tok)
-            if len(key_symbols) >= 14:
+            if len(key_symbols) >= 16:
                 break
 
         # Match symbol stems against tracked non-test `.py` file basenames (e.g., `Property` -> `_property.py`, `decorators` -> `decorators.py`)
@@ -641,7 +664,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             if "test" not in f.lower() and not f.startswith("docs/") and not f.startswith("doc/")
         ]
         for sym in key_symbols[:10]:
-            s_low = sym.lower().lstrip("_")
+            s_low = sym.lower().lstrip("_-")
             if len(s_low) < 4:
                 continue
             stem_hits = [
@@ -654,18 +677,56 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                     self.initial_candidate_modules.append(stem_hits[0])
 
         # Discover source files and test files in `/testbed` matching rule codes, PEP 561 `py.typed`, and specific key symbols
-        grep_symbols = [s for s in key_symbols if s.lower() not in pkg_roots][:6] or key_symbols[:4]
-        sym_pattern = "\\|".join(re.escape(s) for s in grep_symbols) if grep_symbols else ""
+        grep_symbols = [s for s in key_symbols if s.lower() not in pkg_roots][:12] or key_symbols[:6]
+        sym_pattern = "\\|".join(re.escape(s.lstrip("-")) for s in grep_symbols[:6] if s.lstrip("-")) if grep_symbols else ""
         rule_glob = " ".join(f"'*{rc}*'" for rc in rule_codes[:4])
         has_py_typed_mention = "py.typed" in combined_text
         has_bundled_issue_ref = bool(re.search(r"\b(?:fix|fixes|fixed)\s+#\d+", combined_text, flags=re.IGNORECASE))
+        syms_json = json.dumps(grep_symbols[:12])
         discover_cmd = (
             f"cd {self.executor.root} && "
             + (f"git ls-files {rule_glob} 2>/dev/null | head -15; " if rule_glob else "")
             + ("git ls-files '*py.typed*' 'setup.py' 2>/dev/null; " if has_py_typed_mention else "")
             + (
-                f"git grep -l '{sym_pattern}' -- '*.py' ':!docs/*' 2>/dev/null | head -18; "
-                if sym_pattern
+                f"{self.executor.python} - <<'PYEOF' 2>/dev/null\n"
+                f"import json, re, subprocess\n"
+                f"syms = json.loads({syms_json!r})\n"
+                "scores = {}\n"
+                "test_hits = []\n"
+                "for idx, s in enumerate(syms):\n"
+                "    if len(s) < 3:\n"
+                "        continue\n"
+                "    pos_w = max(0.35, 1.0 - 0.06 * idx)\n"
+                "    if re.match(r\"^[A-Za-z_][A-Za-z0-9_]*$\", s):\n"
+                "        try:\n"
+                "            dout = subprocess.check_output([\"git\", \"grep\", \"-El\", \"-e\", f\"^\\\\s*(def|class)\\\\s+{s}\\\\b\", \"--\", \"*.py\", \":!docs/*\"], text=True, stderr=subprocess.DEVNULL).splitlines()\n"
+                "        except Exception:\n"
+                "            dout = []\n"
+                "        dsrc = [f.strip() for f in dout if f.strip().endswith(\".py\") and \"test\" not in f.lower()]\n"
+                "        if dsrc:\n"
+                "            dw = 2.5 / max(1, len(dsrc))\n"
+                "            for df in dsrc[:8]:\n"
+                "                scores[df] = scores.get(df, 0.0) + dw * pos_w\n"
+                "    try:\n"
+                "        out = subprocess.check_output([\"git\", \"grep\", \"-Fl\", \"-e\", s, \"--\", \"*.py\", \":!docs/*\"], text=True, stderr=subprocess.DEVNULL).splitlines()\n"
+                "    except Exception:\n"
+                "        out = []\n"
+                "    src_f = [f.strip() for f in out if f.strip().endswith(\".py\") and \"test\" not in f.lower()]\n"
+                "    tst_f = [f.strip() for f in out if f.strip().endswith(\".py\") and \"test\" in f.lower()]\n"
+                "    for tf in tst_f[:4]:\n"
+                "        if tf not in test_hits:\n"
+                "            test_hits.append(tf)\n"
+                "    if not src_f:\n"
+                "        continue\n"
+                "    idf = (3.0 if len(src_f) <= 4 else 1.0) / max(1, len(src_f))\n"
+                "    for sf in src_f[:20]:\n"
+                "        scores[sf] = scores.get(sf, 0.0) + idf * pos_w\n"
+                "for sf, _sc in sorted(scores.items(), key=lambda kv: (-kv[1], len(kv[0]), kv[0]))[:10]:\n"
+                "    print(sf)\n"
+                "for tf in test_hits[:8]:\n"
+                "    print(tf)\n"
+                "PYEOF\n"
+                if grep_symbols
                 else ""
             )
         )
@@ -677,11 +738,16 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         ]
         disc_src = [f for f in disc_files if "test" not in f.lower() and not f.startswith("docs/")]
         disc_tests = [f for f in disc_files if "test" in f.lower() and f.endswith(".py")]
-        for sf in disc_src:
-            if sf.endswith(".py") and sf not in inspected and len(inspected) < 7:
-                inspected.append(sf)
-            if sf.endswith(".py") and sf not in self.initial_candidate_modules and len(self.initial_candidate_modules) < 7:
-                self.initial_candidate_modules.append(sf)
+        # Promote high-IDF discovered source files near the front (right after any explicit traceback matches)
+        insert_pos = min(len(tb_matched_files), len(inspected))
+        for sf in disc_src[:6]:
+            if sf.endswith(".py") and sf not in inspected:
+                inspected.insert(insert_pos, sf)
+                insert_pos += 1
+            if sf.endswith(".py") and sf not in self.initial_candidate_modules:
+                self.initial_candidate_modules.insert(min(insert_pos, len(self.initial_candidate_modules)), sf)
+        inspected = inspected[:8]
+        self.initial_candidate_modules = self.initial_candidate_modules[:8]
 
         # General AST & codebase invariant scan:
         # 1) Unreferenced `__init__` attributes (`self.<attr> = <param>` with `count == 1`)
@@ -830,10 +896,46 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                             disc_tests.insert(0, kf)
 
         cands_sh = " ".join(f"'{c}'" for c in inspected[:6] if c)
+        cands_json = json.dumps([c for c in inspected[:6] if c])
         probe_cmd = (
             f"cd {self.executor.root} && "
-            + (f"git grep -n 'def \\|class ' -- {cands_sh} 2>/dev/null | head -55; " if cands_sh else "")
-            + (f"git grep -n '{sym_pattern}' -- {cands_sh} 2>/dev/null | head -35; " if (sym_pattern and cands_sh) else "")
+            + (
+                f"{self.executor.python} - <<'PYEOF' 2>/dev/null\n"
+                f"import json, re\n"
+                f"files = json.loads({cands_json!r})\n"
+                f"syms = json.loads({syms_json!r})\n"
+                "for f in files:\n"
+                "    try:\n"
+                "        raw_f = open(f, encoding=\"utf-8\", errors=\"ignore\").read()\n"
+                "        lines = raw_f.splitlines()\n"
+                "    except Exception:\n"
+                "        continue\n"
+                "    rare_syms = [s for s in syms if len(s) >= 3 and 1 <= raw_f.count(s) <= 5]\n"
+                "    shown = set()\n"
+                "    for idx, line in enumerate(lines, 1):\n"
+                "        for s in syms:\n"
+                "            if len(s) < 3:\n"
+                "                continue\n"
+                "            is_def = bool(re.match(r\"^[A-Za-z_][A-Za-z0-9_]*$\", s) and re.search(rf\"^\\s*(def|class)\\s+[^(:]*\\b{re.escape(s)}\\b\", line))\n"
+                "            is_call_or_rare = bool((s.startswith(\"--\") and s in line) or (s in rare_syms and s in line) or (re.match(r\"^[A-Za-z_][A-Za-z0-9_]*$\", s) and re.search(rf\"\\b{re.escape(s)}\\s*\\(\", line)))\n"
+                "            if is_def or is_call_or_rare:\n"
+                "                if any(abs(idx - prev) < 14 for prev in shown):\n"
+                "                    break\n"
+                "                shown.add(idx)\n"
+                "                lo = max(1, idx - (3 if is_def else 6))\n"
+                "                hi = min(len(lines), idx + (34 if is_def else 22))\n"
+                "                print(f\"=== {f}:{lo}-{hi} (matched `{s}`) ===\")\n"
+                "                for ln in range(lo, hi + 1):\n"
+                "                    print(f\"{ln:5d} | {lines[ln - 1]}\")\n"
+                "                break\n"
+                "        if len(shown) >= 4:\n"
+                "            break\n"
+                "PYEOF\n"
+                if (cands_sh and grep_symbols)
+                else ""
+            )
+            + (f"git grep -n 'def \\|class ' -- {cands_sh} 2>/dev/null | head -40; " if cands_sh else "")
+            + (f"git grep -n '{sym_pattern}' -- {cands_sh} 2>/dev/null | head -30; " if (sym_pattern and cands_sh) else "")
             + "git ls-files '*warning*.py' '*exception*.py' '*error*.py' 2>/dev/null | head -10; "
             + "for wf in $(git ls-files '*warning*.py' 2>/dev/null | head -3); do echo \"=== $wf ===\"; head -35 \"$wf\"; done"
         )
@@ -1063,9 +1165,12 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         for nid, n in self.mcts_nodes.items():
             if nid == "root" or n.checkpoint is None:
                 continue
+            crit_tail = n.falsifier_critique[-400:] if len(n.falsifier_critique) > 400 else n.falsifier_critique
+            diff_preview = _truncate_output(n.checkpoint.diff, 500)
             neg_notes.append(
-                f"- Prior branch `{nid}` (`{n.locus}`, V={n.value:.2f} on `{', '.join(n.checkpoint.changed_files)}`): "
-                f"{n.falsifier_critique[:300]}"
+                f"- Prior branch `{nid}` (`{n.locus}`, V={n.value:.2f} on `{', '.join(n.checkpoint.changed_files)}`):\n"
+                f"  Failure summary: {crit_tail}\n"
+                f"  Attempted diff:\n```diff\n{diff_preview}\n```"
             )
         neg_block = (
             "\n### Negative Evidence Ledger (Prior Branches to Avoid Repeating)\n" + "\n".join(neg_notes) + "\n"
@@ -1077,6 +1182,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             if self.executor.exists(self.falsification_script_rel)
             else ""
         )
+        if self.executor.exists(self.repro_script_rel):
+            self.recon_brief.repro_script_rel = self.repro_script_rel
+            self.recon_brief.repro_fails_on_head = True
         header = base_block if base_block else f"{self.runner.objective_text()}\n\n"
         return (
             f"{header}"
@@ -1143,13 +1251,26 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         )
 
     def _discover_targeted_test_files(self, cp: PatchCheckpoint) -> List[str]:
+        def _is_valid_pytest_file(p: str) -> bool:
+            if not p or not p.endswith(".py"):
+                return False
+            bname = os.path.basename(p).lower()
+            if bname == "conftest.py":
+                return False
+            parts = [seg.lower() for seg in p.replace("\\", "/").split("/") if seg]
+            in_test_dir = any(seg in ("tests", "test", "testing") for seg in parts[:-1])
+            is_test_name = bname.startswith("test_") or bname.endswith(("_test.py", "_tests.py")) or bname.startswith("unittest_")
+            if "data" in parts or "fixtures" in parts or "input" in parts:
+                return False
+            return bool(in_test_dir and is_test_name)
+
         discovered: List[str] = []
         if self.custom_test_cmd:
             for cand in re.findall(r"([A-Za-z0-9_./-]*test[A-Za-z0-9_./-]*\.py)", self.custom_test_cmd):
                 if self.executor.exists(cand) and cand not in discovered:
                     discovered.append(cand)
         for cf in (cp.changed_files or []):
-            if cf and "test" in os.path.basename(cf).lower() and cf.endswith(".py") and self.executor.exists(cf):
+            if cf and _is_valid_pytest_file(cf) and self.executor.exists(cf):
                 if cf not in discovered:
                     discovered.append(cf)
         stems = [
@@ -1162,6 +1283,10 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             for f in (cp.changed_files or [])
             if f and os.path.dirname(f)
         ]
+        for d in parent_dirs[:3]:
+            for cand_d in (f"tests/{d}/test_{d}.py", f"tests/test_{d}.py", f"tests/_{d}/test_{d}.py"):
+                if self.executor.exists(cand_d) and cand_d not in discovered:
+                    discovered.append(cand_d)
         rule_codes = sorted(
             set(re.findall(r"\b[A-Z]\d{3,4}\b", self._task_text()))
         )
@@ -1171,12 +1296,13 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             if len(s) >= 3
         ]
         if exact_globs:
-            find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(exact_globs)} 2>/dev/null | head -6"
+            find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(exact_globs)} 2>/dev/null | head -8"
             res_ex_tf = self.executor.run(["bash", "-lc", find_cmd], cwd=self.executor.root, timeout_s=8)
             for line in (res_ex_tf.stdout or "").splitlines():
                 p = line.strip()
-                if p.endswith(".py") and os.path.basename(p) in (f"test_{s}.py" for s in stems[:4]) or any(
-                    os.path.basename(p) in (f"{s}_test.py", f"unittest_{s}.py") for s in stems[:4]
+                if _is_valid_pytest_file(p) and (
+                    os.path.basename(p) in (f"test_{s}.py" for s in stems[:4])
+                    or any(os.path.basename(p) in (f"{s}_test.py", f"unittest_{s}.py") for s in stems[:4])
                 ):
                     if p not in discovered:
                         discovered.append(p)
@@ -1186,11 +1312,11 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 + [f"'*test*{r}*.py' '*{r}*test*.py'" for r in rule_codes[:3]]
             )
             if stem_globs:
-                find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(stem_globs)} 2>/dev/null | head -6"
+                find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(stem_globs)} 2>/dev/null | head -8"
                 res_tf = self.executor.run(["bash", "-lc", find_cmd], cwd=self.executor.root, timeout_s=8)
                 for line in (res_tf.stdout or "").splitlines():
                     p = line.strip()
-                    if p.endswith(".py") and p not in discovered:
+                    if _is_valid_pytest_file(p) and p not in discovered:
                         discovered.append(p)
         if not discovered:
             dir_globs = [
@@ -1199,13 +1325,102 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 if len(d) >= 3 and d not in ("src", "lib", "pkg", "core")
             ]
             if dir_globs:
-                find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(dir_globs)} 2>/dev/null | head -4"
+                find_cmd = f"cd {self.executor.root} && git ls-files {' '.join(dir_globs)} 2>/dev/null | head -6"
                 res_tf = self.executor.run(["bash", "-lc", find_cmd], cwd=self.executor.root, timeout_s=8)
                 for line in (res_tf.stdout or "").splitlines():
                     p = line.strip()
-                    if p.endswith(".py") and p not in discovered:
+                    if _is_valid_pytest_file(p) and p not in discovered:
                         discovered.append(p)
         return discovered[:4]
+
+    def _scan_sibling_call_sites(self, cp: PatchCheckpoint) -> str:
+        """Scan the repository for untouched sibling call sites of specific methods modified in `cp.diff`."""
+        if not cp.diff or not cp.changed_files:
+            return ""
+        common_methods = {
+            "get", "set", "append", "extend", "insert", "pop", "remove", "clear", "copy", "update",
+            "keys", "values", "items", "split", "strip", "lstrip", "rstrip", "join", "replace",
+            "format", "lower", "upper", "startswith", "endswith", "find", "index", "count",
+            "add", "discard", "union", "intersection", "is_set", "match", "search", "sub", "findall",
+            "warn", "warning", "error", "info", "debug", "exists", "isdir", "isfile", "basename",
+            "dirname", "splitext", "getattr", "setattr", "hasattr", "isinstance", "issubclass",
+        }
+        diff_methods: List[str] = []
+        diff_symbols: List[str] = []
+        diff_keys: List[str] = []
+        common_symbols = {
+            "None", "True", "False", "Exception", "ValueError", "TypeError", "KeyError", "AttributeError",
+            "RuntimeError", "NotImplementedError", "IndexError", "AssertionError", "DeprecationWarning",
+            "UserWarning", "FutureWarning", "Optional", "List", "Dict", "Tuple", "Union", "Sequence",
+            "Callable", "Any", "Set", "Iterable", "Mapping", "Object", "Class",
+        }
+        common_keys = {
+            "action", "kwargs", "short", "help", "default", "type", "choices", "dest", "metavar",
+            "nargs", "const", "required", "version", "group", "hide", "name", "value", "label",
+        }
+        for line in cp.diff.splitlines():
+            if line.startswith(("+++", "---", "@@")):
+                continue
+            for m in re.findall(r"\.([A-Za-z_][A-Za-z0-9_]{3,})\s*\(", line):
+                if m not in common_methods and m not in diff_methods:
+                    diff_methods.append(m)
+                if len(diff_methods) >= 5:
+                    break
+            for sym in re.findall(r"\b(_?[A-Z][A-Za-z0-9_]{3,})\b", line):
+                if sym not in common_symbols and sym not in diff_symbols and not sym.isupper():
+                    diff_symbols.append(sym)
+                if len(diff_symbols) >= 4:
+                    break
+            for k in re.findall(r"['\"](--?[A-Za-z0-9][A-Za-z0-9_-]{2,}|[a-z][a-z0-9_-]{3,})['\"]", line):
+                k_clean = k.lstrip("-")
+                if k_clean not in common_keys and k_clean not in diff_keys and len(k_clean) >= 4:
+                    diff_keys.append(k_clean)
+                if len(diff_keys) >= 4:
+                    break
+        if not diff_methods and not diff_symbols and not diff_keys:
+            return ""
+        changed_set = set(cp.changed_files or [])
+        scan_cmd = (
+            f"cd {self.executor.root} && {self.executor.python} - <<'PYEOF' 2>/dev/null\n"
+            f"import json, subprocess\n"
+            f"methods = json.loads({json.dumps(diff_methods)!r})\n"
+            f"symbols = json.loads({json.dumps(diff_symbols)!r})\n"
+            f"keys = json.loads({json.dumps(diff_keys)!r})\n"
+            f"changed = set(json.loads({json.dumps(list(changed_set))!r}))\n"
+            "queries = [(f\".{m}(\", f\".{m}(\") for m in methods] + [(s, s) for s in symbols] + [(f\"--{k}\", f\"\\\"--{k}\\\":\") for k in keys]\n"
+            "for label, q in queries:\n"
+            "    try:\n"
+            "        out = subprocess.check_output([\"git\", \"grep\", \"-Fn\", \"-e\", q, \"--\", \"*.py\", \":!docs/*\", \":!*test*\"], text=True, stderr=subprocess.DEVNULL).splitlines()\n"
+            "    except Exception:\n"
+            "        continue\n"
+            "    other = []\n"
+            "    for l in out:\n"
+            "        parts = l.split(\":\", 2)\n"
+            "        if len(parts) >= 2 and parts[0] not in changed:\n"
+            "            other.append((parts[0], int(parts[1]) if parts[1].isdigit() else 1))\n"
+            "    other_files = sorted({f for f, _ in other})\n"
+            "    if 1 <= len(other_files) <= 3 and len(other) <= 6:\n"
+            "        for f, ln in other[:3]:\n"
+            "            try:\n"
+            "                lines = open(f, encoding=\"utf-8\", errors=\"ignore\").read().splitlines()\n"
+            "                lo, hi = max(1, ln - 6), min(len(lines), ln + 14)\n"
+            "                print(f\"=== Untouched Reference to `{label}` in `{f}` (lines {lo}-{hi}) ===\")\n"
+            "                for idx in range(lo, hi + 1):\n"
+            "                    print(f\"{idx:5d} | {lines[idx - 1]}\")\n"
+            "            except Exception:\n"
+            "                pass\n"
+            "PYEOF\n"
+        )
+        res_sc = self.executor.run(["bash", "-lc", scan_cmd], cwd=self.executor.root, timeout_s=8)
+        sc_out = (res_sc.stdout or "").strip()
+        if not sc_out:
+            return ""
+        return (
+            "\n### Codebase Call-Site Symmetry Check (Untouched Sibling Call Sites of Modified Methods)\n"
+            "Check whether the issue in the problem statement also affects the sibling call site(s) below "
+            "(if so, apply the same fix via `str_replace` or include it in your falsification test!):\n"
+            f"```python\n{_truncate_output(sc_out, 1400)}\n```\n"
+        )
 
     def _falsifier_user_prompt(self, cp: PatchCheckpoint) -> str:
         base_auditor = self._build_auditor_user_prompt(cp)
@@ -1254,11 +1469,16 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                     f"\n### Targeted Repository Test Suite Output (`pytest {' '.join(tfiles[:4])}`, exit={res_pt.rc})\n"
                     f"```text\n{pt_out}\n```\n"
                 )
+        sibling_symmetry_block = self._scan_sibling_call_sites(cp)
         return (
             f"{base_auditor}\n"
             f"{targeted_pytest_block}\n"
+            f"{sibling_symmetry_block}\n"
             f"{self.contract.to_prompt_block()}\n\n"
             "- IMPORTANT: If the patch deprecates legacy kwargs or parameters in favor of a new parameter (e.g. `metadata=...`), ensure passing BOTH the new parameter and deprecated kwargs merges them cleanly after emitting the deprecation warning rather than raising `ValueError`!\n"
+            "- **Behavioral Equivalence & Side-Effect Audit**: Do NOT merely check that a command or call exits 0 without raising an exception. "
+            "If the problem statement says X should behave like Y (e.g., a short CLI option behaving like its long option including `--help` output and runtime side effects, "
+            "an inferred/explicit scale behaving like a categorical scale, or an operation preserving state), verify that X produces the EXACT same observable stdout/stderr/state/help-text as Y!\n"
             "Also write your adversarial test script to `/testbed/.hae/falsification_suite.py` (or `/testbed/.hae/audit_edge_cases.py`), "
             "and when emitting ` ```submit `, include `VERDICT: PASS` if all edge cases, deprecation warnings, and tests pass, "
             "or `VERDICT: FAIL: <exact failing assertion or missing requirement>` if the patch is still flawed."
@@ -1439,15 +1659,19 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 timeout_s=40,
             )
             pt_post_raw = ((res_pt_post.stdout or "") + "\n" + (res_pt_post.stderr or "")).strip()
-            if res_pt_post.rc != 0 and res_pt_post.rc not in (139, -11) and "No module named pytest" not in pt_post_raw:
-                cp.repo_tests_ok = False
-                cp.gatekeeper_ok = False
-                for c in self.checkpoints:
-                    if c.diff == cp.diff:
-                        c.repo_tests_ok = False
-                        c.gatekeeper_ok = False
-                pt_fail_out = _truncate_output(pt_post_raw, 1500)
-                return False, f"Targeted pytest suite ({' '.join(tfiles_post[:4])}) FAILED (exit {res_pt_post.rc}):\n{pt_fail_out}"
+            if res_pt_post.rc != 0 and res_pt_post.rc not in (5, 139, -11) and "No module named pytest" not in pt_post_raw:
+                only_base_pt, _base_note_pt, _new_fids_pt = self._check_only_baseline_test_failures(
+                    tfiles_post[:2], pt_post_raw, cp.file_contents
+                )
+                if not only_base_pt:
+                    cp.repo_tests_ok = False
+                    cp.gatekeeper_ok = False
+                    for c in self.checkpoints:
+                        if c.diff == cp.diff:
+                            c.repo_tests_ok = False
+                            c.gatekeeper_ok = False
+                    pt_fail_out = _truncate_output(pt_post_raw, 1500)
+                    return False, f"Targeted pytest suite ({' '.join(tfiles_post[:4])}) FAILED (exit {res_pt_post.rc}):\n{pt_fail_out}"
 
         explicit_fail = bool(re.search(r"VERDICT\s*:\s*FAIL", verdict_text, flags=re.IGNORECASE))
         explicit_pass = bool(re.search(r"VERDICT\s*:\s*PASS", verdict_text, flags=re.IGNORECASE))
@@ -1566,7 +1790,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         pytest_tb_extra = ""
         if cp is not None and not cp.repo_tests_ok:
             failed_ids = list(
-                dict.fromkeys(re.findall(r"(tests/[A-Za-z0-9_./-]+\.py(?:::[A-Za-z0-9_:\[\]-]+)?)", audit_msg))
+                dict.fromkeys(
+                    re.findall(r"([A-Za-z0-9_./-]+\.py::[A-Za-z0-9_:\[\]-]+)", audit_msg)
+                )
             )[:3]
             if failed_ids:
                 res_tb = self.executor.run(

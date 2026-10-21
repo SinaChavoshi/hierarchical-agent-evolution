@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import dataclasses
 import difflib
+import hashlib
 import os
 import re
 import time
@@ -83,11 +84,11 @@ class PatchCheckpoint:
     created_files: List[str] = dataclasses.field(default_factory=list)
 
     def rank_key(self) -> Tuple[int, int, int, int, int, int, int]:
-        """Higher is better."""
+        """Higher is better. Never allow an un-reproduced checkpoint to outrank a reproduced one."""
         return (
-            1 if self.gatekeeper_ok else 0,
+            1 if (self.gatekeeper_ok and self.repro_ok and self.repo_tests_ok) else 0,
+            1 if (self.repro_ok and self.repo_tests_ok and self.audit_ok) else 0,
             1 if (self.repro_ok and self.repo_tests_ok) else 0,
-            1 if self.audit_ok else 0,
             1 if self.repro_ok else 0,
             1 if self.repo_tests_ok else 0,
             1 if (self.compile_ok and self.static_ok) else 0,
@@ -846,6 +847,9 @@ class AgenticSweEngine:
         self.custom_test_cmd = custom_test_cmd
         self._known_created_files: set[str] = set()
         self._last_created_files: List[str] = []
+        self._head_test_baseline_cache: Dict[str, bool] = {}
+        self._head_file_failures_cache: Dict[str, set[str]] = {}
+        self._repro_head_fails_cache: Dict[str, bool] = {}
         self.checkpoints: List[PatchCheckpoint] = []
         self.trajectory_log: List[Dict[str, Any]] = []
         self.total_moves_used: int = 0
@@ -1246,6 +1250,11 @@ class AgenticSweEngine:
             probe_code = self.executor.read_file(script_rel)
         except Exception:
             probe_code = cmd
+        if script_rel == self.repro_script_rel and res.rc != 0:
+            curr_d, _, _ = self._current_diff_and_files()
+            if not curr_d.strip():
+                r_sha = hashlib.sha256(probe_code.encode("utf-8", errors="ignore")).hexdigest()
+                self._repro_head_fails_cache[r_sha] = True
         out_summary = (res.stdout + "\n" + res.stderr).strip()[-600:]
         existing = self.state.hypotheses_for(root_q.question_id)
         if not existing and res.rc != 0:
@@ -1276,6 +1285,165 @@ class AgenticSweEngine:
                 h.hypothesis_id, SUPPORTED, 0.92, ev.evidence_id, self.gatekeeper.authority
             )
             self.state.lower_uncertainty(root_q.question_id, 0.15, self.gatekeeper.authority)
+
+    def _extract_failing_test_ids(self, text: str) -> List[str]:
+        fids = list(
+            dict.fromkeys(
+                re.findall(r"([A-Za-z0-9_./-]+\.py::[A-Za-z0-9_:\[\]-]+)", text or "")
+            )
+        )
+        gk_extract = getattr(self.gatekeeper, "failing_test_ids", None)
+        if callable(gk_extract):
+            for gid in gk_extract(text or ""):
+                if "::" in gid and gid not in fids:
+                    fids.append(gid)
+        return fids
+
+    def _check_only_baseline_test_failures(
+        self,
+        test_files: List[str],
+        current_output: str,
+        current_contents: Dict[str, str],
+    ) -> Tuple[bool, str, List[str]]:
+        """Check whether failing test node IDs in `test_files` already fail on clean `HEAD`.
+
+        Returns `(only_baseline_failures, pass_note, new_failing_ids)`.
+        """
+        if not test_files:
+            return False, "", []
+        curr_fids = self._extract_failing_test_ids(current_output)
+        if not curr_fids:
+            res_c = self.executor.run(
+                [
+                    self.executor.python,
+                    "-m",
+                    "pytest",
+                    "-q",
+                    "-rfE",
+                    "--tb=no",
+                    "--disable-warnings",
+                    "-p",
+                    "no:randomly",
+                    *test_files[:2],
+                ],
+                cwd=self.executor.root,
+                env={"PYTHONPATH": self.executor.root},
+                timeout_s=35,
+            )
+            if res_c.rc in (0, 5) and not res_c.timed_out:
+                return True, f"proximity test `{test_files[0]}` passed", []
+            curr_fids = self._extract_failing_test_ids((res_c.stdout or "") + "\n" + (res_c.stderr or ""))
+        if not curr_fids:
+            return False, "", []
+
+        # If <= 4 failures, check those specific test node IDs on clean HEAD (fast, ~1-2s).
+        # If > 4 failures, cache the full file's clean-HEAD failure set once.
+        if len(curr_fids) <= 4:
+            uncached = [fid for fid in curr_fids if fid not in self._head_test_baseline_cache]
+            if uncached:
+                try:
+                    self._reset_tracked_to_head()
+                    res_h = self.executor.run(
+                        [
+                            self.executor.python,
+                            "-m",
+                            "pytest",
+                            "-q",
+                            "-rfE",
+                            "--tb=no",
+                            "--disable-warnings",
+                            "-p",
+                            "no:randomly",
+                            *uncached,
+                        ],
+                        cwd=self.executor.root,
+                        env={"PYTHONPATH": self.executor.root},
+                        timeout_s=25,
+                    )
+                    h_out = (res_h.stdout or "") + "\n" + (res_h.stderr or "")
+                    h_fids = set(self._extract_failing_test_ids(h_out))
+                    if len(uncached) == 1 and res_h.rc != 0 and not res_h.timed_out:
+                        self._head_test_baseline_cache[uncached[0]] = False
+                    else:
+                        for fid in uncached:
+                            self._head_test_baseline_cache[fid] = (fid not in h_fids)
+                finally:
+                    for fp, fc in current_contents.items():
+                        self.executor.write_file(fp, fc)
+                    if self.allow_new_files and self._last_created_files:
+                        self.executor.git(["add", "-N", "--", *self._last_created_files])
+            new_fids = [fid for fid in curr_fids if self._head_test_baseline_cache.get(fid, True)]
+            if not new_fids:
+                # If current_output came from `-x` (stopping after 1 failure), verify remaining tests in `test_files[:2]`
+                if "stopping after 1 failures" in current_output and len(curr_fids) == 1:
+                    fn_name = curr_fids[0].split("::")[-1].split("[")[0]
+                    res_rem = self.executor.run(
+                        [
+                            self.executor.python,
+                            "-m",
+                            "pytest",
+                            "-q",
+                            "-rfE",
+                            "--tb=short",
+                            "--disable-warnings",
+                            "-p",
+                            "no:randomly",
+                            "-k",
+                            f"not {fn_name}",
+                            *test_files[:2],
+                        ],
+                        cwd=self.executor.root,
+                        env={"PYTHONPATH": self.executor.root},
+                        timeout_s=35,
+                    )
+                    if res_rem.rc not in (0, 5) or res_rem.timed_out:
+                        rem_fids = self._extract_failing_test_ids((res_rem.stdout or "") + "\n" + (res_rem.stderr or ""))
+                        return False, "", rem_fids or curr_fids
+                return (
+                    True,
+                    f"0 new test failures vs clean HEAD ({len(curr_fids)} pre-existing clean-HEAD failure(s) ignored)",
+                    [],
+                )
+            return False, "", new_fids
+
+        file_key = "|".join(sorted(test_files[:2]))
+        if file_key not in self._head_file_failures_cache:
+            try:
+                self._reset_tracked_to_head()
+                res_hf = self.executor.run(
+                    [
+                        self.executor.python,
+                        "-m",
+                        "pytest",
+                        "-q",
+                        "-rfE",
+                        "--tb=no",
+                        "--disable-warnings",
+                        "-p",
+                        "no:randomly",
+                        *test_files[:2],
+                    ],
+                    cwd=self.executor.root,
+                    env={"PYTHONPATH": self.executor.root},
+                    timeout_s=45,
+                )
+                hf_out = (res_hf.stdout or "") + "\n" + (res_hf.stderr or "")
+                self._head_file_failures_cache[file_key] = set(self._extract_failing_test_ids(hf_out))
+            finally:
+                for fp, fc in current_contents.items():
+                    self.executor.write_file(fp, fc)
+                if self.allow_new_files and self._last_created_files:
+                    self.executor.git(["add", "-N", "--", *self._last_created_files])
+
+        head_fail_set = self._head_file_failures_cache.get(file_key, set())
+        new_fids = [fid for fid in curr_fids if fid not in head_fail_set]
+        if not new_fids and head_fail_set:
+            return (
+                True,
+                f"0 new test failures vs clean HEAD ({len(curr_fids)} pre-existing clean-HEAD failure(s) ignored)",
+                [],
+            )
+        return False, "", new_fids
 
     def verify_current_workspace(self, specialist: str, turn: int, is_auditor: bool = False) -> Tuple[bool, str, Optional[PatchCheckpoint]]:
         """Run full Gatekeeper verification on the current workspace diff."""
@@ -1345,23 +1513,63 @@ class AgenticSweEngine:
                     static_ok = False
                 else:
                     stem_rel = os.path.splitext(os.path.basename(rel))[0].lstrip("_")
+                    rel_dir = os.path.dirname(rel)
+                    dir_base = os.path.basename(rel_dir)
                     exact_test_cands = [
                         f"tests/test_{stem_rel}.py",
-                        f"tests/{os.path.basename(os.path.dirname(rel))}/test_{stem_rel}.py",
+                        f"tests/{dir_base}/test_{stem_rel}.py",
+                        f"tests/_{dir_base.lstrip('_')}/test_{stem_rel}.py",
+                        f"{rel_dir}/tests/test_{stem_rel}.py",
                     ]
-                    exact_tests = [tc for tc in exact_test_cands if stem_rel and self.executor.exists(tc)]
+                    exact_tests = [
+                        tc for tc in dict.fromkeys(exact_test_cands)
+                        if stem_rel and self.executor.exists(tc)
+                    ]
                     exact_passed = False
+                    exact_pass_note = ""
+                    ex_out_combined = ""
                     if not is_whole_suite and exact_tests:
                         res_ex = self.executor.run(
-                            [self.executor.python, "-m", "pytest", "-q", "--tb=short", "--disable-warnings", "-p", "no:randomly", *exact_tests],
+                            [
+                                self.executor.python,
+                                "-m",
+                                "pytest",
+                                "-q",
+                                "-rfE",
+                                "--tb=short",
+                                "--disable-warnings",
+                                "-p",
+                                "no:randomly",
+                                *exact_tests,
+                            ],
                             cwd=self.executor.root,
                             env={"PYTHONPATH": self.executor.root},
-                            timeout_s=25,
+                            timeout_s=35,
                         )
+                        ex_out_combined = ((res_ex.stdout or "") + "\n" + (res_ex.stderr or "")).strip()
                         if res_ex.rc == 0 and not res_ex.timed_out:
                             exact_passed = True
+                            exact_pass_note = f"exact stem test `{exact_tests[0]}` passed"
+                        elif res_ex.rc == 1 and not res_ex.timed_out:
+                            only_base, base_note, new_fids = self._check_only_baseline_test_failures(
+                                exact_tests, ex_out_combined, contents
+                            )
+                            if only_base:
+                                exact_passed = True
+                                exact_pass_note = base_note
+                            elif new_fids:
+                                out = ex_out_combined
+                    elif not is_whole_suite and not exact_tests:
+                        prox_files = getattr(self.gatekeeper, "_proximity_tests", lambda _r: [])(rel)
+                        if prox_files:
+                            only_base, base_note, new_fids = self._check_only_baseline_test_failures(
+                                prox_files[:2], (ev.detail or "") + "\n" + out, contents
+                            )
+                            if only_base:
+                                exact_passed = True
+                                exact_pass_note = base_note
                     if exact_passed:
-                        diagnostics.append(f"- Gatekeeper `verify_module({rel!r})`: OK (exact stem test `{exact_tests[0]}` passed).")
+                        diagnostics.append(f"- Gatekeeper `verify_module({rel!r})`: OK ({exact_pass_note}).")
                         continue
                     repo_tests_ok = False
                     m_nf = re.search(r"(\d+)\s+new failure\(s\)", ev.detail or "")
@@ -1370,7 +1578,10 @@ class AgenticSweEngine:
                 if not repo_tests_ok:
                     failed_ids = list(
                         dict.fromkeys(
-                            re.findall(r"(tests/[A-Za-z0-9_./-]+\.py(?:::[A-Za-z0-9_:\[\]-]+)?)", (ev.detail or "") + "\n" + out)
+                            re.findall(
+                                r"([A-Za-z0-9_./-]+\.py::[A-Za-z0-9_:\[\]-]+)",
+                                (ev.detail or "") + "\n" + out,
+                            )
                         )
                     )[:3]
                     if failed_ids:
@@ -1408,8 +1619,45 @@ class AgenticSweEngine:
                 timeout_s=90,
             )
             if res_repro.rc == 0 and not res_repro.timed_out:
-                repro_ok = True
-                diagnostics.append(f"- Reproduction script `{self.repro_script_rel}`: PASSED (exit 0).")
+                try:
+                    repro_src = self.executor.read_file(self.repro_script_rel)
+                except Exception:
+                    repro_src = ""
+                repro_sha = hashlib.sha256(repro_src.encode("utf-8", errors="ignore")).hexdigest()
+                if repro_sha not in self._repro_head_fails_cache:
+                    if repro_src and ("import " not in repro_src and "from " not in repro_src):
+                        self._repro_head_fails_cache[repro_sha] = False
+                    elif changed and self.executor.exists(".git"):
+                        tracked_r = [f for f in contents.keys() if f not in self._last_created_files]
+                        try:
+                            if tracked_r:
+                                self.executor.git(["checkout", self.base_ref, "--", *tracked_r])
+                            for cf in self._last_created_files:
+                                self.executor.run(["rm", "-f", cf], cwd=self.executor.root, timeout_s=5)
+                            res_hr = self.executor.run(
+                                [self.executor.python, self.repro_script_rel],
+                                cwd=self.executor.root,
+                                env={"PYTHONPATH": self.executor.root},
+                                timeout_s=45,
+                            )
+                            self._repro_head_fails_cache[repro_sha] = bool(res_hr.rc != 0 or res_hr.timed_out)
+                        finally:
+                            for fp, fc in contents.items():
+                                self.executor.write_file(fp, fc)
+                            if self.allow_new_files and self._last_created_files:
+                                self.executor.git(["add", "-N", "--", *self._last_created_files])
+                    else:
+                        self._repro_head_fails_cache[repro_sha] = True
+                if not self._repro_head_fails_cache.get(repro_sha, True):
+                    repro_ok = False
+                    diagnostics.append(
+                        f"- Reproduction script `{self.repro_script_rel}` INVALID: exited 0 on clean HEAD (unpatched code) as well! "
+                        "Your script does not reproduce the bug on the unpatched code (do NOT write a no-op script). "
+                        f"Write a real reproduction script in `{self.repro_script_rel}` that fails (exits non-zero) on clean HEAD and passes (exits 0) with your fix."
+                    )
+                else:
+                    repro_ok = True
+                    diagnostics.append(f"- Reproduction script `{self.repro_script_rel}`: PASSED (exit 0).")
             else:
                 out_r = (res_repro.stdout + "\n" + res_repro.stderr).strip()
                 diagnostics.append(
@@ -1464,9 +1712,7 @@ class AgenticSweEngine:
                     f"{_truncate_output(out_a, 2500)}"
                 )
 
-        all_ok = compile_ok and static_ok and repo_tests_ok and (repro_ok or not self.executor.exists(self.repro_script_rel)) and (audit_ok or not is_auditor)
-        if not self.executor.exists(self.repro_script_rel) and not self.custom_test_cmd and turn <= 15:
-            all_ok = False
+        all_ok = compile_ok and static_ok and repo_tests_ok and repro_ok and (audit_ok or not is_auditor)
 
         cp = PatchCheckpoint(
             diff=diff,
@@ -1601,6 +1847,8 @@ class AgenticSweEngine:
         no_think_cooldown = 0
         episode_edits = 0
         initial_cp_count = len(self.checkpoints)
+        last_rejected_submit_sig: Optional[Tuple[str, str]] = None
+        consecutive_unchanged_submits = 0
 
         turn = 0
         effective_max_turns = max_turns
@@ -1749,6 +1997,29 @@ class AgenticSweEngine:
                 })
 
             elif action.kind == "submit":
+                curr_diff_sub, _, _ = self._current_diff_and_files()
+                try:
+                    curr_repro_sub = self.executor.read_file(self.repro_script_rel) if self.executor.exists(self.repro_script_rel) else ""
+                except Exception:
+                    curr_repro_sub = ""
+                sub_sig = (curr_diff_sub, curr_repro_sub)
+                if last_rejected_submit_sig is not None and sub_sig == last_rejected_submit_sig:
+                    consecutive_unchanged_submits += 1
+                    if consecutive_unchanged_submits >= 2:
+                        self.logger(
+                            f"[v12-agentic] {specialist_name} turn {turn}: repeated unchanged submit {consecutive_unchanged_submits}x; ending episode early."
+                        )
+                        break
+                    messages.append({
+                        "role": "user",
+                        "content": (
+                            "Observation (submit rejected — unchanged workspace): You emitted `submit` again without modifying any repository file "
+                            f"or `{self.repro_script_rel}` since the previous rejected `submit`! Inspect the failure in the previous Gatekeeper audit "
+                            "and modify either the source file (`str_replace`) or the reproduction script (`bash`) before submitting."
+                        ),
+                    })
+                    continue
+                consecutive_unchanged_submits = 0
                 ok, audit_msg, cp = self.verify_current_workspace(
                     specialist_name, turn, is_auditor=is_auditor
                 )
@@ -1769,6 +2040,7 @@ class AgenticSweEngine:
                     verified_cp = cp
                     return True, verified_cp
                 else:
+                    last_rejected_submit_sig = sub_sig
                     reject_obs = (
                         f"Observation (submit rejected by EvidenceGatekeeper):\n{audit_msg}\n\n"
                         "Please fix the reported issue(s) in place using `str_replace` or `bash`, re-run your "
@@ -1782,19 +2054,21 @@ class AgenticSweEngine:
                 )
                 if ok_mid and cp_mid is not None:
                     return True, cp_mid
-                if cp_mid is not None and cp_mid.diff.strip() and cp_mid.repro_ok and not cp_mid.repo_tests_ok:
+                if cp_mid is not None and cp_mid.diff.strip() and cp_mid.compile_ok and (
+                    cp_mid.repro_ok
+                    or cp_mid.repo_tests_ok
+                    or action.kind in ("str_replace", "write_file")
+                ):
                     bonus_granted = True
                     effective_max_turns += 3
                     self.logger(
-                        f"[v12-agentic] {specialist_name} turn {turn}: repro_ok=True but repo_tests failed; "
-                        f"granting +3 bonus in-context repair turns (up to {effective_max_turns})"
+                        f"[v12-agentic] {specialist_name} turn {turn}: granting +3 bonus in-context repair/verification turns (up to {effective_max_turns})"
                     )
                     messages.append({
                         "role": "user",
                         "content": (
                             f"Observation (Gatekeeper End-of-Episode Check — +3 Bonus Turns Granted):\n{audit_mid}\n\n"
-                            "Your patch passes `reproduce_issue.py` (`repro_ok=True`) but failed the repo test(s) above. "
-                            "You have 3 bonus turns to inspect the failing test and apply a surgical `str_replace` fix, then emit ```submit."
+                            "You have 3 bonus turns to verify and refine your edit against `reproduce_issue.py` and `pytest`, apply any needed surgical `str_replace` fix, and emit ```submit."
                         ),
                     })
 
