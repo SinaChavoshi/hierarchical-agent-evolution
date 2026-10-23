@@ -508,6 +508,133 @@ class TestMacroMilestoneRatchetIntegration(unittest.TestCase):
         self.assertEqual(tok["thought_tokens"], 40)
         self.assertEqual(tok["total_tokens"], 270)
 
+    def test_planner_think_tag_json_extraction_and_external_heldout_recovery(self) -> None:
+        # 1. Verify <think>{...}</think> with nested braces before ```json ... ``` is parsed cleanly
+        raw_llm_output = (
+            "<think>\n"
+            "Let's decompose the calculator package: {stage_1: lexer, stage_2: eval}.\n"
+            "</think>\n"
+            "```json\n"
+            + json.dumps(
+                {
+                    "system_objective": "Build calc package",
+                    "milestones": [
+                        {
+                            "milestone_id": "m1_add",
+                            "title": "Addition Module",
+                            "objective": "Create calc/ops.py with add(a, b)",
+                            "depends_on": [],
+                            "target_files": ["calc/__init__.py", "calc/ops.py", "tests/test_m1_add.py"],
+                            "acceptance_cmd": "pytest -q",
+                        },
+                        {
+                            "milestone_id": "m2_mul",
+                            "title": "Multiplication & Division Module",
+                            "objective": "Add mul(a, b) and div(a, b) to calc/ops.py",
+                            "depends_on": ["m1_add"],
+                            "target_files": ["calc/ops.py", "tests/test_m2_mul.py"],
+                            "acceptance_cmd": "pytest -q",
+                        },
+                    ],
+                }
+            )
+            + "\n```"
+        )
+        planner = L0MacroPlanner(
+            llm_callable=lambda _msgs: raw_llm_output,
+            max_diff_lines=400,
+            budget_moves=20,
+            logger=lambda _: None,
+        )
+
+        # Held-out external test file stored OUTSIDE the repository workspace
+        ext_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(ext_dir.cleanup)
+        ext_test_path = os.path.join(ext_dir.name, "test_external_oracle.py")
+        with open(ext_test_path, "w", encoding="utf-8") as fh:
+            fh.write(
+                "import unittest\n"
+                "from calc.ops import add, mul, div\n\n"
+                "class TestExternalHeldOut(unittest.TestCase):\n"
+                "    def test_arith(self):\n"
+                "        self.assertEqual(add(10, 5), 15)\n"
+                "        self.assertEqual(mul(6, 7), 42)\n"
+                "    def test_div_by_zero_raises_value_error(self):\n"
+                "        with self.assertRaises(ValueError):\n"
+                "            div(10, 0)\n\n"
+                "if __name__ == '__main__':\n"
+                "    unittest.main()\n"
+            )
+
+        ext_plugin = ShellCommandVerifierPlugin(
+            test_cmd=f"pytest -q {ext_test_path}",
+            diff_bloat_threshold=400,
+        )
+
+        def runner_with_recovery(milestone: MilestoneSpec, executor: CommandExecutor) -> dict:
+            if milestone.milestone_id == "m1_add":
+                executor.write_file("calc/__init__.py", "from .ops import add\n")
+                executor.write_file("calc/ops.py", "def add(a, b):\n    return a + b\n")
+                executor.write_file(
+                    "tests/test_m1_add.py",
+                    "def test_add():\n    from calc.ops import add\n    assert add(2, 3) == 5\n",
+                )
+                return {"resolved_by_self_oracle": True}
+            if milestone.milestone_id == "m2_mul":
+                # Initially forgets to raise ValueError on b == 0 in div(a, b)
+                executor.write_file("calc/__init__.py", "from .ops import add, mul, div\n")
+                executor.write_file(
+                    "calc/ops.py",
+                    "def add(a, b):\n    return a + b\n\n"
+                    "def mul(a, b):\n    return a * b\n\n"
+                    "def div(a, b):\n    return a / b\n",
+                )
+                executor.write_file(
+                    "tests/test_m2_mul.py",
+                    "def test_mul_div():\n    from calc.ops import mul, div\n    assert mul(3, 4) == 12\n    assert div(8, 2) == 4\n",
+                )
+                return {"resolved_by_self_oracle": True}
+            if milestone.milestone_id.startswith("m3_external_recovery"):
+                # Recovery milestone fixes div(a, b) to raise ValueError on b == 0
+                executor.write_file(
+                    "calc/ops.py",
+                    "def add(a, b):\n    return a + b\n\n"
+                    "def mul(a, b):\n    return a * b\n\n"
+                    "def div(a, b):\n"
+                    "    if b == 0:\n"
+                    "        raise ValueError('division by zero')\n"
+                    "    return a / b\n",
+                )
+                executor.write_file(
+                    f"tests/test_{milestone.milestone_id}.py",
+                    "import pytest\nfrom calc.ops import div\ndef test_div_zero():\n    with pytest.raises(ValueError):\n        div(1, 0)\n",
+                )
+                return {"resolved_by_self_oracle": True}
+            return {"resolved_by_self_oracle": False}
+
+        engine = MacroMilestoneRatchetEngine(
+            executor=self.executor,
+            dag=None,  # Planner-driven!
+            objective="Build calc package",
+            planner=planner,
+            milestone_runner=runner_with_recovery,
+            external_verifier_plugin=ext_plugin,
+            max_recovery_milestones=2,
+            logger=lambda _: None,
+        )
+        summary = engine.run(resume=False)
+
+        self.assertTrue(summary["completed"])
+        self.assertEqual(
+            summary["certified_milestones"],
+            ["m1_add", "m2_mul", "m3_external_recovery_1"],
+        )
+        ext_info = summary["external_verification"]
+        self.assertFalse(ext_info["initial"]["tests_ok"])
+        self.assertTrue(ext_info["final"]["tests_ok"])
+        self.assertTrue(ext_info["external_verified"])
+        self.assertEqual(ext_info["recovery_milestones"], ["m3_external_recovery_1"])
+
 
 if __name__ == "__main__":
     unittest.main()

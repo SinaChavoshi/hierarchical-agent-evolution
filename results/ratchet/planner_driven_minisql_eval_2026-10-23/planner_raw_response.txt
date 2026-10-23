@@ -1,0 +1,55 @@
+{
+  "system_objective": "Build a pure-Python in-memory relational SQL database engine package named minisql with lexer, parser, storage/catalog/expression evaluation, query execution, and transaction/facade support.",
+  "milestones": [
+    {
+      "milestone_id": "m1_lexer_and_ast",
+      "title": "Lexer and AST foundations",
+      "objective": "Implement minisql/__init__.py, minisql/ast_nodes.py, and minisql/lexer.py. In ast_nodes.py define MiniSQLError(Exception) and @dataclass QueryResult with columns: List[str] = field(default_factory=list), rows: List[Tuple[Any, ...]] = field(default_factory=list), rowcount: int = 0, to_dicts(self) -> List[Dict[str, Any]], scalar(self) -> Any, __iter__(self) -> iter(self.rows), and __len__(self) -> int -> len(self.rows). Define AST dataclasses with exact names and fields: Literal(value), ParamPlaceholder(index: int = 0), ColumnRef(name: str, table: Optional[str] = None), StarRef(table: Optional[str] = None), UnaryExpr(op: str, operand: Any), BinaryExpr(op: str, left: Any, right: Any), IsNullExpr(expr: Any, negated: bool = False), InExpr(expr: Any, items: List[Any], negated: bool = False), BetweenExpr(expr: Any, low: Any, high: Any, negated: bool = False), LikeExpr(expr: Any, pattern: Any, negated: bool = False), CaseExpr(when_thens: List[Tuple[Any, Any]], else_expr: Any = None), FuncCall(name: str, args: List[Any], distinct: bool = False), ColumnSpec(name: str, data_type: str = 'TEXT', primary_key: bool = False, not_null: bool = False, unique: bool = False, default: Any = None, has_default: bool = False), SelectItem(expr: Any, alias: Optional[str] = None), JoinClause(join_type: str, table_name: str, alias: Optional[str] = None, on_expr: Any = None), OrderByItem(expr: Any, asc: bool = True), CreateTableStmt(table_name: str, columns: List[ColumnSpec], if_not_exists: bool = False), DropTableStmt(table_name: str, if_exists: bool = False), CreateIndexStmt(index_name: str, table_name: str, column_name: str, if_not_exists: bool = False), InsertStmt(table_name: str, columns: Optional[List[str]], values_rows: List[List[Any]]), UpdateStmt(table_name: str, assignments: List[Tuple[str, Any]], where: Any = None), DeleteStmt(table_name: str, where: Any = None), SelectStmt(select_items: List[SelectItem], from_table: Optional[str] = None, from_alias: Optional[str] = None, distinct: bool = False, joins: List[JoinClause] = ..., where: Any = None, group_by: List[Any] = ..., having: Any = None, order_by: List[OrderByItem] = ..., limit: Optional[int] = None, offset: int = 0), TransactionStmt(action: str, savepoint_name: Optional[str] = None). In lexer.py define @dataclass Token(type, value, pos) and tokenize_sql(sql: str) -> List[Token]. Tokenize case-insensitive keywords, identifiers including double-quoted and backtick identifiers, integer/float literals, single-quoted strings with '' escaping, positional ? placeholders, operators =, ==, !=, <>, <, <=, >, >=, +, -, *, /, %, ||, punctuation (, ), ,, ;, ., -- line comments, and /* */ block comments. Unterminated string/comment or unexpected character raises MiniSQLError. Re-export MiniSQLError and QueryResult from minisql/__init__.py. Include tests/test_m1_lexer_and_ast.py.",
+      "depends_on": [],
+      "target_files": ["minisql/__init__.py", "minisql/ast_nodes.py", "minisql/lexer.py", "tests/test_m1_lexer_and_ast.py"],
+      "acceptance_cmd": "pytest -q tests/test_m1_lexer_and_ast.py",
+      "max_diff_lines": 850,
+      "budget_moves": 18
+    },
+    {
+      "milestone_id": "m2_sql_parser",
+      "title": "Recursive-descent SQL parser",
+      "objective": "Implement minisql/parser.py with parse_sql(sql: str) -> Any and parse_statements(sql: str) -> List[Any], importing AST nodes from minisql.ast_nodes and tokenize_sql from minisql.lexer. Parse CREATE TABLE [IF NOT EXISTS], DROP TABLE [IF EXISTS], CREATE INDEX [IF NOT EXISTS] idx ON tbl(col), INSERT INTO tbl [(cols)] VALUES (...), (...), UPDATE tbl SET col = expr, ... [WHERE ...], DELETE FROM tbl [WHERE ...], SELECT [DISTINCT] ... [FROM tbl [[AS] alias]] [INNER/LEFT [OUTER]/CROSS JOIN ...] [WHERE ...] [GROUP BY ...] [HAVING ...] [ORDER BY ... [ASC|DESC]] [LIMIT n [OFFSET m]], and transaction statements BEGIN [TRANSACTION], COMMIT [TRANSACTION], ROLLBACK [TRANSACTION], SAVEPOINT name, RELEASE [SAVEPOINT] name, ROLLBACK [TRANSACTION] TO [SAVEPOINT] name. Assign positional ? placeholders sequential 0-based indices within each statement, resetting to 0 at the start of each statement. In CREATE TABLE column DEFAULT <expr>, if the parsed default is a Literal, store default.value, evaluating unary -Literal to -default.value, directly in ColumnSpec.default. Parse precedence OR -> AND -> NOT -> IS [NOT] NULL / [NOT] IN / [NOT] BETWEEN / [NOT] LIKE / comparisons =, ==, !=, <>, <, <=, >, >= -> || -> +, - -> *, /, % -> unary +, - -> primary literals, ?, [table.]col, table.*, *, (expr), CASE WHEN ... THEN ... ELSE ... END, and FUNC([DISTINCT] ...) including COUNT(*). Raise MiniSQLError on invalid syntax. Include at least 5 real tests in tests/test_m2_sql_parser.py.",
+      "depends_on": ["m1_lexer_and_ast"],
+      "target_files": ["minisql/parser.py", "tests/test_m2_sql_parser.py"],
+      "acceptance_cmd": "pytest -q tests/test_m2_sql_parser.py",
+      "max_diff_lines": 850,
+      "budget_moves": 18
+    },
+    {
+      "milestone_id": "m3_storage_and_expr",
+      "title": "Storage catalog and expression evaluator",
+      "objective": "Implement minisql/storage.py with in-memory catalog classes ColumnDef, Table, and Catalog, plus eval_expr(expr, row_ctx, params) and is_truthy(val). Apply type coercion/affinity for INT/INTEGER, REAL/FLOAT, TEXT/VARCHAR, and BOOL/BOOLEAN while preserving None as SQL NULL. Enforce PRIMARY KEY (implies NOT NULL and UNIQUE), UNIQUE (multiple NULLs allowed), NOT NULL, and DEFAULT application when columns are omitted on INSERT; if c.default is an AST Literal or expression, unwrap/evaluate it with eval_expr. Maintain secondary hash indexes for CREATE INDEX [IF NOT EXISTS] idx ON tbl(col) on insert/update/delete. Implement 3-valued NULL expression evaluation: arithmetic +, -, *, /, %, unary -, + returns None if any operand is NULL and division/modulo by 0 raises MiniSQLError; || converts numbers to str and returns None if either operand is NULL; comparisons return None if either operand is NULL; AND/OR/NOT use 3-valued truth tables; IS NULL, IS NOT NULL, [NOT] IN, [NOT] BETWEEN, [NOT] LIKE with case-insensitive ASCII % and _ matching and None if input or pattern is NULL; CASE WHEN ... THEN ... ELSE ... END. ParamPlaceholder(index) raises MiniSQLError if index >= len(params) or params is None. Scalar functions COALESCE, IFNULL, NULLIF, UPPER, LOWER, LENGTH, ABS, ROUND. Include at least 5 real tests in tests/test_m3_storage_and_expr.py.",
+      "depends_on": ["m2_sql_parser"],
+      "target_files": ["minisql/storage.py", "tests/test_m3_storage_and_expr.py"],
+      "acceptance_cmd": "pytest -q tests/test_m3_storage_and_expr.py",
+      "max_diff_lines": 850,
+      "budget_moves": 18
+    },
+    {
+      "milestone_id": "m4_query_execution",
+      "title": "Relational query and DML execution",
+      "objective": "Implement minisql/engine.py with QueryExecutor and Database core. Execute CREATE TABLE, DROP TABLE, CREATE INDEX with if_not_exists, INSERT evaluating each expression in values_rows with eval_expr(expr, {}, params), checking column-value count match and returning QueryResult(rowcount=n), UPDATE returning QueryResult(rowcount=n), and DELETE returning QueryResult(rowcount=n). Implement full SELECT pipeline: FROM base table with optional alias plus chained INNER JOIN, LEFT JOIN/LEFT OUTER JOIN, and CROSS JOIN, with LEFT JOIN padding unmatched right-side columns with None, and SELECT without FROM. WHERE keeps rows where is_truthy(eval_expr(where)) is True. GROUP BY partitions by group key; if group_by is empty and no aggregate appears in select_items or having, project each row individually; if group_by is empty but aggregates are present, treat all rows as one group even when empty, with COUNT -> 0 and SUM/AVG/MIN/MAX -> None, and support arithmetic over aggregates. HAVING filters grouped rows and supports aggregate expressions and SELECT output aliases. Project SELECT items including *, alias.*, expressions, AS alias, with DISTINCT deduplication and unqualified column names for * on a single table without joins. ORDER BY supports multi-key ASC/DESC, resolving column names, qualified names, SELECT aliases, or expressions, with None/NULL first in ASC and last in DESC. Apply OFFSET and LIMIT. Include at least 5 real tests in tests/test_m4_query_execution.py covering INSERT, SELECT, JOIN, GROUP BY/HAVING, and ORDER BY/LIMIT.",
+      "depends_on": ["m3_storage_and_expr"],
+      "target_files": ["minisql/engine.py", "tests/test_m4_query_execution.py"],
+      "acceptance_cmd": "pytest -q tests/test_m4_query_execution.py",
+      "max_diff_lines": 850,
+      "budget_moves": 18
+    },
+    {
+      "milestone_id": "m5_transactions_and_facade",
+      "title": "Transactions, savepoints, and public facade",
+      "objective": "Implement ACID transactions, savepoints, statement-level atomicity, and the public Database facade in minisql/engine.py and minisql/__init__.py. Support BEGIN [TRANSACTION], COMMIT, ROLLBACK using deep-copy catalog snapshots so ROLLBACK restores tables, rows, schema changes, and indexes exactly; raise MiniSQLError on COMMIT or ROLLBACK with no active transaction or BEGIN when already in a transaction. Support SAVEPOINT name, RELEASE [SAVEPOINT] name, and ROLLBACK [TRANSACTION] TO [SAVEPOINT] name, restoring state to the named savepoint while keeping the transaction active and raising MiniSQLError for unknown savepoint names. Before any mutating statement, save a catalog snapshot so MiniSQLError mid-statement rolls back partial modifications. Implement Database.__init__(self), execute(self, sql: str, params: Optional[Sequence[Any]] = None) -> QueryResult, and execute_script(self, sql_script: str) -> List[QueryResult], splitting semicolon-terminated statements while respecting quotes and comments and executing each in order. Export Database, QueryResult, and MiniSQLError from minisql/__init__.py. Include at least 5 real tests in tests/test_m5_transactions_and_facade.py verifying execute, execute_script, transactions, savepoints, and statement atomicity.",
+      "depends_on": ["m4_query_execution"],
+      "target_files": ["minisql/engine.py", "minisql/__init__.py", "tests/test_m5_transactions_and_facade.py"],
+      "acceptance_cmd": "pytest -q tests/test_m5_transactions_and_facade.py",
+      "max_diff_lines": 850,
+      "budget_moves": 18
+    }
+  ]
+}

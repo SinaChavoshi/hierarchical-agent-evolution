@@ -88,3 +88,15 @@ We pre-screened **12 valid unseen `SWE-bench Verified` instances** (`--gold` pas
 2. **IDF-Weighted Symbol & CLI-Flag Discovery (`discover_cmd` / `probe_cmd`)**: On `pylint-dev__pylint-6386`, `L1-A` extracted the long CLI flag `--verbose` from the problem statement and ranked `pylint/config/utils.py` (`_preprocess_options`, `IDF = 3.0 / 1`) as the top candidate file, resolving the issue in **`25` moves / `250.0s`** (`1/1` F2P, `7/7` P2P) where `v12_agentic` failed (`0/1` F2P).
 3. **Strict Reproduction Gate + Clean-`HEAD` Non-Triviality Check + `+3` Bonus Turns**: Verifying that `.hae/reproduce_issue.py` actually fails on clean `HEAD` before accepting `repro_ok = True`, ordering `repro_ok` above `repo_tests_ok` in `PatchCheckpoint.rank_key()`, and granting `+3` end-of-episode repair turns enabled `mwaskom__seaborn-3069` to localize `Plotter._finalize_figure` in `seaborn/_core/plot.py` and pass `1/2` `FAIL_TO_PASS` tests (`test_nominal_x_axis_tweaks`) with `94/94` `PASS_TO_PASS`.
 4. **Codebase Call-Site & Option-Key Symmetry Scan (`_scan_sibling_call_sites`)**: On `mwaskom__seaborn-3187`, `L1-B`'s call-site scan across untouched repository files automatically discovered and patched `seaborn/utils.py` (`locator_to_legend_entries`) alongside `seaborn/_core/scales.py` even with `hints_text` disabled.
+
+---
+
+## 5. Planner-Driven `L0-Macro` Ratchet Build (`MiniSQL`, `2,345` LoC) & Held-Out External `sqlite3` Differential Oracle
+
+To validate `L0MacroPlanner` and `MacroMilestoneRatchetEngine` without hand-authored milestones (`dag=None`), [`scripts/run_planner_driven_ratchet_eval.py`](../../scripts/run_planner_driven_ratchet_eval.py) passed only the high-level `MINISQL_SYSTEM_SPEC` to `L0MacroPlanner.plan()` on live `reflection/Beam-1.0-501B-A23B-NVFP4` (`+ DFlash2`).
+
+1. **Automatic `L0MacroPlanner` Decomposition**: `L0MacroPlanner` decomposed the specification in 1 LLM call (`5,317` tokens) into a 5-milestone topological DAG (`m1_lexer_and_ast` → `m2_sql_parser` → `m3_storage_and_expr` → `m4_query_execution` → `m5_transactions_and_facade`), each bounded under `< 850` diff lines.
+2. **Held-Out External `sqlite3` Differential Oracle & Automatic Ratcheted Recovery**: After `m1`..`m5` were certified and committed (`2,162` LoC, `26` internal tests passed), `MacroMilestoneRatchetEngine` evaluated the repository against `heldout_external_tests/test_minisql_external_oracle.py` (stored outside `minisql_repo/` during the build, containing 15 test functions / 26 unit and differential equivalence checks against Python's stdlib `sqlite3`). The initial post-DAG check scored `9 / 15 passed` (`6` edge-case failures), automatically triggering two ratcheted recovery milestones (`m6_external_recovery_1` → `13 / 15`, `m7_external_recovery_2` → **`15 / 15 passed`**) and finishing at **`2,345` LoC** with **`34 / 34` internal tests + `15 / 15` (`100%`) held-out external oracle tests** (`49 / 49` total) across 7 tagged Git commits (`07740fb54a92`).
+
+Full artifacts: [`results/ratchet/planner_driven_minisql_eval_2026-10-23/`](../../results/ratchet/planner_driven_minisql_eval_2026-10-23/README.md)
+

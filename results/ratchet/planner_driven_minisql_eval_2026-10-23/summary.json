@@ -1,0 +1,862 @@
+{
+  "eval_id": "planner_driven_minisql_eval_2026-10-23",
+  "timestamp_utc": "2026-10-23T21:52:27Z",
+  "endpoint_info": {
+    "endpoint": "http://127.0.0.1:8000/v1",
+    "requested_model": "reflection/Beam-1.0-501B-A23B-NVFP4",
+    "available_models": [
+      "reflection/Beam-1.0-501B-A23B-NVFP4",
+      "Beam-1.0-501B-A23B",
+      "nvidia/Qwen3.8-Flash-Next-NVFP4",
+      "Qwen/Qwen3-Coder-32B-Instruct",
+      "Qwen3-Coder-32B"
+    ],
+    "detected_provider": "vllm",
+    "hierarchical_micro_engine": "HierarchicalAgenticMCTSEngine"
+  },
+  "planner_mode": "automatic_l0_macro_planner_live_llm",
+  "planner_token_usage": {
+    "llm_calls": 1,
+    "prompt_tokens": 3282,
+    "output_tokens": 2035,
+    "thought_tokens": 518,
+    "total_tokens": 5317
+  },
+  "completed": true,
+  "topological_order": [
+    "m1_lexer_and_ast",
+    "m2_sql_parser",
+    "m3_storage_and_expr",
+    "m4_query_execution",
+    "m5_transactions_and_facade",
+    "m6_external_recovery_1",
+    "m7_external_recovery_2"
+  ],
+  "certified_milestones": [
+    "m1_lexer_and_ast",
+    "m2_sql_parser",
+    "m3_storage_and_expr",
+    "m4_query_execution",
+    "m5_transactions_and_facade",
+    "m6_external_recovery_1",
+    "m7_external_recovery_2"
+  ],
+  "failed_milestones": [],
+  "pending_milestones": [],
+  "head_commit_sha": "07740fb54a923db08c775369ac40de3bfe23ddd3",
+  "total_wall_clock_s": 738.542,
+  "totals": {
+    "moves_used": 170,
+    "llm_calls": 171,
+    "prompt_tokens": 1749973,
+    "output_tokens": 51330,
+    "thought_tokens": 6932,
+    "total_tokens": 1801303
+  },
+  "external_verification": {
+    "external_verified": true,
+    "initial": {
+      "compile_ok": true,
+      "repro_ok": false,
+      "tests_ok": false,
+      "falsifier_ok": true,
+      "new_failures": 6,
+      "passed_tests": 9,
+      "summary": "build OK (no build_cmd configured); test `pytest -q /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/heldout_external_tests/test_minisql_external_oracle.py` FAILED (rc=1, failures=2): === FAILURES: /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/heldout_external_tests/test_minisql_external_oracle.py::test_02_ddl_if_not_exists_and_drop_table ===\nKeyError: 't1'\nTraceback (most recent call last):\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/minisql_repo/.hae/pybin/pytest.py\", line 319, in _invoke_test_callable\n    fn(**call_kwargs)\n    ~~^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/heldout_external_tests/test_minisql_external_oracle.py\", line 78, in test_02_ddl_if_not_exists_and_drop_table\n    db.execute(\"SELECT * FROM t1\")\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/minisql_repo/minisql/engine.py\", line 122, in execute\n    return QueryExecutor(self).execute(stmt, params)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/minisql_repo/minisql/engine.py\", line 215, in execute\n    base = self.db.catalog.tables[stmt.from_table]\n           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\nKeyError: 't1'\nFAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/heldout_external_tests/test_minisql_external_oracle.py::test_02_ddl_if_not_exists_and_drop_table - KeyError: 't1'\n=== FAILURES: /usr/local/google/home/chavoshi/hierarchical-agent-evolution/resul\n... [truncated 6601 chars] ...\nLECT region, COUNT(*), COUNT(amount), COUNT(DISTINCT rep), SUM(amount), AVG(amount), MIN(amount), MAX(amount) FROM sales GROUP BY region ORDER BY region': minisql=3 vs sqlite=2\n=== FAILURES: /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/heldout_external_tests/test_minisql_external_oracle.py::test_15_division_by_zero_and_statement_atomicity ===\nAssertionError: DID NOT RAISE <class 'minisql.ast_nodes.MiniSQLError'>\nTraceback (most recent call last):\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/minisql_repo/.hae/pybin/pytest.py\", line 319, in _invoke_test_callable\n    fn(**call_kwargs)\n    ~~^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/heldout_external_tests/test_minisql_external_oracle.py\", line 358, in test_15_division_by_zero_and_statement_atomicity\n    with pytest.raises(MiniSQLError):\n         ~~~~~~~~~~~~~^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/minisql_repo/.hae/pybin/pytest.py\", line 62, in __exit__\n    raise AssertionError(f\"DID NOT RAISE {self.expected!r}\")\nAssertionError: DID NOT RAISE <class 'minisql.ast_nodes.MiniSQLError'>\nFAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/heldout_external_tests/test_minisql_external_oracle.py::test_15_division_by_zero_and_statement_atomicity - AssertionError: DID NOT RAISE <class 'minisql.ast_nodes.MiniSQLError'>\n6 failed, 9 passed in 0.07s",
+      "score": 0.55,
+      "ok": false,
+      "details": {}
+    },
+    "final": {
+      "compile_ok": true,
+      "repro_ok": true,
+      "tests_ok": true,
+      "falsifier_ok": true,
+      "new_failures": 0,
+      "passed_tests": 15,
+      "summary": "build OK (no build_cmd configured); test `pytest -q /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/heldout_external_tests/test_minisql_external_oracle.py` PASSED (15 passed)",
+      "score": 1.0,
+      "ok": true,
+      "details": {}
+    },
+    "recovery_milestones": [
+      "m6_external_recovery_1",
+      "m7_external_recovery_2"
+    ]
+  },
+  "milestones": [
+    {
+      "milestone_id": "m1_lexer_and_ast",
+      "title": "Lexer and AST foundations",
+      "depends_on": [],
+      "target_files": [
+        "minisql/__init__.py",
+        "minisql/ast_nodes.py",
+        "minisql/lexer.py",
+        "tests/test_m1_lexer_and_ast.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/test_m1_lexer_and_ast.py",
+      "max_diff_lines": 850,
+      "status": "certified",
+      "base_head_sha": "e9d4e8ae113da3deee2f24beff1536202be2a4d6",
+      "certified_commit_sha": "e02bb6b5101800195bb32ec55fd5d3034541eb90",
+      "git_tag": "hae-milestone-m1_lexer_and_ast",
+      "elapsed_s": 61.013,
+      "moves_used": 19,
+      "token_usage": {
+        "llm_calls": 19,
+        "prompt_tokens": 119685,
+        "output_tokens": 4981,
+        "thought_tokens": 360,
+        "total_tokens": 124666
+      },
+      "delta_files": [
+        "minisql/__init__.py",
+        "minisql/ast_nodes.py",
+        "minisql/lexer.py",
+        "tests/__init__.py",
+        "tests/test_m1_lexer_and_ast.py"
+      ],
+      "delta_added_lines": 388,
+      "delta_removed_lines": 0,
+      "delta_diff_lines": 415,
+      "total_repo_loc": 395,
+      "archived_falsification_suite": null,
+      "verified_milestones": [
+        "m1_lexer_and_ast"
+      ],
+      "milestone_passed_tests": {
+        "m1_lexer_and_ast": 5
+      },
+      "cumulative_passed_tests": 5,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 5,
+        "summary": "[m1_lexer_and_ast] acceptance PASSED (5 tests); plugin(PytestVerifierPlugin): py_compile OK (5 file(s)); pytest PASSED (5 passed)",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_lexer_and_ast"
+          ],
+          "milestone_passed_tests": {
+            "m1_lexer_and_ast": 5
+          },
+          "cumulative_passed_tests": 5,
+          "delta_added_lines": 388,
+          "delta_diff_lines": 415
+        }
+      }
+    },
+    {
+      "milestone_id": "m2_sql_parser",
+      "title": "Recursive-descent SQL parser",
+      "depends_on": [
+        "m1_lexer_and_ast"
+      ],
+      "target_files": [
+        "minisql/parser.py",
+        "tests/test_m2_sql_parser.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/test_m2_sql_parser.py",
+      "max_diff_lines": 850,
+      "status": "certified",
+      "base_head_sha": "e02bb6b5101800195bb32ec55fd5d3034541eb90",
+      "certified_commit_sha": "3976fdcae0daf8332808a3fef70690a4b92db0aa",
+      "git_tag": "hae-milestone-m2_sql_parser",
+      "elapsed_s": 129.71,
+      "moves_used": 29,
+      "token_usage": {
+        "llm_calls": 29,
+        "prompt_tokens": 274948,
+        "output_tokens": 10221,
+        "thought_tokens": 903,
+        "total_tokens": 285169
+      },
+      "delta_files": [
+        "minisql/parser.py",
+        "tests/test_m2_sql_parser.py"
+      ],
+      "delta_added_lines": 618,
+      "delta_removed_lines": 0,
+      "delta_diff_lines": 630,
+      "total_repo_loc": 1013,
+      "archived_falsification_suite": ".hae/ratchet_suites/falsify_m2_sql_parser.py",
+      "verified_milestones": [
+        "m1_lexer_and_ast",
+        "m2_sql_parser"
+      ],
+      "milestone_passed_tests": {
+        "m1_lexer_and_ast": 5,
+        "m2_sql_parser": 6
+      },
+      "cumulative_passed_tests": 11,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 11,
+        "summary": "[m1_lexer_and_ast] acceptance PASSED (5 tests); [m2_sql_parser] acceptance PASSED (6 tests); [m2_sql_parser] falsification suite `.hae/ratchet_suites/falsify_m2_sql_parser.py` PASSED; plugin(PytestVerifierPlugin): py_compile OK (2 file(s)); pytest PASSED (11 passed); falsifier `.hae/falsification_suite.py` PASSED",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_lexer_and_ast",
+            "m2_sql_parser"
+          ],
+          "milestone_passed_tests": {
+            "m1_lexer_and_ast": 5,
+            "m2_sql_parser": 6
+          },
+          "cumulative_passed_tests": 11,
+          "delta_added_lines": 618,
+          "delta_diff_lines": 630
+        }
+      }
+    },
+    {
+      "milestone_id": "m3_storage_and_expr",
+      "title": "Storage catalog and expression evaluator",
+      "depends_on": [
+        "m2_sql_parser"
+      ],
+      "target_files": [
+        "minisql/storage.py",
+        "tests/test_m3_storage_and_expr.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/test_m3_storage_and_expr.py",
+      "max_diff_lines": 850,
+      "status": "certified",
+      "base_head_sha": "3976fdcae0daf8332808a3fef70690a4b92db0aa",
+      "certified_commit_sha": "309e63fa6d133086e57ff91a53778abcfa35d662",
+      "git_tag": "hae-milestone-m3_storage_and_expr",
+      "elapsed_s": 88.682,
+      "moves_used": 15,
+      "token_usage": {
+        "llm_calls": 15,
+        "prompt_tokens": 137028,
+        "output_tokens": 7343,
+        "thought_tokens": 566,
+        "total_tokens": 144371
+      },
+      "delta_files": [
+        "minisql/storage.py",
+        "tests/test_m3_storage_and_expr.py"
+      ],
+      "delta_added_lines": 530,
+      "delta_removed_lines": 0,
+      "delta_diff_lines": 542,
+      "total_repo_loc": 1543,
+      "archived_falsification_suite": ".hae/ratchet_suites/falsify_m3_storage_and_expr.py",
+      "verified_milestones": [
+        "m1_lexer_and_ast",
+        "m2_sql_parser",
+        "m3_storage_and_expr"
+      ],
+      "milestone_passed_tests": {
+        "m1_lexer_and_ast": 5,
+        "m2_sql_parser": 6,
+        "m3_storage_and_expr": 5
+      },
+      "cumulative_passed_tests": 16,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 16,
+        "summary": "[m1_lexer_and_ast] acceptance PASSED (5 tests); [m2_sql_parser] acceptance PASSED (6 tests); [m2_sql_parser] falsification suite `.hae/ratchet_suites/falsify_m2_sql_parser.py` PASSED; [m3_storage_and_expr] acceptance PASSED (5 tests); [m3_storage_and_expr] falsification suite `.hae/ratchet_suites/falsify_m3_storage_and_expr.py` PASSED; plugin(PytestVerifierPlugin): py_compile OK (2 file(s)); pytest PASSED (16 passed); falsifier `.hae/falsification_suite.py` PASSED",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_lexer_and_ast",
+            "m2_sql_parser",
+            "m3_storage_and_expr"
+          ],
+          "milestone_passed_tests": {
+            "m1_lexer_and_ast": 5,
+            "m2_sql_parser": 6,
+            "m3_storage_and_expr": 5
+          },
+          "cumulative_passed_tests": 16,
+          "delta_added_lines": 530,
+          "delta_diff_lines": 542
+        }
+      }
+    },
+    {
+      "milestone_id": "m4_query_execution",
+      "title": "Relational query and DML execution",
+      "depends_on": [
+        "m3_storage_and_expr"
+      ],
+      "target_files": [
+        "minisql/engine.py",
+        "tests/test_m4_query_execution.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/test_m4_query_execution.py",
+      "max_diff_lines": 850,
+      "status": "certified",
+      "base_head_sha": "309e63fa6d133086e57ff91a53778abcfa35d662",
+      "certified_commit_sha": "f996bfd24287c2defa90125fa56ef12c4268b920",
+      "git_tag": "hae-milestone-m4_query_execution",
+      "elapsed_s": 169.186,
+      "moves_used": 36,
+      "token_usage": {
+        "llm_calls": 36,
+        "prompt_tokens": 448241,
+        "output_tokens": 10234,
+        "thought_tokens": 950,
+        "total_tokens": 458475
+      },
+      "delta_files": [
+        "minisql/engine.py",
+        "minisql/parser.py",
+        "tests/test_m4_query_execution.py"
+      ],
+      "delta_added_lines": 388,
+      "delta_removed_lines": 1,
+      "delta_diff_lines": 412,
+      "total_repo_loc": 1930,
+      "archived_falsification_suite": null,
+      "verified_milestones": [
+        "m1_lexer_and_ast",
+        "m2_sql_parser",
+        "m3_storage_and_expr",
+        "m4_query_execution"
+      ],
+      "milestone_passed_tests": {
+        "m1_lexer_and_ast": 5,
+        "m2_sql_parser": 6,
+        "m3_storage_and_expr": 5,
+        "m4_query_execution": 5
+      },
+      "cumulative_passed_tests": 21,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 21,
+        "summary": "[m1_lexer_and_ast] acceptance PASSED (5 tests); [m2_sql_parser] acceptance PASSED (6 tests); [m2_sql_parser] falsification suite `.hae/ratchet_suites/falsify_m2_sql_parser.py` PASSED; [m3_storage_and_expr] acceptance PASSED (5 tests); [m3_storage_and_expr] falsification suite `.hae/ratchet_suites/falsify_m3_storage_and_expr.py` PASSED; [m4_query_execution] acceptance PASSED (5 tests); plugin(PytestVerifierPlugin): py_compile OK (3 file(s)); pytest PASSED (21 passed)",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_lexer_and_ast",
+            "m2_sql_parser",
+            "m3_storage_and_expr",
+            "m4_query_execution"
+          ],
+          "milestone_passed_tests": {
+            "m1_lexer_and_ast": 5,
+            "m2_sql_parser": 6,
+            "m3_storage_and_expr": 5,
+            "m4_query_execution": 5
+          },
+          "cumulative_passed_tests": 21,
+          "delta_added_lines": 388,
+          "delta_diff_lines": 412
+        }
+      }
+    },
+    {
+      "milestone_id": "m5_transactions_and_facade",
+      "title": "Transactions, savepoints, and public facade",
+      "depends_on": [
+        "m4_query_execution"
+      ],
+      "target_files": [
+        "minisql/engine.py",
+        "minisql/__init__.py",
+        "tests/test_m5_transactions_and_facade.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/test_m5_transactions_and_facade.py",
+      "max_diff_lines": 850,
+      "status": "certified",
+      "base_head_sha": "f996bfd24287c2defa90125fa56ef12c4268b920",
+      "certified_commit_sha": "52bc3bc2573f7f2a0ab9d1b48cc231fae3a54776",
+      "git_tag": "hae-milestone-m5_transactions_and_facade",
+      "elapsed_s": 72.045,
+      "moves_used": 14,
+      "token_usage": {
+        "llm_calls": 14,
+        "prompt_tokens": 125563,
+        "output_tokens": 5035,
+        "thought_tokens": 794,
+        "total_tokens": 130598
+      },
+      "delta_files": [
+        "minisql/__init__.py",
+        "minisql/engine.py",
+        "tests/test_m5_transactions_and_facade.py"
+      ],
+      "delta_added_lines": 267,
+      "delta_removed_lines": 35,
+      "delta_diff_lines": 333,
+      "total_repo_loc": 2162,
+      "archived_falsification_suite": ".hae/ratchet_suites/falsify_m5_transactions_and_facade.py",
+      "verified_milestones": [
+        "m1_lexer_and_ast",
+        "m2_sql_parser",
+        "m3_storage_and_expr",
+        "m4_query_execution",
+        "m5_transactions_and_facade"
+      ],
+      "milestone_passed_tests": {
+        "m1_lexer_and_ast": 5,
+        "m2_sql_parser": 6,
+        "m3_storage_and_expr": 5,
+        "m4_query_execution": 5,
+        "m5_transactions_and_facade": 5
+      },
+      "cumulative_passed_tests": 26,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 26,
+        "summary": "[m1_lexer_and_ast] acceptance PASSED (5 tests); [m2_sql_parser] acceptance PASSED (6 tests); [m2_sql_parser] falsification suite `.hae/ratchet_suites/falsify_m2_sql_parser.py` PASSED; [m3_storage_and_expr] acceptance PASSED (5 tests); [m3_storage_and_expr] falsification suite `.hae/ratchet_suites/falsify_m3_storage_and_expr.py` PASSED; [m4_query_execution] acceptance PASSED (5 tests); [m5_transactions_and_facade] acceptance PASSED (5 tests); [m5_transactions_and_facade] falsification suite `.hae/ratchet_suites/falsify_m5_transactions_and_facade.py` PASSED; plugin(PytestVerifierPlugin): py_compile OK (3 file(s)); pytest PASSED (26 passed); falsifier `.hae/falsification_suite.py` PASSED",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_lexer_and_ast",
+            "m2_sql_parser",
+            "m3_storage_and_expr",
+            "m4_query_execution",
+            "m5_transactions_and_facade"
+          ],
+          "milestone_passed_tests": {
+            "m1_lexer_and_ast": 5,
+            "m2_sql_parser": 6,
+            "m3_storage_and_expr": 5,
+            "m4_query_execution": 5,
+            "m5_transactions_and_facade": 5
+          },
+          "cumulative_passed_tests": 26,
+          "delta_added_lines": 267,
+          "delta_diff_lines": 333
+        }
+      }
+    },
+    {
+      "milestone_id": "m6_external_recovery_1",
+      "title": "External Acceptance Recovery & Edge-Case Remediation (#1)",
+      "depends_on": [
+        "m5_transactions_and_facade"
+      ],
+      "target_files": [
+        "minisql/__init__.py",
+        "minisql/ast_nodes.py",
+        "minisql/engine.py",
+        "minisql/lexer.py",
+        "minisql/parser.py",
+        "minisql/storage.py",
+        "tests/test_m6_external_recovery_1.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/test_m6_external_recovery_1.py",
+      "max_diff_lines": 850,
+      "status": "certified",
+      "base_head_sha": "52bc3bc2573f7f2a0ab9d1b48cc231fae3a54776",
+      "certified_commit_sha": "dcaffdd1a88f198b525b646024af779b1d01c392",
+      "git_tag": "hae-milestone-m6_external_recovery_1",
+      "elapsed_s": 69.984,
+      "moves_used": 20,
+      "token_usage": {
+        "llm_calls": 20,
+        "prompt_tokens": 204412,
+        "output_tokens": 3558,
+        "thought_tokens": 519,
+        "total_tokens": 207970
+      },
+      "delta_files": [
+        "minisql/engine.py",
+        "tests/test_m6_external_recovery_1.py"
+      ],
+      "delta_added_lines": 44,
+      "delta_removed_lines": 3,
+      "delta_diff_lines": 78,
+      "total_repo_loc": 2203,
+      "archived_falsification_suite": ".hae/ratchet_suites/falsify_m6_external_recovery_1.py",
+      "verified_milestones": [
+        "m1_lexer_and_ast",
+        "m2_sql_parser",
+        "m3_storage_and_expr",
+        "m4_query_execution",
+        "m5_transactions_and_facade",
+        "m6_external_recovery_1"
+      ],
+      "milestone_passed_tests": {
+        "m1_lexer_and_ast": 5,
+        "m2_sql_parser": 6,
+        "m3_storage_and_expr": 5,
+        "m4_query_execution": 5,
+        "m5_transactions_and_facade": 5,
+        "m6_external_recovery_1": 4
+      },
+      "cumulative_passed_tests": 30,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 30,
+        "summary": "[m1_lexer_and_ast] acceptance PASSED (5 tests); [m2_sql_parser] acceptance PASSED (6 tests); [m2_sql_parser] falsification suite `.hae/ratchet_suites/falsify_m2_sql_parser.py` PASSED; [m3_storage_and_expr] acceptance PASSED (5 tests); [m3_storage_and_expr] falsification suite `.hae/ratchet_suites/falsify_m3_storage_and_expr.py` PASSED; [m4_query_execution] acceptance PASSED (5 tests); [m5_transactions_and_facade] acceptance PASSED (5 tests); [m5_transactions_and_facade] falsification suite `.hae/ratchet_suites/falsify_m5_transactions_and_facade.py` PASSED; [m6_external_recovery_1] acceptance PASSED (4 tests); [m6_external_recovery_1] falsification suite `.hae/ratchet_suites/falsify_m6_external_recovery_1.py` PASSED; plugin(PytestVerifierPlugin): py_compile OK (2 file(s)); pytest PASSED (30 passed)",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_lexer_and_ast",
+            "m2_sql_parser",
+            "m3_storage_and_expr",
+            "m4_query_execution",
+            "m5_transactions_and_facade",
+            "m6_external_recovery_1"
+          ],
+          "milestone_passed_tests": {
+            "m1_lexer_and_ast": 5,
+            "m2_sql_parser": 6,
+            "m3_storage_and_expr": 5,
+            "m4_query_execution": 5,
+            "m5_transactions_and_facade": 5,
+            "m6_external_recovery_1": 4
+          },
+          "cumulative_passed_tests": 30,
+          "delta_added_lines": 44,
+          "delta_diff_lines": 78
+        }
+      }
+    },
+    {
+      "milestone_id": "m7_external_recovery_2",
+      "title": "External Acceptance Recovery & Edge-Case Remediation (#2)",
+      "depends_on": [
+        "m6_external_recovery_1"
+      ],
+      "target_files": [
+        "minisql/__init__.py",
+        "minisql/ast_nodes.py",
+        "minisql/engine.py",
+        "minisql/lexer.py",
+        "minisql/parser.py",
+        "minisql/storage.py",
+        "tests/test_m7_external_recovery_2.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/test_m7_external_recovery_2.py",
+      "max_diff_lines": 850,
+      "status": "certified",
+      "base_head_sha": "dcaffdd1a88f198b525b646024af779b1d01c392",
+      "certified_commit_sha": "07740fb54a923db08c775369ac40de3bfe23ddd3",
+      "git_tag": "hae-milestone-m7_external_recovery_2",
+      "elapsed_s": 147.922,
+      "moves_used": 37,
+      "token_usage": {
+        "llm_calls": 37,
+        "prompt_tokens": 436814,
+        "output_tokens": 7923,
+        "thought_tokens": 2322,
+        "total_tokens": 444737
+      },
+      "delta_files": [
+        "minisql/engine.py",
+        "minisql/storage.py",
+        "tests/test_m7_external_recovery_2.py"
+      ],
+      "delta_added_lines": 143,
+      "delta_removed_lines": 1,
+      "delta_diff_lines": 196,
+      "total_repo_loc": 2345,
+      "archived_falsification_suite": null,
+      "verified_milestones": [
+        "m1_lexer_and_ast",
+        "m2_sql_parser",
+        "m3_storage_and_expr",
+        "m4_query_execution",
+        "m5_transactions_and_facade",
+        "m6_external_recovery_1",
+        "m7_external_recovery_2"
+      ],
+      "milestone_passed_tests": {
+        "m1_lexer_and_ast": 5,
+        "m2_sql_parser": 6,
+        "m3_storage_and_expr": 5,
+        "m4_query_execution": 5,
+        "m5_transactions_and_facade": 5,
+        "m6_external_recovery_1": 4,
+        "m7_external_recovery_2": 4
+      },
+      "cumulative_passed_tests": 34,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 34,
+        "summary": "[m1_lexer_and_ast] acceptance PASSED (5 tests); [m2_sql_parser] acceptance PASSED (6 tests); [m2_sql_parser] falsification suite `.hae/ratchet_suites/falsify_m2_sql_parser.py` PASSED; [m3_storage_and_expr] acceptance PASSED (5 tests); [m3_storage_and_expr] falsification suite `.hae/ratchet_suites/falsify_m3_storage_and_expr.py` PASSED; [m4_query_execution] acceptance PASSED (5 tests); [m5_transactions_and_facade] acceptance PASSED (5 tests); [m5_transactions_and_facade] falsification suite `.hae/ratchet_suites/falsify_m5_transactions_and_facade.py` PASSED; [m6_external_recovery_1] acceptance PASSED (4 tests); [m6_external_recovery_1] falsification suite `.hae/ratchet_suites/falsify_m6_external_recovery_1.py` PASSED; [m7_external_recovery_2] acceptance PASSED (4 tests); plugin(PytestVerifierPlugin): py_compile OK (3 file(s)); pytest PASSED (34 passed)",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_lexer_and_ast",
+            "m2_sql_parser",
+            "m3_storage_and_expr",
+            "m4_query_execution",
+            "m5_transactions_and_facade",
+            "m6_external_recovery_1",
+            "m7_external_recovery_2"
+          ],
+          "milestone_passed_tests": {
+            "m1_lexer_and_ast": 5,
+            "m2_sql_parser": 6,
+            "m3_storage_and_expr": 5,
+            "m4_query_execution": 5,
+            "m5_transactions_and_facade": 5,
+            "m6_external_recovery_1": 4,
+            "m7_external_recovery_2": 4
+          },
+          "cumulative_passed_tests": 34,
+          "delta_added_lines": 143,
+          "delta_diff_lines": 196
+        }
+      }
+    }
+  ],
+  "git_telemetry": {
+    "commits": [
+      {
+        "sha": "e9d4e8ae113da3deee2f24beff1536202be2a4d6",
+        "subject": "chore: initial repository scaffold"
+      },
+      {
+        "sha": "e02bb6b5101800195bb32ec55fd5d3034541eb90",
+        "subject": "hae(ratchet): certify milestone m1_lexer_and_ast - Lexer and AST foundations"
+      },
+      {
+        "sha": "3976fdcae0daf8332808a3fef70690a4b92db0aa",
+        "subject": "hae(ratchet): certify milestone m2_sql_parser - Recursive-descent SQL parser"
+      },
+      {
+        "sha": "309e63fa6d133086e57ff91a53778abcfa35d662",
+        "subject": "hae(ratchet): certify milestone m3_storage_and_expr - Storage catalog and expression evaluator"
+      },
+      {
+        "sha": "f996bfd24287c2defa90125fa56ef12c4268b920",
+        "subject": "hae(ratchet): certify milestone m4_query_execution - Relational query and DML execution"
+      },
+      {
+        "sha": "52bc3bc2573f7f2a0ab9d1b48cc231fae3a54776",
+        "subject": "hae(ratchet): certify milestone m5_transactions_and_facade - Transactions, savepoints, and public facade"
+      },
+      {
+        "sha": "dcaffdd1a88f198b525b646024af779b1d01c392",
+        "subject": "hae(ratchet): certify milestone m6_external_recovery_1 - External Acceptance Recovery & Edge-Case Remediation (#1)"
+      },
+      {
+        "sha": "07740fb54a923db08c775369ac40de3bfe23ddd3",
+        "subject": "hae(ratchet): certify milestone m7_external_recovery_2 - External Acceptance Recovery & Edge-Case Remediation (#2)"
+      }
+    ],
+    "tags": {
+      "hae-milestone-m1_lexer_and_ast": "e02bb6b5101800195bb32ec55fd5d3034541eb90",
+      "hae-milestone-m2_sql_parser": "3976fdcae0daf8332808a3fef70690a4b92db0aa",
+      "hae-milestone-m3_storage_and_expr": "309e63fa6d133086e57ff91a53778abcfa35d662",
+      "hae-milestone-m4_query_execution": "f996bfd24287c2defa90125fa56ef12c4268b920",
+      "hae-milestone-m5_transactions_and_facade": "52bc3bc2573f7f2a0ab9d1b48cc231fae3a54776",
+      "hae-milestone-m6_external_recovery_1": "dcaffdd1a88f198b525b646024af779b1d01c392",
+      "hae-milestone-m7_external_recovery_2": "07740fb54a923db08c775369ac40de3bfe23ddd3"
+    },
+    "milestone_git_stats": {
+      "m1_lexer_and_ast": {
+        "base_commit_sha": "e9d4e8ae113da3deee2f24beff1536202be2a4d6",
+        "certified_commit_sha": "e02bb6b5101800195bb32ec55fd5d3034541eb90",
+        "git_tag": "hae-milestone-m1_lexer_and_ast",
+        "tag_matches_sha": true,
+        "delta_added_lines": 388,
+        "delta_removed_lines": 0,
+        "delta_total_diff_lines": 415,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 395,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minisql/__init__.py",
+          "minisql/ast_nodes.py",
+          "minisql/lexer.py",
+          "tests/__init__.py",
+          "tests/test_m1_lexer_and_ast.py"
+        ]
+      },
+      "m2_sql_parser": {
+        "base_commit_sha": "e02bb6b5101800195bb32ec55fd5d3034541eb90",
+        "certified_commit_sha": "3976fdcae0daf8332808a3fef70690a4b92db0aa",
+        "git_tag": "hae-milestone-m2_sql_parser",
+        "tag_matches_sha": true,
+        "delta_added_lines": 618,
+        "delta_removed_lines": 0,
+        "delta_total_diff_lines": 630,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 1013,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minisql/__init__.py",
+          "minisql/ast_nodes.py",
+          "minisql/lexer.py",
+          "minisql/parser.py",
+          "tests/__init__.py",
+          "tests/test_m1_lexer_and_ast.py",
+          "tests/test_m2_sql_parser.py"
+        ]
+      },
+      "m3_storage_and_expr": {
+        "base_commit_sha": "3976fdcae0daf8332808a3fef70690a4b92db0aa",
+        "certified_commit_sha": "309e63fa6d133086e57ff91a53778abcfa35d662",
+        "git_tag": "hae-milestone-m3_storage_and_expr",
+        "tag_matches_sha": true,
+        "delta_added_lines": 530,
+        "delta_removed_lines": 0,
+        "delta_total_diff_lines": 542,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 1543,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minisql/__init__.py",
+          "minisql/ast_nodes.py",
+          "minisql/lexer.py",
+          "minisql/parser.py",
+          "minisql/storage.py",
+          "tests/__init__.py",
+          "tests/test_m1_lexer_and_ast.py",
+          "tests/test_m2_sql_parser.py",
+          "tests/test_m3_storage_and_expr.py"
+        ]
+      },
+      "m4_query_execution": {
+        "base_commit_sha": "309e63fa6d133086e57ff91a53778abcfa35d662",
+        "certified_commit_sha": "f996bfd24287c2defa90125fa56ef12c4268b920",
+        "git_tag": "hae-milestone-m4_query_execution",
+        "tag_matches_sha": true,
+        "delta_added_lines": 388,
+        "delta_removed_lines": 1,
+        "delta_total_diff_lines": 412,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 1930,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minisql/__init__.py",
+          "minisql/ast_nodes.py",
+          "minisql/engine.py",
+          "minisql/lexer.py",
+          "minisql/parser.py",
+          "minisql/storage.py",
+          "tests/__init__.py",
+          "tests/test_m1_lexer_and_ast.py",
+          "tests/test_m2_sql_parser.py",
+          "tests/test_m3_storage_and_expr.py",
+          "tests/test_m4_query_execution.py"
+        ]
+      },
+      "m5_transactions_and_facade": {
+        "base_commit_sha": "f996bfd24287c2defa90125fa56ef12c4268b920",
+        "certified_commit_sha": "52bc3bc2573f7f2a0ab9d1b48cc231fae3a54776",
+        "git_tag": "hae-milestone-m5_transactions_and_facade",
+        "tag_matches_sha": true,
+        "delta_added_lines": 267,
+        "delta_removed_lines": 35,
+        "delta_total_diff_lines": 333,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 2162,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minisql/__init__.py",
+          "minisql/ast_nodes.py",
+          "minisql/engine.py",
+          "minisql/lexer.py",
+          "minisql/parser.py",
+          "minisql/storage.py",
+          "tests/__init__.py",
+          "tests/test_m1_lexer_and_ast.py",
+          "tests/test_m2_sql_parser.py",
+          "tests/test_m3_storage_and_expr.py",
+          "tests/test_m4_query_execution.py",
+          "tests/test_m5_transactions_and_facade.py"
+        ]
+      },
+      "m6_external_recovery_1": {
+        "base_commit_sha": "52bc3bc2573f7f2a0ab9d1b48cc231fae3a54776",
+        "certified_commit_sha": "dcaffdd1a88f198b525b646024af779b1d01c392",
+        "git_tag": "hae-milestone-m6_external_recovery_1",
+        "tag_matches_sha": true,
+        "delta_added_lines": 44,
+        "delta_removed_lines": 3,
+        "delta_total_diff_lines": 78,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 2203,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minisql/__init__.py",
+          "minisql/ast_nodes.py",
+          "minisql/engine.py",
+          "minisql/lexer.py",
+          "minisql/parser.py",
+          "minisql/storage.py",
+          "tests/__init__.py",
+          "tests/test_m1_lexer_and_ast.py",
+          "tests/test_m2_sql_parser.py",
+          "tests/test_m3_storage_and_expr.py",
+          "tests/test_m4_query_execution.py",
+          "tests/test_m5_transactions_and_facade.py",
+          "tests/test_m6_external_recovery_1.py"
+        ]
+      },
+      "m7_external_recovery_2": {
+        "base_commit_sha": "dcaffdd1a88f198b525b646024af779b1d01c392",
+        "certified_commit_sha": "07740fb54a923db08c775369ac40de3bfe23ddd3",
+        "git_tag": "hae-milestone-m7_external_recovery_2",
+        "tag_matches_sha": true,
+        "delta_added_lines": 143,
+        "delta_removed_lines": 1,
+        "delta_total_diff_lines": 196,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 2345,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minisql/__init__.py",
+          "minisql/ast_nodes.py",
+          "minisql/engine.py",
+          "minisql/lexer.py",
+          "minisql/parser.py",
+          "minisql/storage.py",
+          "tests/__init__.py",
+          "tests/test_m1_lexer_and_ast.py",
+          "tests/test_m2_sql_parser.py",
+          "tests/test_m3_storage_and_expr.py",
+          "tests/test_m4_query_execution.py",
+          "tests/test_m5_transactions_and_facade.py",
+          "tests/test_m6_external_recovery_1.py",
+          "tests/test_m7_external_recovery_2.py"
+        ]
+      }
+    }
+  },
+  "ratchet_state_path": "/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/planner_driven_minisql_eval_2026-10-23/.hae/ratchet_state.json"
+}

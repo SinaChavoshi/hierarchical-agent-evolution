@@ -268,28 +268,86 @@ def _slugify_id(text: str, index: int) -> str:
     return f"m{index}_{slug}"
 
 
+def _extract_json_dict(raw_text: str) -> Optional[Dict[str, Any]]:
+    """Extract a JSON dictionary containing `'milestones'` from an LLM response,
+    tolerating `<think>...</think>` blocks and markdown code fences.
+    """
+    if not raw_text or not raw_text.strip():
+        return None
+
+    # Strip closed <think>...</think> blocks
+    cleaned = re.sub(r"<think>.*?</think>", "", raw_text, flags=re.DOTALL | re.IGNORECASE).strip()
+    # If an unclosed <think> tag precedes a ```json fence, strip the <think> prefix
+    if "<think>" in cleaned.lower() and "```" in cleaned:
+        fence_idx = cleaned.find("```")
+        think_idx = cleaned.lower().find("<think>")
+        if 0 <= think_idx < fence_idx:
+            cleaned = cleaned[fence_idx:]
+
+    # 1. Try fenced ```json ... ``` blocks (from last to first)
+    fenced_blocks = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", cleaned, flags=re.DOTALL | re.IGNORECASE)
+    for block in reversed(fenced_blocks):
+        try:
+            obj = json.loads(block)
+            if isinstance(obj, dict) and obj.get("milestones"):
+                return obj
+        except Exception:
+            pass
+
+    # 2. Scan balanced `{ ... }` objects using json.JSONDecoder().raw_decode
+    decoder = json.JSONDecoder()
+    for text_cand in (cleaned, raw_text):
+        pos = 0
+        while True:
+            brace_idx = text_cand.find("{", pos)
+            if brace_idx < 0:
+                break
+            try:
+                obj, _ = decoder.raw_decode(text_cand[brace_idx:])
+                if isinstance(obj, dict) and obj.get("milestones"):
+                    return obj
+            except Exception:
+                pass
+            pos = brace_idx + 1
+
+    return None
+
+
 def parse_macro_plan_response(
     raw_text: str,
     objective: str,
     default_acceptance_cmd: str = "pytest -q",
+    max_diff_lines: Optional[int] = None,
+    budget_moves: Optional[int] = None,
 ) -> MilestoneDAG:
     """Parse an `L0-Macro` LLM response into a validated `MilestoneDAG`, with a deterministic fallback."""
-    if raw_text and raw_text.strip():
-        json_match = re.search(r"\{.*\}", raw_text, flags=re.DOTALL)
-        if json_match:
-            try:
-                payload = json.loads(json_match.group(0))
-                if isinstance(payload, dict) and payload.get("milestones"):
-                    dag = MilestoneDAG.from_dict(payload)
-                    if not dag.system_objective:
-                        dag.system_objective = objective
-                    for m in dag.milestones.values():
-                        if not m.acceptance_cmd:
-                            m.acceptance_cmd = default_acceptance_cmd
-                    dag.validate_dag()
-                    return dag
-            except Exception:
-                pass
+    payload = _extract_json_dict(raw_text)
+    if payload is not None:
+        try:
+            dag = MilestoneDAG.from_dict(payload)
+            if not dag.system_objective:
+                dag.system_objective = objective
+            for m in dag.milestones.values():
+                test_targets = [
+                    tf for tf in m.target_files
+                    if tf.endswith(".py") and (tf.startswith("tests/") or os.path.basename(tf).startswith("test_"))
+                ]
+                if not m.acceptance_cmd or m.acceptance_cmd.strip() == "pytest -q":
+                    if test_targets:
+                        m.acceptance_cmd = f"pytest -q {' '.join(test_targets)}"
+                    elif not m.acceptance_cmd:
+                        m.acceptance_cmd = default_acceptance_cmd
+                if max_diff_lines is not None and max_diff_lines > 0:
+                    m.max_diff_lines = max_diff_lines
+                if budget_moves is not None and budget_moves > 0:
+                    m.budget_moves = budget_moves
+            dag.validate_dag()
+            return dag
+        except Exception:
+            pass
+
+    eff_max_diff = int(max_diff_lines or 500)
+    eff_budget = int(budget_moves or 36)
 
     # Resilient deterministic fallback: split explicit numbered/bulleted stages if present,
     # or synthesize a clean 2-stage Core -> Integration milestone DAG.
@@ -313,8 +371,8 @@ def parse_macro_plan_response(
                     depends_on=[prev_id] if prev_id else [],
                     target_files=[],
                     acceptance_cmd=default_acceptance_cmd,
-                    max_diff_lines=500,
-                    budget_moves=36,
+                    max_diff_lines=eff_max_diff,
+                    budget_moves=eff_budget,
                 )
             )
             prev_id = mid
@@ -327,8 +385,8 @@ def parse_macro_plan_response(
                 depends_on=[],
                 target_files=[],
                 acceptance_cmd=default_acceptance_cmd,
-                max_diff_lines=500,
-                budget_moves=36,
+                max_diff_lines=eff_max_diff,
+                budget_moves=eff_budget,
             ),
             MilestoneSpec(
                 milestone_id="m2_integration_and_api",
@@ -337,8 +395,8 @@ def parse_macro_plan_response(
                 depends_on=["m1_core_foundation"],
                 target_files=[],
                 acceptance_cmd=default_acceptance_cmd,
-                max_diff_lines=500,
-                budget_moves=36,
+                max_diff_lines=eff_max_diff,
+                budget_moves=eff_budget,
             ),
         ]
 
@@ -360,12 +418,81 @@ class L0MacroPlanner:
         llm_callable: Optional[Callable[[List[Dict[str, str]]], str]] = None,
         default_acceptance_cmd: str = "pytest -q",
         max_diff_lines: int = 500,
+        budget_moves: int = 36,
+        model_name: Optional[str] = None,
+        use_live_llm: Optional[bool] = None,
         logger: Callable[[str], None] = print,
     ) -> None:
         self.llm_callable = llm_callable
         self.default_acceptance_cmd = default_acceptance_cmd
         self.max_diff_lines = max_diff_lines
+        self.budget_moves = budget_moves
+        self.model_name = model_name
+        self.use_live_llm = use_live_llm
         self.logger = logger
+        self.last_raw_response: str = ""
+        self.last_token_usage: Dict[str, int] = {
+            "llm_calls": 0,
+            "prompt_tokens": 0,
+            "output_tokens": 0,
+            "thought_tokens": 0,
+            "total_tokens": 0,
+        }
+
+    def _record_usage(self, usage: Mapping[str, Any]) -> None:
+        self.last_token_usage["llm_calls"] += 1
+        p_tok = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+        o_tok = int(usage.get("output_tokens") or usage.get("completion_tokens") or 0)
+        th_tok = int(usage.get("thought_tokens") or usage.get("reasoning_tokens") or 0)
+        tot_tok = int(usage.get("total_tokens") or (p_tok + o_tok) or 0)
+        self.last_token_usage["prompt_tokens"] += p_tok
+        self.last_token_usage["output_tokens"] += o_tok
+        self.last_token_usage["thought_tokens"] += th_tok
+        self.last_token_usage["total_tokens"] += tot_tok
+
+    def _default_llm_call(self, messages: List[Dict[str, str]]) -> str:
+        from hae.infra.llm import call_llm
+
+        model = (
+            self.model_name
+            or os.environ.get("HAE_WORKER_MODEL")
+            or os.environ.get("VLLM_MODEL")
+            or "reflection/Beam-1.0-501B-A23B-NVFP4"
+        )
+        sys_text = messages[0].get("content", "") if len(messages) > 1 else ""
+        user_text = messages[-1].get("content", "") if messages else ""
+        usage: Dict[str, Any] = {}
+        resp = call_llm(
+            prompt=user_text,
+            system_instruction=sys_text,
+            model_name=model,
+            model_tier="executive",
+            temperature=0.1,
+            provider="vllm" if os.environ.get("LLM_PROVIDER") == "vllm" or os.environ.get("VLLM_BASE_URL") else None,
+            usage_sink=usage,
+            max_tokens=6400,
+            messages=messages,
+            enable_thinking=True,
+            extra_headers={"X-No-Cache": "1"},
+        )
+        self._record_usage(usage)
+        if not (resp or "").strip() and usage.get("last_reasoning"):
+            usage2: Dict[str, Any] = {}
+            resp = call_llm(
+                prompt=user_text,
+                system_instruction=sys_text,
+                model_name=model,
+                model_tier="executive",
+                temperature=0.1,
+                provider="vllm" if os.environ.get("LLM_PROVIDER") == "vllm" or os.environ.get("VLLM_BASE_URL") else None,
+                usage_sink=usage2,
+                max_tokens=4096,
+                messages=messages,
+                enable_thinking=False,
+                extra_headers={"X-No-Cache": "1"},
+            )
+            self._record_usage(usage2)
+        return resp or ""
 
     @staticmethod
     def load_from_file(path: str) -> MilestoneDAG:
@@ -379,22 +506,39 @@ class L0MacroPlanner:
         files_preview = "\n".join(f"- {p}" for p in list(repo_files)[:40]) or "(greenfield / empty repository)"
         sys_prompt = (
             "You are the Layer `L0-Macro` Principal System Architect.\n"
-            "Decompose the user's system objective into an acyclic topological DAG of bounded, "
-            "self-contained milestones (each `< 500` lines of diff) so that each milestone can be "
-            "implemented, falsified, and permanently ratcheted as a Git commit before the next milestone begins.\n"
-            "Emit a single JSON object matching:\n"
+            "Decompose the user's system objective into an acyclic topological DAG of 4 to 5 bounded, "
+            f"self-contained milestones (each `< {self.max_diff_lines}` lines of diff, with each individual source file `< 380` lines) "
+            "so that each milestone can be implemented, falsified, and permanently ratcheted as a Git commit before the next milestone begins.\n\n"
+            "CRITICAL DECOMPOSITION RULES:\n"
+            "1. **Self-Contained, Contract-Complete Milestone Objectives**:\n"
+            "   Each milestone is executed by an isolated `L0-Micro` solver that sees ONLY that milestone's `objective` "
+            "   and the already-committed code in Git `HEAD`. Therefore, each milestone's `objective` MUST preserve "
+            "   EVERY exact module path, class name, method/function signature, parameter default, return structure, "
+            "   exception class name, and edge-case rule from the System Objective assigned to that milestone.\n"
+            "2. **Dedicated Per-Milestone Unit Test File**:\n"
+            "   Every milestone `<milestone_id>` MUST include a dedicated unit test file `tests/test_<milestone_id>.py` "
+            "   in `target_files`, and its `acceptance_cmd` MUST be `\"pytest -q tests/test_<milestone_id>.py\"`.\n"
+            "3. **Clean Package Exports (`__init__.py`) & Modular Files**:\n"
+            "   Include `<pkg>/__init__.py` in `m1`'s `target_files` and update `<pkg>/__init__.py` in the final "
+            "   milestone so all public symbols required by the System Objective are exported at the top-level package. "
+            "   Keep AST/schema dataclasses in their own module (e.g. `ast_nodes.py`) separate from recursive-descent parser logic (`parser.py`).\n"
+            "4. **Strict Topological Ordering**:\n"
+            "   Order milestones from foundational tokenizer/AST (`m1_...`) -> parser (`m2_...`) -> storage/catalog/expressions (`m3_...`) "
+            "   -> query execution/joins/aggregates (`m4_...`) -> transactions/public facade (`m5_...`), "
+            "   with each milestone listing its upstream prerequisite milestone IDs in `depends_on`.\n\n"
+            "Emit ONLY a single valid JSON object matching this exact schema:\n"
             "{\n"
             '  "system_objective": "...",\n'
             '  "milestones": [\n'
             "    {\n"
-            '      "milestone_id": "m1_lexer",\n'
+            '      "milestone_id": "m1_lexer_and_ast",\n'
             '      "title": "...",\n'
-            '      "objective": "...",\n'
+            '      "objective": "Detailed, contract-complete specification of classes, signatures, edge cases, and unit tests...",\n'
             '      "depends_on": [],\n'
-            '      "target_files": ["pkg/lexer.py", "tests/test_lexer.py"],\n'
-            '      "acceptance_cmd": "pytest -q tests/test_lexer.py",\n'
-            '      "max_diff_lines": 500,\n'
-            '      "budget_moves": 36\n'
+            '      "target_files": ["pkg/__init__.py", "pkg/ast_nodes.py", "pkg/lexer.py", "tests/test_m1_lexer_and_ast.py"],\n'
+            '      "acceptance_cmd": "pytest -q tests/test_m1_lexer_and_ast.py",\n'
+            f'      "max_diff_lines": {self.max_diff_lines},\n'
+            f'      "budget_moves": {self.budget_moves}\n'
             "    }\n"
             "  ]\n"
             "}"
@@ -428,15 +572,90 @@ class L0MacroPlanner:
                 repo_files = [l.strip() for l in res.stdout.splitlines() if l.strip()]
 
         raw_resp = ""
+        should_call_live = (
+            self.use_live_llm is True
+            or (
+                self.use_live_llm is None
+                and bool(os.environ.get("VLLM_BASE_URL") or os.environ.get("HAE_MACRO_LIVE_LLM"))
+            )
+        )
         if self.llm_callable is not None:
             try:
                 messages = self.build_macro_prompt(objective, repo_files)
                 raw_resp = self.llm_callable(messages) or ""
+                self.last_raw_response = raw_resp
             except Exception as exc:
                 self.logger(f"[l0-macro] LLM planner call failed ({exc}); using deterministic fallback.")
+        elif should_call_live and (objective or "").strip():
+            try:
+                self.logger("[l0-macro] Invoking live LLM to decompose system objective into MilestoneDAG...")
+                messages = self.build_macro_prompt(objective, repo_files)
+                raw_resp = self._default_llm_call(messages) or ""
+                self.last_raw_response = raw_resp
+            except Exception as exc:
+                self.logger(f"[l0-macro] Live LLM planner call failed ({exc}); using deterministic fallback.")
 
-        dag = parse_macro_plan_response(raw_resp, objective=objective, default_acceptance_cmd=acc_cmd)
+        dag = parse_macro_plan_response(
+            raw_resp,
+            objective=objective,
+            default_acceptance_cmd=acc_cmd,
+            max_diff_lines=self.max_diff_lines,
+            budget_moves=self.budget_moves,
+        )
+        self.logger(
+            f"[l0-macro] Planned {len(dag.milestones)} milestones in topological order: {dag.validate_dag()}"
+        )
         return dag
+
+    def plan_recovery_milestone(
+        self,
+        dag: MilestoneDAG,
+        external_gate: VerificationGateResult,
+        attempt: int = 1,
+        executor: Optional[CommandExecutor] = None,
+    ) -> MilestoneSpec:
+        """Synthesize a bounded remediation milestone on top of `HEAD_K` when an external
+        held-out test suite uncovers edge-case failures after the initial planned DAG completes.
+        """
+        topo = dag.validate_dag()
+        certified = [mid for mid in topo if dag.milestones[mid].status == "certified"]
+        rec_idx = len(topo) + 1
+        rec_id = f"m{rec_idx}_external_recovery_{attempt}"
+        rec_test_file = f"tests/test_{rec_id}.py"
+
+        tracked_src: List[str] = []
+        if executor is not None:
+            res = executor.git(["ls-files"])
+            if res.ok:
+                tracked_src = [
+                    l.strip()
+                    for l in res.stdout.splitlines()
+                    if l.strip().endswith(".py")
+                    and not l.strip().startswith("tests/")
+                    and not l.strip().startswith(SCRATCH_DIR + "/")
+                ]
+        target_files = list(dict.fromkeys([*tracked_src[:6], rec_test_file]))
+        failure_diag = (external_gate.summary or "").strip()[:4000]
+
+        rec_objective = (
+            f"External held-out acceptance verification uncovered edge-case failure(s) after milestone `{certified[-1] if certified else 'HEAD'}`:\n\n"
+            f"```text\n{failure_diag}\n```\n\n"
+            f"Requirements for `{rec_id}`:\n"
+            f"1. Diagnose and fix the root cause in the existing package modules ({', '.join(tracked_src) or 'workspace'}) "
+            "without breaking any previously certified milestone behavior.\n"
+            f"2. Write at least 4 real `def test_*` regression tests in `{rec_test_file}` importing the package and reproducing/verifying every failure reported above.\n"
+            f"3. Ensure `pytest -q {rec_test_file}` and all prior `tests/test_*.py` pass with 0 failures."
+        )
+        return MilestoneSpec(
+            milestone_id=rec_id,
+            title=f"External Acceptance Recovery & Edge-Case Remediation (#{attempt})",
+            objective=rec_objective,
+            depends_on=[certified[-1]] if certified else [],
+            target_files=target_files,
+            acceptance_cmd=f"pytest -q {rec_test_file}",
+            max_diff_lines=self.max_diff_lines,
+            budget_moves=self.budget_moves,
+        )
 
 
 _TRANSIENT_SCRATCH_BASENAMES = (
@@ -463,8 +682,8 @@ class _RatchetWorkspaceExecutorProxy(CommandExecutor):
     def __init__(self, inner: CommandExecutor) -> None:
         self._inner = inner
         self.root = inner.root
-        self.python = inner.python
         self._pybin = ensure_workspace_pytest_shim(inner)
+        self.python = f"{self._pybin}/python3" if self._pybin else inner.python
 
     def _map_path(self, rel_or_abs: str) -> str:
         p = str(rel_or_abs or "")
@@ -510,9 +729,11 @@ class _RatchetWorkspaceExecutorProxy(CommandExecutor):
     ) -> ExecResult:
         eff_cwd = self._map_cmd_text(cwd) if cwd else self.root
         if isinstance(argv, str):
-            eff_cmd: Sequence[str] = ["bash", "-lc", self._map_cmd_text(argv)]
+            eff_cmd: Sequence[str] = ["bash", "-c", self._map_cmd_text(argv)]
         else:
             eff_cmd = [self._map_cmd_text(str(c)) for c in argv]
+            if len(eff_cmd) >= 2 and eff_cmd[0] == "bash" and eff_cmd[1] == "-lc":
+                eff_cmd = ["bash", "-c", *eff_cmd[2:]]
 
         eff_env = dict(env or {})
         if self._pybin:
@@ -944,7 +1165,7 @@ class _DefaultMicroRunnerAdapter:
         self.milestone = milestone
         self.model_name = model_name or os.environ.get("HAE_WORKER_MODEL", "nvidia/Qwen3.8-Flash-Next-NVFP4")
         self.calls = 0
-        self.max_calls = max(60, milestone.budget_moves * 3)
+        self.max_calls = max(120, milestone.budget_moves * 6)
         self.prompt_tokens = 0
         self.output_tokens = 0
         self.thought_tokens = 0
@@ -993,11 +1214,11 @@ class _DefaultMicroRunnerAdapter:
         if not src_files:
             return ""
         blocks: List[str] = []
-        budget_chars = 6500
+        budget_chars = 16000
         used_chars = 0
         for rel in src_files:
             try:
-                content = "\n".join(self.executor.read_file(rel).splitlines()[:180])
+                content = "\n".join(self.executor.read_file(rel).splitlines()[:280])
             except Exception:
                 continue
             snippet = f"#### `{rel}` (certified in Git HEAD)\n```python\n{content}\n```"
@@ -1051,6 +1272,8 @@ class MacroMilestoneRatchetEngine:
         milestone_runner: Optional[Callable[..., Any]] = None,
         firm_runner: Optional[Any] = None,
         verifier_plugin: Optional[WorkspaceVerifierPlugin] = None,
+        external_verifier_plugin: Optional[WorkspaceVerifierPlugin] = None,
+        max_recovery_milestones: int = 2,
         stop_on_failure: bool = True,
         logger: Callable[[str], None] = print,
     ) -> None:
@@ -1061,6 +1284,8 @@ class MacroMilestoneRatchetEngine:
         self.milestone_runner = milestone_runner
         self.firm_runner = firm_runner
         self.verifier_plugin = verifier_plugin
+        self.external_verifier_plugin = external_verifier_plugin
+        self.max_recovery_milestones = max(0, int(max_recovery_milestones))
         self.stop_on_failure = stop_on_failure
         self.logger = logger
         self.ratchet = GitCommitRatchet(executor=executor, logger=logger)
@@ -1125,7 +1350,34 @@ class MacroMilestoneRatchetEngine:
         if "diff_bloat_threshold" in init_sig.parameters:
             extra_kwargs["diff_bloat_threshold"] = milestone.max_diff_lines
         if "custom_test_cmd" in init_sig.parameters and milestone.acceptance_cmd:
-            extra_kwargs["custom_test_cmd"] = milestone.acceptance_cmd
+            prior_cmds: List[str] = []
+            if self.dag is not None:
+                for mid in self.dag.topological_order():
+                    if mid == milestone.milestone_id:
+                        continue
+                    pm = self.dag.milestones.get(mid)
+                    if (
+                        pm is not None
+                        and pm.status == "certified"
+                        and pm.acceptance_cmd
+                        and pm.acceptance_cmd != milestone.acceptance_cmd
+                        and pm.acceptance_cmd not in prior_cmds
+                    ):
+                        prior_cmds.append(pm.acceptance_cmd)
+                    if (
+                        pm is not None
+                        and pm.status == "certified"
+                        and pm.falsification_suite_path
+                        and self.executor.exists(pm.falsification_suite_path)
+                    ):
+                        f_cmd = f"python3 {pm.falsification_suite_path}"
+                        if f_cmd not in prior_cmds:
+                            prior_cmds.append(f_cmd)
+            if "_external_recovery_" in milestone.milestone_id and self.external_verifier_plugin is not None:
+                ext_cmd = getattr(self.external_verifier_plugin, "test_cmd", "")
+                if ext_cmd and ext_cmd not in prior_cmds:
+                    prior_cmds.append(ext_cmd)
+            extra_kwargs["custom_test_cmd"] = " && ".join([milestone.acceptance_cmd, *prior_cmds])
         if "base_ref" in init_sig.parameters:
             extra_kwargs["base_ref"] = "HEAD"
 
@@ -1168,27 +1420,7 @@ class MacroMilestoneRatchetEngine:
                 m.status = "pending"
         self.ratchet.rollback_to_head()
 
-    def run(self, resume: bool = False) -> Dict[str, Any]:
-        """Execute all milestones in topological order with persistent Git commit ratcheting."""
-        self.ratchet.ensure_dirs()
-
-        if resume and self.ratchet.state_exists():
-            saved_dag = self.ratchet.load_state()
-            if saved_dag is not None:
-                self._restore_from_saved_state(saved_dag)
-                self.logger(
-                    f"[l0-macro-ratchet] Resumed from `{self.ratchet.STATE_FILE_REL}` "
-                    f"(certified={[m.milestone_id for m in self.dag.certified_milestones()]})"
-                )
-
-        if self.dag is None:
-            self.dag = self.planner.plan(objective=self.objective, executor=self.executor)
-
-        topo_order = self.dag.validate_dag()
-        self.ratchet.save_state(self.dag)
-
-        history: List[Dict[str, Any]] = []
-
+    def _execute_pending_milestones(self, history: List[Dict[str, Any]]) -> None:
         while True:
             milestone = self.dag.next_ready_milestone()
             if milestone is None:
@@ -1297,6 +1529,71 @@ class MacroMilestoneRatchetEngine:
                 if self.stop_on_failure:
                     break
 
+    def run(self, resume: bool = False) -> Dict[str, Any]:
+        """Execute all milestones in topological order with persistent Git commit ratcheting."""
+        self.ratchet.ensure_dirs()
+
+        if resume and self.ratchet.state_exists():
+            saved_dag = self.ratchet.load_state()
+            if saved_dag is not None:
+                self._restore_from_saved_state(saved_dag)
+                self.logger(
+                    f"[l0-macro-ratchet] Resumed from `{self.ratchet.STATE_FILE_REL}` "
+                    f"(certified={[m.milestone_id for m in self.dag.certified_milestones()]})"
+                )
+
+        if self.dag is None:
+            self.dag = self.planner.plan(objective=self.objective, executor=self.executor)
+
+        self.dag.validate_dag()
+        self.ratchet.save_state(self.dag)
+
+        history: List[Dict[str, Any]] = []
+        self._execute_pending_milestones(history)
+
+        initial_external_verification: Optional[Dict[str, Any]] = None
+        final_external_verification: Optional[Dict[str, Any]] = None
+        external_verified: Optional[bool] = None
+        recovery_milestones: List[str] = []
+
+        if self.dag.is_complete() and self.external_verifier_plugin is not None:
+            self.logger(
+                f"[l0-macro-ratchet] Evaluating certified repository against held-out external suite "
+                f"({self.external_verifier_plugin.describe()})..."
+            )
+            ext_res = self.external_verifier_plugin.verify(self.executor, changed_files=[])
+            initial_external_verification = ext_res.to_dict()
+            final_external_verification = ext_res.to_dict()
+            external_verified = bool(ext_res.ok)
+
+            existing_recoveries = [
+                mid for mid in self.dag.validate_dag() if "_external_recovery_" in mid
+            ]
+            recovery_milestones = list(existing_recoveries)
+            attempt = len(existing_recoveries)
+            while not ext_res.ok and attempt < self.max_recovery_milestones:
+                attempt += 1
+                rec_spec = self.planner.plan_recovery_milestone(
+                    dag=self.dag,
+                    external_gate=ext_res,
+                    attempt=attempt,
+                    executor=self.executor,
+                )
+                self.logger(
+                    f"[l0-macro-ratchet] External verification failed ({ext_res.summary[:240]}); "
+                    f"scheduling ratcheted recovery milestone `{rec_spec.milestone_id}`"
+                )
+                self.dag.add_milestone(rec_spec)
+                recovery_milestones.append(rec_spec.milestone_id)
+                self.ratchet.save_state(self.dag)
+                self._execute_pending_milestones(history)
+                if rec_spec.status != "certified":
+                    break
+                ext_res = self.external_verifier_plugin.verify(self.executor, changed_files=[])
+                final_external_verification = ext_res.to_dict()
+                external_verified = bool(ext_res.ok)
+
+        topo_order = self.dag.validate_dag()
         certified_ids = [
             mid for mid in topo_order if self.dag.milestones[mid].status == "certified"
         ]
@@ -1307,14 +1604,23 @@ class MacroMilestoneRatchetEngine:
             mid for mid in topo_order if self.dag.milestones[mid].status == "pending"
         ]
 
-        return {
-            "completed": self.dag.is_complete(),
+        out: Dict[str, Any] = {
+            "completed": self.dag.is_complete() and (external_verified is not False),
             "topological_order": topo_order,
             "certified_milestones": certified_ids,
             "failed_milestones": failed_ids,
             "pending_milestones": pending_ids,
             "head_commit_sha": self.ratchet.current_head_sha(),
             "state_file": self.ratchet.STATE_FILE_REL,
+            "planner_token_usage": dict(getattr(self.planner, "last_token_usage", {}) or {}),
             "dag": self.dag.to_dict(),
             "history": history,
         }
+        if self.external_verifier_plugin is not None:
+            out["external_verification"] = {
+                "external_verified": bool(external_verified),
+                "initial": initial_external_verification,
+                "final": final_external_verification,
+                "recovery_milestones": recovery_milestones,
+            }
+        return out

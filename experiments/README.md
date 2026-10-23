@@ -56,7 +56,8 @@ Graded with the official containers.*
 | **V14** | Zero-hint prompts (`--include-hints` OFF) | 6 tasks | **6 / 6** | **279 s** | [results](../results/swebench/v14_zero_hint_beam_eval_2026-10-21/README.md) |
 | **V14** | 5-way component ablation (`--include-hints` OFF) | 6 tasks × 5 arms | **6/6 → 4/6 → 4/6 → 2/6 → 0/6** | 279–446 s | [report](v14/v14_verified_and_ablation_report.md) · [results](../results/swebench/v14_component_ablation_2026-10-21/README.md) |
 | **V14** | Unseen SWE-bench Verified (`--include-hints` OFF) | 12 tasks (8 repos) | **9 / 12** (vs 7 / 12 V12) | 413 s | [report](v14/v14_verified_and_ablation_report.md) · [results](../results/swebench/verified_unseen_eval_2026-10-21/README.md) |
-| **V14** | Milestone ratchet | MiniLang | **4 / 4** ⁵ | 246 s | [spec](v14/v14_generalized_macro_ratchet_architecture.md) · [results](../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md) |
+| **V14** | Planner-driven ratchet + external `sqlite3` oracle | `MiniSQL` (`2,345` LoC) | **7 / 7** (`15 / 15` oracle) | 739 s | [spec](v14/v14_generalized_macro_ratchet_architecture.md) · [results](../results/ratchet/planner_driven_minisql_eval_2026-10-23/README.md) |
+| **V14** | Milestone ratchet (hand-authored DAG) | `MiniLang` (`1,139` LoC) | **4 / 4** ⁵ | 246 s | [spec](v14/v14_generalized_macro_ratchet_architecture.md) · [results](../results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md) |
 
 <sub>⁴ Instance-specific hints in the prompts: 3 repo-specific strings for the
 earlier 15/30 and 22/30 runs, and 25 for the 30/30 run (`e20a400`), several of

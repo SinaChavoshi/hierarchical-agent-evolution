@@ -836,6 +836,7 @@ class PytestVerifierPlugin(WorkspaceVerifierPlugin):
                 notes.append(f"pytest PASSED ({passed_tests} passed)")
             else:
                 tests_ok = False
+                passed_tests += _parse_passed_count(raw_t, default_on_ok=0)
                 new_failures = _parse_failure_count(raw_t, default_on_error=1)
                 notes.append(f"pytest FAILED (rc={res_t.rc}, failures={new_failures}): {_truncate(raw_t, 800)}")
 
@@ -851,6 +852,19 @@ class PytestVerifierPlugin(WorkspaceVerifierPlugin):
                 timeout_s=self.timeout_s,
             )
             falsifier_ok = res_f.ok
+            if falsifier_ok:
+                try:
+                    f_src = executor.read_file(self.falsifier_script)
+                except Exception:
+                    f_src = ""
+                if re.search(r"^\s*def\s+test_", f_src, flags=re.MULTILINE) and "__main__" not in f_src:
+                    res_f = executor.run(
+                        [executor.python, "-m", "pytest", "-q", self.falsifier_script],
+                        cwd=executor.root,
+                        env=env,
+                        timeout_s=self.timeout_s,
+                    )
+                    falsifier_ok = res_f.ok
             if falsifier_ok:
                 notes.append(f"falsifier `{self.falsifier_script}` PASSED")
             else:
@@ -915,11 +929,11 @@ class ShellCommandVerifierPlugin(WorkspaceVerifierPlugin):
         py_bin_dir = os.path.dirname(executor.python or "")
         merged_env = dict(self.env)
         merged_env.setdefault("PYTHONPATH", f"{executor.root}:{pybin_abs}")
-        path_parts = [p for p in (pybin_abs, py_bin_dir) if p]
+        path_parts = list(dict.fromkeys(p for p in (pybin_abs, py_bin_dir) if p))
         path_prefix = f'export PATH="{":".join(path_parts)}:$PATH"; ' if path_parts else ""
         wrapped = f'{path_prefix}export PYTHONPATH="{executor.root}:{pybin_abs}:${{PYTHONPATH:-}}"; {cmd}'
         return executor.run(
-            ["bash", "-lc", wrapped],
+            ["bash", "-c", wrapped],
             cwd=executor.root,
             env=merged_env,
             timeout_s=self.timeout_s,
@@ -969,9 +983,10 @@ class ShellCommandVerifierPlugin(WorkspaceVerifierPlugin):
                 passed_tests += _parse_passed_count(out_t, default_on_ok=1)
                 notes.append(f"test `{self.test_cmd}` PASSED ({passed_tests} passed)")
             else:
+                passed_tests += _parse_passed_count(out_t, default_on_ok=0)
                 new_failures = _parse_failure_count(out_t, default_on_error=1)
                 notes.append(
-                    f"test `{self.test_cmd}` FAILED (rc={res_t.rc}, failures={new_failures}): {_truncate(out_t, 800)}"
+                    f"test `{self.test_cmd}` FAILED (rc={res_t.rc}, failures={new_failures}): {_truncate(out_t, 3500)}"
                 )
             if self.repro_cmd is None:
                 repro_ok = tests_ok

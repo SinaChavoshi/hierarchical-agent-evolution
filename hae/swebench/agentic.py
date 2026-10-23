@@ -1648,7 +1648,7 @@ class AgenticSweEngine:
                                 self.executor.git(["add", "-N", "--", *self._last_created_files])
                     else:
                         self._repro_head_fails_cache[repro_sha] = True
-                if not self._repro_head_fails_cache.get(repro_sha, True):
+                if not self._repro_head_fails_cache.get(repro_sha, True) and not (self.allow_new_files and self.custom_test_cmd):
                     repro_ok = False
                     diagnostics.append(
                         f"- Reproduction script `{self.repro_script_rel}` INVALID: exited 0 on clean HEAD (unpatched code) as well! "
@@ -1676,16 +1676,73 @@ class AgenticSweEngine:
                 f"{self.custom_test_cmd}"
             )
             res_cust = self.executor.run(
-                ["bash", "-lc", wrapped_cust],
+                ["bash", "-c", wrapped_cust],
                 cwd=self.executor.root,
                 env={"PYTHONPATH": self.executor.root},
                 timeout_s=90,
             )
             out_cust = ((res_cust.stdout or "") + "\n" + (res_cust.stderr or "")).strip()
             if res_cust.rc == 0 and not res_cust.timed_out:
-                if not self.executor.exists(self.repro_script_rel):
-                    repro_ok = True
-                diagnostics.append(f"- Custom test command `{self.custom_test_cmd}`: PASSED (exit 0).")
+                passed_cust = sum(int(x) for x in re.findall(r"(\d+)\s+passed", out_cust))
+                primary_cust_cmd = self.custom_test_cmd.split("&&")[0].strip()
+                cust_test_files = [
+                    p
+                    for p in re.findall(r"([A-Za-z0-9_./-]*test[A-Za-z0-9_./-]*\.py)", primary_cust_cmd)
+                    if self.executor.exists(p)
+                ]
+                trivial_placeholder = False
+                stub_modules: List[str] = []
+                assert_count = 0
+                test_fn_count = 0
+                if self.allow_new_files and cust_test_files:
+                    try:
+                        tf_src = "\n".join(self.executor.read_file(p) for p in cust_test_files)
+                    except Exception:
+                        tf_src = ""
+                    test_fn_count = len(
+                        re.findall(r"^\s*def\s+test_[A-Za-z0-9_]+\s*\(", tf_src, flags=re.MULTILINE)
+                    )
+                    assert_count = len(
+                        re.findall(r"\b(?:assert\b|pytest\.raises\b|raise\s+AssertionError\b|MiniSQLError\b)", tf_src)
+                    )
+                    if (
+                        passed_cust < 4
+                        or test_fn_count < 4
+                        or assert_count < 4
+                        or bool(re.search(r"\bdef\s+test_(?:placeholder|smoke|dummy|todo)\s*\(", tf_src))
+                        or ("import " not in tf_src and "from " not in tf_src)
+                    ):
+                        trivial_placeholder = True
+                    for rel_m, src_m in contents.items():
+                        if (
+                            rel_m.endswith(".py")
+                            and not rel_m.startswith("tests/")
+                            and not os.path.basename(rel_m).startswith("test_")
+                            and os.path.basename(rel_m) != "__init__.py"
+                        ):
+                            non_empty_lines = [ln for ln in src_m.splitlines() if ln.strip() and not ln.strip().startswith("#")]
+                            if len(non_empty_lines) < 35:
+                                stub_modules.append(f"{rel_m} ({len(non_empty_lines)} non-empty lines)")
+                if trivial_placeholder or stub_modules:
+                    repo_tests_ok = False
+                    repro_ok = False
+                    new_failures = max(1, new_failures + 1)
+                    if stub_modules:
+                        diagnostics.append(
+                            f"- Implementation module check FAILED (stub module detected: {', '.join(stub_modules)}): "
+                            "You MUST implement the complete module logic required by the milestone specification (not a stub or placeholder)."
+                        )
+                    if trivial_placeholder:
+                        diagnostics.append(
+                            f"- Custom test command `{self.custom_test_cmd}` INVALID (trivial/placeholder test file detected: {passed_cust} test(s) ran, {assert_count} assertion(s) found): "
+                            f"You MUST write at least 4 real `def test_*` unit tests with real `assert` statements in {cust_test_files} that import the milestone module(s) and test the actual classes, methods, and edge cases."
+                        )
+                else:
+                    if not self.executor.exists(self.repro_script_rel):
+                        repro_ok = True
+                    diagnostics.append(
+                        f"- Custom test command `{self.custom_test_cmd}`: PASSED (exit 0, {passed_cust} passed)."
+                    )
             else:
                 repo_tests_ok = False
                 new_failures = max(1, new_failures + 1)
@@ -2041,6 +2098,12 @@ class AgenticSweEngine:
                     return True, verified_cp
                 else:
                     last_rejected_submit_sig = sub_sig
+                    if turn >= effective_max_turns - 1 and not bonus_granted and (time.time() - self.run_start_time < self.max_wall_s - 90):
+                        bonus_granted = True
+                        effective_max_turns += 4
+                        self.logger(
+                            f"[v12-agentic] {specialist_name} turn {turn}: granting +4 bonus turns after late submit rejection (up to {effective_max_turns})"
+                        )
                     reject_obs = (
                         f"Observation (submit rejected by EvidenceGatekeeper):\n{audit_msg}\n\n"
                         "Please fix the reported issue(s) in place using `str_replace` or `bash`, re-run your "
@@ -2057,7 +2120,7 @@ class AgenticSweEngine:
                 if cp_mid is not None and cp_mid.diff.strip() and cp_mid.compile_ok and (
                     cp_mid.repro_ok
                     or cp_mid.repo_tests_ok
-                    or action.kind in ("str_replace", "write_file")
+                    or action.kind in ("str_replace", "write_file", "bash", "submit")
                 ):
                     bonus_granted = True
                     effective_max_turns += 3

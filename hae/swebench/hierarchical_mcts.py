@@ -298,8 +298,11 @@ def parse_seed_architect_response(
     if not raw_text or not raw_text.strip():
         return contract, branches
 
-    # Try extracting JSON object if present
-    json_match = re.search(r"\{.*\}", raw_text, flags=re.DOTALL)
+    # Try extracting JSON object if present (strip <think>...</think> reasoning blocks first)
+    cleaned_raw = re.sub(r"<think>.*?</think>", "", raw_text, flags=re.DOTALL | re.IGNORECASE)
+    if "<think>" in cleaned_raw:
+        cleaned_raw = cleaned_raw.split("<think>", 1)[0]
+    json_match = re.search(r"\{.*\}", cleaned_raw, flags=re.DOTALL)
     if json_match:
         try:
             data = json.loads(json_match.group(0))
@@ -328,9 +331,11 @@ def parse_seed_architect_response(
                         title = str(b.get("title") or locus).strip()
                         t_files = b.get("target_files")
                         if not isinstance(t_files, list) or not t_files:
-                            t_files = default_files
+                            t_files = list(default_files)
                         else:
                             t_files = [str(f).strip() for f in t_files if str(f).strip()]
+                            if candidate_modules and len(candidate_modules) <= 6:
+                                t_files = list(dict.fromkeys([*t_files, *(str(c).strip() for c in candidate_modules if str(c).strip())]))
                         plan = str(b.get("mechanism_and_plan") or b.get("plan") or title).strip()
                         prior = float(b.get("prior") or (0.68 - 0.05 * idx))
                         parsed_b.append(
@@ -1102,18 +1107,21 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             and len(n.children) < 2
         ]
 
-        # Priority rule: if a branch achieved `repro_ok=True` (its reproduction script passed, and it only
-        # failed a regression test or L1-B falsification) with 0 prior CONT refinements, refine it immediately
-        # in a clean Delta-Refinement context before abandoning its basin; if `repro_ok=False`, pivot to GEN (b2)!
+        # Priority rule: if a branch achieved `repro_ok=True` (or in greenfield mode `allow_new_files=True`
+        # produced a substantial compiling module `len(diff) >= 1500` that only failed a unit test) with 0 prior
+        # CONT refinements, refine it immediately in a clean Delta-Refinement context before abandoning its basin!
         near_miss_unrefined = [
             n for n in cont_candidates
             if n.checkpoint is not None
-            and n.checkpoint.repro_ok
+            and (
+                n.checkpoint.repro_ok
+                or (self.allow_new_files and n.checkpoint.compile_ok and len(n.checkpoint.diff) >= 1500)
+            )
             and len(n.children) == 0
             and n.stagnant_steps == 0
         ]
         if near_miss_unrefined:
-            best_nm = max(near_miss_unrefined, key=lambda n: (n.value, n.episode_index))
+            best_nm = max(near_miss_unrefined, key=lambda n: (n.value, len(n.checkpoint.diff if n.checkpoint else ""), n.episode_index))
             return "CONT", best_nm.node_id, None
 
         # If there are unexplored stratified branches in `branch_queue` and no node has achieved `repro_ok=True`,
@@ -1604,13 +1612,29 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 res_f = self.executor.run(
                     [
                         "bash",
-                        "-lc",
+                        "-c",
                         f'export PATH="{self._python_bin_dir}:$PATH"; export PYTHONPATH="{self.executor.root}:${{PYTHONPATH:-}}"; {self.executor.python} {s_rel}',
                     ],
                     cwd=self.executor.root,
                     env={"PYTHONPATH": self.executor.root},
                     timeout_s=60,
                 )
+                if res_f.rc == 0 and not res_f.timed_out:
+                    try:
+                        f_src = self.executor.read_file(s_rel)
+                    except Exception:
+                        f_src = ""
+                    if re.search(r"^\s*def\s+test_", f_src, flags=re.MULTILINE) and "__main__" not in f_src:
+                        res_f = self.executor.run(
+                            [
+                                "bash",
+                                "-c",
+                                f'export PATH="{self._python_bin_dir}:$PATH"; export PYTHONPATH="{self.executor.root}:${{PYTHONPATH:-}}"; {self.executor.python} -m pytest -q {s_rel}',
+                            ],
+                            cwd=self.executor.root,
+                            env={"PYTHONPATH": self.executor.root},
+                            timeout_s=60,
+                        )
                 if res_f.rc != 0 or res_f.timed_out:
                     suite_ok = False
                     suite_out = _truncate_output((res_f.stdout + "\n" + res_f.stderr).strip(), 1500)
@@ -1623,7 +1647,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 f"{self.custom_test_cmd}"
             )
             res_ct_post = self.executor.run(
-                ["bash", "-lc", wrapped_ct_post],
+                ["bash", "-c", wrapped_ct_post],
                 cwd=self.executor.root,
                 env={"PYTHONPATH": self.executor.root},
                 timeout_s=45,
