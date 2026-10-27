@@ -120,6 +120,10 @@ class EditBlockTests(unittest.TestCase):
             self.assertIn("return 2", open(os.path.join(d, rel)).read())
             self.assertIsNotNone(apply_edit_blocks(d, [("setup.py", "x", "y")]))
             self.assertIsNotNone(apply_edit_blocks(d, [(rel, "missing text", "y")]))
+            # Decorated or placeholder paths are resolved from the SEARCH text.
+            self.assertIsNone(apply_edit_blocks(d, [(f"{rel} :: f", "    return 2", "    return 3")]))
+            self.assertIsNone(apply_edit_blocks(d, [("path/to/file.py", "    return 3", "    return 4")]))
+            self.assertIn("return 4", open(os.path.join(d, rel)).read())
 
     def test_extract_function_source(self):
         src = "class A:\n    def m(self):\n        return 1\n\ndef g():\n    pass\n"

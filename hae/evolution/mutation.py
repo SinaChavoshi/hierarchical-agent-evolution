@@ -114,8 +114,19 @@ def apply_edit_blocks(worktree: str, blocks: Sequence[Tuple[str, str, str]]) -> 
     if not blocks:
         return "no edit blocks found"
     for path, search, replace in blocks:
+        path = path.split("::")[0].strip().strip("`")
         if path not in EVOLVABLE_FILES:
-            return f"edit targets non-evolvable file {path!r}"
+            # The model sometimes writes a placeholder or decorated path; infer the file from the SEARCH text.
+            owners = []
+            for cand in EVOLVABLE_FILES:
+                if not os.path.exists(os.path.join(worktree, cand)):
+                    continue
+                with open(os.path.join(worktree, cand), "r", encoding="utf-8") as fh:
+                    if search.strip() and fh.read().count(search) == 1:
+                        owners.append(cand)
+            if len(owners) != 1:
+                return f"edit targets non-evolvable file {path!r}"
+            path = owners[0]
         full = os.path.join(worktree, path)
         with open(full, "r", encoding="utf-8") as fh:
             src = fh.read()
