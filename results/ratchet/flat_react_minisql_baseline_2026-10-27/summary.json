@@ -1,0 +1,157 @@
+{
+  "eval_id": "flat_react_minisql_baseline_2026-10-27",
+  "timestamp_utc": "2026-10-27T01:45:23Z",
+  "endpoint_info": {
+    "endpoint": "http://127.0.0.1:8000/v1",
+    "requested_model": "reflection/Beam-1.0-501B-A23B-NVFP4",
+    "available_models": [
+      "reflection/Beam-1.0-501B-A23B-NVFP4",
+      "Beam-1.0-501B-A23B",
+      "nvidia/Qwen3.8-Flash-Next-NVFP4",
+      "Qwen/Qwen3-Coder-32B-Instruct",
+      "Qwen3-Coder-32B"
+    ],
+    "detected_provider": "vllm",
+    "hierarchical_micro_engine": "HierarchicalAgenticMCTSEngine"
+  },
+  "planner_mode": "flat_react_baseline",
+  "planner_token_usage": {
+    "llm_calls": 0,
+    "prompt_tokens": 0,
+    "output_tokens": 0,
+    "thought_tokens": 0,
+    "total_tokens": 0
+  },
+  "completed": false,
+  "topological_order": [
+    "m1_flat_react_minisql"
+  ],
+  "certified_milestones": [],
+  "failed_milestones": [
+    "m1_flat_react_minisql"
+  ],
+  "pending_milestones": [],
+  "head_commit_sha": "7ef92b8c2b62677783fb2ab27b5b58ba52734dc2",
+  "total_wall_clock_s": 131.619,
+  "totals": {
+    "moves_used": 33,
+    "llm_calls": 33,
+    "prompt_tokens": 365652,
+    "output_tokens": 11747,
+    "thought_tokens": 1376,
+    "total_tokens": 377399
+  },
+  "external_verification": {
+    "external_verified": false,
+    "initial": {
+      "compile_ok": true,
+      "repro_ok": false,
+      "tests_ok": false,
+      "falsifier_ok": true,
+      "new_failures": 15,
+      "passed_tests": 0,
+      "summary": "build OK (no build_cmd configured); test `pytest -q /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py` FAILED (rc=1, failures=15): === FAILURES: /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py::test_01_public_exports_and_query_result_helpers ===\nImportError: cannot import name 'eval_expr' from 'minisql.storage' (/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/storage.py)\nTraceback (most recent call last):\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/.hae/pybin/pytest.py\", line 319, in _invoke_test_callable\n    fn(**call_kwargs)\n    ~~^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py\", line 57, in test_01_public_exports_and_query_result_helpers\n    db.execute(\"CREATE TABLE items (id INT PRIMARY KEY, name TEXT NOT NULL, price REAL DEFAULT 1.5)\")\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/engine.py\", line 8, in execute\n    from .storage import eval_expr\nImportError: cannot import name 'eval_expr' from 'minisql.storage' (/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/storage.py)\nFAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-1\n... [truncated 28543 chars] ...\ntorage' (/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/storage.py)\nTraceback (most recent call last):\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/.hae/pybin/pytest.py\", line 319, in _invoke_test_callable\n    fn(**call_kwargs)\n    ~~^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py\", line 358, in test_15_division_by_zero_and_statement_atomicity\n    db.execute(\"CREATE TABLE nums (id INT PRIMARY KEY, x INT UNIQUE)\")\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/engine.py\", line 8, in execute\n    from .storage import eval_expr\nImportError: cannot import name 'eval_expr' from 'minisql.storage' (/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/storage.py)\nFAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py::test_15_division_by_zero_and_statement_atomicity - ImportError: cannot import name 'eval_expr' from 'minisql.storage' (/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/storage.py)\n15 failed, 0 passed in 0.05s",
+      "score": 0.45,
+      "ok": false,
+      "details": {}
+    },
+    "final": {
+      "compile_ok": true,
+      "repro_ok": false,
+      "tests_ok": false,
+      "falsifier_ok": true,
+      "new_failures": 15,
+      "passed_tests": 0,
+      "summary": "build OK (no build_cmd configured); test `pytest -q /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py` FAILED (rc=1, failures=15): === FAILURES: /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py::test_01_public_exports_and_query_result_helpers ===\nImportError: cannot import name 'eval_expr' from 'minisql.storage' (/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/storage.py)\nTraceback (most recent call last):\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/.hae/pybin/pytest.py\", line 319, in _invoke_test_callable\n    fn(**call_kwargs)\n    ~~^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py\", line 57, in test_01_public_exports_and_query_result_helpers\n    db.execute(\"CREATE TABLE items (id INT PRIMARY KEY, name TEXT NOT NULL, price REAL DEFAULT 1.5)\")\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/engine.py\", line 8, in execute\n    from .storage import eval_expr\nImportError: cannot import name 'eval_expr' from 'minisql.storage' (/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/storage.py)\nFAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-1\n... [truncated 28543 chars] ...\ntorage' (/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/storage.py)\nTraceback (most recent call last):\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/.hae/pybin/pytest.py\", line 319, in _invoke_test_callable\n    fn(**call_kwargs)\n    ~~^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py\", line 358, in test_15_division_by_zero_and_statement_atomicity\n    db.execute(\"CREATE TABLE nums (id INT PRIMARY KEY, x INT UNIQUE)\")\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/engine.py\", line 8, in execute\n    from .storage import eval_expr\nImportError: cannot import name 'eval_expr' from 'minisql.storage' (/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/storage.py)\nFAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py::test_15_division_by_zero_and_statement_atomicity - ImportError: cannot import name 'eval_expr' from 'minisql.storage' (/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/minisql_repo/minisql/storage.py)\n15 failed, 0 passed in 0.05s",
+      "score": 0.45,
+      "ok": false,
+      "details": {}
+    },
+    "recovery_milestones": []
+  },
+  "milestones": [
+    {
+      "milestone_id": "m1_flat_react_minisql",
+      "title": "Monolithic Single-Shot MiniSQL Build (No L0-Macro Decomposition/Ratchet)",
+      "depends_on": [],
+      "target_files": [
+        "minisql/__init__.py",
+        "minisql/ast_nodes.py",
+        "minisql/lexer.py",
+        "minisql/parser.py",
+        "minisql/storage.py",
+        "minisql/engine.py",
+        "tests/test_m1_lexer_and_ast.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/",
+      "max_diff_lines": 5000,
+      "status": "failed",
+      "base_head_sha": "7ef92b8c2b62677783fb2ab27b5b58ba52734dc2",
+      "certified_commit_sha": null,
+      "git_tag": "hae-milestone-m1_flat_react_minisql",
+      "elapsed_s": 131.291,
+      "moves_used": 33,
+      "token_usage": {
+        "llm_calls": 33,
+        "prompt_tokens": 365652,
+        "output_tokens": 11747,
+        "thought_tokens": 1376,
+        "total_tokens": 377399
+      },
+      "delta_files": [
+        "minisql/__init__.py",
+        "minisql/ast_nodes.py",
+        "minisql/engine.py",
+        "minisql/lexer.py",
+        "minisql/parser.py",
+        "minisql/storage.py",
+        "tests/test_m1_lexer_and_ast.py"
+      ],
+      "delta_added_lines": 341,
+      "delta_removed_lines": 0,
+      "delta_diff_lines": 380,
+      "total_repo_loc": 348,
+      "archived_falsification_suite": ".hae/ratchet_suites/falsify_m1_flat_react_minisql.py",
+      "verified_milestones": [
+        "m1_flat_react_minisql"
+      ],
+      "milestone_passed_tests": {
+        "m1_flat_react_minisql": 0
+      },
+      "cumulative_passed_tests": 0,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": false,
+        "tests_ok": false,
+        "falsifier_ok": true,
+        "new_failures": 1,
+        "passed_tests": 0,
+        "summary": "[m1_flat_react_minisql] acceptance `pytest -q tests/` FAILED: build OK (no build_cmd configured); test `pytest -q tests/` FAILED (rc=5, failures=1): no tests ran in 0.00s; [m1_flat_react_minisql] falsification suite `.hae/ratchet_suites/falsify_m1_flat_react_minisql.py` PASSED; plugin(PytestVerifierPlugin): py_compile OK (7 file(s)); repro `.hae/reproduce_issue.py` PASSED; pytest PASSED (0 passed)",
+        "score": 0.6,
+        "ok": false,
+        "details": {
+          "verified_milestones": [
+            "m1_flat_react_minisql"
+          ],
+          "milestone_passed_tests": {
+            "m1_flat_react_minisql": 0
+          },
+          "cumulative_passed_tests": 0,
+          "delta_added_lines": 341,
+          "delta_diff_lines": 380
+        }
+      }
+    }
+  ],
+  "git_telemetry": {
+    "commits": [
+      {
+        "sha": "7ef92b8c2b62677783fb2ab27b5b58ba52734dc2",
+        "subject": "chore: initial repository scaffold"
+      }
+    ],
+    "tags": {},
+    "milestone_git_stats": {}
+  },
+  "ratchet_state_path": "/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/flat_react_minisql_baseline_2026-10-27/.hae/ratchet_state.json"
+}

@@ -727,6 +727,21 @@ class _RatchetWorkspaceExecutorProxy(CommandExecutor):
         env: Optional[Mapping[str, str]] = None,
         stdin: str = "",
     ) -> ExecResult:
+        raw_cmd_str = argv if isinstance(argv, str) else " ".join(str(c) for c in argv)
+        parent_dir = os.path.dirname(self.root.rstrip("/"))
+        repo_grandparent = os.path.dirname(os.path.dirname(parent_dir))
+        if (
+            "heldout_external_tests" in raw_cmd_str
+            or re.search(r"\bfind\s+/\s", raw_cmd_str)
+            or (parent_dir and parent_dir in raw_cmd_str and self.root not in raw_cmd_str)
+            or (repo_grandparent and len(repo_grandparent) > 10 and repo_grandparent in raw_cmd_str and self.root not in raw_cmd_str)
+        ):
+            return ExecResult(
+                rc=1,
+                stdout="",
+                stderr=f"SandboxError: Accessing paths outside workspace `{self.root}` is prohibited.",
+                elapsed_s=0.0,
+            )
         eff_cwd = self._map_cmd_text(cwd) if cwd else self.root
         if isinstance(argv, str):
             eff_cmd: Sequence[str] = ["bash", "-c", self._map_cmd_text(argv)]
@@ -1506,6 +1521,12 @@ class MacroMilestoneRatchetEngine:
                     }
                 )
             else:
+                if not self.stop_on_failure and self.external_verifier_plugin is not None:
+                    try:
+                        pre_rb_ext = self.external_verifier_plugin.verify(self.executor, changed_files=[])
+                        self._last_failed_external_verification = pre_rb_ext.to_dict()
+                    except Exception:
+                        pass
                 rolled_back_sha = self.ratchet.rollback_to_head()
                 milestone.status = "failed"
                 milestone.certified_commit_sha = None
@@ -1532,6 +1553,7 @@ class MacroMilestoneRatchetEngine:
     def run(self, resume: bool = False) -> Dict[str, Any]:
         """Execute all milestones in topological order with persistent Git commit ratcheting."""
         self.ratchet.ensure_dirs()
+        self._last_failed_external_verification = None
 
         if resume and self.ratchet.state_exists():
             saved_dag = self.ratchet.load_state()
@@ -1551,9 +1573,15 @@ class MacroMilestoneRatchetEngine:
         history: List[Dict[str, Any]] = []
         self._execute_pending_milestones(history)
 
-        initial_external_verification: Optional[Dict[str, Any]] = None
-        final_external_verification: Optional[Dict[str, Any]] = None
-        external_verified: Optional[bool] = None
+        initial_external_verification: Optional[Dict[str, Any]] = getattr(
+            self, "_last_failed_external_verification", None
+        )
+        final_external_verification: Optional[Dict[str, Any]] = initial_external_verification
+        external_verified: Optional[bool] = (
+            bool(initial_external_verification.get("ok"))
+            if isinstance(initial_external_verification, dict)
+            else None
+        )
         recovery_milestones: List[str] = []
 
         if self.dag.is_complete() and self.external_verifier_plugin is not None:

@@ -1,0 +1,5 @@
+{
+ "instance_id": "pytest-dev__pytest-10051",
+ "model_name_or_path": "hae-v12-agentic/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/src/_pytest/logging.py b/src/_pytest/logging.py\nindex a4f4214b1..dd38aaca5 100644\n--- a/src/_pytest/logging.py\n+++ b/src/_pytest/logging.py\n@@ -440,7 +440,14 @@ class LogCaptureFixture:\n \n     def clear(self) -> None:\n         \"\"\"Reset the list of log records and the captured log text.\"\"\"\n+        old_records = self.handler.records\n         self.handler.reset()\n+        # Keep get_records() in sync with records.\n+        stash = self._item.stash.get(caplog_records_key, None)\n+        if stash is not None:\n+            for when, records in list(stash.items()):\n+                if records is old_records:\n+                    stash[when] = self.handler.records\n \n     def set_level(self, level: Union[int, str], logger: Optional[str] = None) -> None:\n         \"\"\"Set the level of a logger for the duration of a test.\n"
+}

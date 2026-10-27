@@ -25,6 +25,7 @@ Unifies two foundational principles across HAE:
 
 from __future__ import annotations
 
+import copy
 import json
 import math
 import os
@@ -1022,7 +1023,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             "Architecture Principles:\n"
             "- Never split a multi-file invariant across partial half-fixes: if an API signature, reference type (e.g. weakref vs. direct ref), or exception contract changes, include BOTH the definition site and all affected internal callers/consumers in `target_files`.\n"
             "- Separate immediate symptom handling (`consumer_local`) from upstream state-construction invariants (`producer_upstream` / Move 37) and sibling-pattern alignment (`codebase_symmetry`).\n"
-            "- Preserve backward compatibility and exact repository warning/exception hierarchies whenever deprecating parameters or validating inputs."
+            "- Preserve backward compatibility and exact repository warning/exception hierarchies whenever deprecating parameters or validating inputs.\n"
+            "- When an issue shows a configuration file snippet (`.toml`, `.ini`, `.cfg`), remember that config parsers strip outer string quotes before passing values to Python validators/transformers (e.g., `bad-name-rgxs = \"(foo{1,3})\"` in TOML passes the unquoted string `(foo{1,3})` to Python!). Never assume outer config quotes remain inside the string passed to the transformer; and in comma-separated regular expression lists, commas are syntactic ONLY inside quantifier braces `{m,n}` (NOT inside `(...)` parentheses, which may be unclosed in invalid-regex error tests like `(foo{1,}, foo{1,3}})`), so track ONLY `{` and `}` brace depth when splitting comma-separated regexes.\n"
+            "- When implementing or fixing windowed, centered, or strided indexing/iteration (e.g., `center=True`), always check how existing methods in the same class/module compute the center offset (`(window - 1) // 2` or `window - 1 - window // 2` vs `window // 2`), and test BOTH odd (`window=3`) AND even (`window=2`, `window=4`) window sizes against reference methods (such as `.construct(...)` or `.mean()`), because `window // 2` and `(window - 1) // 2` agree on odd integers while diverging on even integers."
         )
         user_prompt = (
             f"{self.runner.objective_text()}\n\n"
@@ -1190,9 +1193,12 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             if self.executor.exists(self.falsification_script_rel)
             else ""
         )
-        if self.executor.exists(self.repro_script_rel):
+        if self._is_repro_script_nontrivial_and_valid():
             self.recon_brief.repro_script_rel = self.repro_script_rel
             self.recon_brief.repro_fails_on_head = True
+        else:
+            self.recon_brief.repro_script_rel = ""
+            self.recon_brief.repro_fails_on_head = False
         header = base_block if base_block else f"{self.runner.objective_text()}\n\n"
         return (
             f"{header}"
@@ -1204,10 +1210,10 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             f"- **Target Files**: {', '.join(f'`{f}`' for f in branch_spec.target_files) or '(see Recon Brief)'}\n"
             f"- **Causal Mechanism & Execution Plan**: {branch_spec.mechanism_and_plan}\n\n"
             "### Execution Instructions & Completeness Checklist\n"
-            "1. **Inspect & Reproduce**: Check `/testbed/.hae/reproduce_issue.py` (create/update it if needed so it reproduces the issue before your edit and exits 0 after). Use `view_file` or `git grep -n` on the target lines.\n"
+            "1. **Inspect & Reproduce**: Check `/testbed/.hae/reproduce_issue.py` (create/update it if needed so it reproduces the issue before your edit and exits 0 after; never write a no-op `print('ok')` script). When an issue shows a config file snippet (`.toml`, `.ini`, `.cfg`) or multi-example code snippet, test the actual unquoted parsed strings (e.g. `(foo{1,3})` and `foo, bar{1,3}` without outer TOML quotes, plus invalid inputs like `(foo{1,}, foo{1,3}})`; remember that in comma-separated regex lists, commas are syntactic ONLY inside `{m,n}` quantifier braces, NOT inside `(...)` parentheses!). For windowed/centered/strided operations, test BOTH odd (`window=3`) and even (`window=2`, `window=4`) window sizes against reference operations (e.g. `.construct(...)` or `.mean()`, using `(window - 1) // 2` or `window - 1 - window // 2` rather than `window // 2`). Use `view_file` or `git grep -n` on the target lines.\n"
             "2. **Check Exact Codebase Conventions, Helpers & Sibling Classes Before Editing**:\n"
             "   - **Warning & Exception Hierarchy**: If the issue deprecates old kwargs/behavior or adds validation, inspect the package's `warnings.py` / `exceptions.py` / `errors.py` and `git grep -n \"warnings.warn\"` to emit the exact project warning/exception class and preserve backward-compatible parameter merging (e.g., `{**(metadata or {}), **additional_metadata}`) after warning rather than raising `ValueError`.\n"
-            "   - **Sibling Class & Method Symmetry**: Inspect sibling classes, containers, or property setters in the same module (e.g., `List` vs `Tuple`/`Dict`, sibling AST nodes, or sibling range-checked properties) so your fix applies consistently across all analogous types and helpers.\n"
+            "   - **Sibling Class, Documenter & Method Symmetry**: Inspect sibling classes, documenters, containers, or property setters in the same module (e.g., `GenericAliasMixin` vs `NewTypeMixin` vs `TypeVarMixin` vs `ClassDocumenter`, `List` vs `Tuple`/`Dict`, or sibling AST nodes) and verify actual return types in Python (e.g., `get_doc()` may return `[[]]` where `bool([[]])` is `True`!) so your fix applies consistently across all analogous types.\n"
             "   - **Caller vs. Callee Consistency**: Whenever you change a method signature, return structure, or attribute reference type (such as converting a parent reference to a `weakref` or adding an optional parameter), use `git grep -n` to check all internal callers and callees across the repository so no call site breaks.\n"
             "   - **Boundary & Abstract Semantics**: Distinguish empty/abstract declarations or terminal exception-raising bodies from normal fallthrough functions, and ensure builtin/extension objects without AST bodies are handled without regressions.\n"
             "3. **Apply Surgical Edit (`str_replace`) & Verify**: Apply your fix with `str_replace`, then run `python /testbed/.hae/reproduce_issue.py` and `pytest` on the relevant test files via `bash`"
@@ -1461,10 +1467,11 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                     "pytest",
                     "-q",
                     "--tb=short",
+                    "--color=no",
                     "--disable-warnings",
                     "-p",
                     "no:randomly",
-                    *tfiles[:4],
+                    *tfiles[:2],
                 ],
                 cwd=self.executor.root,
                 env={"PYTHONPATH": self.executor.root},
@@ -1474,7 +1481,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             if "No module named pytest" not in pt_raw:
                 pt_out = _truncate_output(pt_raw, 1400)
                 targeted_pytest_block += (
-                    f"\n### Targeted Repository Test Suite Output (`pytest {' '.join(tfiles[:4])}`, exit={res_pt.rc})\n"
+                    f"\n### Targeted Repository Test Suite Output (`pytest {' '.join(tfiles[:2])}`, exit={res_pt.rc})\n"
                     f"```text\n{pt_out}\n```\n"
                 )
         sibling_symmetry_block = self._scan_sibling_call_sites(cp)
@@ -1484,6 +1491,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             f"{sibling_symmetry_block}\n"
             f"{self.contract.to_prompt_block()}\n\n"
             "- IMPORTANT: If the patch deprecates legacy kwargs or parameters in favor of a new parameter (e.g. `metadata=...`), ensure passing BOTH the new parameter and deprecated kwargs merges them cleanly after emitting the deprecation warning rather than raising `ValueError`!\n"
+            "- **Config Parser Unquoted Values & Multi-Item CSV Audit**: When the issue involves configuration parsing (e.g. TOML/INI/CFG/CLI options), remember that config parsers strip outer string quotes before passing values to Python transformers! Test the transformer directly with unquoted values (e.g. `(foo{1,3})` without outer quotes), multi-item comma-separated values (e.g. `foo, bar{1,3}`), and invalid inputs.\n"
             "- **Behavioral Equivalence & Side-Effect Audit**: Do NOT merely check that a command or call exits 0 without raising an exception. "
             "If the problem statement says X should behave like Y (e.g., a short CLI option behaving like its long option including `--help` output and runtime side effects, "
             "an inferred/explicit scale behaving like a categorical scale, or an operation preserving state), verify that X produces the EXACT same observable stdout/stderr/state/help-text as Y!\n"
@@ -1507,6 +1515,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         self.logger(
             f"[v13-hier-mcts] Layer L1-B: Launching AdversarialFalsifierSubAgent on {cp.changed_files} (max_turns={max_turns})"
         )
+        orig_cp = copy.deepcopy(cp)
+        orig_checkpoints_len = len(self.checkpoints)
+        falsifier_edited = False
         messages: List[Dict[str, str]] = [
             {"role": "system", "content": self._falsifier_system_prompt()},
             {"role": "user", "content": self._falsifier_user_prompt(cp)},
@@ -1577,9 +1588,25 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 obs = self.execute_write_file_tool(action.path, action.new_str, run_after=True)
                 messages.append({"role": "user", "content": obs})
 
+        def _revert_falsifier_edit() -> None:
+            nonlocal falsifier_edited
+            del self.checkpoints[orig_checkpoints_len:]
+            cp.diff = orig_cp.diff
+            cp.changed_files = list(orig_cp.changed_files)
+            cp.file_contents = dict(orig_cp.file_contents)
+            cp.created_files = list(orig_cp.created_files)
+            cp.compile_ok = orig_cp.compile_ok
+            cp.static_ok = orig_cp.static_ok
+            cp.repro_ok = orig_cp.repro_ok
+            cp.repo_tests_ok = orig_cp.repo_tests_ok
+            cp.audit_ok = orig_cp.audit_ok
+            cp.gatekeeper_ok = orig_cp.gatekeeper_ok
+            self._restore_checkpoint(orig_cp)
+            falsifier_edited = False
+
         self._clean_untracked_outside_scratch()
         curr_diff, _, _ = self._current_diff_and_files()
-        if curr_diff != cp.diff and curr_diff.strip():
+        if curr_diff != orig_cp.diff and curr_diff.strip():
             # Falsifier/Auditor applied an edge-case or deprecation-warning refinement! Verify it via Gatekeeper.
             ok_aud, audit_msg_aud, cp_aud = self.verify_current_workspace(
                 specialist="L1_AdversarialFalsifier",
@@ -1587,6 +1614,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 is_auditor=False,
             )
             if ok_aud and cp_aud is not None and cp_aud.repro_ok and cp_aud.repo_tests_ok:
+                falsifier_edited = True
                 cp.diff = cp_aud.diff
                 cp.changed_files = cp_aud.changed_files
                 cp.file_contents = cp_aud.file_contents
@@ -1598,9 +1626,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 cp.audit_ok = True
                 cp.gatekeeper_ok = True
             else:
-                self._restore_checkpoint(cp)
+                _revert_falsifier_edit()
         elif not curr_diff.strip():
-            self._restore_checkpoint(cp)
+            _revert_falsifier_edit()
 
         # Deterministically run `/testbed/.hae/falsification_suite.py` and `/testbed/.hae/audit_edge_cases.py` if created
         suite_exists = False
@@ -1636,6 +1664,20 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                             timeout_s=60,
                         )
                 if res_f.rc != 0 or res_f.timed_out:
+                    if falsifier_edited:
+                        _revert_falsifier_edit()
+                        res_f_orig = self.executor.run(
+                            [
+                                "bash",
+                                "-c",
+                                f'export PATH="{self._python_bin_dir}:$PATH"; export PYTHONPATH="{self.executor.root}:${{PYTHONPATH:-}}"; {self.executor.python} {s_rel}',
+                            ],
+                            cwd=self.executor.root,
+                            env={"PYTHONPATH": self.executor.root},
+                            timeout_s=60,
+                        )
+                        if res_f_orig.rc == 0 and not res_f_orig.timed_out:
+                            continue
                     suite_ok = False
                     suite_out = _truncate_output((res_f.stdout + "\n" + res_f.stderr).strip(), 1500)
                     break
@@ -1654,14 +1696,24 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             )
             ct_post_raw = ((res_ct_post.stdout or "") + "\n" + (res_ct_post.stderr or "")).strip()
             if res_ct_post.rc != 0 or res_ct_post.timed_out:
-                cp.repo_tests_ok = False
-                cp.gatekeeper_ok = False
-                for c in self.checkpoints:
-                    if c.diff == cp.diff:
-                        c.repo_tests_ok = False
-                        c.gatekeeper_ok = False
-                ct_fail_out = _truncate_output(ct_post_raw, 1500)
-                return False, f"Custom test command ({self.custom_test_cmd}) FAILED (exit {res_ct_post.rc}):\n{ct_fail_out}"
+                if falsifier_edited:
+                    _revert_falsifier_edit()
+                    res_ct_post = self.executor.run(
+                        ["bash", "-c", wrapped_ct_post],
+                        cwd=self.executor.root,
+                        env={"PYTHONPATH": self.executor.root},
+                        timeout_s=45,
+                    )
+                    ct_post_raw = ((res_ct_post.stdout or "") + "\n" + (res_ct_post.stderr or "")).strip()
+                if res_ct_post.rc != 0 or res_ct_post.timed_out:
+                    cp.repo_tests_ok = False
+                    cp.gatekeeper_ok = False
+                    for c in self.checkpoints:
+                        if c.diff == cp.diff:
+                            c.repo_tests_ok = False
+                            c.gatekeeper_ok = False
+                    ct_fail_out = _truncate_output(ct_post_raw, 1500)
+                    return False, f"Custom test command ({self.custom_test_cmd}) FAILED (exit {res_ct_post.rc}):\n{ct_fail_out}"
 
         # Also deterministically verify targeted repository test files after any L1-B edits
         tfiles_post = self._discover_targeted_test_files(cp)
@@ -1673,29 +1725,61 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                     "pytest",
                     "-q",
                     "--tb=short",
+                    "--color=no",
                     "--disable-warnings",
                     "-p",
                     "no:randomly",
-                    *tfiles_post[:4],
+                    *tfiles_post[:2],
                 ],
                 cwd=self.executor.root,
                 env={"PYTHONPATH": self.executor.root},
                 timeout_s=40,
             )
             pt_post_raw = ((res_pt_post.stdout or "") + "\n" + (res_pt_post.stderr or "")).strip()
-            if res_pt_post.rc != 0 and res_pt_post.rc not in (5, 139, -11) and "No module named pytest" not in pt_post_raw:
-                only_base_pt, _base_note_pt, _new_fids_pt = self._check_only_baseline_test_failures(
-                    tfiles_post[:2], pt_post_raw, cp.file_contents
-                )
-                if not only_base_pt:
-                    cp.repo_tests_ok = False
-                    cp.gatekeeper_ok = False
-                    for c in self.checkpoints:
-                        if c.diff == cp.diff:
-                            c.repo_tests_ok = False
-                            c.gatekeeper_ok = False
-                    pt_fail_out = _truncate_output(pt_post_raw, 1500)
-                    return False, f"Targeted pytest suite ({' '.join(tfiles_post[:4])}) FAILED (exit {res_pt_post.rc}):\n{pt_fail_out}"
+            if (
+                res_pt_post.rc != 0
+                and res_pt_post.rc not in (5, 139, -11)
+                and "No module named pytest" not in pt_post_raw
+                and not (res_pt_post.timed_out and not self._extract_failing_test_ids(pt_post_raw))
+            ):
+                if falsifier_edited:
+                    _revert_falsifier_edit()
+                    res_pt_post = self.executor.run(
+                        [
+                            self.executor.python,
+                            "-m",
+                            "pytest",
+                            "-q",
+                            "--tb=short",
+                            "--color=no",
+                            "--disable-warnings",
+                            "-p",
+                            "no:randomly",
+                            *tfiles_post[:2],
+                        ],
+                        cwd=self.executor.root,
+                        env={"PYTHONPATH": self.executor.root},
+                        timeout_s=40,
+                    )
+                    pt_post_raw = ((res_pt_post.stdout or "") + "\n" + (res_pt_post.stderr or "")).strip()
+                if (
+                    res_pt_post.rc != 0
+                    and res_pt_post.rc not in (5, 139, -11)
+                    and "No module named pytest" not in pt_post_raw
+                    and not (res_pt_post.timed_out and not self._extract_failing_test_ids(pt_post_raw))
+                ):
+                    only_base_pt, _base_note_pt, _new_fids_pt = self._check_only_baseline_test_failures(
+                        tfiles_post[:2], pt_post_raw, cp.file_contents
+                    )
+                    if not only_base_pt:
+                        cp.repo_tests_ok = False
+                        cp.gatekeeper_ok = False
+                        for c in self.checkpoints:
+                            if c.diff == cp.diff:
+                                c.repo_tests_ok = False
+                                c.gatekeeper_ok = False
+                        pt_fail_out = _truncate_output(pt_post_raw, 1500)
+                        return False, f"Targeted pytest suite ({' '.join(tfiles_post[:2])}) FAILED (exit {res_pt_post.rc}):\n{pt_fail_out}"
 
         explicit_fail = bool(re.search(r"VERDICT\s*:\s*FAIL", verdict_text, flags=re.IGNORECASE))
         explicit_pass = bool(re.search(r"VERDICT\s*:\s*PASS", verdict_text, flags=re.IGNORECASE))

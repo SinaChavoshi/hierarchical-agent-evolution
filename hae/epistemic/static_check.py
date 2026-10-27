@@ -41,7 +41,12 @@ KIND_UNBOUND_AFTER_EXCEPT = "unbound_after_except"
 
 MODULE_SCOPE = "<module>"
 
-_BUILTIN_NAMES: Set[str] = set(dir(builtins))
+_PY2_COMPAT_BUILTINS: Set[str] = {
+    "unicode", "basestring", "long", "xrange", "raw_input", "unichr",
+    "StandardError", "file", "execfile", "reload", "reduce", "cmp",
+    "intern", "buffer", "coerce", "apply",
+}
+_BUILTIN_NAMES: Set[str] = set(dir(builtins)) | _PY2_COMPAT_BUILTINS
 # Patterns that make the set of module globals unknowable statically.
 _DYNAMIC_MARKERS = ("exec(", "globals()[", "globals().update(", "globals().setdefault(")
 

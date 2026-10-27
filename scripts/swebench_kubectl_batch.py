@@ -406,7 +406,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             if created and not args.keep_pods:
                 delete_pod(pod, args.context)
 
-    if args.workers <= 1 or args.valid_target is not None:
+    if args.workers <= 1:
         for iid in ids:
             if args.valid_target is not None and valid_count[0] >= args.valid_target:
                 break

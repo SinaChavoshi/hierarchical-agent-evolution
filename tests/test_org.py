@@ -82,6 +82,17 @@ class TaskFeatureTests(unittest.TestCase):
         self.assertEqual(f.source, "problem_statement")
         self.assertIn("complexity", f.to_dict())
 
+    def test_hex_commit_hashes_excluded_from_tags(self):
+        stmt = (
+            "See https://github.com/scikit-learn/scikit-learn/blob/"
+            "7389dbac82d362f296dc2746f10e43ffa1615660/sklearn/linear_model/least_angle.py#L1487 "
+            "and commit fbe22eb47db5df64b2c4133f9a5cb6c6920e8dd2"
+        )
+        f = TaskFeatures.from_problem_statement(stmt, repo="scikit-learn/scikit-learn")
+        for tag in f.tags:
+            self.assertNotIn("dbac82d362f296dc2746f10e43ffa1615660", tag)
+            self.assertNotIn("fbe22eb47db5df64b2c4133f9a5cb6c6920e8dd2", tag)
+
 
 class OrgSearchTests(unittest.TestCase):
     def test_simple_task_gets_a_small_team_with_probe_and_synthesis(self):

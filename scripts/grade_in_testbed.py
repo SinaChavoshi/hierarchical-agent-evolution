@@ -38,6 +38,7 @@ from hae.swebench.dataset import load_grading_info  # noqa: E402  grading-side l
 from hae.swebench.runner import make_executor  # noqa: E402
 
 _RESULT_RE = re.compile(r"^(PASSED|FAILED|ERROR|XFAIL|XPASS|SKIPPED)\s+(\S+)", re.M)
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 
 
 def _sh(ex, script: str, timeout_s: float = 600.0):
@@ -74,9 +75,13 @@ def _run_files(ex, files: List[str], timeout_s: float) -> Tuple[Dict[str, str], 
     """
     if not files:
         return {}, "", 0
-    argv = [ex.python, "-m", "pytest", "-rA", "-p", "no:cacheprovider", "--no-header", "-q", *files]
+    argv = [ex.python, "-m", "pytest", "-rA", "-p", "no:cacheprovider", "--color=no", "-q", *files]
     res = ex.run(argv, cwd=ex.root, timeout_s=timeout_s)
-    out = res.stdout + "\n" + res.stderr
+    out = _ANSI_RE.sub("", (res.stdout or "") + "\n" + (res.stderr or ""))
+    if res.rc == 4 and "unrecognized arguments" in out:
+        argv = [ex.python, "-m", "pytest", "-rA", "-p", "no:cacheprovider", "-q", *files]
+        res = ex.run(argv, cwd=ex.root, timeout_s=timeout_s)
+        out = _ANSI_RE.sub("", (res.stdout or "") + "\n" + (res.stderr or ""))
     status: Dict[str, str] = {}
     for m in _RESULT_RE.finditer(out):
         status[m.group(2)] = m.group(1)

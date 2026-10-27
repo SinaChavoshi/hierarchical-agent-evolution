@@ -1,0 +1,846 @@
+{
+ "authored_files": [
+  "sklearn/linear_model/least_angle.py"
+ ],
+ "budget": null,
+ "budget_exhausted": false,
+ "elapsed_seconds": 457.51,
+ "epistemic_audit": {
+  "budget_moves": 0,
+  "calibration_brier": 0.01,
+  "calibration_tested": 1,
+  "delta_u_total": 0,
+  "duplicate_rejections": 0,
+  "evidence": 9,
+  "evidence_backed_fraction": 1.0,
+  "experiments": 0,
+  "forced_low_prior_picks": 0,
+  "forced_low_prior_wins": 0,
+  "frontier_admissions": 0,
+  "hypotheses": 1,
+  "hypotheses_certified": 0,
+  "hypotheses_falsified": 0,
+  "hypotheses_supported": 1,
+  "hypotheses_tested": 1,
+  "hypotheses_untestable": 0,
+  "initial_uncertainty": 1.0,
+  "ledger_hash": "861b8fb6b72db7cd2c3e2e040b62ae91c3612be4a28f31ec4e6d7df02e7ef86b",
+  "low_prior_wins": 0,
+  "moves_used": 0,
+  "overconfident_falsified": 0,
+  "probe_repairs": 0,
+  "probes_refused": 0,
+  "proposal_rounds": 0,
+  "proposed_total": 1,
+  "questions": 1,
+  "questions_certified": 0,
+  "questions_deferred": 0,
+  "questions_exhausted": 0,
+  "questions_open": 0,
+  "questions_resolved": 1,
+  "remaining_uncertainty": 0.02,
+  "resolved_fraction": 0.98,
+  "ruled_out": 0,
+  "settled_facts": 0,
+  "status_inconsistencies": 0,
+  "stop_reason": "",
+  "syntheses": 0,
+  "syntheses_verified": 0,
+  "tabu_rejections": 0,
+  "token_usage": 241746,
+  "unbacked_claims": 0
+ },
+ "epistemic_ledger": {
+  "company_id": "v12_agentic_swebench_firm_0",
+  "counters": {
+   "e": 9,
+   "h": 1,
+   "q": 1
+  },
+  "created_at": 1793049822.086,
+  "evidence_log": [
+   {
+    "command": "verify_module sklearn/linear_model/least_angle.py (in place via kubectl:default/swebench-tb-scikit-learn-scikit-learn-12973/testbed:/testbed)",
+    "created_at": 1793049915.738,
+    "detail": "module check failed at static_check: undefined name 'copy_X' at line 621 in _fit",
+    "evidence_id": "e1",
+    "exit_code": 3,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "356715f3c490fd4e7813d56fc6cfd54d4b4014b18baf52aaec5f2781b4e580aa",
+    "stderr": "[static_check] undefined name 'copy_X' at line 621 in _fit",
+    "stdout": "[py_compile] COMPILE_OK sklearn/linear_model/least_angle.py\n\n[import] IMPORT_OK sklearn.linear_model.least_angle\n\n[static_check] "
+   },
+   {
+    "command": "verify_module sklearn/linear_model/least_angle.py (in place via kubectl:default/swebench-tb-scikit-learn-scikit-learn-12973/testbed:/testbed)",
+    "created_at": 1793049988.369,
+    "detail": "module check failed at repo_tests: proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.91s",
+    "evidence_id": "e2",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "acd3b43d8f1155fa3a0f304ad940c40ea585b15575a07b3017e425dfb7716b99",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK sklearn/linear_model/least_angle.py\n\n[import] IMPORT_OK sklearn.linear_model.least_angle\n\n[static_check] no undefined names (1548 lines)\n[repo_tests] proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.91s\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:1209: in assertLess\n    self.fail(self._formatMessage(msg, standardMsg))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <sklearn.utils._unittest_backport.TestCase testMethod=__init__>\nmsg = '5.233333333333334 not less than 0.5711500916674155'\n\n    def fail(self, msg=None):\n        \"\"\"Fail immediately, with the given message.\"\"\"\n>       raise self.failureException(msg)\nE       AssertionError: 5.233333333333334 not less than 0.5711500916674155\n\n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:670: AssertionError\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 13 passed, 1 warning in 0.91s\n"
+   },
+   {
+    "command": "verify_module sklearn/linear_model/least_angle.py (in place via kubectl:default/swebench-tb-scikit-learn-scikit-learn-12973/testbed:/testbed)",
+    "created_at": 1793050033.053,
+    "detail": "module check failed at repo_tests: proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.85s",
+    "evidence_id": "e3",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "1252579e8b218af2635961c1428a97a0cf8fbd8622d0a722c5746e5c25c4e943",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK sklearn/linear_model/least_angle.py\n\n[import] IMPORT_OK sklearn.linear_model.least_angle\n\n[static_check] no undefined names (1548 lines)\n[repo_tests] proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.85s\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:1209: in assertLess\n    self.fail(self._formatMessage(msg, standardMsg))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <sklearn.utils._unittest_backport.TestCase testMethod=__init__>\nmsg = '5.233333333333334 not less than 0.5711500916674155'\n\n    def fail(self, msg=None):\n        \"\"\"Fail immediately, with the given message.\"\"\"\n>       raise self.failureException(msg)\nE       AssertionError: 5.233333333333334 not less than 0.5711500916674155\n\n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:670: AssertionError\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 13 passed, 1 warning in 0.85s\n"
+   },
+   {
+    "command": "verify_module sklearn/linear_model/least_angle.py (in place via kubectl:default/swebench-tb-scikit-learn-scikit-learn-12973/testbed:/testbed)",
+    "created_at": 1793050071.902,
+    "detail": "module check failed at repo_tests: proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.85s",
+    "evidence_id": "e4",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "1252579e8b218af2635961c1428a97a0cf8fbd8622d0a722c5746e5c25c4e943",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK sklearn/linear_model/least_angle.py\n\n[import] IMPORT_OK sklearn.linear_model.least_angle\n\n[static_check] no undefined names (1548 lines)\n[repo_tests] proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.85s\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:1209: in assertLess\n    self.fail(self._formatMessage(msg, standardMsg))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <sklearn.utils._unittest_backport.TestCase testMethod=__init__>\nmsg = '5.233333333333334 not less than 0.5711500916674155'\n\n    def fail(self, msg=None):\n        \"\"\"Fail immediately, with the given message.\"\"\"\n>       raise self.failureException(msg)\nE       AssertionError: 5.233333333333334 not less than 0.5711500916674155\n\n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:670: AssertionError\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 13 passed, 1 warning in 0.85s\n"
+   },
+   {
+    "command": "verify_module sklearn/linear_model/least_angle.py (in place via kubectl:default/swebench-tb-scikit-learn-scikit-learn-12973/testbed:/testbed)",
+    "created_at": 1793050093.282,
+    "detail": "module check failed at repo_tests: proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.85s",
+    "evidence_id": "e5",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "1252579e8b218af2635961c1428a97a0cf8fbd8622d0a722c5746e5c25c4e943",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK sklearn/linear_model/least_angle.py\n\n[import] IMPORT_OK sklearn.linear_model.least_angle\n\n[static_check] no undefined names (1548 lines)\n[repo_tests] proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.85s\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:1209: in assertLess\n    self.fail(self._formatMessage(msg, standardMsg))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <sklearn.utils._unittest_backport.TestCase testMethod=__init__>\nmsg = '5.233333333333334 not less than 0.5711500916674155'\n\n    def fail(self, msg=None):\n        \"\"\"Fail immediately, with the given message.\"\"\"\n>       raise self.failureException(msg)\nE       AssertionError: 5.233333333333334 not less than 0.5711500916674155\n\n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:670: AssertionError\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 13 passed, 1 warning in 0.85s\n"
+   },
+   {
+    "command": "verify_module sklearn/linear_model/least_angle.py (in place via kubectl:default/swebench-tb-scikit-learn-scikit-learn-12973/testbed:/testbed)",
+    "created_at": 1793050180.076,
+    "detail": "module check failed at repo_tests: proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.83s",
+    "evidence_id": "e6",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "32a7a6570fef39596f538cc4b4c7c0e0c0b5526b41573824e9bdd4152a24c92f",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK sklearn/linear_model/least_angle.py\n\n[import] IMPORT_OK sklearn.linear_model.least_angle\n\n[static_check] no undefined names (1548 lines)\n[repo_tests] proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.83s\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:1209: in assertLess\n    self.fail(self._formatMessage(msg, standardMsg))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <sklearn.utils._unittest_backport.TestCase testMethod=__init__>\nmsg = '5.233333333333334 not less than 0.5711500916674155'\n\n    def fail(self, msg=None):\n        \"\"\"Fail immediately, with the given message.\"\"\"\n>       raise self.failureException(msg)\nE       AssertionError: 5.233333333333334 not less than 0.5711500916674155\n\n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:670: AssertionError\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 13 passed, 1 warning in 0.83s\n"
+   },
+   {
+    "command": "verify_module sklearn/linear_model/least_angle.py (in place via kubectl:default/swebench-tb-scikit-learn-scikit-learn-12973/testbed:/testbed)",
+    "created_at": 1793050215.865,
+    "detail": "module check failed at repo_tests: proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.87s",
+    "evidence_id": "e7",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "9921bf760486037cc52acab6cbe071a9472f39e8611a19743f3d4c2052d34f72",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK sklearn/linear_model/least_angle.py\n\n[import] IMPORT_OK sklearn.linear_model.least_angle\n\n[static_check] no undefined names (1548 lines)\n[repo_tests] proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.87s\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:1209: in assertLess\n    self.fail(self._formatMessage(msg, standardMsg))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <sklearn.utils._unittest_backport.TestCase testMethod=__init__>\nmsg = '5.233333333333334 not less than 0.5711500916674155'\n\n    def fail(self, msg=None):\n        \"\"\"Fail immediately, with the given message.\"\"\"\n>       raise self.failureException(msg)\nE       AssertionError: 5.233333333333334 not less than 0.5711500916674155\n\n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:670: AssertionError\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 13 passed, 1 warning in 0.87s\n"
+   },
+   {
+    "command": "verify_module sklearn/linear_model/least_angle.py (in place via kubectl:default/swebench-tb-scikit-learn-scikit-learn-12973/testbed:/testbed)",
+    "created_at": 1793050254.907,
+    "detail": "module check failed at repo_tests: proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.82s",
+    "evidence_id": "e8",
+    "exit_code": 1,
+    "hypothesis_id": "",
+    "kind": "module_check",
+    "matched_prediction": false,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "8304eb5d8a866a7eecbbfaa0fcfb0520be8b02b444c0dd5597764d1291743bda",
+    "stderr": "[repo_tests] command terminated with exit code 1\n",
+    "stdout": "[py_compile] COMPILE_OK sklearn/linear_model/least_angle.py\n\n[import] IMPORT_OK sklearn.linear_model.least_angle\n\n[static_check] no undefined names (1548 lines)\n[repo_tests] proximity tests failed (exit 1): sklearn/linear_model/tests/test_least_angle.py -- 1 failed, 13 passed, 1 warning in 0.82s\n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:1209: in assertLess\n    self.fail(self._formatMessage(msg, standardMsg))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <sklearn.utils._unittest_backport.TestCase testMethod=__init__>\nmsg = '5.233333333333334 not less than 0.5711500916674155'\n\n    def fail(self, msg=None):\n        \"\"\"Fail immediately, with the given message.\"\"\"\n>       raise self.failureException(msg)\nE       AssertionError: 5.233333333333334 not less than 0.5711500916674155\n\n/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py:670: AssertionError\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n1 failed, 13 passed, 1 warning in 0.82s\n"
+   },
+   {
+    "command": "v12_agentic_verify",
+    "created_at": 1793050275.304,
+    "detail": "- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "evidence_id": "e9",
+    "exit_code": 0,
+    "hypothesis_id": "h1",
+    "kind": "module_check",
+    "matched_prediction": true,
+    "network_isolated": null,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "question_id": "q1",
+    "sha256": "bfc00ec6f8207d67eb2d7dc66279e11174f824c0f919c015665fa34ba320d96c",
+    "stderr": "",
+    "stdout": "- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0)."
+   }
+  ],
+  "hypotheses": [
+   {
+    "claim": "Fixed issue in sklearn/linear_model/least_angle.py",
+    "created_at": 1793050275.304,
+    "epoch": 0,
+    "evidence_ids": [
+     "e9"
+    ],
+    "hypothesis_id": "h1",
+    "last_rejection": "",
+    "mechanism": "- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "mechanism_signature": "clean exist exit failur fix gatekeeper hae head ignor issue least_angle linear_model new pass pre reproduce_issue reproduction script sklearn verify_module",
+    "patch_applied": false,
+    "posterior": 0.95,
+    "prediction": {
+     "expect_exit_code": 0
+    },
+    "prior": 0.9,
+    "probe_code": "# verified via V12 agentic engine\nprint('OK')",
+    "probe_rejections": 0,
+    "proposed_by": "PrimaryRepairSpecialist",
+    "question_id": "q1",
+    "role_id": "",
+    "status": "SUPPORTED",
+    "synthesis_failures": 0,
+    "value_sum": 0.0,
+    "visits": 0
+   }
+  ],
+  "move_log": [],
+  "questions": [
+   {
+    "created_at": 1793049823.34,
+    "failure_epoch": 0,
+    "failure_history": [],
+    "hypothesis_ids": [
+     "h1"
+    ],
+    "hypothesis_rounds": 0,
+    "initial_uncertainty": 1.0,
+    "location": "",
+    "module": "sklearn/linear_model/least_angle.py",
+    "question_id": "q1",
+    "source_failure": "LassoLarsIC: unintuitive copy_X behaviour",
+    "source_failure_key": "swebench:scikit-learn__scikit-learn-12973",
+    "source_failure_tag": "swebench",
+    "status": "RESOLVED",
+    "text": "Reproduce the reported behaviour: LassoLarsIC: unintuitive copy_X behaviour -- Hi, I would like to report what seems to be a bug in the treatment of the `copy_X` parameter of the `LassoLarsIC` class. Because it's a simple bug, it's much easier to see in the code directly than in the execution, so I am not posting steps to reproduce it. As you can see here, LassoLarsIC accepts a copy_X parameter. https://github.com/scikit-learn/scikit-learn/blob/7389dbac82d362f296dc2746f10e43ffa1615660/sklearn/linear_model/least_angle.py#L1487 However, it also takes a copy_X parameter a few lines below, in the definition of ```fit```. ```def fit(self, X, y, copy_X=True):``` Now there are ...",
+    "uncertainty": 0.02
+   }
+  ],
+  "ruled_out": [],
+  "settled_knowledge": [],
+  "state_hash": "861b8fb6b72db7cd2c3e2e040b62ae91c3612be4a28f31ec4e6d7df02e7ef86b"
+ },
+ "epistemic_searches": [
+  {
+   "iteration": 1,
+   "moves_used": 39,
+   "stats": {
+    "best_checkpoint": {
+     "changed_files": [
+      "sklearn/linear_model/least_angle.py"
+     ],
+     "note": "- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "EscalationRepairSpecialist",
+     "turn": 14
+    },
+    "checkpoints_recorded": 13,
+    "mode": "v12_agentic"
+   },
+   "stop_reason": "resolved_by_agentic_gatekeeper",
+   "synthesized_paths": [
+    "sklearn/linear_model/least_angle.py"
+   ]
+  }
+ ],
+ "executor": "kubectl:default/swebench-tb-scikit-learn-scikit-learn-12973/testbed:/testbed",
+ "generation": 17,
+ "genome_id": "v12_agentic_swebench_firm_0",
+ "instance_id": "scikit-learn__scikit-learn-12973",
+ "opex": {
+  "budget_usd": 0.5,
+  "cost_penalty": 0.0,
+  "efficiency_bonus": 4.8,
+  "estimated_cost_usd": 0.02,
+  "flash_count": 26,
+  "flash_input_tokens": 233262,
+  "flash_output_tokens": 8484,
+  "fully_measured": true,
+  "headcount": 32,
+  "pro_count": 6,
+  "pro_input_tokens": 0,
+  "pro_output_tokens": 0,
+  "total_tokens": 241746
+ },
+ "prediction_chars": 977,
+ "swebench": {
+  "agentic_trajectory": [
+   {
+    "action": "bash",
+    "command": "git grep -n \"class LassoLarsIC\" /testbed/sklearn/linear_model/least_angle.py",
+    "elapsed_s": 1.97,
+    "reasoning_chars": 52,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "bash",
+    "command": "sed -n '1351,1560p' /testbed/sklearn/linear_model/least_angle.py",
+    "elapsed_s": 2.17,
+    "reasoning_chars": 79,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "parse_error",
+    "elapsed_s": 5.49,
+    "error": "Malformed `str_replace` block. Emit a markdown fenced block with this exact format:\n```str_replace\npath: path/to/file.py\n<<<<\n<exact old lines>\n====\n<replacement lines>\n>>>>\n```",
+    "reasoning_chars": 410,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 4.68,
+    "path": "sklearn/linear_model/least_angle.py",
+    "reasoning_chars": 88,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 1.68,
+    "path": "sklearn/linear_model/least_angle.py",
+    "reasoning_chars": 98,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 1.16,
+    "path": "sklearn/linear_model/least_angle.py",
+    "reasoning_chars": 71,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "sed -n '1480,1486p' /testbed/sklearn/linear_model/least_angle.py | cat -A | head",
+    "elapsed_s": 1.1,
+    "reasoning_chars": 74,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "python - << 'EOF'\nimport re\np='sklearn/linear_model/least_angle.py'\ns=open(p).read()\ns=s.replace('    def fit(self, X, y, copy_X=True):','    def fit(self, X, y, copy_X=None):',1)\n# preprocess data uses self.copy_X -> copy_X\ns=s.replace('            X, y, self.fit_intercept, self.normalize, self.cop",
+    "elapsed_s": 2.59,
+    "reasoning_chars": 145,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "sed -n '1495,1515p' /testbed/sklearn/linear_model/least_angle.py",
+    "elapsed_s": 1.15,
+    "reasoning_chars": 53,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 9
+   },
+   {
+    "action": "bash",
+    "command": "python - << 'EOF'\np='sklearn/linear_model/least_angle.py'\ns=open(p).read()\nold='''        X, y = check_X_y(X, y, y_numeric=True)\n\n        X, y, Xmean, ymean, Xstd = LinearModel._preprocess_data(\n            X, y, self.fit_intercept, self.normalize, self.copy_X)'''\nnew='''        if copy_X is None:\n ",
+    "elapsed_s": 1.66,
+    "reasoning_chars": 115,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "sed -n '610,625p' /testbed/sklearn/linear_model/least_angle.py",
+    "elapsed_s": 3.13,
+    "reasoning_chars": 151,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 11
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Static check FAILED in `sklearn/linear_model/least_angle.py` (missing import / undefined name): [\"undefined name 'copy_X' at line 621 in _fit\"]\n- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')` FAILED (module check failed at static_check: undefined name 'copy_X' at line 621 in _fit):\n[py_compile] COMPILE_OK sklearn/linear_model/least_angle.py\n\n[import] IMPORT_OK sklearn.linear_model.least_angle\n\n[static_check] \n[static_check] undefined name 'copy_X' at line 621 in _fit\n- WARNING: `.hae/reproduce_issue.py` does not exist. Create `.hae/reprodu",
+    "elapsed_s": 1.47,
+    "gatekeeper_ok": false,
+    "reasoning_chars": 128,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 12
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 1.54,
+    "path": "sklearn/linear_model/least_angle.py",
+    "reasoning_chars": 65,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 13
+   },
+   {
+    "action": "bash",
+    "command": "python - << 'EOF'\np='sklearn/linear_model/least_angle.py'\ns=open(p).read()\ns=s.replace('            X, y, self.fit_intercept, self.normalize, copy_X)','            X, y, self.fit_intercept, self.normalize, self.copy_X)',1)\nopen(p,'w').write(s)\nprint('done')\nEOF\npython -c \"import sklearn.linear_model",
+    "elapsed_s": 1.12,
+    "reasoning_chars": 69,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 14
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae && cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nimport numpy as np\nfrom sklearn.linear_model import LassoLarsIC\nX = np.array([[1.,2.],[3.,4.],[5.,6.]])\ny = np.array([1.,2.,3.])\nm = LassoLarsIC(copy_X=False)\nm.fit(X, y)\nprint(\"OK\")\nEOF\npython /testbed/.hae/reproduce_issue.py",
+    "elapsed_s": 1.07,
+    "reasoning_chars": 60,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 15
+   },
+   {
+    "action": "bash",
+    "command": "pytest /testbed/sklearn/linear_model/tests/test_least_angle.py -q 2>&1 | tail -15",
+    "elapsed_s": 0.75,
+    "reasoning_chars": 48,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 16
+   },
+   {
+    "action": "bash",
+    "command": "pytest /testbed/sklearn/linear_model/tests/test_least_angle.py -q 2>&1 | grep -i \"FAILED\\|failed\" | head",
+    "elapsed_s": 1.18,
+    "reasoning_chars": 88,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 17
+   },
+   {
+    "action": "bash",
+    "command": "pytest /testbed/sklearn/linear_model/tests/test_least_angle.py -q 2>&1 | grep -iE \"FAILED|::\" | head",
+    "elapsed_s": 0.73,
+    "reasoning_chars": 26,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 18
+   },
+   {
+    "action": "bash",
+    "command": "pytest /testbed/sklearn/linear_model/tests/test_least_angle.py 2>&1 | grep -iE \"FAIL|Error\" | head",
+    "elapsed_s": 0.77,
+    "reasoning_chars": 29,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 19
+   },
+   {
+    "action": "bash",
+    "command": "pytest /testbed/sklearn/linear_model/tests/test_least_angle.py 2>&1 | grep -iE \"test_\" | head",
+    "elapsed_s": 0.79,
+    "reasoning_chars": 22,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 20
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).\n- Reproduction script `.hae/reproduce_issue.py` INVALID: exited 0 on clean HEAD (unpatched code) as well! Your script does not reproduce the bug on the unpatched code (do NOT write a no-op script). Write a real reproduction script in `.hae/reproduce_issue.py` that fails (exits non-zero) on clean HEAD and passes (exits 0) with your fix.",
+    "elapsed_s": 1.09,
+    "gatekeeper_ok": false,
+    "reasoning_chars": 91,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 21
+   },
+   {
+    "action": "bash",
+    "command": "cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nimport numpy as np\nfrom sklearn.linear_model import LassoLarsIC\nX = np.arange(12, dtype=float).reshape(4,3)\nXorig = X.copy()\ny = np.array([1.,2.,3.,4.])\nm = LassoLarsIC(copy_X=False)\nm.fit(X, y)\n# with bug, fit default copy_X=True overrides, so X uncha",
+    "elapsed_s": 5.27,
+    "reasoning_chars": 134,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 22
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).\n- Reproduction script `.hae/reproduce_issue.py` INVALID: exited 0 on clean HEAD (unpatched code) as well! Your script does not reproduce the bug on the unpatched code (do NOT write a no-op script). Write a real reproduction script in `.hae/reproduce_issue.py` that fails (exits non-zero) on clean HEAD and passes (exits 0) with your fix.",
+    "elapsed_s": 1.49,
+    "gatekeeper_ok": false,
+    "reasoning_chars": 121,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 23
+   },
+   {
+    "action": "bash",
+    "command": "cat > /testbed/.hae/reproduce_issue.py << 'EOF'\nimport numpy as np\nfrom sklearn.linear_model import LassoLarsIC\nX = np.arange(12, dtype=float).reshape(4,3)\ny = np.array([1.,2.,3.,4.])\nm = LassoLarsIC(copy_X=False)\nm.fit(X, y)\n# On fixed code, instance copy_X=False respected; X may be overwritten (mu",
+    "elapsed_s": 4.65,
+    "reasoning_chars": 120,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 24
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).\n- Reproduction script `.hae/reproduce_issue.py` INVALID: exited 0 on clean HEAD (unpatched code) as well! Your script does not reproduce the bug on the unpatched code (do NOT write a no-op script). Write a real reproduction script in `.hae/reproduce_issue.py` that fails (exits non-zero) on clean HEAD and passes (exits 0) with your fix.",
+    "elapsed_s": 0.6,
+    "gatekeeper_ok": false,
+    "reasoning_chars": 11,
+    "specialist": "PrimaryRepairSpecialist",
+    "turn": 25
+   },
+   {
+    "action": "bash",
+    "command": "git grep -n \"def fit\" sklearn/linear_model/least_angle.py",
+    "elapsed_s": 3.2,
+    "reasoning_chars": 283,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 1
+   },
+   {
+    "action": "view_file",
+    "elapsed_s": 2.88,
+    "path": "sklearn/linear_model/least_angle.py",
+    "range": [
+     1470,
+     1510
+    ],
+    "reasoning_chars": 63,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 2
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 4.38,
+    "path": "sklearn/linear_model/least_angle.py",
+    "reasoning_chars": 418,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 3
+   },
+   {
+    "action": "bash",
+    "command": "sed -n '1480,1484p' sklearn/linear_model/least_angle.py | cat -A | head",
+    "elapsed_s": 3.18,
+    "reasoning_chars": 588,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 4
+   },
+   {
+    "action": "str_replace",
+    "elapsed_s": 2.92,
+    "path": "sklearn/linear_model/least_angle.py",
+    "reasoning_chars": 239,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 5
+   },
+   {
+    "action": "bash",
+    "command": "grep -n \"class LassoLarsIC\" sklearn/linear_model/least_angle.py",
+    "elapsed_s": 4.14,
+    "reasoning_chars": 300,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 6
+   },
+   {
+    "action": "bash",
+    "command": "python - <<'EOF'\nimport re\np='sklearn/linear_model/least_angle.py'\ns=open(p).read()\ns=s.replace(\"    def fit(self, X, y, copy_X=True):\",\"    def fit(self, X, y, copy_X=None):\",1)\ns=s.replace(\"        X, y, Xmean, ymean, Xstd = LinearModel._preprocess_data(\\n            X, y, self.fit_intercept, self",
+    "elapsed_s": 5.81,
+    "reasoning_chars": 238,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 7
+   },
+   {
+    "action": "bash",
+    "command": "sed -n '1498,1512p' sklearn/linear_model/least_angle.py",
+    "elapsed_s": 1.12,
+    "reasoning_chars": 34,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 8
+   },
+   {
+    "action": "bash",
+    "command": "python - <<'EOF'\np='sklearn/linear_model/least_angle.py'\ns=open(p).read()\ns=s.replace(\"\"\"        X, y = check_X_y(X, y, y_numeric=True)\n\n        if copy_X is None:\n            copy_X = self.copy_X\n        X, y = check_X_y(X, y, y_numeric=True)\n\n        X, y, Xmean\"\"\",\"\"\"        if copy_X is None:\n  ",
+    "elapsed_s": 1.32,
+    "reasoning_chars": 32,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 9
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).\n- WARNING: `.hae/reproduce_issue.py` does not exist. Create `.hae/reproduce_issue.py` to verify the reported issue is fixed!",
+    "elapsed_s": 1.14,
+    "gatekeeper_ok": false,
+    "reasoning_chars": 47,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 10
+   },
+   {
+    "action": "bash",
+    "command": "mkdir -p /testbed/.hae\ncat > /testbed/.hae/reproduce_issue.py <<'EOF'\nimport numpy as np\nfrom sklearn.linear_model import LassoLarsIC\nX = np.arange(12, dtype=float).reshape(4,3)\ny = np.array([1.,2,3,4])\nm = LassoLarsIC(copy_X=False)\nm.fit(X, y)\nprint(\"OK\")\nEOF\npython /testbed/.hae/reproduce_issue.py",
+    "elapsed_s": 5.95,
+    "reasoning_chars": 761,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 11
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).\n- Reproduction script `.hae/reproduce_issue.py` INVALID: exited 0 on clean HEAD (unpatched code) as well! Your script does not reproduce the bug on the unpatched code (do NOT write a no-op script). Write a real reproduction script in `.hae/reproduce_issue.py` that fails (exits non-zero) on clean HEAD and passes (exits 0) with your fix.",
+    "elapsed_s": 0.81,
+    "gatekeeper_ok": false,
+    "reasoning_chars": 11,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 12
+   },
+   {
+    "action": "bash",
+    "command": "cat > /testbed/.hae/reproduce_issue.py <<'EOF'\nimport numpy as np\nfrom sklearn.linear_model import LassoLarsIC\nX = np.arange(12, dtype=float).reshape(4,3).copy()\nX0 = X.copy()\ny = np.array([1.,2,3,4])\nm = LassoLarsIC(copy_X=False)\nm.fit(X, y, copy_X=True)\nassert np.array_equal(X, X0), \"copy_X passed",
+    "elapsed_s": 4.33,
+    "reasoning_chars": 987,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 13
+   },
+   {
+    "action": "submit",
+    "audit_msg": "Gatekeeper Pre-Submission Audit:\n- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).\n- Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+    "elapsed_s": 0.9,
+    "gatekeeper_ok": true,
+    "reasoning_chars": 7,
+    "specialist": "EscalationRepairSpecialist",
+    "turn": 14
+   }
+  ],
+  "base_commit": "a7b8b9e9e16d4e15fabda5ae615086c2e1c47d8a",
+  "best_checkpoint": {
+   "changed_files": [
+    "sklearn/linear_model/least_angle.py"
+   ],
+   "note": "- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+   "rank_key": [
+    1,
+    0,
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "specialist": "EscalationRepairSpecialist",
+   "turn": 14
+  },
+  "budget_moves": 30,
+  "changed_files": [
+   "sklearn/linear_model/least_angle.py"
+  ],
+  "executor": "kubectl:default/swebench-tb-scikit-learn-scikit-learn-12973/testbed:/testbed",
+  "hints_included": false,
+  "instance_id": "scikit-learn__scikit-learn-12973",
+  "iterations": [
+   {
+    "best_checkpoint": {
+     "changed_files": [
+      "sklearn/linear_model/least_angle.py"
+     ],
+     "note": "- Gatekeeper `verify_module('sklearn/linear_model/least_angle.py')`: OK (0 new test failures vs clean HEAD (1 pre-existing clean-HEAD failure(s) ignored)).; - Reproduction script `.hae/reproduce_issue.py`: PASSED (exit 0).",
+     "rank_key": [
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      0
+     ],
+     "specialist": "EscalationRepairSpecialist",
+     "turn": 14
+    },
+    "iteration": 1,
+    "moves_used": 39,
+    "patched": true,
+    "recheck": {
+     "verdict": "resolved"
+    },
+    "resolved_this_iteration": [
+     "q1"
+    ],
+    "stop_reason": "resolved_by_agentic_gatekeeper",
+    "synthesized_paths": [
+     "sklearn/linear_model/least_angle.py"
+    ]
+   }
+  ],
+  "locate": [
+   {
+    "candidate": "sklearn/linear_model/least_angle.py",
+    "rationale": "LassoLarsIC is defined in this module, including both its constructor copy_X and the duplicate copy_X argument in fit.",
+    "resolved": "sklearn/linear_model/least_angle.py"
+   }
+  ],
+  "moves_used": 39,
+  "patch_chars": 977,
+  "preflight": {
+   "error": "error: You must be logged in to the server (Unauthorized)",
+   "ok": false,
+   "package": "sklearn",
+   "repo_tests": {
+    "baseline_failures": 0,
+    "budget_s": 15.0,
+    "duration_s": null,
+    "mode": "proximity",
+    "reason": "package does not import; suite not calibrated",
+    "target": ""
+   },
+   "tried": [
+    "sklearn"
+   ]
+  },
+  "repo": "scikit-learn/scikit-learn",
+  "reproduction": [],
+  "resolved_by_self_oracle": true,
+  "root_module": "sklearn/linear_model/least_angle.py",
+  "root_question_id": "q1",
+  "root_status": "RESOLVED",
+  "seed": {
+   "candidates": [
+    "scikit-learn/blob/7389dbac82d362f296dc2746f10e43ffa1615660/sklearn/linear_model/least_angle.py"
+   ],
+   "failure": "LassoLarsIC: unintuitive copy_X behaviour",
+   "paths": [
+    "sklearn/linear_model/least_angle.py"
+   ],
+   "primary_module": "",
+   "root_question_id": "q1",
+   "sub_question_ids": []
+  },
+  "stop": "resolved_by_agentic_gatekeeper",
+  "task_features": {
+   "complexity": 0.3575,
+   "has_assertion": false,
+   "has_import_error": false,
+   "n_exception_classes": 0,
+   "n_failures": 0,
+   "n_modules": 2,
+   "n_paths_mentioned": 2,
+   "source": "problem_statement",
+   "statement_chars": 1575,
+   "tags": [
+    "scikit-learn",
+    "linear_model",
+    "least_angle",
+    "lassolarsic",
+    "unintuitive",
+    "copy_x",
+    "behaviour",
+    "like",
+    "report",
+    "seems",
+    "bug",
+    "treatment",
+    "parameter",
+    "because",
+    "simple",
+    "much",
+    "easier",
+    "see",
+    "code",
+    "directly",
+    "execution",
+    "posting",
+    "steps",
+    "reproduce",
+    "you",
+    "can",
+    "here",
+    "accepts",
+    "https",
+    "github",
+    "com",
+    "scikit",
+    "learn",
+    "blob",
+    "sklearn",
+    "l1487",
+    "however",
+    "takes",
+    "few",
+    "lines",
+    "below",
+    "definition",
+    "fit",
+    "now",
+    "two",
+    "values",
+    "potentially"
+   ]
+  },
+  "workspace_refusals": [],
+  "workspace_writes": 0
+ },
+ "task": {
+  "base_commit": "a7b8b9e9e16d4e15fabda5ae615086c2e1c47d8a",
+  "created_at": "2019-01-13T16:19:52Z",
+  "environment_setup_commit": "7813f7efb5b2012412888b69e73d76f2df2b50b6",
+  "hints_text": "",
+  "instance_id": "scikit-learn__scikit-learn-12973",
+  "problem_statement": "LassoLarsIC: unintuitive copy_X behaviour\nHi, I would like to report what seems to be a bug in the treatment of the `copy_X` parameter of the `LassoLarsIC` class. Because it's a simple bug, it's much easier to see in the code directly than in the execution, so I am not posting steps to reproduce it.\r\n\r\nAs you can see here, LassoLarsIC accepts a copy_X parameter.\r\nhttps://github.com/scikit-learn/scikit-learn/blob/7389dbac82d362f296dc2746f10e43ffa1615660/sklearn/linear_model/least_angle.py#L1487\r\n\r\nHowever, it also takes a copy_X parameter a few lines below, in the definition of ```fit```.\r\n    ```def fit(self, X, y, copy_X=True):```\r\n\r\nNow there are two values (potentially contradicting each other) for copy_X and each one is used once. Therefore ```fit``` can have a mixed behaviour. Even worse, this can be completely invisible to the user, since copy_X has a default value of True. Let's assume that I'd like it to be False, and have set it to False in the initialization, `my_lasso = LassoLarsIC(copy_X=False)`. I then call ```my_lasso.fit(X, y)``` and my choice will be silently overwritten. \r\n\r\nIdeally I think that copy_X should be removed as an argument in ```fit```. No other estimator seems to have a duplication in class parameters and fit arguments (I've checked more than ten in the linear models module). However, this would break existing code. Therefore I propose that ```fit``` takes a default value of `None` and only overwrites the existing value if the user has explicitly passed it as an argument to ```fit```. I will submit a PR to that effect.\n",
+  "repo": "scikit-learn/scikit-learn",
+  "version": "0.21"
+ },
+ "token_accounting": {
+  "estimated_calls": 0,
+  "fully_measured": true,
+  "measured_calls": 40,
+  "thought_tokens": 1600
+ },
+ "token_usage": 241746,
+ "verification_loop": {
+  "attempts": 0,
+  "budget": 0,
+  "mode": "swebench",
+  "verify_calls": 0
+ }
+}

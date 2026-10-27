@@ -65,31 +65,41 @@ model comparison: [`experiments/v13/beam_vs_qwen38_evaluation_report.md`](experi
 
 ### 2. Unseen SWE-bench Verified & combined zero-hint evaluation (`--include-hints` OFF)
 
-Frozen V14 and V12 ReAct were evaluated head-to-head on 12 container-verified
-instances from `princeton-nlp/SWE-bench_Verified` across 8 repositories
-(`astropy`, `matplotlib`, `seaborn`, `flask`, `requests`, `xarray`, `pylint`,
-`sphinx`), disjoint from the 50-task dev pool and with `--include-hints` OFF
-(`24` live pod runs):
+Frozen V14 (`v13_hier_mcts`) and V12 ReAct (`v12_agentic`) were evaluated
+head-to-head on **28 valid container-verified instances** from
+`princeton-nlp/SWE-bench_Verified` across **10 repositories** (`astropy`,
+`matplotlib`, `seaborn`, `flask`, `requests`, `xarray`, `pylint`, `sphinx`,
+`scikit-learn`, `pytest`), disjoint from the 50-task dev pool and with
+`--include-hints` OFF (`56` unseen pod runs; `86` total zero-hint `SWE-bench`
+pod runs including the `30` ablation runs):
 
-| Policy | Dev slice (`n = 6`) | Unseen Verified (`n = 12`) | **Combined (`n = 18`)** | Total F2P | Total P2P |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **V14 (`v13_hier_mcts`)** | **6 / 6 (100%)** | **9 / 12 (75.0%)** | **15 / 18 (83.3%)** | **74 / 79 (93.7%)** | **3,747 / 3,747 (100%)** |
-| V12 ReAct (`v12_agentic`) | 0 / 6 (0.0%) | 7 / 12 (58.3%) | 7 / 18 (38.9%) | 28 / 79 (35.4%) | 3,746 / 3,747 (99.97%) |
-| **Delta (`V14 − V12`)** | **+100.0 pp** | **+16.7 pp** | **+44.4 pp (2.14×)** | **+46 F2P (+58.2 pp)** | **0 regressions** |
+| Policy | Dev slice (`n = 6`, zero-hint) | Unseen Verified (`n = 28`) | **Combined zero-hint (`n = 34`)** | Combined w/ V12 Dev hints (`n = 34`) | Valid F2P (`n = 34`) | Total P2P (`n = 34`) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **V14 (`v13_hier_mcts`)** | **6 / 6 (100%)** | **21 / 28 (75.0%)** | **27 / 34 (79.4%)** | **27 / 34 (79.4%)** | **93 / 102 (91.2%)** | **8,558 / 8,558 (100%)** |
+| V12 ReAct (`v12_agentic`) | 0 / 6 (0.0%) | 19 / 28 (67.9%) | 19 / 34 (55.9%) | 21 / 34 (61.8%) | 47 / 102 (46.1%) | 8,557 / 8,558 (99.99%) |
+| **Delta (`V14 − V12`)** | **+100.0 pp** | **+7.1 pp** | **+23.5 pp** | **+17.6 pp** | **+46 F2P (+45.1 pp)** | **0 regressions** |
 
-On the unseen `Verified` slice, V14 resolves `9 / 12` (`75.0%`, `17 / 22` F2P,
-`3,533 / 3,533` P2P, `412.6s` mean latency) vs. `7 / 12` (`58.3%`, `14 / 22`
-F2P) for V12 ReAct, winning head-to-head on `pydata__xarray-2905` (via `L1-B`
-adversarial falsification and `CONT` delta-refinement) and
-`pylint-dev__pylint-6386` (via `L1-A` IDF-weighted symbol discovery of
-`pylint/config/utils.py`), with zero instance-level regressions (`V14 >= V12`
-on `18 / 18` tasks).
+- **Zero discordant losses (`8 : 0` strict zero-hint, `6 : 0` vs. hint-assisted
+  Dev)**: Across all `34` tasks (`86` pod runs), `V14` resolves every task that
+  `V12` resolves (`19` both solved, `7` both unresolved) plus `8` discordant
+  wins (`6` on Dev + `pydata__xarray-2905` and `pylint-dev__pylint-6386` on
+  Unseen `Verified`) and `0` discordant losses (**exact two-sided binomial sign
+  test $p = 0.00781 < 0.01$** under strict zero-hint; **$p = 0.03125 < 0.05$**
+  even when crediting `V12`'s `2/6` hint-assisted Dev score).
+- **Pre-existing benchmark defect (`pylint-dev__pylint-4604`)**: One additional
+  raw instance (`pylint-4604`) has an upstream `SWE-bench` `test_patch` defect
+  (`from pylint.constants import IS_PYPY` not mentioned in `problem_statement`,
+  causing `ImportError` during `pytest` collection (`0 / 21` `MISSING`) in both
+  policies even though `V14` synthesized the `astroid.Attribute` fix in
+  `pylint/checkers/variables.py`). Including `pylint-4604` (`n = 29` unseen /
+  `n = 35` total) leaves all discordant counts (`8 : 0` and `6 : 0`) and exact
+  $p$-values ($p = 0.00781$ and $p = 0.03125$) completely unchanged.
 
 Report: [`results/swebench/verified_unseen_eval_2026-10-21/`](results/swebench/verified_unseen_eval_2026-10-21/README.md)
 
 ### 3. Milestone ratchet builds (`L0-Macro` + `GitCommitRatchet`)
 
-#### A. Planner-driven `MiniSQL` engine + held-out external `sqlite3` oracle (`2,345` LoC)
+#### A. Planner-driven `MiniSQL` engine + 3-tier controlled baseline comparison (`2,345` LoC)
 
 Passing only a high-level system specification (`dag=None` in
 [`scripts/run_planner_driven_ratchet_eval.py`](scripts/run_planner_driven_ratchet_eval.py)),
@@ -97,13 +107,33 @@ Passing only a high-level system specification (`dag=None` in
 in-memory relational SQL engine (`minisql`: DDL, DML, recursive-descent parser,
 3-valued `NULL` logic, `INNER`/`LEFT`/`CROSS JOIN`, `GROUP BY`/`HAVING`,
 aggregates, `ORDER BY`/`LIMIT`/`OFFSET`, and ACID transactions/savepoints) into
-a 5-milestone topological DAG (`m1`..`m5`). After `m5` completed, the repository
-was graded against a **strictly held-out external test suite & `sqlite3`
-differential oracle** (`test_minisql_external_oracle.py`, 15 test functions / 26
-differential & unit checks stored outside `minisql_repo/` during the build),
-which initially passed `9 / 15` (`6` edge-case failures) and triggered two
-ratcheted recovery milestones (`m6`, `m7`) to reach **`15 / 15` (`100%`)**
-external parity:
+a 5-milestone topological DAG (`m1`..`m5`). Each completed build is graded
+against a **strictly held-out external test suite & `sqlite3` differential
+oracle** (`test_minisql_external_oracle.py`, `15` test functions / `26`
+differential & unit checks stored outside `minisql_repo/` during the build).
+
+To isolate the contribution of `L0-Macro` topological decomposition + Git commit
+ratcheting from `L0-Micro` AB-MCTS alone, we evaluated three controlled tiers on
+the exact same `MINISQL_SYSTEM_SPEC` and held-out external oracle:
+
+| Architecture Tier | CLI `--mode` | Certified Milestones | Final Repo LoC | Max Single-Step Diff | Total Moves | Total Tokens | Wall-Clock Time | Internal Tests | **Held-Out External `sqlite3` Oracle (`15` tests / `26` checks)** |
+| :--- | :--- | :---: | ---: | ---: | ---: | ---: | ---: | :---: | :---: |
+| **1. Flat ReAct Baseline (`v12_agentic`)** | `flat_react_baseline` | `0 / 1` | `348` | `+380` lines | `33` | `377k` | `132 s` | `0` (`ImportError`) | **`0 / 15` (`0.0%`)** |
+| **2. Single-Milestone `L0-Micro` AB-MCTS** | `single_milestone_baseline` | `1 / 1` | `1,616` | `+1,651` lines | `23` | `365k` | `199 s` | `1` passed | **`8 / 15` (`53.3%`)** |
+| **3a. `V14` `L0-Macro` Ratchet (5-milestone DAG)** | `ratchet` | `5 / 5` | `1,976` | `+847` lines | `149` | `1.54M` | `940 s` | `54` passed (`+7` falsifiers) | **`14 / 15` (`93.3%`, zero-shot)** |
+| **3b. `V14` `L0-Macro` Planner + Recovery** | `planner_ratchet` | **`7 / 7`** | **`2,345`** | **`+618` lines** | **`170`** | **`1.80M`** | **`739 s`** | **`34` passed (`+5` falsifiers)** | **`15 / 15` (`100.0%`, `26/26` checks)** |
+
+- **Why monolithic `L0-Micro` caps out at `8 / 15` (`53.3%`)**: Compressing all
+  6 `minisql` modules into a single `1,651`-line diff exceeds the single-episode
+  verification horizon of `L1-B` (`6` turns), leaving an unimported symbol
+  (`NameError: name 'Token' is not defined` in `parse_statements()` during
+  `execute_script()`) and a trailing-comment bug in `Database.execute()`.
+- **Why `L0-Macro` reaches `14 / 15` (`93.3%`) zero-shot and `15 / 15` (`100%`)
+  with ratcheted recovery**: By bounding every milestone diff (`+388` to `+618`
+  lines) and ratcheting `34–54` subsystem unit tests + `5–7` Popperian
+  falsification suites across Git commits, `V14` solves **`15 / 15` (`100%`)**
+  external oracle tests (`+46.7 pp` over monolithic `L0-Micro` and `+100.0 pp`
+  over flat ReAct):
 
 | Milestone (Planned by `L0MacroPlanner`) | Moves | Tokens | Time | Active Delta (`< 850`) | Repo size | Cumulative internal tests | Held-out `sqlite3` oracle | Commit |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | :---: | :--- |
@@ -116,7 +146,9 @@ external parity:
 | `m7_external_recovery_2` *(auto-recovery)* | 37 | 445k | 148 s | +143 lines | 2,345 LoC | **34 passed** | **15 / 15 (100%)** | `07740fb54a92` |
 | **Total (`1` planner + `170` micro calls)** | **170** | **1.80M** | **739 s** | max +618 | **2,345 LoC** | **34 / 34** | **15 / 15 (100%)** | `7 / 7` tags |
 
-Report: [`results/ratchet/planner_driven_minisql_eval_2026-10-23/`](results/ratchet/planner_driven_minisql_eval_2026-10-23/README.md)
+Report: [`results/ratchet/planner_driven_minisql_eval_2026-10-23/`](results/ratchet/planner_driven_minisql_eval_2026-10-23/README.md) ·
+monolithic baseline: [`results/ratchet/monolithic_minisql_baseline_2026-10-27/`](results/ratchet/monolithic_minisql_baseline_2026-10-27/summary.json) ·
+flat ReAct baseline: [`results/ratchet/flat_react_minisql_baseline_2026-10-27/`](results/ratchet/flat_react_minisql_baseline_2026-10-27/summary.json)
 
 #### B. Hand-specified 4-milestone `MiniLang` build (`1,139` LoC)
 
@@ -136,16 +168,20 @@ Report: [`results/ratchet/beam_macro_ratchet_eval_2026-10-21/`](results/ratchet/
   `grep -ciE "sqlfluff|pydicom|pyvista|marshmallow|astroid" hae/swebench/*.py`
   returns 0. **Treat the earlier hinted V12/V13 runs as development runs, not
   benchmark scores.**
-- **The 6-task ablation slice comes from the dev pool; the 12-task Verified
+- **The 6-task ablation slice comes from the dev pool; the 28-task Verified
   slice is unseen.** Some of V14's generic AST checks (such as range validation
   across sibling property setters) were developed while debugging the 6-task dev
-  slice. The 12-task `SWE-bench Verified` evaluation was run afterwards on
-  unseen instances with `--include-hints` OFF (`hints_included: false`).
-- **Sample size and seeds.** The zero-hint evaluations cover 18 tasks (`6` dev +
-  `12` unseen `Verified`, `54` pod runs total) at a single seed per arm, rather
-  than the full 500-task `SWE-bench Verified` or `SWE-bench Pro` public split.
+  slice. The 28-task `SWE-bench Verified` evaluation was run afterwards on
+  unseen instances across 10 repositories with `--include-hints` OFF
+  (`hints_included: false`).
+- **Sample size and seeds.** The zero-hint evaluations cover 34 valid tasks (`6`
+  dev + `28` unseen `Verified`, `86` pod runs total) at a single seed per arm,
+  establishing statistically significant paired dominance ($p = 0.00781$ strict
+  zero-hint; $p = 0.03125$ with V12 Dev hints), rather than the full 500-task
+  `SWE-bench Verified` or `SWE-bench Pro` public split.
 - **Ratchet scale.** The planner-driven `MiniSQL` build (`2,345` LoC, `7`
-  ratcheted commits, `15 / 15` held-out `sqlite3` differential oracle tests)
+  ratcheted commits, `15 / 15` held-out `sqlite3` differential oracle tests vs.
+  `8 / 15` for single-milestone `L0-Micro` and `0 / 15` for flat ReAct)
   demonstrates automatic `L0MacroPlanner` decomposition and external-oracle
   recovery at the ~2.3k LoC scale; scaling to 10k+ LoC multi-package builds
   remains future work.
@@ -231,7 +267,7 @@ HAE went through three eras. The full phase-by-phase table is in
 | :--- | :---: | :--- | :--- |
 | **Execution-grounded evolution** | V1–V7 | Internal 7- and 50-test tasks | LLM judges are gameable; held-out tests work |
 | **SWE-bench, single-layer agents** | V8–V12 | 30-task dev cohort | ReAct tool loops: 4 / 30 → 14 / 30 |
-| **Hierarchical verification** | V13–V14 | 6-task ablation, 12-task Verified, MiniLang | Hierarchy more than doubles zero-hint resolution vs ReAct (15 / 18 vs 7 / 18) |
+| **Hierarchical verification** | V13–V14 | 6-task ablation, 28-task Verified, MiniSQL, MiniLang | Hierarchy significantly beats ReAct on zero-hint resolution (27 / 34 vs 19 / 34, $p = 0.0078$) and held-out `MiniSQL` oracle (15 / 15 vs 8 / 15 vs 0 / 15) |
 
 Since V8, each SWE-bench version has been a single hand-designed genome
 (`configs/genomes/`). Population-level evolution, breeding and selection have
@@ -247,30 +283,30 @@ and evolutionary result. The steps are in priority order.
 | # | Step | Status | Next milestone |
 | :-: | :--- | :--- | :--- |
 | 1 | **Component ablations** | **Done (`n = 6`, 30 runs)** | Extend ablation to unseen `Verified` tasks |
-| 2 | **Unseen benchmark (`--include-hints` OFF)** | **Pilot done (`n = 12` Verified, `9/12` vs `7/12`)** | Scale to full `SWE-bench Verified` / `SWE-bench Pro` public split (3 seeds) |
-| 3 | **Planner-driven build + external oracle** | **Done (`2,345` LoC `MiniSQL`, `15/15` held-out `sqlite3` oracle)** | Scale to ≥ 10k LoC multi-package build |
+| 2 | **Unseen benchmark (`--include-hints` OFF)** | **Done (`n = 28` Verified / `n = 34` total, `27/34` vs `19/34`, $p = 0.0078$)** | Scale to full 500-task `SWE-bench Verified` / `SWE-bench Pro` public split + external agent baseline |
+| 3 | **Planner-driven build + controlled baselines** | **Done (`2,345` LoC `MiniSQL`, `15/15` vs `8/15` monolithic vs `0/15` ReAct)** | Add second long-horizon target & scale to ≥ 10k LoC multi-package build |
 | 4 | **Evolve the harness** | Planned | An evolved V14 genome beats hand-designed V14 on held-out tasks |
 
-**1. Scale the unseen benchmark evaluation.**
-- Expand the zero-hint (`--include-hints` OFF) evaluation from the 12-task
-  `SWE-bench Verified` pilot (`9/12 = 75.0%` vs `7/12 = 58.3%`) to a larger
-  stratified sample of `SWE-bench Verified` and `SWE-bench Pro` (public), with 3
-  seeds and matched token budgets against OpenHands / mini-SWE-agent on Beam.
+**1. Scale the unseen benchmark evaluation & add an external agent baseline.**
+- Expand the zero-hint (`--include-hints` OFF) evaluation from the 34-task
+  (`6` dev + `28` unseen `SWE-bench Verified`, `27/34 = 79.4%` vs `19/34 = 55.9%`)
+  cohort to the full `SWE-bench Verified` and `SWE-bench Pro` (public) splits,
+  and run an external open-source agent harness (`mini-SWE-agent` / `OpenHands`)
+  under matched token budgets on the same `Beam-1.0-501B-A23B-NVFP4` endpoint.
 - Address the remaining failure modes surfaced on unseen `Verified`: (a) guard
   interaction between newly added axis/limit blocks and adjacent override blocks
   (`seaborn-3069`, `1/2` F2P passed), (b) disambiguating conflicting issue-text
   conjectures vs. existing test conventions when `hints_text` is disabled
   (`seaborn-3187`, where both gold files were found), and (c) tracing indirect
-  state mutations across shared-axis callbacks (`matplotlib-26208`).
+  state mutations across shared-axis callbacks (`matplotlib-26208`, `xarray-4687`).
 
-**2. Test the ratchet on a real long-horizon build.**
-- Let `L0MacroPlanner` produce the milestones automatically rather than from a
-  script.
-- Choose a target with an external test suite the agent never writes, such as
-  a SQLite subset or an interpreter checked against a reference
-  implementation.
-- Scale to 10k+ LoC and record recovery when a decomposition turns out to be
-  wrong.
+**2. Scale the ratchet to a second target and 10k+ LoC.**
+- `L0MacroPlanner` + `GitCommitRatchet` has now been validated on `MiniSQL`
+  (`2,345` LoC, `15/15 = 100%` held-out `sqlite3` oracle vs. `8/15 = 53.3%` for
+  single-milestone `L0-Micro` AB-MCTS and `0/15 = 0.0%` for flat ReAct).
+- Add a second held-out external-oracle synthesis target (e.g., a bytecode
+  compiler or HTTP/WSGI server checked against a reference implementation) and
+  scale to 10k+ LoC multi-package builds.
 
 **3. Bring evolution back.**
 - Treat V14's knobs as genes: turn budgets, branch types, falsifier policy,
@@ -316,7 +352,7 @@ tests/            stdlib unittest suite, no network access needed
 PYTHONPATH=. python3 -m unittest discover -s tests -q
 ```
 
-> 908 tests, 0 failures, 10 skipped.
+> 909 tests, 0 failures, 10 skipped.
 
 **Serve a model on GKE.** See [`k8s/README.md`](k8s/README.md) for cluster
 setup.

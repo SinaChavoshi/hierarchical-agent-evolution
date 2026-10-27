@@ -1,0 +1,186 @@
+{
+  "eval_id": "monolithic_minisql_baseline_2026-10-27",
+  "timestamp_utc": "2026-10-27T01:41:46Z",
+  "endpoint_info": {
+    "endpoint": "http://127.0.0.1:8000/v1",
+    "requested_model": "reflection/Beam-1.0-501B-A23B-NVFP4",
+    "available_models": [
+      "reflection/Beam-1.0-501B-A23B-NVFP4",
+      "Beam-1.0-501B-A23B",
+      "nvidia/Qwen3.8-Flash-Next-NVFP4",
+      "Qwen/Qwen3-Coder-32B-Instruct",
+      "Qwen3-Coder-32B"
+    ],
+    "detected_provider": "vllm",
+    "hierarchical_micro_engine": "HierarchicalAgenticMCTSEngine"
+  },
+  "planner_mode": "single_milestone_baseline",
+  "planner_token_usage": {
+    "llm_calls": 0,
+    "prompt_tokens": 0,
+    "output_tokens": 0,
+    "thought_tokens": 0,
+    "total_tokens": 0
+  },
+  "completed": false,
+  "topological_order": [
+    "m1_monolithic_minisql"
+  ],
+  "certified_milestones": [
+    "m1_monolithic_minisql"
+  ],
+  "failed_milestones": [],
+  "pending_milestones": [],
+  "head_commit_sha": "0293fafbe9c42d23c8818cf2238fd9b94d5c8e5d",
+  "total_wall_clock_s": 198.461,
+  "totals": {
+    "moves_used": 23,
+    "llm_calls": 23,
+    "prompt_tokens": 345930,
+    "output_tokens": 19183,
+    "thought_tokens": 1313,
+    "total_tokens": 365113
+  },
+  "external_verification": {
+    "external_verified": false,
+    "initial": {
+      "compile_ok": true,
+      "repro_ok": false,
+      "tests_ok": false,
+      "falsifier_ok": true,
+      "new_failures": 7,
+      "passed_tests": 8,
+      "summary": "build OK (no build_cmd configured); test `pytest -q /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py` FAILED (rc=1, failures=7): === FAILURES: /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py::test_05_escaped_quotes_and_sql_comments ===\nMiniSQLError: Unexpected trailing tokens\nTraceback (most recent call last):\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/.hae/pybin/pytest.py\", line 319, in _invoke_test_callable\n    fn(**call_kwargs)\n    ~~^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py\", line 127, in test_05_escaped_quotes_and_sql_comments\n    db.execute(\n    ~~~~~~~~~~^\n        \"\"\"\n        ^^^\n    ...<5 lines>...\n        \"\"\"\n        ^^^\n    )\n    ^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/minisql/engine.py\", line 593, in execute\n    stmt = parse_sql(sql)\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/minisql/parser.py\", line 461, in parse_sql\n    return p.parse()\n           ~~~~~~~^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/minisql/parser.py\", line 31, in parse\n    raise MiniSQLError(\"Unexpected trailing tokens\")\nminisql.ast_nodes.MiniSQLError: Unexpected trailing tokens\nFAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026\n... [truncated 10249 chars] ...\nback (most recent call last):\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/.hae/pybin/pytest.py\", line 319, in _invoke_test_callable\n    fn(**call_kwargs)\n    ~~^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py\", line 303, in test_12_distinct_order_by_nulls_limit_and_offset\n    run_differential_check(script, queries)\n    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py\", line 24, in run_differential_check\n    mdb.execute_script(sql_script)\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/minisql/engine.py\", line 605, in execute_script\n    stmts = parse_statements(sql_script)\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/minisql/parser.py\", line 472, in parse_statements\n    buf.append(Token('EOF', None, t.pos))\n               ^^^^^\nNameError: name 'Token' is not defined. Did you mean: 'open'?\nFAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py::test_12_distinct_order_by_nulls_limit_and_offset - NameError: name 'Token' is not defined\n7 failed, 8 passed in 0.06s",
+      "score": 0.45,
+      "ok": false,
+      "details": {}
+    },
+    "final": {
+      "compile_ok": true,
+      "repro_ok": false,
+      "tests_ok": false,
+      "falsifier_ok": true,
+      "new_failures": 7,
+      "passed_tests": 8,
+      "summary": "build OK (no build_cmd configured); test `pytest -q /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py` FAILED (rc=1, failures=7): === FAILURES: /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py::test_05_escaped_quotes_and_sql_comments ===\nMiniSQLError: Unexpected trailing tokens\nTraceback (most recent call last):\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/.hae/pybin/pytest.py\", line 319, in _invoke_test_callable\n    fn(**call_kwargs)\n    ~~^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py\", line 127, in test_05_escaped_quotes_and_sql_comments\n    db.execute(\n    ~~~~~~~~~~^\n        \"\"\"\n        ^^^\n    ...<5 lines>...\n        \"\"\"\n        ^^^\n    )\n    ^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/minisql/engine.py\", line 593, in execute\n    stmt = parse_sql(sql)\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/minisql/parser.py\", line 461, in parse_sql\n    return p.parse()\n           ~~~~~~~^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/minisql/parser.py\", line 31, in parse\n    raise MiniSQLError(\"Unexpected trailing tokens\")\nminisql.ast_nodes.MiniSQLError: Unexpected trailing tokens\nFAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026\n... [truncated 10249 chars] ...\nback (most recent call last):\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/.hae/pybin/pytest.py\", line 319, in _invoke_test_callable\n    fn(**call_kwargs)\n    ~~^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py\", line 303, in test_12_distinct_order_by_nulls_limit_and_offset\n    run_differential_check(script, queries)\n    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py\", line 24, in run_differential_check\n    mdb.execute_script(sql_script)\n    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/minisql/engine.py\", line 605, in execute_script\n    stmts = parse_statements(sql_script)\n  File \"/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/minisql_repo/minisql/parser.py\", line 472, in parse_statements\n    buf.append(Token('EOF', None, t.pos))\n               ^^^^^\nNameError: name 'Token' is not defined. Did you mean: 'open'?\nFAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/heldout_external_tests/test_minisql_external_oracle.py::test_12_distinct_order_by_nulls_limit_and_offset - NameError: name 'Token' is not defined\n7 failed, 8 passed in 0.06s",
+      "score": 0.45,
+      "ok": false,
+      "details": {}
+    },
+    "recovery_milestones": []
+  },
+  "milestones": [
+    {
+      "milestone_id": "m1_monolithic_minisql",
+      "title": "Monolithic Single-Shot MiniSQL Build (No L0-Macro Decomposition/Ratchet)",
+      "depends_on": [],
+      "target_files": [
+        "minisql/__init__.py",
+        "minisql/ast_nodes.py",
+        "minisql/lexer.py",
+        "minisql/parser.py",
+        "minisql/storage.py",
+        "minisql/engine.py",
+        "tests/test_m1_lexer_and_ast.py"
+      ],
+      "acceptance_cmd": "pytest -q tests/",
+      "max_diff_lines": 5000,
+      "status": "certified",
+      "base_head_sha": "9114c8f30c3ca08d636b8e33f4f249d9fd36ae9b",
+      "certified_commit_sha": "0293fafbe9c42d23c8818cf2238fd9b94d5c8e5d",
+      "git_tag": "hae-milestone-m1_monolithic_minisql",
+      "elapsed_s": 197.832,
+      "moves_used": 23,
+      "token_usage": {
+        "llm_calls": 23,
+        "prompt_tokens": 345930,
+        "output_tokens": 19183,
+        "thought_tokens": 1313,
+        "total_tokens": 365113
+      },
+      "delta_files": [
+        "minisql/__init__.py",
+        "minisql/ast_nodes.py",
+        "minisql/engine.py",
+        "minisql/lexer.py",
+        "minisql/parser.py",
+        "minisql/storage.py",
+        "tests/test_smoke.py"
+      ],
+      "delta_added_lines": 1609,
+      "delta_removed_lines": 0,
+      "delta_diff_lines": 1651,
+      "total_repo_loc": 1616,
+      "archived_falsification_suite": ".hae/ratchet_suites/falsify_m1_monolithic_minisql.py",
+      "verified_milestones": [
+        "m1_monolithic_minisql"
+      ],
+      "milestone_passed_tests": {
+        "m1_monolithic_minisql": 1
+      },
+      "cumulative_passed_tests": 1,
+      "cumulative_gate": {
+        "compile_ok": true,
+        "repro_ok": true,
+        "tests_ok": true,
+        "falsifier_ok": true,
+        "new_failures": 0,
+        "passed_tests": 1,
+        "summary": "[m1_monolithic_minisql] acceptance PASSED (1 tests); [m1_monolithic_minisql] falsification suite `.hae/ratchet_suites/falsify_m1_monolithic_minisql.py` PASSED; plugin(PytestVerifierPlugin): py_compile OK (7 file(s)); pytest PASSED (1 passed); falsifier `.hae/falsification_suite.py` PASSED",
+        "score": 1.0,
+        "ok": true,
+        "details": {
+          "verified_milestones": [
+            "m1_monolithic_minisql"
+          ],
+          "milestone_passed_tests": {
+            "m1_monolithic_minisql": 1
+          },
+          "cumulative_passed_tests": 1,
+          "delta_added_lines": 1609,
+          "delta_diff_lines": 1651
+        }
+      }
+    }
+  ],
+  "git_telemetry": {
+    "commits": [
+      {
+        "sha": "9114c8f30c3ca08d636b8e33f4f249d9fd36ae9b",
+        "subject": "chore: initial repository scaffold"
+      },
+      {
+        "sha": "0293fafbe9c42d23c8818cf2238fd9b94d5c8e5d",
+        "subject": "hae(ratchet): certify milestone m1_monolithic_minisql - Monolithic Single-Shot MiniSQL Build (No L0-Macro Decomposition/Ratchet)"
+      }
+    ],
+    "tags": {
+      "hae-milestone-m1_monolithic_minisql": "0293fafbe9c42d23c8818cf2238fd9b94d5c8e5d"
+    },
+    "milestone_git_stats": {
+      "m1_monolithic_minisql": {
+        "base_commit_sha": "9114c8f30c3ca08d636b8e33f4f249d9fd36ae9b",
+        "certified_commit_sha": "0293fafbe9c42d23c8818cf2238fd9b94d5c8e5d",
+        "git_tag": "hae-milestone-m1_monolithic_minisql",
+        "tag_matches_sha": true,
+        "delta_added_lines": 1609,
+        "delta_removed_lines": 0,
+        "delta_total_diff_lines": 1651,
+        "bounded_under_max_diff_lines": true,
+        "total_repo_loc_at_commit": 1616,
+        "tracked_files_at_commit": [
+          ".gitignore",
+          "README.md",
+          "minisql/__init__.py",
+          "minisql/ast_nodes.py",
+          "minisql/engine.py",
+          "minisql/lexer.py",
+          "minisql/parser.py",
+          "minisql/storage.py",
+          "tests/test_smoke.py"
+        ]
+      }
+    }
+  },
+  "ratchet_state_path": "/usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratchet/monolithic_minisql_baseline_2026-10-27/.hae/ratchet_state.json"
+}

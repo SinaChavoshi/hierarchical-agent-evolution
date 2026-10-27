@@ -58,7 +58,8 @@ from hae.genome.schema import (  # noqa: F401  (re-exports)
     normalise_tags, stable_role_id,
 )
 
-_TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]{2,}")
+_TOKEN_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]{2,}\b")
+_HEX_HASH_RE = re.compile(r"^[0-9a-f]{16,}$")
 _PATH_RE = re.compile(r"[\w./-]+\.py\b")
 _EXC_RE = re.compile(r"\b([A-Z][A-Za-z]+(?:Error|Exception|Warning))\b")
 _STOP = {"the", "and", "for", "with", "that", "this", "from", "when", "not", "are",
@@ -125,7 +126,7 @@ class TaskFeatures:
     @staticmethod
     def _tokens(text: str) -> List[str]:
         toks = [t.lower() for t in _TOKEN_RE.findall(text or "")]
-        return [t for t in toks if t not in _STOP and not t.isdigit()]
+        return [t for t in toks if t not in _STOP and not t.isdigit() and not _HEX_HASH_RE.match(t)]
 
     @classmethod
     def from_failures(cls, failures: Sequence[str], locations: Optional[Mapping[str, str]] = None,

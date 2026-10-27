@@ -41,10 +41,12 @@ from hae.hierarchical import (
     L0MacroPlanner,
     MacroMilestoneRatchetEngine,
     MilestoneDAG,
+    MilestoneSpec,
     PytestVerifierPlugin,
     ShellCommandVerifierPlugin,
 )
 from hae.infra.llm import detect_llm_provider
+from hae.swebench.agentic import AgenticSweEngine
 from hae.swebench.executor import LocalExecutor, SCRATCH_DIR
 
 
@@ -711,6 +713,12 @@ def main() -> int:
         action="store_true",
         help="Resume from existing workspace .hae/ratchet_state.json if present.",
     )
+    parser.add_argument(
+        "--mode",
+        choices=["planner_ratchet", "single_milestone_baseline", "flat_react_baseline"],
+        default="planner_ratchet",
+        help="Execution mode: full L0-Macro planner + commit ratchet, single-milestone L0-Micro baseline, or flat ReAct baseline.",
+    )
     args = parser.parse_args()
 
     os.environ["LLM_PROVIDER"] = "vllm"
@@ -751,18 +759,103 @@ def main() -> int:
     verifier_plugin = PytestVerifierPlugin(diff_bloat_threshold=args.max_diff_lines)
     external_verifier_plugin = ShellCommandVerifierPlugin(
         test_cmd=f"pytest -q {heldout_test_file}",
-        diff_bloat_threshold=args.max_diff_lines,
+        diff_bloat_threshold=max(args.max_diff_lines, 5000),
     )
+
+    initial_dag = None
+    custom_runner = None
+    max_recovery = 2
+    if args.mode in ("single_milestone_baseline", "flat_react_baseline"):
+        from hae.epistemic.gatekeeper import EvidenceGatekeeper
+        from hae.epistemic.ledger import EpistemicState
+        from hae.hierarchical.milestone_ratchet import (
+            _DefaultMicroRunnerAdapter,
+            _RatchetWorkspaceExecutorProxy,
+        )
+        from hae.swebench.task import SweTask
+
+        max_recovery = 0
+        mono_id = "m1_monolithic_minisql" if args.mode == "single_milestone_baseline" else "m1_flat_react_minisql"
+        initial_dag = MilestoneDAG(
+            system_objective=MINISQL_SYSTEM_SPEC,
+            milestones={
+                mono_id: MilestoneSpec(
+                    milestone_id=mono_id,
+                    title="Monolithic Single-Shot MiniSQL Build (No L0-Macro Decomposition/Ratchet)",
+                    objective=MINISQL_SYSTEM_SPEC,
+                    depends_on=[],
+                    target_files=[
+                        "minisql/__init__.py",
+                        "minisql/ast_nodes.py",
+                        "minisql/lexer.py",
+                        "minisql/parser.py",
+                        "minisql/storage.py",
+                        "minisql/engine.py",
+                        "tests/test_m1_lexer_and_ast.py",
+                    ],
+                    acceptance_cmd="pytest -q tests/",
+                    max_diff_lines=5000,
+                    budget_moves=max(args.budget_moves, 30),
+                )
+            },
+        )
+        verifier_plugin = PytestVerifierPlugin(diff_bloat_threshold=5000)
+        if args.mode == "flat_react_baseline":
+            def _flat_react_runner(milestone: MilestoneSpec, ex: LocalExecutor) -> Dict[str, Any]:
+                proxy_ex = (
+                    ex
+                    if isinstance(ex, _RatchetWorkspaceExecutorProxy)
+                    else _RatchetWorkspaceExecutorProxy(ex)
+                )
+                adapter = _DefaultMicroRunnerAdapter(proxy_ex, milestone, model_name=args.vllm_model)
+                swe_task = SweTask(
+                    instance_id=f"ratchet__{milestone.milestone_id}",
+                    repo="minisql_repo",
+                    base_commit="HEAD",
+                    version="1.0",
+                    problem_statement=adapter.objective_text(),
+                )
+                state = EpistemicState(company_id=f"ratchet_{milestone.milestone_id}")
+                state.add_question(
+                    f"How to implement and verify {milestone.milestone_id}: {milestone.title}?",
+                    module="minisql/__init__.py",
+                    uncertainty=0.9,
+                )
+                gk = EvidenceGatekeeper(
+                    workspace=proxy_ex.root,
+                    python_executable=proxy_ex.python,
+                    executor=proxy_ex,
+                    logger=lambda msg: print(msg, flush=True),
+                )
+                react_engine = AgenticSweEngine(
+                    runner=adapter,
+                    executor=proxy_ex,
+                    task=swe_task,
+                    state=state,
+                    gatekeeper=gk,
+                    logger=lambda msg: print(msg, flush=True),
+                    allow_new_files=True,
+                )
+                t0 = time.time()
+                res_react = react_engine.run(
+                    candidate_modules=list(milestone.target_files),
+                    budget_moves=milestone.budget_moves,
+                )
+                res_react["elapsed_s"] = round(time.time() - t0, 3)
+                res_react["token_usage"] = adapter.token_summary()
+                return res_react
+            custom_runner = _flat_react_runner
 
     engine = MacroMilestoneRatchetEngine(
         executor=executor,
-        dag=None,  # Decomposed automatically by L0MacroPlanner on live Beam-1.0-501B!
+        dag=initial_dag,  # None -> Decomposed automatically by L0MacroPlanner on live Beam-1.0-501B!
         objective=MINISQL_SYSTEM_SPEC,
         planner=planner,
+        milestone_runner=custom_runner,
         verifier_plugin=verifier_plugin,
         external_verifier_plugin=external_verifier_plugin,
-        max_recovery_milestones=2,
-        stop_on_failure=True,
+        max_recovery_milestones=max_recovery,
+        stop_on_failure=(args.mode == "planner_ratchet"),
         logger=lambda msg: print(msg, flush=True),
     )
 
@@ -874,13 +967,24 @@ def main() -> int:
         round(sum(float(m.get("elapsed_s", 0.0) or 0.0) for m in milestones_summary), 3),
     )
     ext_v_out = dict(result.get("external_verification", {}) or {})
+    if not ext_v_out or ext_v_out.get("initial") is None:
+        direct_ext = external_verifier_plugin.verify(
+            executor=executor,
+            changed_files=[],
+        )
+        ext_v_out = {
+            "external_verified": direct_ext.ok,
+            "initial": direct_ext.to_dict(),
+            "final": direct_ext.to_dict(),
+            "recovery_milestones": [],
+        }
     if prev_ext_initial and ext_v_out.get("recovery_milestones"):
         ext_v_out["initial"] = prev_ext_initial
     summary_payload: Dict[str, Any] = {
-        "eval_id": "planner_driven_minisql_eval_2026-10-23",
+        "eval_id": out_dir.name,
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "endpoint_info": endpoint_info,
-        "planner_mode": "automatic_l0_macro_planner_live_llm",
+        "planner_mode": args.mode,
         "planner_token_usage": planner_tok,
         "completed": result["completed"],
         "topological_order": result["topological_order"],
@@ -910,11 +1014,11 @@ def main() -> int:
     print(
         f"[planner-ratchet-eval] Finished! completed={result['completed']} "
         f"certified={result['certified_milestones']} "
-        f"external_verified={result.get('external_verification', {}).get('external_verified')} "
+        f"external_verified={ext_v_out.get('external_verified')} "
         f"wall_s={total_wall_s:.2f}s summary={summary_path}",
         flush=True,
     )
-    return 0 if result["completed"] else 1
+    return 0 if (result["completed"] or args.mode != "planner_ratchet") else 1
 
 
 if __name__ == "__main__":

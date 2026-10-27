@@ -72,3 +72,16 @@ FAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratc
 - `52bc3bc2573f`: `hae(ratchet): certify milestone m5_transactions_and_facade - Transactions, savepoints, and public facade`
 - `dcaffdd1a88f`: `hae(ratchet): certify milestone m6_external_recovery_1 - External Acceptance Recovery & Edge-Case Remediation (#1)`
 - `07740fb54a92`: `hae(ratchet): certify milestone m7_external_recovery_2 - External Acceptance Recovery & Edge-Case Remediation (#2)`
+
+## Controlled 3-Tier Baseline Comparison on Held-Out `test_minisql_external_oracle.py` (`15` Tests / `26` `sqlite3` Differential Checks)
+
+| Architecture Tier | CLI `--mode` | Certified Milestones | Final Repo LoC | Max Single-Step Diff | Total Moves | Total Tokens | Wall-Clock Time | Internal Tests | **Held-Out External `sqlite3` Oracle (`15` tests / `26` checks)** |
+| :--- | :--- | :---: | ---: | ---: | ---: | ---: | ---: | :---: | :---: |
+| **1. Flat ReAct Baseline (`v12_agentic`)** | `flat_react_baseline` | `0 / 1` | `348` | `+380` lines | `33` | `377,399` | `131.6s` | `0` (`ImportError`) | **`0 / 15` (`0.0%`, `0 / 26` checks)** |
+| **2. Single-Milestone `L0-Micro` AB-MCTS** | `single_milestone_baseline` | `1 / 1` | `1,616` | `+1,651` lines | `23` | `365,113` | `198.5s` | `1` passed | **`8 / 15` (`53.3%`, `7 failed, 8 passed`)** |
+| **3a. `V14` `L0-Macro` Ratchet (5-Milestone DAG)** | `ratchet` | `5 / 5` | `1,976` | `+847` lines | `149` | `1,536,563` | `940.1s` | `54` passed (`+7` falsifiers) | **`14 / 15` (`93.3%`, zero-shot)** |
+| **3b. `V14` `L0-Macro` Planner + Recovery** | `planner_ratchet` | **`7 / 7`** | **`2,345`** | **`+618` lines** | **`170`** | **`1,801,303`** | **`738.5s`** | **`34` passed (`+5` falsifiers)** | **`15 / 15` (`100.0%`, `26 / 26` checks)** |
+
+- **Flat ReAct Baseline**: [`../flat_react_minisql_baseline_2026-10-27/summary.json`](../flat_react_minisql_baseline_2026-10-27/summary.json)
+- **Single-Milestone `L0-Micro` AB-MCTS Baseline**: [`../monolithic_minisql_baseline_2026-10-27/summary.json`](../monolithic_minisql_baseline_2026-10-27/summary.json)
+- **Full `V14` `L0-Macro` Planner + Commit Ratchet**: [`summary.json`](summary.json) & [`../live_beam_minisql_eval_2026-10-21/summary.json`](../live_beam_minisql_eval_2026-10-21/summary.json)
