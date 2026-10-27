@@ -110,6 +110,12 @@ PYTHONPATH=. python3 scripts/v15_evolve.py validate --out results/v15/validation
 PYTHONPATH=. python3 scripts/v15_evolve.py test --out results/v15/test --genomes <run_dir>:<genome_id> ...
 ```
 
+> **Serving change (Oct 27, 23:47 UTC).** Both runs were paused at the start of generation 1 (evolve) and the
+> end of generation-0 stage 1 (random) and resumed behind the real **llm-d v1.0.0 router** (prefix-cache +
+> queue + KV-cache scorers) instead of the repo's custom Python proxy. Completed evaluations were kept. The
+> custom proxy's request/response rewrites were audited as no-ops for these runs (see
+> [`k8s/llm-d/README.md`](../../k8s/llm-d/README.md)), so the change affects speed, not agent behavior.
+
 ## 6. Known limitations
 
 - **Noise.** Every (genome, task) pair is one run. Small fitness differences

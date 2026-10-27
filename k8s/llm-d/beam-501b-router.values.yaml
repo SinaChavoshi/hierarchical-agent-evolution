@@ -1,0 +1,70 @@
+## llm-d v1.0.0 router (Standalone Mode: Envoy sidecar + Endpoint Picker) for the Beam-501B replicas.
+##
+## Install (from the repo root):
+##   kubectl apply -f https://github.com/kubernetes-sigs/gateway-api-inference-extension/releases/download/v1.6.2/v1-manifests.yaml
+##   helm install beam-501b-router oci://ghcr.io/llm-d/charts/llm-d-router-standalone --version v1.0.0 \
+##     -n default -f k8s/llm-d/beam-501b-router.values.yaml
+##   kubectl port-forward svc/beam-501b-router-epp 8000:8000
+##
+## Scheduling profile: the chart's default llm-d "intelligent inference scheduling" profile:
+##   prefix-cache-scorer (weight 3)   -> route requests that share a prompt prefix to the replica holding it
+##   queue-scorer (weight 2)          -> prefer replicas with fewer waiting requests (vllm:num_requests_waiting)
+##   kv-cache-utilization-scorer (2)  -> prefer replicas with free KV cache (vllm:kv_cache_usage_perc)
+## Endpoint metrics are scraped from each vLLM head's /metrics on port 8000.
+## (The optimized-baseline prefix-cache-affinity-filter is not used: its saturation gate needs
+## per-hardware calibration, which has not been done for Beam-501B on RTX PRO 6000 TP=4.)
+
+router:
+  modelServers:
+    type: vllm
+    protocol: http
+    targetPorts:
+      - number: 8000
+    # Only the Ray head pod of each multi-node TP=4 replica serves HTTP.
+    matchLabels:
+      app: beam-501b-nvfp4
+      role: head
+
+  # Expose the Envoy listener (8081) on service port 8000 so clients keep using :8000.
+  extraServicePorts:
+    - name: http
+      port: 8000
+      protocol: TCP
+      targetPort: 8081
+
+  inferencePool:
+    failureMode: "FailOpen"
+
+  epp:
+    replicas: 1
+    flags:
+      v: 2
+    pluginsConfigFile: "default-plugins.yaml"
+    resources:
+      requests:
+        cpu: "2"
+        memory: 4Gi
+      limits:
+        memory: 8Gi
+
+  proxy:
+    proxyType: envoy
+    args:
+      - "--service-node"
+      - "envoy-sidecar"
+      - "--log-level"
+      - "warn"
+      - "--concurrency"
+      - "4"
+      - "--drain-strategy"
+      - "immediate"
+      - "--drain-time-s"
+      - "60"
+      - "-c"
+      - "/etc/envoy/envoy.yaml"
+    resources:
+      requests:
+        cpu: "2"
+        memory: 2Gi
+      limits:
+        memory: 4Gi
