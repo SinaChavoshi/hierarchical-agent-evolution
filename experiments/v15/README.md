@@ -59,9 +59,19 @@ Dev pool and Verified are disjoint.
 
 **Per generation (successive halving):** each new genome runs on the 6
 `stage1` tasks; the top 3 are promoted to all 21 training tasks; elites are
-ranked by **fitness = training resolve rate − 0.05 × (mean tokens per task /
-1M)**. The next population (size 8) is bred from the top 4 elites (tournament
-selection): 50% code mutation, 30% knob mutation, 20% crossover.
+ranked by **fitness = training resolve rate + 0.25 × partial FAIL_TO_PASS
+credit on unresolved tasks − 0.05 × (mean tokens per task / 1M)**. The next
+population (size 8) is bred from the top 4 elites (tournament selection): 50%
+code mutation, 30% knob mutation, 20% crossover.
+
+> **Protocol revision (Oct 27, during generation 0, before any selection).**
+> The first `stage1` subset was uninformative: all 8 generation-0 genomes
+> solved the same 1 task and failed the same 5, so ranking came down to token
+> cost alone. Both runs were paused and `stage1` was replaced with 4 near-miss
+> and 2 solved tasks, chosen from the seed's *training* results only. Partial
+> FAIL_TO_PASS credit was added to fitness. The change was applied identically
+> to the evolve and random runs; the original subset is kept in the splits
+> file as `stage1_v0_uninformative`.
 
 **Arms compared on the test split:**
 

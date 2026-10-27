@@ -129,6 +129,7 @@ def cmd_evolve(args) -> int:
     mutator = CodeMutator(wt, leak, make_llm(args)) if args.mode == "evolve" else None
     cfg = EvolutionConfig(mode=args.mode, population=args.population, generations=args.generations,
                           promote_k=args.promote_k, token_lambda=args.token_lambda, seed=args.seed,
+                          partial_weight=args.partial_weight,
                           stage1_tasks=list(splits["stage1"]), train_tasks=list(splits["train"]))
     run = EvolutionRun(cfg, evaluator, out_root, code_mutator=mutator, leakage=leak)
     if args.seed_results_from:
@@ -211,6 +212,7 @@ def main() -> int:
     p.add_argument("--generations", type=int, default=6)
     p.add_argument("--promote-k", type=int, default=3)
     p.add_argument("--token-lambda", type=float, default=0.05)
+    p.add_argument("--partial-weight", type=float, default=0.25)
     p.add_argument("--seed", type=int, default=15)
     p.add_argument("--seed-results-from", default="", help="Reuse the seed genome's evaluations from another run dir")
     for name in ("validate", "test"):

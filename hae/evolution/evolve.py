@@ -34,6 +34,7 @@ class EvolutionConfig:
     generations: int = 6
     promote_k: int = 3
     token_lambda: float = 0.05
+    partial_weight: float = 0.25
     p_code: float = 0.5
     p_knob: float = 0.3
     p_cross: float = 0.2
@@ -90,7 +91,7 @@ class EvolutionRun:
 
     # ------------------------------------------------------------------ #
     def fitness(self, g: HarnessGenome, tasks: List[str]) -> float:
-        return g.fitness(tasks, token_lambda=self.cfg.token_lambda)
+        return g.fitness(tasks, token_lambda=self.cfg.token_lambda, partial_weight=self.cfg.partial_weight)
 
     def elites(self) -> List[HarnessGenome]:
         full = [g for g in self.genomes.values() if g.evaluated_on(self.cfg.train_tasks)]

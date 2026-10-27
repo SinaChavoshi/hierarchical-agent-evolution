@@ -1,0 +1,102 @@
+{
+ "description": "V15 splits. train/val come from the 31 container-validated tasks of the 50-task SWE-bench dev pool (disjoint from SWE-bench Verified); test is the 28 container-validated unseen SWE-bench Verified tasks used in V14. The test split is never used during evolution.",
+ "seed": 15,
+ "train": [
+  "marshmallow-code__marshmallow-1229",
+  "marshmallow-code__marshmallow-1252",
+  "marshmallow-code__marshmallow-1524",
+  "marshmallow-code__marshmallow-1702",
+  "marshmallow-code__marshmallow-1810",
+  "marshmallow-code__marshmallow-2123",
+  "pydicom__pydicom-863",
+  "pydicom__pydicom-996",
+  "pydicom__pydicom-997",
+  "pylint-dev__astroid-1351",
+  "pylint-dev__astroid-1417",
+  "pylint-dev__astroid-1959",
+  "pylint-dev__astroid-934",
+  "pylint-dev__astroid-946",
+  "pylint-dev__astroid-983",
+  "pyvista__pyvista-4226",
+  "sqlfluff__sqlfluff-1517",
+  "sqlfluff__sqlfluff-1763",
+  "sqlfluff__sqlfluff-884",
+  "sqlfluff__sqlfluff-891",
+  "sqlfluff__sqlfluff-905"
+ ],
+ "stage1": [
+  "marshmallow-code__marshmallow-1229",
+  "marshmallow-code__marshmallow-1810",
+  "marshmallow-code__marshmallow-2123",
+  "pylint-dev__astroid-1351",
+  "pylint-dev__astroid-934",
+  "pylint-dev__astroid-983"
+ ],
+ "val": [
+  "marshmallow-code__marshmallow-1164",
+  "marshmallow-code__marshmallow-1343",
+  "marshmallow-code__marshmallow-1359",
+  "pydicom__pydicom-1255",
+  "pylint-dev__astroid-1262",
+  "pylint-dev__astroid-1866",
+  "pylint-dev__astroid-1962",
+  "sqlfluff__sqlfluff-1625",
+  "sqlfluff__sqlfluff-1733",
+  "sqlfluff__sqlfluff-880"
+ ],
+ "test": [
+  "astropy__astropy-13236",
+  "astropy__astropy-13579",
+  "astropy__astropy-14995",
+  "astropy__astropy-8872",
+  "matplotlib__matplotlib-23314",
+  "matplotlib__matplotlib-24149",
+  "matplotlib__matplotlib-25287",
+  "matplotlib__matplotlib-26208",
+  "mwaskom__seaborn-3069",
+  "mwaskom__seaborn-3187",
+  "pallets__flask-5014",
+  "psf__requests-1724",
+  "psf__requests-1766",
+  "pydata__xarray-2905",
+  "pydata__xarray-4075",
+  "pydata__xarray-6744",
+  "pylint-dev__pylint-4604",
+  "pylint-dev__pylint-6386",
+  "pylint-dev__pylint-8898",
+  "pytest-dev__pytest-10051",
+  "pytest-dev__pytest-10081",
+  "pytest-dev__pytest-6202",
+  "scikit-learn__scikit-learn-12973",
+  "scikit-learn__scikit-learn-13135",
+  "scikit-learn__scikit-learn-25232",
+  "sphinx-doc__sphinx-10614",
+  "sphinx-doc__sphinx-8269",
+  "sphinx-doc__sphinx-9229"
+ ],
+ "datasets": {
+  "train": "data/swebench/swebench_dev.jsonl",
+  "val": "data/swebench/swebench_dev.jsonl",
+  "test": "data/swebench/verified_test.jsonl"
+ },
+ "notes": {
+  "v14_contaminated_dev_tasks": [
+   "pydicom__pydicom-1255",
+   "pylint-dev__astroid-1417",
+   "pyvista__pyvista-4226",
+   "sqlfluff__sqlfluff-1517"
+  ],
+  "test_known_defect": [
+   "pylint-dev__pylint-4604"
+  ],
+  "stage1_revision": "Oct 27 ~22:00 UTC, during generation 0 of both runs and before any selection: the original stage1 (stage1_v0_uninformative) gave identical outcomes for all 8 genomes (1 always-solved + 5 never-solved tasks), so ranking depended only on token cost. Replaced with 4 near-miss and 2 solved tasks chosen from the seed's TRAINING results only, and fitness gained 0.25 x partial FAIL_TO_PASS credit. Applied identically to the evolve and random runs."
+ },
+ "stage1_v0_uninformative": [
+  "marshmallow-code__marshmallow-1702",
+  "pydicom__pydicom-997",
+  "pylint-dev__astroid-983",
+  "pyvista__pyvista-4226",
+  "sqlfluff__sqlfluff-891",
+  "sqlfluff__sqlfluff-905"
+ ]
+}

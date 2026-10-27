@@ -84,9 +84,25 @@ class HarnessGenome:
             return 0.0
         return sum(self.results[t].tokens for t in ids) / len(ids)
 
-    def fitness(self, task_ids: Optional[List[str]] = None, token_lambda: float = 0.05) -> float:
-        """Resolve rate minus a cost penalty: `lambda` per million mean tokens per task."""
-        return self.success_rate(task_ids) - token_lambda * self.mean_tokens(task_ids) / 1e6
+    def partial_credit(self, task_ids: Optional[List[str]] = None) -> float:
+        """Mean FAIL_TO_PASS fraction over unresolved tasks (0 when there are none)."""
+        ids = list(task_ids) if task_ids is not None else list(self.results)
+        un = [self.results[t] for t in ids if t in self.results and not self.results[t].resolved]
+        if not un:
+            return 0.0
+        return sum((r.f2p_passed / r.f2p_total) if r.f2p_total else 0.0 for r in un) / len(un)
+
+    def fitness(self, task_ids: Optional[List[str]] = None, token_lambda: float = 0.05,
+                partial_weight: float = 0.0) -> float:
+        """Resolve rate, plus `partial_weight` x partial FAIL_TO_PASS credit on unresolved tasks
+        (scaled by their share), minus `token_lambda` per million mean tokens per task."""
+        ids = list(task_ids) if task_ids is not None else list(self.results)
+        present = [t for t in ids if t in self.results]
+        n = max(1, len(present))
+        n_unresolved = sum(1 for t in present if not self.results[t].resolved)
+        return (self.success_rate(task_ids)
+                + partial_weight * self.partial_credit(task_ids) * n_unresolved / n
+                - token_lambda * self.mean_tokens(task_ids) / 1e6)
 
     # ------------------------------------------------------------------ #
     def to_dict(self) -> Dict[str, Any]:
