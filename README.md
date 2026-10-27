@@ -100,6 +100,9 @@ pod runs including the `30` ablation runs):
   on. On the `28` unseen tasks alone the split is `2 : 0` (`p = 0.5`, not
   significant), and V14 costs `1.6×` the tokens and `1.5×` the wall time of
   V12 there. See the [V14 retrospective](experiments/v14/v14_retrospective.md).
+  **A second audit found prompt examples targeting specific unseen test tasks**
+  (e.g. `pylint-6386`, `pylint-8898`, `xarray-6744`, `sphinx-9229`), so these
+  unseen numbers are not clean either; V15 re-runs a cleaned harness on them.
 - **Pre-existing benchmark defect (`pylint-dev__pylint-4604`)**: One additional
   raw instance (`pylint-4604`) has an upstream `SWE-bench` `test_patch` defect
   (`from pylint.constants import IS_PYPY` not mentioned in `problem_statement`,

@@ -580,7 +580,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             if len(key_symbols) >= 16:
                 break
 
-        # Match symbol stems against tracked non-test `.py` file basenames (e.g., `Property` -> `_property.py`, `decorators` -> `decorators.py`)
+        # Match symbol stems against tracked non-test `.py` file basenames (e.g., `Widget` -> `_widget.py`)
         non_test_repo_files = [
             f for f in known_repo_files
             if "test" not in f.lower() and not f.startswith("docs/") and not f.startswith("doc/")
@@ -791,11 +791,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             "     ` {`locus`: \"codebase_symmetry\", `title`: \"Sibling-Aligned & Convention-Symmetric Fix\", `target_files`: [\"path/to/file.py\"], `mechanism_and_plan`: \"Concrete plan aligning with sibling classes/methods and existing repo test conventions\", `prior`: 0.60}\n"
             "   ]\n"
             "Architecture Principles:\n"
-            "- Never split a multi-file invariant across partial half-fixes: if an API signature, reference type (e.g. weakref vs. direct ref), or exception contract changes, include BOTH the definition site and all affected internal callers/consumers in `target_files`.\n"
+            "- Never split a multi-file invariant across partial half-fixes: if an API signature, reference type, or exception contract changes, include BOTH the definition site and all affected internal callers/consumers in `target_files`.\n"
             "- Separate immediate symptom handling (`consumer_local`) from upstream state-construction invariants (`producer_upstream` / Move 37) and sibling-pattern alignment (`codebase_symmetry`).\n"
-            "- Preserve backward compatibility and exact repository warning/exception hierarchies whenever deprecating parameters or validating inputs.\n"
-            "- When an issue shows a configuration file snippet (`.toml`, `.ini`, `.cfg`), remember that config parsers strip outer string quotes before passing values to Python validators/transformers (e.g., `bad-name-rgxs = \"(foo{1,3})\"` in TOML passes the unquoted string `(foo{1,3})` to Python!). Never assume outer config quotes remain inside the string passed to the transformer; and in comma-separated regular expression lists, commas are syntactic ONLY inside quantifier braces `{m,n}` (NOT inside `(...)` parentheses, which may be unclosed in invalid-regex error tests like `(foo{1,}, foo{1,3}})`), so track ONLY `{` and `}` brace depth when splitting comma-separated regexes.\n"
-            "- When implementing or fixing windowed, centered, or strided indexing/iteration (e.g., `center=True`), always check how existing methods in the same class/module compute the center offset (`(window - 1) // 2` or `window - 1 - window // 2` vs `window // 2`), and test BOTH odd (`window=3`) AND even (`window=2`, `window=4`) window sizes against reference methods (such as `.construct(...)` or `.mean()`), because `window // 2` and `(window - 1) // 2` agree on odd integers while diverging on even integers."
+            "- Preserve backward compatibility and exact repository warning/exception hierarchies whenever deprecating parameters or validating inputs."
         )
         user_prompt = (
             f"{self.runner.objective_text()}\n\n"
@@ -980,11 +978,11 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             f"- **Target Files**: {', '.join(f'`{f}`' for f in branch_spec.target_files) or '(see Recon Brief)'}\n"
             f"- **Causal Mechanism & Execution Plan**: {branch_spec.mechanism_and_plan}\n\n"
             "### Execution Instructions & Completeness Checklist\n"
-            "1. **Inspect & Reproduce**: Check `/testbed/.hae/reproduce_issue.py` (create/update it if needed so it reproduces the issue before your edit and exits 0 after; never write a no-op `print('ok')` script). When an issue shows a config file snippet (`.toml`, `.ini`, `.cfg`) or multi-example code snippet, test the actual unquoted parsed strings (e.g. `(foo{1,3})` and `foo, bar{1,3}` without outer TOML quotes, plus invalid inputs like `(foo{1,}, foo{1,3}})`; remember that in comma-separated regex lists, commas are syntactic ONLY inside `{m,n}` quantifier braces, NOT inside `(...)` parentheses!). For windowed/centered/strided operations, test BOTH odd (`window=3`) and even (`window=2`, `window=4`) window sizes against reference operations (e.g. `.construct(...)` or `.mean()`, using `(window - 1) // 2` or `window - 1 - window // 2` rather than `window // 2`). Use `view_file` or `git grep -n` on the target lines.\n"
+            "1. **Inspect & Reproduce**: Check `/testbed/.hae/reproduce_issue.py` (create/update it if needed so it reproduces the issue before your edit and exits 0 after; never write a no-op `print('ok')` script). When the issue gives several example inputs, test each of them, plus at least one invalid input. Use `view_file` or `git grep -n` on the target lines.\n"
             "2. **Check Exact Codebase Conventions, Helpers & Sibling Classes Before Editing**:\n"
-            "   - **Warning & Exception Hierarchy**: If the issue deprecates old kwargs/behavior or adds validation, inspect the package's `warnings.py` / `exceptions.py` / `errors.py` and `git grep -n \"warnings.warn\"` to emit the exact project warning/exception class and preserve backward-compatible parameter merging (e.g., `{**(metadata or {}), **additional_metadata}`) after warning rather than raising `ValueError`.\n"
-            "   - **Sibling Class, Documenter & Method Symmetry**: Inspect sibling classes, documenters, containers, or property setters in the same module (e.g., `GenericAliasMixin` vs `NewTypeMixin` vs `TypeVarMixin` vs `ClassDocumenter`, `List` vs `Tuple`/`Dict`, or sibling AST nodes) and verify actual return types in Python (e.g., `get_doc()` may return `[[]]` where `bool([[]])` is `True`!) so your fix applies consistently across all analogous types.\n"
-            "   - **Caller vs. Callee Consistency**: Whenever you change a method signature, return structure, or attribute reference type (such as converting a parent reference to a `weakref` or adding an optional parameter), use `git grep -n` to check all internal callers and callees across the repository so no call site breaks.\n"
+            "   - **Warning & Exception Hierarchy**: If the issue deprecates old kwargs/behavior or adds validation, inspect the package's `warnings.py` / `exceptions.py` / `errors.py` and `git grep -n \"warnings.warn\"` to emit the exact project warning/exception class and preserve backward compatibility for the deprecated usage.\n"
+            "   - **Sibling Class, Documenter & Method Symmetry**: Inspect sibling classes, documenters, containers, or property setters in the same module and verify actual return types in Python so your fix applies consistently across all analogous types.\n"
+            "   - **Caller vs. Callee Consistency**: Whenever you change a method signature, return structure, or attribute reference type, use `git grep -n` to check all internal callers and callees across the repository so no call site breaks.\n"
             "   - **Boundary & Abstract Semantics**: Distinguish empty/abstract declarations or terminal exception-raising bodies from normal fallthrough functions, and ensure builtin/extension objects without AST bodies are handled without regressions.\n"
             "3. **Apply Surgical Edit (`str_replace`) & Verify**: Apply your fix with `str_replace`, then run `python /testbed/.hae/reproduce_issue.py` and `pytest` on the relevant test files via `bash`"
             f"{falsify_note}.\n"
@@ -1260,11 +1258,8 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             f"{targeted_pytest_block}\n"
             f"{sibling_symmetry_block}\n"
             f"{self.contract.to_prompt_block()}\n\n"
-            "- IMPORTANT: If the patch deprecates legacy kwargs or parameters in favor of a new parameter (e.g. `metadata=...`), ensure passing BOTH the new parameter and deprecated kwargs merges them cleanly after emitting the deprecation warning rather than raising `ValueError`!\n"
-            "- **Config Parser Unquoted Values & Multi-Item CSV Audit**: When the issue involves configuration parsing (e.g. TOML/INI/CFG/CLI options), remember that config parsers strip outer string quotes before passing values to Python transformers! Test the transformer directly with unquoted values (e.g. `(foo{1,3})` without outer quotes), multi-item comma-separated values (e.g. `foo, bar{1,3}`), and invalid inputs.\n"
             "- **Behavioral Equivalence & Side-Effect Audit**: Do NOT merely check that a command or call exits 0 without raising an exception. "
-            "If the problem statement says X should behave like Y (e.g., a short CLI option behaving like its long option including `--help` output and runtime side effects, "
-            "an inferred/explicit scale behaving like a categorical scale, or an operation preserving state), verify that X produces the EXACT same observable stdout/stderr/state/help-text as Y!\n"
+            "If the problem statement says X should behave like Y, verify that X produces the EXACT same observable stdout/stderr/state/help-text as Y!\n"
             "Also write your adversarial test script to `/testbed/.hae/falsification_suite.py` (or `/testbed/.hae/audit_edge_cases.py`), "
             "and when emitting ` ```submit `, include `VERDICT: PASS` if all edge cases, deprecation warnings, and tests pass, "
             "or `VERDICT: FAIL: <exact failing assertion or missing requirement>` if the patch is still flawed."

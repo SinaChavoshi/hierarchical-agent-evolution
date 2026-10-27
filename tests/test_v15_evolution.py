@@ -61,6 +61,13 @@ class InjectorRemovalTests(unittest.TestCase):
                        "deprecated_replacements", "unreferenced_init_attrs", "DataElement.from_json", "themes.py"):
             self.assertNotIn(needle, src, needle)
 
+    def test_v14_task_specific_prompt_examples_are_gone(self):
+        for rel in ("hae/swebench/hierarchical_mcts.py", "hae/swebench/agentic.py"):
+            src = open(os.path.join(REPO_ROOT, rel), encoding="utf-8").read()
+            for needle in ("foo{1,3}", "GenericAliasMixin", "additional_metadata", "cachedproperty",
+                           "short CLI option", "window - 1", "bad-name-rgxs", "weakref"):
+                self.assertNotIn(needle, src, f"{needle} in {rel}")
+
 
 class GenomeTests(unittest.TestCase):
     def test_roundtrip_and_fitness(self):

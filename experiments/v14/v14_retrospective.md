@@ -13,7 +13,7 @@ agent organizations under execution-grounded fitness.
 
 | Finding | Evidence |
 | :--- | :--- |
-| **The hierarchy is never worse than flat ReAct on the same model (unseen tasks).** | `0` of `28` unseen Verified tasks where `v12_agentic` resolved and V14 did not; `21/28` vs. `19/28`. |
+| **The hierarchy is never worse than flat ReAct on the same model (unseen tasks).** | `0` of `28` unseen Verified tasks where `v12_agentic` resolved and V14 did not; `21/28` vs. `19/28`. *Weakened: see the second caution in §2 (test-task hints).* |
 | **Bounded milestones beat one long attempt on a greenfield build.** | Same inner engine on `MiniSQL`: one `+1,651`-line diff scored `8/15` on the held-out `sqlite3` oracle; the milestone ratchet (max `+618` lines per milestone) reached `15/15` (at about `5×` the tokens). |
 | **External oracles catch what self-written tests miss.** | The ratchet's internal suites were green, yet the held-out oracle scored `9/15` after the planned DAG. Recovery milestones then fixed those failures. |
 | **Prompt-level hints can hide in "generic" code.** | See the caution in §2: a repo-name grep is not a sufficient leakage audit. |
@@ -42,8 +42,30 @@ agent organizations under execution-grounded fitness.
 > the dev-slice `6/6`, the 5-way ablation staircase and the `6 : 0` dev-slice
 > wins over V12 cannot be used as evidence. No trace of these injections was
 > found in the 28 unseen Verified runs, so the unseen comparison
-> (`21/28` vs. `19/28`) is the only clean SWE-bench result from V14. V15
-> removes all four detectors before evolution starts.
+> (`21/28` vs. `19/28`) looked like the only clean SWE-bench result from V14.
+> V15 removes all four detectors before evolution starts.
+
+> [!CAUTION]
+> **The unseen Verified comparison is also contaminated.** A second audit
+> (token overlap between the harness prompts and the gold/hidden-test patches)
+> found prompt "examples" that describe specific *test* tasks, added while the
+> unseen evaluation was in progress:
+>
+> | Commit | Prompt text added | Unseen task it targets |
+> | :--- | :--- | :--- |
+> | `95db203` (during the n=12 run) | "a short CLI option behaving like its long option including `--help` output" | `pylint-dev__pylint-6386` (one of V14's two unseen wins) |
+> | `95db203` | "an inferred/explicit scale behaving like a categorical scale", "an operation preserving state" | `mwaskom__seaborn-3069`, `matplotlib__matplotlib-26208` |
+> | `03417d7` (during the n=28 run) | the hidden-test inputs `(foo{1,3})`, `foo, bar{1,3}`, `(foo{1,}, foo{1,3}})` and comma-splitting rules for regex lists | `pylint-dev__pylint-8898` (V14 first **failed**, then passed on a rerun after this text was added) |
+> | `03417d7` | centered-window offsets `(window - 1) // 2` with odd/even window tests | `pydata__xarray-6744` |
+> | `03417d7` | `GenericAliasMixin` vs `NewTypeMixin` vs `TypeVarMixin`, `get_doc()` returning `[[]]` | `sphinx-doc__sphinx-9229` |
+>
+> The shared L2 prompt in `agentic.py` (used by V12 *and* V14) also carried
+> dev-task examples (`cachedproperty -> cached_property`,
+> `{**(metadata or {}), **additional_metadata}`, `List` vs `Tuple`/`Dict`).
+> **Consequence:** none of V14's SWE-bench numbers are clean. All of these
+> texts were removed from the V15 seed, and V15 re-runs the cleaned seed on
+> the 28 test tasks as its baseline arm. The audit script logic now lives in
+> the leakage gate ([`hae/evolution/leakage.py`](../../hae/evolution/leakage.py)).
 
 1. **Unseen-only significance.** The `p = 0.0078` sign test pools `34` tasks
    (`8 : 0` discordant). `6` of the `8` wins come from the contaminated dev
