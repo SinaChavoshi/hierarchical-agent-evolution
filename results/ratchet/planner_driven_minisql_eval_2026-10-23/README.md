@@ -79,9 +79,8 @@ FAILED /usr/local/google/home/chavoshi/hierarchical-agent-evolution/results/ratc
 | :--- | :--- | :---: | ---: | ---: | ---: | ---: | ---: | :---: | :---: |
 | **1. Flat ReAct Baseline (`v12_agentic`)** | `flat_react_baseline` | `0 / 1` | `348` | `+380` lines | `33` | `377,399` | `131.6s` | `0` (`ImportError`) | **`0 / 15` (`0.0%`, `0 / 26` checks)** |
 | **2. Single-Milestone `L0-Micro` AB-MCTS** | `single_milestone_baseline` | `1 / 1` | `1,616` | `+1,651` lines | `23` | `365,113` | `198.5s` | `1` passed | **`8 / 15` (`53.3%`, `7 failed, 8 passed`)** |
-| **3a. `V14` `L0-Macro` Ratchet (5-Milestone DAG)** | `ratchet` | `5 / 5` | `1,976` | `+847` lines | `149` | `1,536,563` | `940.1s` | `54` passed (`+7` falsifiers) | **`14 / 15` (`93.3%`, zero-shot)** |
-| **3b. `V14` `L0-Macro` Planner + Recovery** | `planner_ratchet` | **`7 / 7`** | **`2,345`** | **`+618` lines** | **`170`** | **`1,801,303`** | **`738.5s`** | **`34` passed (`+5` falsifiers)** | **`15 / 15` (`100.0%`, `26 / 26` checks)** |
+| **3. `V14` `L0-Macro` Planner + Recovery** | `planner_ratchet` | **`7 / 7`** | **`2,345`** | **`+618` lines** | **`170`** | **`1,801,303`** | **`738.5s`** | **`34` passed (`+5` falsifiers)** | **`15 / 15` (`100.0%`, `26 / 26` checks)** |
 
 - **Flat ReAct Baseline**: [`../flat_react_minisql_baseline_2026-10-27/summary.json`](../flat_react_minisql_baseline_2026-10-27/summary.json)
 - **Single-Milestone `L0-Micro` AB-MCTS Baseline**: [`../monolithic_minisql_baseline_2026-10-27/summary.json`](../monolithic_minisql_baseline_2026-10-27/summary.json)
-- **Full `V14` `L0-Macro` Planner + Commit Ratchet**: [`summary.json`](summary.json) & [`../live_beam_minisql_eval_2026-10-21/summary.json`](../live_beam_minisql_eval_2026-10-21/summary.json)
+- **Full `V14` `L0-Macro` Planner + Commit Ratchet**: [`summary.json`](summary.json) (an earlier "5-milestone, 14/15 zero-shot" row was removed because its artifacts were never committed)

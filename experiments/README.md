@@ -49,6 +49,8 @@ Graded with the official containers.*
 
 ## Era 3 · Hierarchical verification
 
+> **Oct 27 correction:** the V14 dev-slice and ablation rows are contaminated by gold-fix detectors in the harness; see the [V14 retrospective](v14/v14_retrospective.md). V15 ([design](v15/README.md)) returns to evolution.
+
 | Version | Change | Tasks | Resolved | Time | Docs |
 | :--- | :--- | :--- | :---: | ---: | :--- |
 | **V13** | Layered agents + tree search | 30 tasks | 30 / 30 ⁴ | 1,211 s | [spec](v13/v13_hierarchical_agentic_ab_mcts_architecture.md) · [report](v13/v13_evaluation_report.md) |
@@ -66,6 +68,17 @@ which describe gold fixes. Read these as development runs, not benchmark scores.
 total. See the [Caveats](../README.md#caveats) in the top-level README.</sub>
 
 ![V14 Zero-Hint Benchmark & 5-Way Component Ablation Study](v14/assets/v14_ablation_and_verified_benchmark.svg)
+
+---
+
+## Era 4 · Evolving the harness
+
+| Version | Change | Status | Docs |
+| :--- | :--- | :--- | :--- |
+| **V14 retro** | Audit: gold-fix detectors found in the harness; unseen-only gap not significant | Closed | [retrospective](v14/v14_retrospective.md) |
+| **V15** | Genome = 18 knobs + harness code patch; LLM code mutation with leakage and unit-test gates; random-search control; train/val/test splits | Phase 1 running | [design](v15/README.md) |
+
+
 
 ---
 

@@ -10,7 +10,9 @@ patch only after deterministic tests and an adversarial reviewer agree.
 All inference runs on self-hosted open-weight MoE models on GKE (vLLM behind an
 `llm-d` gateway). There are no hosted-API calls in the evaluation path.
 
-**Current version: V14.** It has two tiers:
+**Current version: V15 (in progress)** evolves the V14 harness itself, both its
+settings and its source code, and tests the result on held-out tasks
+([design](experiments/v15/README.md)). V14, the hand-designed baseline, has two tiers:
 
 - **Inner engine (`L0-Micro`)**: context-bounded tree search over git
   checkpoints, used for single bug fixes (`hae/swebench/hierarchical_mcts.py`).
@@ -30,6 +32,14 @@ whether the prompts contained repository- or instance-specific guidance or
 ![V14 Zero-Hint Benchmark & 5-Way Component Ablation Study](experiments/v14/assets/v14_ablation_and_verified_benchmark.svg)
 
 ### 1. 5-way component ablation on the 6-task multi-repo slice (`--include-hints` OFF)
+
+> [!CAUTION]
+> **Contaminated — do not cite.** A later audit found four recon/verifier
+> "Static AST" detectors in `hae/swebench/hierarchical_mcts.py` that inject the
+> gold fix for 4 of these 6 tasks (`pydicom-1255`, `astroid-1417`,
+> `sqlfluff-1517`, `pyvista-4226`). The table is kept for the record only. See
+> the [V14 retrospective](experiments/v14/v14_retrospective.md); V15 removes
+> the detectors.
 
 Removing one layer at a time on `Beam-1.0-501B-A23B-NVFP4` (`+ DFlash2`) with
 both prompt hints and SWE-bench `hints_text` disabled (`30` live pod runs):
@@ -86,6 +96,10 @@ pod runs including the `30` ablation runs):
   Unseen `Verified`) and `0` discordant losses (**exact two-sided binomial sign
   test $p = 0.00781 < 0.01$** under strict zero-hint; **$p = 0.03125 < 0.05$**
   even when crediting `V12`'s `2/6` hint-assisted Dev score).
+  **Caveat:** `6` of the `8` wins are on the dev slice the harness was debugged
+  on. On the `28` unseen tasks alone the split is `2 : 0` (`p = 0.5`, not
+  significant), and V14 costs `1.6×` the tokens and `1.5×` the wall time of
+  V12 there. See the [V14 retrospective](experiments/v14/v14_retrospective.md).
 - **Pre-existing benchmark defect (`pylint-dev__pylint-4604`)**: One additional
   raw instance (`pylint-4604`) has an upstream `SWE-bench` `test_patch` defect
   (`from pylint.constants import IS_PYPY` not mentioned in `problem_statement`,
@@ -120,20 +134,25 @@ the exact same `MINISQL_SYSTEM_SPEC` and held-out external oracle:
 | :--- | :--- | :---: | ---: | ---: | ---: | ---: | ---: | :---: | :---: |
 | **1. Flat ReAct Baseline (`v12_agentic`)** | `flat_react_baseline` | `0 / 1` | `348` | `+380` lines | `33` | `377k` | `132 s` | `0` (`ImportError`) | **`0 / 15` (`0.0%`)** |
 | **2. Single-Milestone `L0-Micro` AB-MCTS** | `single_milestone_baseline` | `1 / 1` | `1,616` | `+1,651` lines | `23` | `365k` | `199 s` | `1` passed | **`8 / 15` (`53.3%`)** |
-| **3a. `V14` `L0-Macro` Ratchet (5-milestone DAG)** | `ratchet` | `5 / 5` | `1,976` | `+847` lines | `149` | `1.54M` | `940 s` | `54` passed (`+7` falsifiers) | **`14 / 15` (`93.3%`, zero-shot)** |
-| **3b. `V14` `L0-Macro` Planner + Recovery** | `planner_ratchet` | **`7 / 7`** | **`2,345`** | **`+618` lines** | **`170`** | **`1.80M`** | **`739 s`** | **`34` passed (`+5` falsifiers)** | **`15 / 15` (`100.0%`, `26/26` checks)** |
+| **3. `V14` `L0-Macro` Planner + Recovery** | `planner_ratchet` | **`7 / 7`** | **`2,345`** | **`+618` lines** | **`170`** | **`1.80M`** | **`739 s`** | **`34` passed (`+5` falsifiers)** | **`9 / 15` after the planned DAG → `15 / 15` (`100.0%`) after 2 recovery milestones** |
+
+<sub>An earlier draft also listed a "5-milestone ratchet, `14 / 15` zero-shot"
+row. Its artifacts were never committed, so it has been removed. Compute is not
+matched across tiers (ratchet `1.80M` tokens vs. `0.37M` for the baselines); see
+the [V14 retrospective](experiments/v14/v14_retrospective.md).</sub>
 
 - **Why monolithic `L0-Micro` caps out at `8 / 15` (`53.3%`)**: Compressing all
   6 `minisql` modules into a single `1,651`-line diff exceeds the single-episode
   verification horizon of `L1-B` (`6` turns), leaving an unimported symbol
   (`NameError: name 'Token' is not defined` in `parse_statements()` during
   `execute_script()`) and a trailing-comment bug in `Database.execute()`.
-- **Why `L0-Macro` reaches `14 / 15` (`93.3%`) zero-shot and `15 / 15` (`100%`)
-  with ratcheted recovery**: By bounding every milestone diff (`+388` to `+618`
-  lines) and ratcheting `34–54` subsystem unit tests + `5–7` Popperian
-  falsification suites across Git commits, `V14` solves **`15 / 15` (`100%`)**
-  external oracle tests (`+46.7 pp` over monolithic `L0-Micro` and `+100.0 pp`
-  over flat ReAct):
+- **Why `L0-Macro` reaches `15 / 15` (`100%`)**: Every milestone diff is
+  bounded (`+44` to `+618` lines), so the reviewer always audits a small delta,
+  and `34` subsystem unit tests plus `5` falsification suites are ratcheted
+  across Git commits. The planned 5-milestone DAG scored `9 / 15` on the
+  held-out oracle; two automatically planned recovery milestones raised it to
+  **`15 / 15`** (`+46.7 pp` over monolithic `L0-Micro`, `+100.0 pp` over flat
+  ReAct, at about `5×` their token budget):
 
 | Milestone (Planned by `L0MacroPlanner`) | Moves | Tokens | Time | Active Delta (`< 850`) | Repo size | Cumulative internal tests | Held-out `sqlite3` oracle | Commit |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | :---: | :--- |
@@ -285,7 +304,7 @@ and evolutionary result. The steps are in priority order.
 | 1 | **Component ablations** | **Done (`n = 6`, 30 runs)** | Extend ablation to unseen `Verified` tasks |
 | 2 | **Unseen benchmark (`--include-hints` OFF)** | **Done (`n = 28` Verified / `n = 34` total, `27/34` vs `19/34`, $p = 0.0078$)** | Scale to full 500-task `SWE-bench Verified` / `SWE-bench Pro` public split + external agent baseline |
 | 3 | **Planner-driven build + controlled baselines** | **Done (`2,345` LoC `MiniSQL`, `15/15` vs `8/15` monolithic vs `0/15` ReAct)** | Add second long-horizon target & scale to ≥ 10k LoC multi-package build |
-| 4 | **Evolve the harness** | Planned | An evolved V14 genome beats hand-designed V14 on held-out tasks |
+| 4 | **Evolve the harness (V15)** | **In progress** ([V15 design](experiments/v15/README.md)) | An evolved harness (knobs + code) beats hand-designed V14 and random search on held-out tasks |
 
 **1. Scale the unseen benchmark evaluation & add an external agent baseline.**
 - Expand the zero-hint (`--include-hints` OFF) evaluation from the 34-task
