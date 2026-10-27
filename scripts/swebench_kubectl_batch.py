@@ -192,7 +192,16 @@ def run_policy_on_instance(instance_id: str, pod: str, dataset: str, policy_tag:
                            context: str, budget_moves: int = 30, max_iterations: int = 2,
                            instance_timeout_s: int = 2400, vllm_url: str = "http://127.0.0.1:8000/v1",
                            vllm_model: str = "nvidia/Qwen3.8-Flash-Next-NVFP4",
-                           include_hints: bool = False) -> Dict[str, Any]:
+                           include_hints: bool = False,
+                           harness_root: Optional[str] = None) -> Dict[str, Any]:
+    """Run one policy on one instance, then grade it.
+
+    `harness_root` (V15) points at a materialized candidate harness (a git worktree with
+    an evolved patch applied). The agent process imports `hae` from there; grading always
+    uses this repository's `scripts/grade_in_testbed.py`, so a candidate cannot change
+    how it is scored.
+    """
+    agent_root = os.path.abspath(harness_root) if harness_root else REPO_ROOT
     out_dir = os.path.join(out_root, policy_tag, instance_id)
     os.makedirs(out_dir, exist_ok=True)
     pred_path = os.path.join(out_dir, "prediction.json")
@@ -210,7 +219,7 @@ def run_policy_on_instance(instance_id: str, pod: str, dataset: str, policy_tag:
             "VLLM_MODEL": vllm_model,
             "VLLM_MAX_TOKENS": env.get("VLLM_MAX_TOKENS", "8192"),
             "HAE_REQUIRE_NETWORK_ISOLATION": "0",
-            "PYTHONPATH": REPO_ROOT,
+            "PYTHONPATH": agent_root,
         })
         cmd = [
             sys.executable, "-m", "hae.cli", "--mode", "swebench",
@@ -228,7 +237,7 @@ def run_policy_on_instance(instance_id: str, pod: str, dataset: str, policy_tag:
         started = time.time()
         try:
             with open(stdout_log, "w", encoding="utf-8") as fh:
-                subprocess.run(cmd, cwd=REPO_ROOT, env=env, stdin=subprocess.DEVNULL,
+                subprocess.run(cmd, cwd=agent_root, env=env, stdin=subprocess.DEVNULL,
                                stdout=fh, stderr=subprocess.STDOUT,
                                timeout=instance_timeout_s, text=True, errors="replace")
         except subprocess.TimeoutExpired:

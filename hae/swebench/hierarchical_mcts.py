@@ -50,6 +50,7 @@ from hae.swebench.agentic import (
     parse_agent_action,
 )
 from hae.swebench.executor import CommandExecutor
+from hae.swebench.harness_knobs import resolve_knobs
 from hae.swebench.task import SweTask
 
 
@@ -66,10 +67,6 @@ class ReconBrief:
     repro_script_rel: str = f"{SCRATCH_DIR}/reproduce_issue.py"
     repro_fails_on_head: bool = False
     inspected_files: List[str] = field(default_factory=list)
-    unreferenced_init_attrs: List[Tuple[str, str, str]] = field(default_factory=list)
-    deprecated_replacements: List[Tuple[str, str, str, List[str]]] = field(default_factory=list)
-    runtime_error_translations: List[Tuple[str, str]] = field(default_factory=list)
-    range_setter_targets: List[Tuple[str, str]] = field(default_factory=list)
     raw_summary: str = ""
 
     def to_compact_prompt_block(self) -> str:
@@ -93,30 +90,6 @@ class ReconBrief:
             parts.append(f"- **Producer / Upstream Invariant Locus ('Move 37')**: {self.producer_upstream_locus}")
         if self.conventions_and_siblings:
             parts.append(f"- **Codebase Conventions & Sibling Classes**: {self.conventions_and_siblings}")
-        if self.unreferenced_init_attrs:
-            ua_desc = "; ".join(
-                f"in `{uf}`, class `{ucls}` stores `self.{uattr}` in `__init__` but omits `self.{uattr}` when calling helper/factory methods in `{ucls}`"
-                for uf, ucls, uattr in self.unreferenced_init_attrs
-            )
-            parts.append(f"- **Static AST Unreferenced Constructor Attribute Defect (MUST FIX)**: {ua_desc}")
-        if self.deprecated_replacements:
-            dr_desc = "; ".join(
-                f"emit `warnings.warn(..., DeprecationWarning)` mentioning `{new_s}` inside `{old_s}.__init__` in `{df}` (guarded by `if sys.version_info >= (3, 8):`), AND replace all `@...{old_s}` decorator usages with `@cached_property` (using `if sys.version_info >= (3, 8) or TYPE_CHECKING: from functools import cached_property`) across {cfiles}"
-                for df, old_s, new_s, cfiles in self.deprecated_replacements
-            )
-            parts.append(f"- **Static AST Symbol Deprecation & Caller Migration Requirement (MUST FIX ALL)**: {dr_desc}")
-        if self.runtime_error_translations:
-            rt_desc = "; ".join(
-                f"in `{tf}`, replace `raise RuntimeError(...)` with `raise {err_cls}(f\"Could not parse: {{current_str}}\", segment=unmatched_segments[0])` (importing `{err_cls}`) and do NOT modify other parser/grammar files or return `False`"
-                for tf, err_cls in self.runtime_error_translations
-            )
-            parts.append(f"- **Static AST Traceback Exception-Translation Requirement (MUST FIX)**: {rt_desc}")
-        if self.range_setter_targets:
-            rs_desc = "; ".join(
-                f"modify ONLY `{mf}` and `{pf}` (do NOT modify `themes.py` or use `Plotter()`): define `def _check_range(value, rng, parm_name):` in `{mf}` raising `ValueError(f'The value {{float(value)}} for `{{parm_name}}` is outside the acceptable range {{tuple(rng)}}.')`, import `_check_range` in `{pf}`, call `_check_range` in all 8 numeric range `@property` setters (`opacity`, `ambient`, `diffuse`, `specular`, `specular_power` `(0, 128)`, `metallic`, `roughness`, `anisotropy`), and test `Property()` directly in `/testbed/.hae/reproduce_issue.py`"
-                for pf, mf in self.range_setter_targets
-            )
-            parts.append(f"- **Static AST Setter Range-Helper Requirement (MUST FIX)**: {rs_desc}")
         if self.raw_summary:
             parts.append(f"- **Reconnaissance Notes & Code Snippets**:\n{_truncate_output(self.raw_summary, 2800)}")
         return "\n".join(parts)
@@ -353,75 +326,6 @@ def parse_seed_architect_response(
         except Exception:
             pass
 
-    if recon.unreferenced_init_attrs:
-        for uf, ucls, uattr in recon.unreferenced_init_attrs:
-            prim_f = candidate_modules[0] if candidate_modules else uf
-            t_list = list(dict.fromkeys([uf, prim_f]))
-            inv_str = (
-                f"Modify ONLY {t_list}: 1) In `{uf}`, class `{ucls}` stores `self.{uattr}` in `__init__` — pass `self.{uattr}` "
-                f"as the final argument to the recursive `.from_json(...)` call in `{ucls}`. "
-                f"2) In `{prim_f}`, replace `-> NoReturn` with `-> None` (and remove `NoReturn` from typing imports)."
-            )
-            if inv_str not in contract.invariants:
-                contract.invariants.insert(0, inv_str)
-            for b in branches:
-                b.target_files = list(t_list)
-                b.mechanism_and_plan = (
-                    f"Modify ONLY `{uf}` and `{prim_f}` (do NOT modify any other files): "
-                    f"1) In `{uf}`, inside `{ucls}.get_sequence_item`, pass `self.{uattr}` as the 6th argument to `DataElement.from_json(...)`. "
-                    f"2) In `{prim_f}`, replace `-> NoReturn:` with `-> None:` and remove `NoReturn` from `from typing import ...`. "
-                    f"3) Create `/testbed/.hae/reproduce_issue.py` verifying `{ucls}` passes `self.{uattr}` for nested sequence elements, run it, and immediately emit `submit`."
-                )
-
-    if recon.deprecated_replacements:
-        for df, old_s, new_s, cfiles in recon.deprecated_replacements:
-            inv_str = (
-                f"In `{df}`, `{old_s}.__init__` must emit `DeprecationWarning` mentioning `{new_s}` on `sys.version_info >= (3, 8)`, "
-                f"AND all internal `@...{old_s}` decorators in {cfiles} must be replaced with `@cached_property`."
-            )
-            if inv_str not in contract.invariants:
-                contract.invariants.insert(0, inv_str)
-            for b in branches:
-                for req_f in [df] + list(cfiles):
-                    if req_f and req_f not in b.target_files:
-                        b.target_files.append(req_f)
-                b.mechanism_and_plan = (
-                    f"1) In `{df}`, inside `{old_s}.__init__`, emit `warnings.warn(\"{old_s} has been deprecated ... Use {new_s} instead.\", DeprecationWarning)` "
-                    f"when `sys.version_info >= (3, 8)`. 2) In every internal caller file {cfiles}, add the `if sys.version_info >= (3, 8) or TYPE_CHECKING: from functools import cached_property` guard "
-                    f"and replace all `@...{old_s}` decorators with `@cached_property`. " + b.mechanism_and_plan
-                )
-
-    if recon.runtime_error_translations:
-        for tf, err_cls in recon.runtime_error_translations:
-            inv_str = (
-                f"In `{tf}`, replace `raise RuntimeError(...)` with `raise {err_cls}(f\"Could not parse: {{current_str}}\", segment=unmatched_segments[0])` "
-                f"(importing `{err_cls}`) without modifying other parser/grammar files or returning `False`."
-            )
-            if inv_str not in contract.invariants:
-                contract.invariants.insert(0, inv_str)
-            for b in branches:
-                b.target_files = [tf]
-                b.mechanism_and_plan = (
-                    f"Modify ONLY `{tf}`: import `{err_cls}` and in `check_still_complete` replace `raise RuntimeError(...)` "
-                    f"with `raise {err_cls}(f\"Could not parse: {{current_str}}\", segment=unmatched_segments[0])`. Do NOT return `False` and do NOT modify any other file."
-                )
-
-    if recon.range_setter_targets:
-        for pf, mf in recon.range_setter_targets:
-            inv_str = (
-                f"Modify ONLY `{mf}` and `{pf}`: define `def _check_range(value, rng, parm_name):` in `{mf}` raising `ValueError(f'The value {{float(value)}} for `{{parm_name}}` is outside the acceptable range {{tuple(rng)}}.')`, "
-                f"import `_check_range` in `{pf}`, and call `_check_range` in `opacity`, `ambient`, `diffuse`, `specular`, `specular_power` `(0, 128)`, `metallic`, `roughness`, `anisotropy`."
-            )
-            if inv_str not in contract.invariants:
-                contract.invariants.insert(0, inv_str)
-            for b in branches:
-                b.target_files = [mf, pf]
-                b.mechanism_and_plan = (
-                    f"Modify ONLY `{mf}` and `{pf}` (do NOT modify `themes.py` and do NOT instantiate `Plotter()` in reproduction scripts; instantiate `Property()` directly): "
-                    f"1) In `{mf}`, define `def _check_range(value, rng, parm_name):` that checks `if value < rng[0] or value > rng[1]: raise ValueError(f'The value {{float(value)}} for `{{parm_name}}` is outside the acceptable range {{tuple(rng)}}.')`. "
-                    f"2) In `{pf}`, import `_check_range` alongside `no_new_attr` from `{mf[:-3].replace('/', '.')}` and call `_check_range` in the setters for `opacity`, `ambient`, `diffuse`, `specular`, `specular_power` `(0, 128)`, `metallic`, `roughness`, and `anisotropy`."
-                )
-
     return contract, branches
 
 
@@ -443,6 +347,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         enable_recon: bool = True,
         enable_falsifier: bool = True,
         enable_cont_refinement: bool = True,
+        knobs: Optional[Dict[str, Any]] = None,
     ) -> None:
         if isinstance(executor, SweTask) and isinstance(task, CommandExecutor):
             executor, task = task, executor  # type: ignore[assignment]
@@ -460,9 +365,20 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             diff_bloat_threshold=diff_bloat_threshold,
             custom_test_cmd=custom_test_cmd,
         )
-        self.enable_recon = bool(enable_recon)
-        self.enable_falsifier = bool(enable_falsifier)
-        self.enable_cont_refinement = bool(enable_cont_refinement)
+        # V15: explicit enable_* arguments keep working; `knobs` (from the genome) override them.
+        knob_overrides = {
+            "enable_recon": bool(enable_recon),
+            "enable_falsifier": bool(enable_falsifier),
+            "enable_cont_refinement": bool(enable_cont_refinement),
+        }
+        if diff_bloat_threshold != 120:
+            knob_overrides["diff_bloat_threshold"] = diff_bloat_threshold
+        knob_overrides.update(dict(knobs or {}))
+        self.knobs: Dict[str, Any] = resolve_knobs(knob_overrides)
+        self.diff_bloat_threshold = int(self.knobs["diff_bloat_threshold"])
+        self.enable_recon = bool(self.knobs["enable_recon"])
+        self.enable_falsifier = bool(self.knobs["enable_falsifier"])
+        self.enable_cont_refinement = bool(self.knobs["enable_cont_refinement"])
         self.falsification_script_rel = FALSIFICATION_SCRIPT_REL
         self.mcts_nodes: Dict[str, AgenticMCTSNode] = {
             "root": AgenticMCTSNode(
@@ -755,151 +671,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         inspected = inspected[:8]
         self.initial_candidate_modules = self.initial_candidate_modules[:8]
 
-        # General AST & codebase invariant scan:
-        # 1) Unreferenced `__init__` attributes (`self.<attr> = <param>` with `count == 1`)
-        # 2) Symbol deprecation & internal decorator replacement (`Replace \`<old>\` with \`<new>\``)
-        # 3) Traceback `RuntimeError` -> domain `*ParseError` translation
-        # 4) `@property` setter numeric range helper (`_check_range`)
+        # V15: the V14 "Static AST" detectors that injected task-specific fixes were removed
+        # (see experiments/v14/v14_retrospective.md).
         ast_extra_out = ""
-        unref_init_attrs: List[Tuple[str, str, str]] = []
-        deprecated_replacements: List[Tuple[str, str, str, List[str]]] = []
-        runtime_error_translations: List[Tuple[str, str]] = []
-        range_setter_targets: List[Tuple[str, str]] = []
-
-        m_rep_sym = re.search(
-            r"\bReplace\s+`([A-Za-z_][A-Za-z0-9_]*)`\s+with\s+`([A-Za-z0-9_.]*)`",
-            combined_text,
-            flags=re.IGNORECASE,
-        )
-        if m_rep_sym:
-            old_sym, new_sym = m_rep_sym.group(1), m_rep_sym.group(2)
-            rep_cmd = (
-                f"cd {self.executor.root} && "
-                f"git grep -l 'class {old_sym}\\b\\|def {old_sym}\\b' -- '*.py' ':!docs/*' ':!*test*' 2>/dev/null | head -3; "
-                f"echo '---CALLERS---'; "
-                f"git grep -l '@.*{old_sym}\\b' -- '*.py' ':!docs/*' ':!*test*' 2>/dev/null | head -12; "
-                f"echo '---TESTS---'; "
-                f"git ls-files '*test*decorator*.py' '*decorator*test*.py' 2>/dev/null | head -4"
-            )
-            res_rep = self.executor.run(["bash", "-lc", rep_cmd], cwd=self.executor.root, timeout_s=8)
-            rep_out = res_rep.stdout or ""
-            parts_rep = rep_out.split("---CALLERS---")
-            def_files_rep = [l.strip() for l in parts_rep[0].splitlines() if l.strip().endswith(".py")]
-            rest_rep = parts_rep[1].split("---TESTS---") if len(parts_rep) > 1 else ["", ""]
-            caller_files_rep = [l.strip() for l in rest_rep[0].splitlines() if l.strip().endswith(".py")]
-            test_files_rep = [l.strip() for l in (rest_rep[1] if len(rest_rep) > 1 else "").splitlines() if l.strip().endswith(".py")]
-            if def_files_rep:
-                df0 = def_files_rep[0]
-                c_list = [cf for cf in caller_files_rep if cf != df0]
-                deprecated_replacements.append((df0, old_sym, new_sym, c_list))
-                for rf in reversed([df0] + c_list):
-                    if rf in inspected:
-                        inspected.remove(rf)
-                    inspected.insert(0, rf)
-                    if rf in self.initial_candidate_modules:
-                        self.initial_candidate_modules.remove(rf)
-                    self.initial_candidate_modules.insert(0, rf)
-            for tf_r in test_files_rep:
-                if tf_r not in disc_tests:
-                    disc_tests.insert(0, tf_r)
-
-        if "RuntimeError:" in combined_text and tb_matched_files:
-            tb_bottom = tb_matched_files[0]
-            pe_cmd = (
-                f"cd {self.executor.root} && "
-                "git grep -h 'class [A-Za-z0-9_]*ParseError\\b' -- '*.py' ':!*test*' 2>/dev/null | head -5; "
-                "echo '---TESTS---'; "
-                "git ls-files '*ansi_test*.py' '*parser*test*.py' 2>/dev/null | head -4"
-            )
-            res_pe = self.executor.run(["bash", "-lc", pe_cmd], cwd=self.executor.root, timeout_s=8)
-            pe_out = res_pe.stdout or ""
-            m_pe = re.search(r"class\s+([A-Za-z0-9_]*ParseError)\b", pe_out)
-            if m_pe:
-                err_cls = m_pe.group(1)
-                runtime_error_translations.append((tb_bottom, err_cls))
-                if tb_bottom in inspected:
-                    inspected.remove(tb_bottom)
-                inspected.insert(0, tb_bottom)
-            if "---TESTS---" in pe_out:
-                for tl in pe_out.split("---TESTS---", 1)[1].splitlines():
-                    if tl.strip().endswith(".py") and tl.strip() not in disc_tests:
-                        disc_tests.insert(0, tl.strip())
-
-        if "setter" in combined_text.lower():
-            misc_files = [f for f in non_test_repo_files if f.endswith("utilities/misc.py") or os.path.basename(f) == "misc.py"]
-            prop_files = [f for f in non_test_repo_files if os.path.basename(f) in ("_property.py", "property.py")]
-            if prop_files and misc_files:
-                pf0, mf0 = prop_files[0], misc_files[0]
-                range_setter_targets.append((pf0, mf0))
-                for rf in (mf0, pf0):
-                    if rf in inspected:
-                        inspected.remove(rf)
-                    inspected.insert(0, rf)
-                    if rf in self.initial_candidate_modules:
-                        self.initial_candidate_modules.remove(rf)
-                    self.initial_candidate_modules.insert(0, rf)
-                for kf in known_repo_files:
-                    if os.path.basename(kf) == "test_property.py" and kf not in disc_tests:
-                        disc_tests.insert(0, kf)
-
-        if has_bundled_issue_ref or any(w in combined_text.lower() for w in ("setter", "between 0 and 1", "py.typed")):
-            ast_scan_cmd = (
-                f"cd {self.executor.root} && {self.executor.python} -c '"
-                "import ast, subprocess\n"
-                "files = [f for f in subprocess.check_output([\"git\", \"ls-files\", \"*.py\"], text=True).splitlines() "
-                "if \"test\" not in f.lower() and not f.startswith((\"doc\", \"examples\", \"benchmarks\"))]\n"
-                "for f in files:\n"
-                "    try:\n"
-                "        src = open(f, encoding=\"utf-8\", errors=\"ignore\").read()\n"
-                "        tree = ast.parse(src)\n"
-                "    except Exception:\n"
-                "        continue\n"
-                "    for node in ast.walk(tree):\n"
-                "        if isinstance(node, ast.FunctionDef) and node.name.startswith(\"_check_\"):\n"
-                "            print(f\"EXISTING_CHECK_HELPER: {f}:{node.lineno}: def {node.name}\")\n"
-                "        if isinstance(node, ast.ClassDef):\n"
-                "            init_fn = next((it for it in node.body if isinstance(it, ast.FunctionDef) and it.name == \"__init__\"), None)\n"
-                "            if init_fn is None or len(init_fn.args.args) < 5 or not init_fn.args.defaults:\n"
-                "                continue\n"
-                "            n_params = len(init_fn.args.args) - 1\n"
-                "            store_attrs = []\n"
-                "            for st in ast.walk(init_fn):\n"
-                "                if isinstance(st, ast.Assign) and len(st.targets) == 1:\n"
-                "                    t = st.targets[0]\n"
-                "                    if isinstance(t, ast.Attribute) and isinstance(t.value, ast.Name) and t.value.id == \"self\":\n"
-                "                        if t.attr not in store_attrs:\n"
-                "                            store_attrs.append(t.attr)\n"
-                "            if len(store_attrs) < 2:\n"
-                "                continue\n"
-                "            first_attr, last_attr = store_attrs[0], store_attrs[-1]\n"
-                "            for sub in ast.walk(node):\n"
-                "                if isinstance(sub, ast.Call) and len(sub.args) == n_params - 1 and not sub.keywords:\n"
-                "                    a0 = sub.args[0]\n"
-                "                    if isinstance(a0, ast.Attribute) and isinstance(a0.value, ast.Name) and a0.value.id == \"self\" and a0.attr == first_attr:\n"
-                "                        print(f\"UNREFERENCED_INIT_ATTR: {f}:{sub.lineno}: class {node.name} stores self.{last_attr} but omits self.{last_attr} in recursive/factory call\")\n"
-                "' 2>/dev/null"
-            )
-            res_ast = self.executor.run(["bash", "-lc", ast_scan_cmd], cwd=self.executor.root, timeout_s=10)
-            ast_extra_out = (res_ast.stdout or "").strip()
-            for line in ast_extra_out.splitlines():
-                m_uf = re.search(
-                    r"UNREFERENCED_INIT_ATTR:\s*([^\s:]+\.py):\d+:\s*class\s+([A-Za-z0-9_]+)\s+stores\s+self\.([A-Za-z0-9_]+)",
-                    line,
-                )
-                if m_uf:
-                    uf, ucls, uattr = m_uf.group(1), m_uf.group(2), m_uf.group(3)
-                    if (uf, ucls, uattr) not in unref_init_attrs:
-                        unref_init_attrs.append((uf, ucls, uattr))
-                    if uf in inspected:
-                        inspected.remove(uf)
-                    inspected.insert(0, uf)
-                    if uf in self.initial_candidate_modules:
-                        self.initial_candidate_modules.remove(uf)
-                    self.initial_candidate_modules.insert(0, uf)
-                    stem_uf = os.path.splitext(os.path.basename(uf))[0].replace("rep", "")
-                    for kf in known_repo_files:
-                        if "test" in kf.lower() and stem_uf in os.path.basename(kf).lower() and kf not in disc_tests:
-                            disc_tests.insert(0, kf)
 
         cands_sh = " ".join(f"'{c}'" for c in inspected[:6] if c)
         cands_json = json.dumps([c for c in inspected[:6] if c])
@@ -972,10 +746,6 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             repro_script_rel=self.repro_script_rel if repro_exists else "",
             repro_fails_on_head=repro_fails_on_head,
             inspected_files=inspected,
-            unreferenced_init_attrs=unref_init_attrs,
-            deprecated_replacements=deprecated_replacements,
-            runtime_error_translations=runtime_error_translations,
-            range_setter_targets=range_setter_targets,
             raw_summary=raw_out,
         )
         self.recon_brief = brief
@@ -1118,7 +888,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             if n.checkpoint is not None
             and (
                 n.checkpoint.repro_ok
-                or (self.allow_new_files and n.checkpoint.compile_ok and len(n.checkpoint.diff) >= 1500)
+                or (self.allow_new_files and n.checkpoint.compile_ok and len(n.checkpoint.diff) >= int(self.knobs["cont_near_miss_min_diff_chars"]))
             )
             and len(n.children) == 0
             and n.stagnant_steps == 0
@@ -1804,79 +1574,12 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
         turn: int,
         is_auditor: bool = False,
     ) -> Tuple[bool, str, Optional[PatchCheckpoint]]:
-        """Extend Gatekeeper workspace audit with L1-A static AST unreferenced-attribute checks."""
+        """Gatekeeper workspace audit (V15: task-specific static AST checks removed)."""
         ok, audit_msg, cp = super().verify_current_workspace(
             specialist=specialist,
             turn=turn,
             is_auditor=is_auditor,
         )
-        if cp is not None:
-            missing_ast: List[str] = []
-            for uf, ucls, uattr in self.recon_brief.unreferenced_init_attrs:
-                if uf not in (cp.changed_files or []) or f"self.{uattr}" not in (cp.diff or ""):
-                    missing_ast.append(
-                        f"- Static AST Constructor-Attribute Check FAILED in `{uf}`: class `{ucls}` stores `self.{uattr}` "
-                        f"in `__init__` and still omits `self.{uattr}` in its nested element/factory call! "
-                        f"Use `str_replace` on `{uf}` to pass `self.{uattr}` to the factory call."
-                    )
-            for df, old_s, new_s, cfiles in self.recon_brief.deprecated_replacements:
-                try:
-                    src_df = self.executor.read_file(df) if self.executor.exists(df) else ""
-                except Exception:
-                    src_df = ""
-                if src_df and ("DeprecationWarning" not in src_df or new_s not in src_df):
-                    missing_ast.append(
-                        f"- Static AST Deprecation Check FAILED in `{df}`: `{old_s}.__init__` must emit `warnings.warn(..., DeprecationWarning)` mentioning `{new_s}` when `sys.version_info >= (3, 8)`."
-                    )
-                for cf in cfiles:
-                    try:
-                        src_cf = self.executor.read_file(cf) if self.executor.exists(cf) else ""
-                    except Exception:
-                        src_cf = ""
-                    if src_cf and re.search(rf"@[^\n]*\b{re.escape(old_s)}\b", src_cf):
-                        missing_ast.append(
-                            f"- Static AST Caller-Migration Check FAILED in `{cf}`: still contains `@{old_s}` (or `@decorators.{old_s}`) decorator! Replace all `@...{old_s}` decorators in `{cf}` with `@cached_property`."
-                        )
-            for tf, err_cls in self.recon_brief.runtime_error_translations:
-                try:
-                    src_tf = self.executor.read_file(tf) if self.executor.exists(tf) else ""
-                except Exception:
-                    src_tf = ""
-                if src_tf and (err_cls not in src_tf or "RuntimeError" in src_tf):
-                    missing_ast.append(
-                        f"- Static AST Traceback Exception Check FAILED in `{tf}`: must import and raise `{err_cls}(f\"Could not parse: {{current_str}}\", segment=unmatched_segments[0])` instead of `RuntimeError` or `return False`."
-                    )
-                extra_changed = [f for f in (cp.changed_files or []) if f != tf]
-                if extra_changed:
-                    missing_ast.append(
-                        f"- Minimal-Scope Check FAILED: modified unexpected files {extra_changed}; revert changes outside `{tf}` (`git checkout -- {' '.join(extra_changed)}`)."
-                    )
-            for pf, mf in self.recon_brief.range_setter_targets:
-                try:
-                    src_mf = self.executor.read_file(mf) if self.executor.exists(mf) else ""
-                    src_pf = self.executor.read_file(pf) if self.executor.exists(pf) else ""
-                except Exception:
-                    src_mf, src_pf = "", ""
-                if src_mf and ("def _check_range(" not in src_mf or "outside the acceptable range" not in src_mf):
-                    missing_ast.append(
-                        f"- Static AST Range-Helper Check FAILED in `{mf}`: must define `def _check_range(value, rng, parm_name):` raising `ValueError(f'The value {{float(value)}} for `{{parm_name}}` is outside the acceptable range {{tuple(rng)}}.')`."
-                    )
-                if src_pf and src_pf.count("_check_range(") < 8:
-                    missing_ast.append(
-                        f"- Static AST Setter Check FAILED in `{pf}`: must import `_check_range` from `{mf[:-3].replace('/', '.')}` and call `_check_range` in all 8 numeric range setters (`opacity`, `ambient`, `diffuse`, `specular`, `specular_power`, `metallic`, `roughness`, `anisotropy`)."
-                    )
-                extra_rs = [f for f in (cp.changed_files or []) if os.path.basename(f) == "themes.py"]
-                if extra_rs:
-                    missing_ast.append(
-                        f"- Minimal-Scope Check FAILED: modified unexpected files {extra_rs}; revert changes to `themes.py` (`git checkout -- {' '.join(extra_rs)}`)."
-                    )
-            if missing_ast:
-                ok = False
-                cp.repro_ok = False
-                cp.gatekeeper_ok = False
-                extra_diag = "\n".join(missing_ast)
-                audit_msg = f"{audit_msg}\n{extra_diag}"
-                cp.note = _truncate_output(f"{extra_diag}; {cp.note}", 700)
         return ok, audit_msg, cp
 
     def evaluate_and_register_mcts_node(
@@ -1961,7 +1664,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 critique = f"- Stage A Gatekeeper ONLY (L1-B Falsifier ablated/disabled): passed compile, reproduction, and repo_tests.\n\n{audit_msg}"
             elif self.runner._may_call("L1B falsifier") and (time.time() - self.run_start_time < self.max_wall_s - 60):
                 falsifier_ran = True
-                falsifier_ok, falsifier_msg = self.run_falsifier_episode(cp, max_turns=6)
+                falsifier_ok, falsifier_msg = self.run_falsifier_episode(cp, max_turns=int(self.knobs["falsifier_max_turns"]))
                 critique = f"- L1-B Adversarial Falsifier: {falsifier_msg}\n\n{audit_msg}"
                 if falsifier_ok:
                     cp.audit_ok = True
@@ -2025,14 +1728,14 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
 
     def run(self, candidate_modules: List[str], budget_moves: int = 36) -> Dict[str, Any]:
         t_start = time.time()
-        effective_budget = max(int(budget_moves or 36), 68)
+        effective_budget = max(int(budget_moves or 36), int(self.knobs["min_budget_moves"]))
         self.initial_candidate_modules = list(candidate_modules or [])
         self.executor.run(["mkdir", "-p", f"{self.executor.root}/{SCRATCH_DIR}"], cwd=self.executor.root, timeout_s=15)
         repo_map = self.runner.repo_map()
 
         # --- Stage 1: Layer L1-A Fast Reconnaissance Episode (Fresh Context, 2-3 turns) ---
         if self.enable_recon:
-            recon = self.run_recon_episode(candidate_modules, repo_map, max_turns=3)
+            recon = self.run_recon_episode(candidate_modules, repo_map, max_turns=int(self.knobs["recon_max_turns"]))
         else:
             self.logger("[v13-hier-mcts] Layer L1-A Reconnaissance ABLATED (enable_recon=False); starting L0 with bare seed candidates")
             cands_top = [c for c in candidate_modules[:4] if c]
@@ -2053,7 +1756,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
             self.contract, self.branch_queue = parse_seed_architect_response("", self.initial_candidate_modules or candidate_modules, recon)
 
         # --- Stage 3: Layer L0 Agentic AB-MCTS Loop Over Ephemeral L2 & L1-B Episodes ---
-        max_episodes = 4
+        max_episodes = int(self.knobs["max_episodes"])
         gen_count = 0
 
         for ep in range(1, max_episodes + 1):
@@ -2072,9 +1775,9 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 gen_count += 1
                 new_nid = f"b{gen_count}"
                 if gen_count == 1:
-                    ep_turns = max(14, min(18, remaining_moves - 5))
+                    ep_turns = max(int(self.knobs["gen1_turns_min"]), min(int(self.knobs["gen1_turns_max"]), remaining_moves - 5))
                 else:
-                    ep_turns = max(10, min(15, remaining_moves - 2))
+                    ep_turns = max(int(self.knobs["genk_turns_min"]), min(int(self.knobs["genk_turns_max"]), remaining_moves - 2))
                 self.logger(
                     f"[v13-hier-mcts] Episode {ep}/{max_episodes}: AB-MCTS selected GEN -> `{new_nid}` "
                     f"(locus=`{branch_spec.locus}`, title={branch_spec.title!r}, max_turns={ep_turns})"
@@ -2092,7 +1795,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                     ),
                     initial_user_prompt=self._build_gen_executor_prompt(branch_spec),
                     max_turns=ep_turns,
-                    temperature=0.2 if gen_count == 1 else 0.35,
+                    temperature=float(self.knobs["gen1_temperature"]) if gen_count == 1 else float(self.knobs["genk_temperature"]),
                     is_auditor=False,
                 )
                 node = self.evaluate_and_register_mcts_node(
@@ -2113,7 +1816,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 parent_node = self.mcts_nodes[target_nid]
                 child_idx = len(parent_node.children) + 1
                 new_nid = f"{target_nid}.{child_idx}"
-                ep_turns = max(8, min(12, remaining_moves - 2))
+                ep_turns = max(int(self.knobs["cont_turns_min"]), min(int(self.knobs["cont_turns_max"]), remaining_moves - 2))
                 self.logger(
                     f"[v13-hier-mcts] Episode {ep}/{max_episodes}: AB-MCTS selected CONT(`{target_nid}`) -> `{new_nid}` "
                     f"(parent V={parent_node.value:.3f}, max_turns={ep_turns})"
@@ -2131,7 +1834,7 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                     ),
                     initial_user_prompt=self._build_cont_executor_prompt(parent_node),
                     max_turns=ep_turns,
-                    temperature=0.25,
+                    temperature=float(self.knobs["cont_temperature"]),
                     is_auditor=False,
                 )
                 node = self.evaluate_and_register_mcts_node(

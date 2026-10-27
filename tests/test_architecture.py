@@ -26,7 +26,8 @@ PACKAGE_ROOT = os.path.join(REPO_ROOT, "hae")
 
 # Everything must be reachable from one of these. `hae.cli` is the console
 # entry point; `hae.orchestration.worker` is what a Kubernetes pod runs.
-ENTRY_POINTS = ("hae.cli", "hae.orchestration.worker")
+# `hae.evolution.evolve` is the V15 harness-evolution loop, driven by scripts/v15_evolve.py.
+ENTRY_POINTS = ("hae.cli", "hae.orchestration.worker", "hae.evolution.evolve")
 
 
 def _module_name(path: str) -> str:

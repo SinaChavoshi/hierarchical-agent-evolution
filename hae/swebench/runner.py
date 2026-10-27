@@ -600,6 +600,7 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
                     enable_recon=enable_recon,
                     enable_falsifier=enable_falsifier,
                     enable_cont_refinement=enable_cont_refinement,
+                    knobs=dict(pol_extra.get("v15_knobs") or nested_extra.get("v15_knobs") or {}),
                 )
                 engine_mode = "v13_hierarchical_mcts"
             else:
