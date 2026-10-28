@@ -83,7 +83,7 @@ class GenomeEvaluator:
         ap = b._kubectl(self.context, ["apply", "-f", "-"], input_text=spec, timeout_s=90)
         if ap.returncode != 0:
             return f"kubectl apply failed: {ap.stdout.strip()[-300:]}"
-        wait = b._kubectl(self.context, ["wait", "--for=condition=Ready", f"pod/{pod}", "--timeout=600s"], timeout_s=640)
+        wait = b._kubectl(self.context, ["wait", "--for=condition=Ready", f"pod/{pod}", "--timeout=1200s"], timeout_s=1240)
         if wait.returncode != 0:
             return f"pod not Ready: {wait.stdout.strip()[-300:]}"
         return None
@@ -146,8 +146,20 @@ class GenomeEvaluator:
 
     def _is_infra_failure(self, genome_id: str, instance_id: str, result: TaskResult) -> bool:
         d = os.path.join(self.evals_root, genome_id, instance_id)
-        if os.path.exists(os.path.join(d, "grade.json")) and result.status in ("ok", "timeout"):
+        grade_path = os.path.join(d, "grade.json")
+        if os.path.exists(grade_path) and result.status == "timeout":
             return False
+        if os.path.exists(grade_path) and result.status == "ok":
+            # A grade with no FAIL_TO_PASS results means grading itself failed (e.g. kubectl exec
+            # timeout during the hidden-test run), not that the agent failed.
+            try:
+                grade = json.load(open(grade_path, encoding="utf-8"))
+            except Exception:
+                return True
+            # An empty model patch is a genuine agent failure (graded without running tests).
+            return not grade.get("f2p_total") and not grade.get("note") and int(grade.get("patch_chars") or 0) > 0
+        if result.status == "failed":
+            return True
         if result.status in ("pod_error",) or result.status.startswith("error"):
             return True
         tail = self.log_tail(genome_id, instance_id, n_chars=4000)
