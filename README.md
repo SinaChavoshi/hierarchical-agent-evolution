@@ -1,424 +1,314 @@
 # Hierarchical Agent Evolution (HAE)
 
-HAE is a research codebase for building multi-agent LLM systems that repair and
-build real software, and for scoring them only on what executes. It started as
-an experiment in *evolving* agent organisations ("firms") described by a
-heritable `CompanyGenome`. Over 14 versions it became a hierarchical
-verification harness that runs agents inside sandboxed containers and accepts a
-patch only after deterministic tests and an adversarial reviewer agree.
+HAE is a harness that lets open-weight LLMs fix bugs and build software in real
+repositories. A patch is accepted only after it has been proven to work.
+Everything runs self-hosted on GKE, and the harness itself is now the thing
+being evolved.
 
-All inference runs on self-hosted open-weight MoE models on GKE (vLLM behind an
-`llm-d` gateway). There are no hosted-API calls in the evaluation path.
-
-**Current version: V15 (in progress)** evolves the V14 harness itself, both its
-settings and its source code, and tests the result on held-out tasks
-([design](experiments/v15/README.md)). V14, the hand-designed baseline, has two tiers:
-
-- **Inner engine (`L0-Micro`)**: context-bounded tree search over git
-  checkpoints, used for single bug fixes (`hae/swebench/hierarchical_mcts.py`).
-- **Outer ratchet (`L0-Macro`)**: splits a larger build into milestones and
-  commits each verified milestone to git, so every step works on a small diff
-  (`hae/hierarchical/`).
+- [Overview](#overview)
+- [Lessons learned](#lessons-learned)
+- [Architecture](#architecture)
+- [Roadmap and vision](#roadmap-and-vision)
+- [Repository layout and running](#repository-layout-and-running)
 
 ---
 
-## Current results
+## Overview
 
-All SWE-bench numbers are graded by the official `swebench.harness` containers
-(`FAIL_TO_PASS` and `PASS_TO_PASS` tests). The *Hints* column records
-whether the prompts contained repository- or instance-specific guidance or
-`hints_text` (`--include-hints`). See [Caveats](#caveats).
+### What the harness does
 
-![V14 Zero-Hint Benchmark & 5-Way Component Ablation Study](experiments/v14/assets/v14_ablation_and_verified_benchmark.svg)
+A single agent working in one long conversation tends to fail in predictable
+ways:
+- Its context fills up with grep output and test logs.
+- It commits to the first plausible fix.
+- It "verifies" that fix with a test it wrote itself.
 
-### 1. 5-way component ablation on the 6-task multi-repo slice (`--include-hints` OFF)
+HAE breaks the work into roles, gives each role a fresh, small context, and
+lets work move upward only once it can be checked.
 
-> [!CAUTION]
-> **Contaminated — do not cite.** A later audit found four recon/verifier
-> "Static AST" detectors in `hae/swebench/hierarchical_mcts.py` that inject the
-> gold fix for 4 of these 6 tasks (`pydicom-1255`, `astroid-1417`,
-> `sqlfluff-1517`, `pyvista-4226`). The table is kept for the record only. See
-> the [V14 retrospective](experiments/v14/v14_retrospective.md); V15 removes
-> the detectors.
-
-Removing one layer at a time on `Beam-1.0-501B-A23B-NVFP4` (`+ DFlash2`) with
-both prompt hints and SWE-bench `hints_text` disabled (`30` live pod runs):
-
-| Policy / Ablation | Architecture enabled | Hints | Resolved | F2P tests | Moves | Tokens | Time |
-| :--- | :--- | :---: | :---: | :---: | ---: | ---: | ---: |
-| **V14 full (`v13_hier_mcts`)** | **Recon + L0 (`GEN`+`CONT`) + L2 + Falsifier** | **none** | **6 / 6 (100%)** | **57 / 57** | **23.3** | **148k** | **279 s** |
-| `v14_no_falsifier` | Ablate `L1-B` adversarial falsifier | none | 4 / 6 (66.7%) | 55 / 57 | 22.0 | 157k | 364 s |
-| `v14_no_cont` | Ablate `CONT` delta-refinement (`GEN`-only) | none | 4 / 6 (66.7%) | 55 / 57 | 26.0 | 158k | 368 s |
-| `v14_no_recon` | Ablate `L1-A` reconnaissance | none | 2 / 6 (33.3%) | 29 / 57 | 31.7 | 170k | 446 s |
-| `v12_agentic` (ReAct) | Single-layer ReAct baseline (no hierarchy) | none | 0 / 6 (0.0%) | 14 / 57 | 25.5 | 134k | 311 s |
-| *Prior V13 (`Beam-501B`)* | *Full hierarchy (with `hints_text` & repo hints)* | *specific* | *6 / 6 (100%)* | *57 / 57* | *22.3* | *150k* | *306 s* |
-| *Prior V13 (`Qwen3.8-180B`)* | *Full hierarchy (with `hints_text` & repo hints)* | *specific* | *6 / 6 (100%)* | *57 / 57* | *33.8* | *334k* | *1,011 s* |
-| *Prior V12 ReAct (`Beam-501B`)* | *Single-layer ReAct (with `hints_text`)* | *light* | *2 / 6 (33.3%)* | *29 / 57* | *27.3* | *162k* | *331 s* |
-| *Prior V12 ReAct (`Qwen3.8-180B`)* | *Single-layer ReAct (with `hints_text`)* | *light* | *2 / 6 (33.3%)* | *29 / 57* | *30.0* | *273k* | *1,177 s* |
-
-<sub>Moves, tokens and time are per-instance means. All 4 hierarchical arms had
-`214 / 214` `PASS_TO_PASS` (`0` regressions); `v12_agentic` had `213 / 214`.</sub>
-
-Every architectural layer earns its cost and reduces wall-clock latency:
-- Removing **L1-B Falsifier** or **CONT refinement** drops resolution by
-  `-33.3 pp` (`6/6 → 4/6`, failing `marshmallow-1359` and `pydicom-1255`).
-- Removing **L1-A Recon** drops resolution by `-66.7 pp` (`6/6 → 2/6`) and
-  increases mean wall-clock time by `+60.0%` (`279s → 446s`) as executors burn
-  turns grepping inside `/testbed`.
-- Without `hints_text`, the single-layer ReAct baseline (`v12_agentic`) drops to
-  `0 / 6` (`14 / 57` F2P), while **V14** solves **`6 / 6` (`57 / 57` F2P)** in
-  `279s` (`3.6×` faster than `Qwen3.8-180B`).
-
-Report: [`experiments/v14/v14_verified_and_ablation_report.md`](experiments/v14/v14_verified_and_ablation_report.md) ·
-ablation data: [`results/swebench/v14_component_ablation_2026-10-21/`](results/swebench/v14_component_ablation_2026-10-21/README.md) ·
-model comparison: [`experiments/v13/beam_vs_qwen38_evaluation_report.md`](experiments/v13/beam_vs_qwen38_evaluation_report.md)
-
-### 2. Unseen SWE-bench Verified & combined zero-hint evaluation (`--include-hints` OFF)
-
-Frozen V14 (`v13_hier_mcts`) and V12 ReAct (`v12_agentic`) were evaluated
-head-to-head on **28 valid container-verified instances** from
-`princeton-nlp/SWE-bench_Verified` across **10 repositories** (`astropy`,
-`matplotlib`, `seaborn`, `flask`, `requests`, `xarray`, `pylint`, `sphinx`,
-`scikit-learn`, `pytest`), disjoint from the 50-task dev pool and with
-`--include-hints` OFF (`56` unseen pod runs; `86` total zero-hint `SWE-bench`
-pod runs including the `30` ablation runs):
-
-| Policy | Dev slice (`n = 6`, zero-hint) | Unseen Verified (`n = 28`) | **Combined zero-hint (`n = 34`)** | Combined w/ V12 Dev hints (`n = 34`) | Valid F2P (`n = 34`) | Total P2P (`n = 34`) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **V14 (`v13_hier_mcts`)** | **6 / 6 (100%)** | **21 / 28 (75.0%)** | **27 / 34 (79.4%)** | **27 / 34 (79.4%)** | **93 / 102 (91.2%)** | **8,558 / 8,558 (100%)** |
-| V12 ReAct (`v12_agentic`) | 0 / 6 (0.0%) | 19 / 28 (67.9%) | 19 / 34 (55.9%) | 21 / 34 (61.8%) | 47 / 102 (46.1%) | 8,557 / 8,558 (99.99%) |
-| **Delta (`V14 − V12`)** | **+100.0 pp** | **+7.1 pp** | **+23.5 pp** | **+17.6 pp** | **+46 F2P (+45.1 pp)** | **0 regressions** |
-
-- **Zero discordant losses (`8 : 0` strict zero-hint, `6 : 0` vs. hint-assisted
-  Dev)**: Across all `34` tasks (`86` pod runs), `V14` resolves every task that
-  `V12` resolves (`19` both solved, `7` both unresolved) plus `8` discordant
-  wins (`6` on Dev + `pydata__xarray-2905` and `pylint-dev__pylint-6386` on
-  Unseen `Verified`) and `0` discordant losses (**exact two-sided binomial sign
-  test $p = 0.00781 < 0.01$** under strict zero-hint; **$p = 0.03125 < 0.05$**
-  even when crediting `V12`'s `2/6` hint-assisted Dev score).
-  **Caveat:** `6` of the `8` wins are on the dev slice the harness was debugged
-  on. On the `28` unseen tasks alone the split is `2 : 0` (`p = 0.5`, not
-  significant), and V14 costs `1.6×` the tokens and `1.5×` the wall time of
-  V12 there. See the [V14 retrospective](experiments/v14/v14_retrospective.md).
-  **A second audit found prompt examples targeting specific unseen test tasks**
-  (e.g. `pylint-6386`, `pylint-8898`, `xarray-6744`, `sphinx-9229`), so these
-  unseen numbers are not clean either; V15 re-runs a cleaned harness on them.
-- **Pre-existing benchmark defect (`pylint-dev__pylint-4604`)**: One additional
-  raw instance (`pylint-4604`) has an upstream `SWE-bench` `test_patch` defect
-  (`from pylint.constants import IS_PYPY` not mentioned in `problem_statement`,
-  causing `ImportError` during `pytest` collection (`0 / 21` `MISSING`) in both
-  policies even though `V14` synthesized the `astroid.Attribute` fix in
-  `pylint/checkers/variables.py`). Including `pylint-4604` (`n = 29` unseen /
-  `n = 35` total) leaves all discordant counts (`8 : 0` and `6 : 0`) and exact
-  $p$-values ($p = 0.00781$ and $p = 0.03125$) completely unchanged.
-
-Report: [`results/swebench/verified_unseen_eval_2026-10-21/`](results/swebench/verified_unseen_eval_2026-10-21/README.md)
-
-### 3. Milestone ratchet builds (`L0-Macro` + `GitCommitRatchet`)
-
-#### A. Planner-driven `MiniSQL` engine + 3-tier controlled baseline comparison (`2,345` LoC)
-
-Passing only a high-level system specification (`dag=None` in
-[`scripts/run_planner_driven_ratchet_eval.py`](scripts/run_planner_driven_ratchet_eval.py)),
-`L0MacroPlanner` on live `Beam-1.0-501B-A23B-NVFP4` automatically decomposed an
-in-memory relational SQL engine (`minisql`: DDL, DML, recursive-descent parser,
-3-valued `NULL` logic, `INNER`/`LEFT`/`CROSS JOIN`, `GROUP BY`/`HAVING`,
-aggregates, `ORDER BY`/`LIMIT`/`OFFSET`, and ACID transactions/savepoints) into
-a 5-milestone topological DAG (`m1`..`m5`). Each completed build is graded
-against a **strictly held-out external test suite & `sqlite3` differential
-oracle** (`test_minisql_external_oracle.py`, `15` test functions / `26`
-differential & unit checks stored outside `minisql_repo/` during the build).
-
-To isolate the contribution of `L0-Macro` topological decomposition + Git commit
-ratcheting from `L0-Micro` AB-MCTS alone, we evaluated three controlled tiers on
-the exact same `MINISQL_SYSTEM_SPEC` and held-out external oracle:
-
-| Architecture Tier | CLI `--mode` | Certified Milestones | Final Repo LoC | Max Single-Step Diff | Total Moves | Total Tokens | Wall-Clock Time | Internal Tests | **Held-Out External `sqlite3` Oracle (`15` tests / `26` checks)** |
-| :--- | :--- | :---: | ---: | ---: | ---: | ---: | ---: | :---: | :---: |
-| **1. Flat ReAct Baseline (`v12_agentic`)** | `flat_react_baseline` | `0 / 1` | `348` | `+380` lines | `33` | `377k` | `132 s` | `0` (`ImportError`) | **`0 / 15` (`0.0%`)** |
-| **2. Single-Milestone `L0-Micro` AB-MCTS** | `single_milestone_baseline` | `1 / 1` | `1,616` | `+1,651` lines | `23` | `365k` | `199 s` | `1` passed | **`8 / 15` (`53.3%`)** |
-| **3. `V14` `L0-Macro` Planner + Recovery** | `planner_ratchet` | **`7 / 7`** | **`2,345`** | **`+618` lines** | **`170`** | **`1.80M`** | **`739 s`** | **`34` passed (`+5` falsifiers)** | **`9 / 15` after the planned DAG → `15 / 15` (`100.0%`) after 2 recovery milestones** |
-
-<sub>An earlier draft also listed a "5-milestone ratchet, `14 / 15` zero-shot"
-row. Its artifacts were never committed, so it has been removed. Compute is not
-matched across tiers (ratchet `1.80M` tokens vs. `0.37M` for the baselines); see
-the [V14 retrospective](experiments/v14/v14_retrospective.md).</sub>
-
-- **Why monolithic `L0-Micro` caps out at `8 / 15` (`53.3%`)**: Compressing all
-  6 `minisql` modules into a single `1,651`-line diff exceeds the single-episode
-  verification horizon of `L1-B` (`6` turns), leaving an unimported symbol
-  (`NameError: name 'Token' is not defined` in `parse_statements()` during
-  `execute_script()`) and a trailing-comment bug in `Database.execute()`.
-- **Why `L0-Macro` reaches `15 / 15` (`100%`)**: Every milestone diff is
-  bounded (`+44` to `+618` lines), so the reviewer always audits a small delta,
-  and `34` subsystem unit tests plus `5` falsification suites are ratcheted
-  across Git commits. The planned 5-milestone DAG scored `9 / 15` on the
-  held-out oracle; two automatically planned recovery milestones raised it to
-  **`15 / 15`** (`+46.7 pp` over monolithic `L0-Micro`, `+100.0 pp` over flat
-  ReAct, at about `5×` their token budget):
-
-| Milestone (Planned by `L0MacroPlanner`) | Moves | Tokens | Time | Active Delta (`< 850`) | Repo size | Cumulative internal tests | Held-out `sqlite3` oracle | Commit |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: | :---: | :--- |
-| `m1_lexer_and_ast` | 19 | 125k | 61 s | +388 lines | 395 LoC | 5 passed | — | `e02bb6b51018` |
-| `m2_sql_parser` | 29 | 285k | 130 s | +618 lines | 1,013 LoC | 11 passed | — | `3976fdcae0da` |
-| `m3_storage_and_expr` | 15 | 144k | 89 s | +530 lines | 1,543 LoC | 16 passed | — | `309e63fa6d13` |
-| `m4_query_execution` | 36 | 458k | 169 s | +388 lines | 1,930 LoC | 21 passed | — | `f996bfd24287` |
-| `m5_transactions_and_facade` | 14 | 131k | 72 s | +267 lines | 2,162 LoC | 26 passed | 9 / 15 (initial) | `52bc3bc2573f` |
-| `m6_external_recovery_1` *(auto-recovery)* | 20 | 208k | 70 s | +44 lines | 2,203 LoC | 30 passed | 13 / 15 | `dcaffdd1a88f` |
-| `m7_external_recovery_2` *(auto-recovery)* | 37 | 445k | 148 s | +143 lines | 2,345 LoC | **34 passed** | **15 / 15 (100%)** | `07740fb54a92` |
-| **Total (`1` planner + `170` micro calls)** | **170** | **1.80M** | **739 s** | max +618 | **2,345 LoC** | **34 / 34** | **15 / 15 (100%)** | `7 / 7` tags |
-
-Report: [`results/ratchet/planner_driven_minisql_eval_2026-10-23/`](results/ratchet/planner_driven_minisql_eval_2026-10-23/README.md) ·
-monolithic baseline: [`results/ratchet/monolithic_minisql_baseline_2026-10-27/`](results/ratchet/monolithic_minisql_baseline_2026-10-27/summary.json) ·
-flat ReAct baseline: [`results/ratchet/flat_react_minisql_baseline_2026-10-27/`](results/ratchet/flat_react_minisql_baseline_2026-10-27/summary.json)
-
-#### B. Hand-specified 4-milestone `MiniLang` build (`1,139` LoC)
-
-An earlier 4-milestone language toolchain (`MiniLang`: lexer → parser →
-tree-walking evaluator → bytecode compiler and VM) validated the basic commit
-ratchet mechanism (`49` moves, `246s`, `1,139` LoC, `25 / 25` internal tests).
-Report: [`results/ratchet/beam_macro_ratchet_eval_2026-10-21/`](results/ratchet/beam_macro_ratchet_eval_2026-10-21/README.md)
-
-### Caveats
-
-- **The earlier V12 and V13 SWE-bench dev numbers were produced with
-  instance-specific prompt hints.** The V13 prompts grew from 3 repo-specific
-  strings (the 15/30 and 22/30 runs) to 25 in the 30/30 run (`e20a400`). Several
-  of those 25 describe the gold fix for specific failing instances, such as the
-  file list and changes for `pydicom-1255` and the `parse_noqa` logic for
-  `sqlfluff-891`. V14 removed all of them:
-  `grep -ciE "sqlfluff|pydicom|pyvista|marshmallow|astroid" hae/swebench/*.py`
-  returns 0. **Treat the earlier hinted V12/V13 runs as development runs, not
-  benchmark scores.**
-- **The 6-task ablation slice comes from the dev pool; the 28-task Verified
-  slice is unseen.** Some of V14's generic AST checks (such as range validation
-  across sibling property setters) were developed while debugging the 6-task dev
-  slice. The 28-task `SWE-bench Verified` evaluation was run afterwards on
-  unseen instances across 10 repositories with `--include-hints` OFF
-  (`hints_included: false`).
-- **Sample size and seeds.** The zero-hint evaluations cover 34 valid tasks (`6`
-  dev + `28` unseen `Verified`, `86` pod runs total) at a single seed per arm,
-  establishing statistically significant paired dominance ($p = 0.00781$ strict
-  zero-hint; $p = 0.03125$ with V12 Dev hints), rather than the full 500-task
-  `SWE-bench Verified` or `SWE-bench Pro` public split.
-- **Ratchet scale.** The planner-driven `MiniSQL` build (`2,345` LoC, `7`
-  ratcheted commits, `15 / 15` held-out `sqlite3` differential oracle tests vs.
-  `8 / 15` for single-milestone `L0-Micro` and `0 / 15` for flat ReAct)
-  demonstrates automatic `L0MacroPlanner` decomposition and external-oracle
-  recovery at the ~2.3k LoC scale; scaling to 10k+ LoC multi-package builds
-  remains future work.
-
-The [Roadmap](#roadmap) lists the next steps to scale these results.
-
----
-
-## How it works
-
-![V14 two-tier architecture](experiments/v14/assets/v14_macro_ratchet_architecture.svg)
-
-### Inner engine: context-bounded hierarchical search (`L0-Micro`)
-
-Each layer runs in its own short-lived context and passes upward only
-verifiable artifacts: a brief, a diff or a critique. Raw transcripts are
-discarded at every boundary, so no context accumulates across the search.
-
-| Layer | Role | Turns | Returns |
-| :--- | :--- | :---: | :--- |
-| **L1-A Recon** | Locate the fault; write a failing repro script | 0–6 | Brief (< 800 tokens) |
-| **L0 Controller** | Write the contract; pick `GEN` or `CONT` | — | Next move |
-| **L2 Executors** | Edit code in `/testbed` with ReAct tools | 6–18 | Candidate `git diff` |
-| **L1-B Verifier** | Run tests, then adversarial review | 4–6 | Score V and critique |
-
-- **L0 Controller.** It seeds three causal branches: local consumer, upstream
-  producer and codebase symmetry. It chooses each next move with Thompson
-  sampling over Beta posteriors and keeps only a small ledger (under 4k tokens).
-- **L2 Executors.** `GEN` starts a fresh branch from clean `HEAD`. `CONT`
-  refines a near-miss checkpoint, with its diff and the failing test
-  pre-loaded.
-- **L1-B Verifier.** Stage A is deterministic: compile, repro script and
-  target tests. Stage B is a read-only falsifier agent that audits the diff
-  against the contract and adds edge-case tests to a shared suite.
-
-A patch is accepted only when both stages pass (V = 1.0). A failure or
-critique updates the controller's posteriors. Near-misses get refined, and
-stalled branches lose probability mass to the other branches.
-
-Spec: [`experiments/v13/v13_hierarchical_agentic_ab_mcts_architecture.md`](experiments/v13/v13_hierarchical_agentic_ab_mcts_architecture.md)
-
-### Outer ratchet: milestones as git commits (`L0-Macro`)
-
-A larger build is expressed as a DAG of milestones. Each milestone has target
-files, an `acceptance_cmd` and a diff budget (default 500 lines).
-
-1. The inner engine solves milestone *k* starting from `HEAD_{k-1}`.
-2. The milestone must pass its own acceptance command, every earlier
-   milestone's acceptance command, and every archived falsification suite.
-3. `GitCommitRatchet` commits the result, tags it `hae-milestone-<id>`, and
-   saves `.hae/ratchet_state.json`, so a crashed run can `--resume`.
-
-Because finished work is committed, `git diff HEAD` only ever contains the
-current milestone. Recon and the falsifier therefore see a bounded diff
-however large the repository gets. Verification is pluggable through
-`WorkspaceVerifierPlugin`, which ships with pytest and shell-command verifiers
-(for `cargo test`, `go test`, `npm test` and similar).
-
-Spec: [`experiments/v14/v14_generalized_macro_ratchet_architecture.md`](experiments/v14/v14_generalized_macro_ratchet_architecture.md)
-
-### Serving
-
-| | Beam-501B (primary) | Qwen3.8-180B |
+| Role | What it does | What it hands back |
 | :--- | :--- | :--- |
-| Layout | 3 replicas × TP=4 (Ray) | 6 replicas × TP=2 + EPLB |
-| Decoding | DFlash2 speculative (8 tokens) | standard |
-| Manifest | [beam-501b-nvfp4-serving.yaml](k8s/beam-501b-nvfp4-serving.yaml) | [qwen38-…-eplb-serving.yaml](k8s/qwen38-flash-next-180b-eplb-serving.yaml) |
+| **Recon (L1-A)** | Finds where the fault lives and writes a script that reproduces it | A short brief (< 800 tokens) and a failing repro |
+| **Controller (L0)** | Writes a contract (invariants, anti-cheat rules) and decides the next move: start a new hypothesis (`GEN`) or refine a near-miss (`CONT`) | A dispatch |
+| **Executors (L2)** | Edit code in the task's sandbox with ReAct tools, each starting from a clean git checkpoint | A candidate `git diff` |
+| **Verifier (L1-B)** | First runs deterministic checks (compile, repro, target tests). Then a read-only *falsifier* agent tries to break the patch and adds edge-case tests | A score V ∈ [0, 1] and a critique |
 
-Both run on 6× `g4-standard-96` nodes (12× RTX PRO 6000 Blackwell, 96 GB
-each).
+The controller treats each git checkpoint as a node in a search tree. It uses
+Thompson sampling over Beta posteriors (AB-MCTS) to decide where to spend the
+next attempt. A patch is accepted only at V = 1.0.
 
-Both run behind the `llm-d` gateway (prefix-affinity routing, request
-coalescing). Setup guide: [`k8s/README.md`](k8s/README.md)
+For work too big for one diff, an outer **milestone ratchet** (L0-Macro) splits
+a spec into a DAG of milestones. Each certified milestone is committed and
+tagged, and earlier milestones' tests re-run as a regression guard. Every step
+therefore works on a small diff, however large the repository grows.
+
+### Why it works
+
+- **Small contexts stay sharp.** Raw transcripts are thrown away at every
+  layer boundary. Only artifacts that can be checked move up, so no agent
+  reasons over a polluted context.
+- **Authors don't grade their own work.** The falsifier never wrote the patch,
+  and the deterministic gate can't be argued with. This is where single agents
+  most often fool themselves.
+- **Search over checkpoints instead of restarts.** A near-miss gets refined
+  from where it stood, and a dead end loses probability mass. A single agent
+  would instead restart or dig deeper into a wrong idea.
+- **Bounded diffs keep review honest.** The ratchet keeps each step small
+  enough for the verifier to actually read.
+
+### What the evidence shows so far
+
+| Finding | Evidence | Status |
+| :--- | :--- | :--- |
+| Small steps beat one big attempt | MiniSQL engine graded by a held-out `sqlite3` oracle: milestone ratchet **15 / 15**, one-shot hierarchical **8 / 15**, flat ReAct **0 / 15** | Holds. Compute not matched (1.80M vs 0.37M tokens) |
+| External oracles catch what self-written tests miss | The ratchet's own suites were green, yet the held-out oracle scored 9 / 15 until recovery milestones fixed the rest | Holds |
+| Hierarchy vs flat ReAct on SWE-bench | 21 / 28 vs 19 / 28 on unseen Verified tasks, with no task lost | **Not clean**: prompts contained test-task examples. V15 re-runs a cleaned harness |
+
+The V14 retrospective explains why the SWE-bench numbers can't be cited yet:
+[`experiments/v14/v14_retrospective.md`](experiments/v14/v14_retrospective.md).
+V15 is the first run designed to produce a clean, held-out answer
+([design](experiments/v15/README.md)).
 
 ---
 
-## Project history
+## Lessons learned
 
-HAE went through three eras. The full phase-by-phase table is in
+Fifteen versions fall into four eras. Per-version details are in
 [`experiments/README.md`](experiments/README.md).
 
-| Era | Versions | Benchmark | Key finding |
-| :--- | :---: | :--- | :--- |
-| **Execution-grounded evolution** | V1–V7 | Internal 7- and 50-test tasks | LLM judges are gameable; held-out tests work |
-| **SWE-bench, single-layer agents** | V8–V12 | 30-task dev cohort | ReAct tool loops: 4 / 30 → 14 / 30 |
-| **Hierarchical verification** | V13–V14 | 6-task ablation, 28-task Verified, MiniSQL, MiniLang | Hierarchy significantly beats ReAct on zero-hint resolution (27 / 34 vs 19 / 34, $p = 0.0078$) and held-out `MiniSQL` oracle (15 / 15 vs 8 / 15 vs 0 / 15) |
+### Era 1 · Evolving agent firms (V1–V7)
 
-Since V8, each SWE-bench version has been a single hand-designed genome
-(`configs/genomes/`). Population-level evolution, breeding and selection have
-not been applied to the V13/V14 harness yet.
+*Populations of multi-agent "firms" bred and selected on small coding tasks.*
+
+- **An LLM judge is a target, not a measurement.** Judged fitness climbed
+  from 25 to 97 while real execution didn't improve at all (correlation
+  +0.045). Everything since has been graded by running code.
+- **Honest fitness is necessary but not enough.** Held-out unit tests fixed
+  the scoring. But the tasks were soon solved by every firm (30 / 30), and
+  once everyone passes, selection has nothing to choose between.
+- **Isolation has to be tested, not assumed.** In V3, child firms quietly
+  inherited their parents' passing code through a workspace bug.
+  V4's cross-firm response cache made different firms receive identical
+  answers. Both made "independent" samples not independent.
+- **Constrain the output format and you save tokens.** Grammar-constrained
+  JSON packets cut output tokens per call by 92%.
+- **Models can't tell you how confident they should be.** LLM-stated priors
+  on hypotheses were uncalibrated. A value head learned from outcomes beat the
+  base rate.
+
+### Era 2 · Real GitHub issues, single-layer agents (V8–V12)
+
+*The same ideas on a 30-task SWE-bench dev cohort.*
+
+- **Real repositories need exploration, not plans.** Agents that exchanged
+  structured JSON plans stalled at 4–6 / 30. Giving them interactive tools
+  (view, bash, edit, run) more than doubled that to 14 / 30.
+- **A better search algorithm can't rescue a weak step.** Swapping PUCT for
+  AB-MCTS barely moved results until the individual steps got better.
+- **Agents believe their own tests.** In V8, 4 of 7 "self-verified" fixes
+  failed the real tests. Self-verification needs an independent check.
+
+### Era 3 · Hierarchical verification (V13–V14)
+
+*Context-bounded layers, a falsifier, search over git checkpoints, and the
+milestone ratchet.*
+
+- **Pass artifacts, not transcripts.** Fresh small contexts with a brief, a
+  diff or a critique outperformed long single conversations.
+- **An outside oracle is worth more than more internal tests.** On MiniSQL the
+  internal suites passed while the held-out `sqlite3` oracle failed 6 of 15
+  checks.
+- **Bounded steps beat one big attempt, at a price.** The ratchet reached
+  15 / 15 where a single 1,651-line attempt reached 8 / 15, but it used about
+  5× the tokens. On SWE-bench the hierarchy cost 1.6× the tokens and 1.5× the
+  time of flat ReAct.
+- **Benchmark leakage is easy to create and hard to see.** It crept in three
+  times:
+  - First, as repo-specific hints (3 strings in prompts grew to 25).
+  - Then as "generic" detectors that injected the gold fix.
+  - Finally, as prompt examples that described specific test tasks.
+  
+  A grep for repo names didn't catch them. The lesson became code: an
+  automated leakage gate now rejects any change that introduces identifiers
+  from gold or hidden-test patches.
+
+### Era 4 · Evolving the harness (V15, in progress)
+
+*The V14 harness becomes the genome: 18 knobs plus a patch against its source.*
+
+- **Fitness has to discriminate.** The first stage-1 task subset was useless:
+  all 8 genomes solved the same task and failed the other five, so ranking
+  came down to token cost. It was replaced with near-miss tasks and partial
+  credit, before any selection happened.
+- **Keep the grader out of the search space.** Genomes can change prompts,
+  search and verification, but never the grader, the datasets or the
+  evaluator.
+- **Name infrastructure accurately.** Until Oct 27 the "llm-d gateway" was a
+  custom Python proxy. V15 now runs on the real llm-d router. The old proxy's
+  rewrites were audited as no-ops for SWE-bench, so the switch changes speed,
+  not agent behavior.
 
 ---
 
-## Roadmap
+## Architecture
 
-The aim is to turn V14 from a slice-validated harness into a full-scale benchmark
-and evolutionary result. The steps are in priority order.
+![HAE V15 system architecture: evolution loop, harness and GKE serving with llm-d](experiments/v15/assets/v15_system_architecture.svg)
 
-| # | Step | Status | Next milestone |
-| :-: | :--- | :--- | :--- |
-| 1 | **Component ablations** | **Done (`n = 6`, 30 runs)** | Extend ablation to unseen `Verified` tasks |
-| 2 | **Unseen benchmark (`--include-hints` OFF)** | **Done (`n = 28` Verified / `n = 34` total, `27/34` vs `19/34`, $p = 0.0078$)** | Scale to full 500-task `SWE-bench Verified` / `SWE-bench Pro` public split + external agent baseline |
-| 3 | **Planner-driven build + controlled baselines** | **Done (`2,345` LoC `MiniSQL`, `15/15` vs `8/15` monolithic vs `0/15` ReAct)** | Add second long-horizon target & scale to ≥ 10k LoC multi-package build |
-| 4 | **Evolve the harness (V15)** | **In progress** ([V15 design](experiments/v15/README.md)) | An evolved harness (knobs + code) beats hand-designed V14 and random search on held-out tasks |
+The system has three layers that talk to each other:
 
-**1. Scale the unseen benchmark evaluation & add an external agent baseline.**
-- Expand the zero-hint (`--include-hints` OFF) evaluation from the 34-task
-  (`6` dev + `28` unseen `SWE-bench Verified`, `27/34 = 79.4%` vs `19/34 = 55.9%`)
-  cohort to the full `SWE-bench Verified` and `SWE-bench Pro` (public) splits,
-  and run an external open-source agent harness (`mini-SWE-agent` / `OpenHands`)
-  under matched token budgets on the same `Beam-1.0-501B-A23B-NVFP4` endpoint.
-- Address the remaining failure modes surfaced on unseen `Verified`: (a) guard
-  interaction between newly added axis/limit blocks and adjacent override blocks
-  (`seaborn-3069`, `1/2` F2P passed), (b) disambiguating conflicting issue-text
-  conjectures vs. existing test conventions when `hints_text` is disabled
-  (`seaborn-3187`, where both gold files were found), and (c) tracing indirect
-  state mutations across shared-axis callbacks (`matplotlib-26208`, `xarray-4687`).
+1. **Evolution loop (V15).** This runs on a coordinator.
+   - A population of 8 harness genomes is bred by code mutation (a meta-model
+     proposes edits to the harness source), knob mutation and crossover.
+   - Every child must pass the leakage gate, compile, and pass the harness
+     unit tests before it costs any GPU time.
+   - Children are evaluated by successive halving: 6 stage-1 tasks for all,
+     21 training tasks for the top 3.
+   - Fitness is resolve rate, plus 0.25 × partial `FAIL_TO_PASS` credit,
+     minus a small token-cost term.
+   - 10 validation tasks pick the final genome. 28 unseen SWE-bench Verified
+     tasks are run once, at the end, against random search, the hand-designed
+     seed and flat ReAct.
+2. **Harness under test.** Each genome runs from its own git worktree with its
+   own knobs. The harness drives tools and tests inside a SWE-bench sandbox pod
+   through `kubectl exec`. A fixed grader that genomes can't modify runs the
+   `FAIL_TO_PASS` and `PASS_TO_PASS` tests and writes `grade.json`.
+3. **Serving on GKE.** Every LLM call goes through the llm-d router, both from
+   the harness layers and from the meta-model that writes code mutations.
+   - The router fronts three replicas of **Beam-1.0-501B-A23B (NVFP4)**.
+   - Each replica is vLLM with tensor parallelism 4 across two
+     `g4-standard-96` nodes (12× RTX PRO 6000 Blackwell in total).
+   - Each replica has prefix caching and DFlash2 speculative decoding.
 
-**2. Scale the ratchet to a second target and 10k+ LoC.**
-- `L0MacroPlanner` + `GitCommitRatchet` has now been validated on `MiniSQL`
-  (`2,345` LoC, `15/15 = 100%` held-out `sqlite3` oracle vs. `8/15 = 53.3%` for
-  single-milestone `L0-Micro` AB-MCTS and `0/15 = 0.0%` for flat ReAct).
-- Add a second held-out external-oracle synthesis target (e.g., a bytecode
-  compiler or HTTP/WSGI server checked against a reference implementation) and
-  scale to 10k+ LoC multi-package builds.
+### How the harness uses llm-d
 
-**3. Bring evolution back.**
-- Treat V14's knobs as genes: turn budgets, branch types, falsifier policy,
-  contract templates and diff thresholds.
-- Evolve a population on a training split of tasks and select on a validation
-  split.
-- Report the result against hand-designed V14 on held-out tasks. An evolved
-  harness that beats a hand-built one for open models is the result this
-  project is uniquely placed to show.
+The harness and llm-d fit together because of how the harness talks to the
+model. Every layer starts a *fresh* context, but those contexts share long
+prefixes: the system prompt, the contract, the recon brief and the file views.
+Evolution then runs many genome × task jobs in parallel.
+
+| llm-d component | Role in HAE |
+| :--- | :--- |
+| **Envoy proxy** (`:8000`) | One OpenAI-compatible endpoint for every agent layer and for the meta-model |
+| **Endpoint Picker (EPP)** | Scores each replica per request, using metrics scraped from each vLLM `/metrics` |
+| ↳ prefix-cache scorer (weight 3) | Keeps an episode's calls on the replica that already holds their prefix in KV cache |
+| ↳ queue scorer (2) and KV-cache-use scorer (2) | Spread parallel evolution workers across replicas without overloading one |
+| **InferencePool** | Points at the Ray head of each TP=4 replica. Set to fail open so a scheduler problem doesn't stall a run |
+
+In a routing check, requests sharing a long prefix all landed on one replica.
+The first request took 1.4–2.2 s and follow-ups about 0.25 s. Setup and
+values: [`k8s/llm-d/`](k8s/llm-d/README.md). Cluster setup:
+[`k8s/README.md`](k8s/README.md).
+
+Deeper specs:
+- Inner engine: [`experiments/v13/v13_hierarchical_agentic_ab_mcts_architecture.md`](experiments/v13/v13_hierarchical_agentic_ab_mcts_architecture.md)
+- Milestone ratchet: [`experiments/v14/v14_generalized_macro_ratchet_architecture.md`](experiments/v14/v14_generalized_macro_ratchet_architecture.md)
+- Evolution: [`experiments/v15/README.md`](experiments/v15/README.md)
 
 ---
 
-## Repository layout
+## Roadmap and vision
+
+**Vision.** We want a self-hosted engineering harness whose design is
+*discovered* rather than hand-written. It should be evolved under fitness that
+only rewards code that runs, protected against benchmark leakage by
+construction, and able to scale from a one-line bug fix to a multi-week build
+by ratcheting small, verified steps.
+
+| Horizon | Goal | Done when |
+| :--- | :--- | :--- |
+| **Now: V15** | Show that evolution beats hand design | The evolved harness beats both random search and the hand-designed seed on the 28 held-out test tasks |
+| **Next** | Comparable, trustworthy numbers | SWE-bench Pro (public), ≥ 3 seeds, official `swebench` grading, external baselines at matched budget |
+| **Then** | Long-horizon builds | ≥ 10k LoC on a second target with an external oracle, with ratchet settings evolved too |
+| **Serving** | Make the harness and llm-d co-designed | Prefix hit rate and latency per layer measured and optimized |
+
+**Now: finish V15.**
+- Complete the evolution and equal-budget random-search runs.
+- Select the winning genome on validation, then run the 28 test tasks once.
+- Re-grade the final predictions with the official `swebench eval` harness.
+  Today's grader is approximate.
+
+**Next: comparable numbers.**
+- Run the selected harness on SWE-bench Pro (public) with at least 3 seeds.
+- Compare against mini-SWE-agent and OpenHands on the same Beam endpoint, at
+  matched token budgets.
+- Run the leakage gate on *every* prompt or harness change, not only on
+  evolved patches.
+
+**Then: long-horizon builds.**
+- Add a second greenfield target with an external oracle, such as an
+  interpreter checked against a reference implementation, and scale to 10k+
+  LoC.
+- Make the ratchet's settings evolvable too: milestone size, diff caps,
+  planner prompts and recovery policy.
+
+**Serving: co-design with llm-d.**
+- Measure prefix-cache hit rate and latency per harness layer.
+- Order prompts so stable content comes first, and consider making that
+  layout an evolvable gene.
+- Calibrate llm-d's prefix-cache-affinity filter for Beam on this hardware.
+  It's currently off because its saturation threshold is uncalibrated.
+- Evaluate prefill/decode disaggregation for the long-prefix, short-output
+  calls the falsifier and recon make.
+
+---
+
+## Repository layout and running
 
 ```text
 hae/
-  hierarchical/   L0-Macro milestone ratchet (milestone_ratchet.py) and verifier plugins (verifier_plugin.py)
-  swebench/       L0-Micro hierarchical AB-MCTS (hierarchical_mcts.py), V12 ReAct engine (agentic.py), executor, runner
-  epistemic/      V6–V11 epistemic ledger, gatekeeper, PUCT and packet-level AB-MCTS, V7 value heads
-  genome/         CompanyGenome schema, mutation, crossover, role seeds
-  runtime/        firm runner, workspaces, code overlays
-  evaluation/     benchmarks, execution harness, fitness
-  orchestration/  tournament engine, GKE worker, breeder
-  infra/          LLM providers (vLLM, Vertex), config, preflight, telemetry
-  task/           task specs, budgets, verifiers
-  cli.py          entry point
-configs/          per-generation populations, SWE-bench genomes (genomes/), task definitions
-k8s/              GKE cluster setup and serving / job manifests
-scripts/          SWE-bench batch evaluator, ratchet eval, harvesters, summaries
-experiments/      per-version design notes and evaluation reports
+  evolution/      V15: harness genome, mutation (code + knobs), leakage gate, evaluator, evolution loop
+  swebench/       L0-Micro hierarchical AB-MCTS (hierarchical_mcts.py), knobs (harness_knobs.py), ReAct engine, runner
+  hierarchical/   L0-Macro milestone ratchet and verifier plugins
+  epistemic/      Era 1–2 epistemic search, gatekeeper, value heads
+  genome/ runtime/ evaluation/ orchestration/   Era 1 firm evolution
+  infra/          LLM client (vLLM / OpenAI API), config, telemetry
+configs/genomes/  V8–V15 harness genomes (V15 seed: v15_seed_harness_firm_0.json)
+data/swebench/    50-task dev pool and the V15 train / validation / test splits
+k8s/              GKE serving (Beam-501B, Qwen3.8) and the llm-d router (k8s/llm-d/)
+scripts/          SWE-bench batch runner, grader, V15 evolution CLI, ratchet evals
+experiments/      per-version design notes, reports and retrospectives
 results/          harvested runs: patches, grade.json, records, summaries
-data/swebench/    50-instance dev pool manifest (disjoint from SWE-bench Verified)
 tests/            stdlib unittest suite, no network access needed
 ```
 
----
-
-## Running
-
-**Tests.** These need Python 3.10+ and only the standard library:
+**Tests:**
 
 ```bash
 PYTHONPATH=. python3 -m unittest discover -s tests -q
 ```
 
-> 909 tests, 0 failures, 10 skipped.
-
-**Serve a model on GKE.** See [`k8s/README.md`](k8s/README.md) for cluster
-setup.
+**Serve Beam-501B behind llm-d.** See [`k8s/README.md`](k8s/README.md) and
+[`k8s/llm-d/README.md`](k8s/llm-d/README.md).
 
 ```bash
 kubectl apply -f k8s/beam-501b-nvfp4-serving.yaml
-kubectl get pods -l app=beam-501b-nvfp4 -w            # ~4–5 min to load
-kubectl port-forward svc/vllm-qwen38-gateway 8000:8000
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api-inference-extension/releases/download/v1.6.2/v1-manifests.yaml
+helm install beam-501b-router oci://ghcr.io/llm-d/charts/llm-d-router-standalone --version v1.0.0 \
+  -n default -f k8s/llm-d/beam-501b-router.values.yaml
+kubectl port-forward svc/beam-501b-router-epp 8000:8000
 ```
 
-**Run SWE-bench (zero-hint default).** Use `--instances` to pick specific tasks:
+**Evolve the harness (V15):**
 
 ```bash
-PYTHONPATH=. python3 -u scripts/swebench_kubectl_batch.py \
-  --out-root results/swebench/my_run \
-  --policies v13_hier_mcts \
-  --vllm-url http://127.0.0.1:8000/v1 \
-  --vllm-model reflection/Beam-1.0-501B-A23B-NVFP4 \
-  --workers 3 \
-  --instances marshmallow-code__marshmallow-1702
+PYTHONPATH=. python3 scripts/v15_evolve.py evolve --mode evolve --out results/v15/my_run --workers 4
+PYTHONPATH=. python3 scripts/v15_evolve.py evolve --mode random --out results/v15/my_random --workers 2 \
+  --seed-results-from results/v15/my_run
 ```
 
-**Run a planner-driven milestone ratchet build with external oracle:**
+**Run one SWE-bench task with the hierarchical harness** (`v13_hier_mcts` policy):
 
 ```bash
-PYTHONPATH=. python3 scripts/run_planner_driven_ratchet_eval.py \
-  --out-dir results/ratchet/planner_driven_minisql_eval_2026-10-23 \
-  --vllm-url http://127.0.0.1:8000/v1 \
-  --vllm-model reflection/Beam-1.0-501B-A23B-NVFP4 \
-  --resume
+PYTHONPATH=. python3 -u scripts/swebench_kubectl_batch.py --out-root results/swebench/my_run \
+  --policies v13_hier_mcts --vllm-url http://127.0.0.1:8000/v1 \
+  --vllm-model reflection/Beam-1.0-501B-A23B-NVFP4 --instances marshmallow-code__marshmallow-1702
 ```
 
-Or invoke the CLI directly on any git repository:
+**Run a milestone build:**
 
 ```bash
-PYTHONPATH=. python3 -m hae.cli --mode ratchet \
-  --workspace-dir /path/to/repo \
-  --objective "Build a tokenizer, recursive-descent parser and evaluator with unit tests." \
-  --acceptance-cmd "pytest -q" \
-  --resume
+PYTHONPATH=. python3 -m hae.cli --mode ratchet --workspace-dir /path/to/repo \
+  --objective "Build a tokenizer, parser and evaluator with unit tests." --acceptance-cmd "pytest -q" --resume
 ```
 
----
-
-## License
-
-Apache-2.0. See [`LICENSE`](LICENSE).
+Licensed under Apache-2.0 ([`LICENSE`](LICENSE)).
