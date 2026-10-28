@@ -63,6 +63,7 @@ therefore works on a small diff, however large the repository grows.
 | Small steps beat one big attempt | MiniSQL engine graded by a held-out `sqlite3` oracle: milestone ratchet **15 / 15**, one-shot hierarchical **8 / 15**, flat ReAct **0 / 15** | Holds. Compute not matched (1.80M vs 0.37M tokens) |
 | External oracles catch what self-written tests miss | The ratchet's own suites were green, yet the held-out oracle scored 9 / 15 until recovery milestones fixed the rest | Holds |
 | Hierarchy vs flat ReAct on SWE-bench | 21 / 28 vs 19 / 28 on unseen Verified tasks, with no task lost | **Not clean**: prompts contained test-task examples. V15 re-runs a cleaned harness |
+| **V15: searched harness vs hand design** | 28 unseen Verified tasks, cleaned harness: evolved **17 / 28**, random settings search 16 / 28, hand-designed seed 12 / 28 (evolved vs seed 5 : 0, p = 0.063) | Search beats the seed; **evolution does not beat random search** at matched budget (0 : 4). [Results](results/v15/test_2026-10-28/README.md) |
 
 The V14 retrospective explains why the SWE-bench numbers can't be cited yet:
 [`experiments/v14/v14_retrospective.md`](experiments/v14/v14_retrospective.md).
@@ -132,7 +133,7 @@ milestone ratchet.*
   automated leakage gate now rejects any change that introduces identifiers
   from gold or hidden-test patches.
 
-### Era 4 · Evolving the harness (V15, in progress)
+### Era 4 · Evolving the harness (V15)
 
 *The V14 harness becomes the genome: 18 knobs plus a patch against its source.*
 
@@ -216,16 +217,18 @@ by ratcheting small, verified steps.
 
 | Horizon | Goal | Done when |
 | :--- | :--- | :--- |
-| **Now: V15** | Show that evolution beats hand design | The evolved harness beats both random search and the hand-designed seed on the 28 held-out test tasks |
+| **Done: V15** | Show that evolution beats hand design | Evolved 17/28 vs seed 12/28 vs random 16/28 on held-out test: beats the seed, ties random search ([results](results/v15/test_2026-10-28/README.md)) |
 | **Next** | Comparable, trustworthy numbers | SWE-bench Pro (public), ≥ 3 seeds, official `swebench` grading, external baselines at matched budget |
 | **Then** | Long-horizon builds | ≥ 10k LoC on a second target with an external oracle, with ratchet settings evolved too |
 | **Serving** | Make the harness and llm-d co-designed | Prefix hit rate and latency per layer measured and optimized |
 
-**Now: finish V15.**
-- Complete the evolution and equal-budget random-search runs.
-- Select the winning genome on validation, then run the 28 test tasks once.
-- Re-grade the final predictions with the official `swebench eval` harness.
-  Today's grader is approximate.
+**Follow-ups from V15.**
+- Re-grade the final predictions with the official `swebench eval` harness
+  (today's grader is approximate), and re-run V12 flat ReAct under the same
+  load as the V15 test.
+- Evolution only tied random search: run more generations and repeated
+  evaluations (≥ 2 seeds per genome) to cut selection noise before claiming
+  an evolutionary advantage.
 
 **Next: comparable numbers.**
 - Run the selected harness on SWE-bench Pro (public) with at least 3 seeds.

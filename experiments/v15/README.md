@@ -1,6 +1,11 @@
 # V15: Evolving the Harness (Knobs + Code)
 
-*Opened Oct 27, 2026. Status: Phase 0 complete, Phase 1 running.*
+*Opened Oct 27, 2026. Status: complete (Oct 28). **Results: [results/v15/test_2026-10-28/README.md](../../results/v15/test_2026-10-28/README.md).***
+
+> **Outcome.** On the 28 held-out Verified tasks the best evolved harness solved 17/28, random settings search
+> 16/28 and the hand-designed seed 12/28. Search beats the seed (evolved vs seed 5 : 0, p = 0.063), but evolution
+> did not beat random search at matched budget (generations 0–3: 0 : 4). Random search was stopped after
+> generation 3 because of a time constraint.
 
 V1–V7 evolved populations of agent firms, but on tasks that saturated. V8–V14
 hand-designed one harness per version. V15 returns to the project's original
