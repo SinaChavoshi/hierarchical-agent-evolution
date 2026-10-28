@@ -146,8 +146,23 @@ class GenomeEvaluator:
                       "connection refused", "error dialing backend", "the server is currently unable",
                       "dial tcp", "connection timed out")
 
+    # Signs that the sandbox pod was starved (CPU/memory overcommit on the node) before the agent
+    # even started: the package-import probe timed out or was OOM-killed.
+    _STARVED_MARKERS = ("[container] timed out after 120s", "command terminated with exit code 137")
+
+    def _sandbox_starved(self, genome_id: str, instance_id: str) -> bool:
+        p = os.path.join(self.evals_root, genome_id, f"{instance_id}.stdout.log")
+        try:
+            with open(p, "r", encoding="utf-8", errors="replace") as fh:
+                head = fh.read(6000)
+        except OSError:
+            return False
+        return "env_import=FAILED" in head and any(m in head for m in self._STARVED_MARKERS)
+
     def _is_infra_failure(self, genome_id: str, instance_id: str, result: TaskResult) -> bool:
         d = os.path.join(self.evals_root, genome_id, instance_id)
+        if self._sandbox_starved(genome_id, instance_id):
+            return True
         grade_path = os.path.join(d, "grade.json")
         if os.path.exists(grade_path) and result.status == "timeout":
             return False

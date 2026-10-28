@@ -84,7 +84,7 @@ def pod_manifest(pod_name: str, instance_id: str, image: str, nodepool: str = "f
                     "imagePullPolicy": "IfNotPresent",
                     "command": ["sleep", "infinity"],
                     "resources": {
-                        "requests": {"cpu": "1", "memory": "3Gi"},
+                        "requests": {"cpu": "2", "memory": "6Gi"},  # V15: was 1/3Gi; overcommit starved pods at ~24/node
                         "limits": {"cpu": "4", "memory": "8Gi"},
                     },
                 }
