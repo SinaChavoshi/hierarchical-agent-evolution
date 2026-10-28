@@ -73,7 +73,8 @@ class GenomeEvaluator:
         return path
 
     def _pod_name(self, genome_id: str, instance_id: str) -> str:
-        h = hashlib.sha1(f"{genome_id}:{instance_id}".encode()).hexdigest()[:6]
+        # Unique per attempt: a retried job must not race with its previous pod's deletion.
+        h = hashlib.sha1(f"{genome_id}:{instance_id}:{time.time_ns()}".encode()).hexdigest()[:6]
         slug = re.sub(r"[^a-z0-9-]+", "-", instance_id.lower().replace("__", "-")).strip("-")
         return f"{self.pod_tag}-{h}-{slug}"[:63].rstrip("-")
 
