@@ -162,14 +162,20 @@ def _eval_named(args, split: str) -> int:
         picked.append((HarnessGenome(genome_id=tag, knobs=g.knobs, patch=g.patch, origin=g.origin), ref))
     state_path = os.path.join(out_root, f"{split}_state.json")
     prev = json.load(open(state_path)) if os.path.exists(state_path) else {}
+    by_ref: Dict[str, List[HarnessGenome]] = {}
     for g, ref in picked:
         if g.genome_id in prev:
             g.results = HarnessGenome.from_dict(prev[g.genome_id]).results
+        by_ref.setdefault(ref, []).append(g)
+    # Evaluate all genomes that share a base commit in one worker pool (parallel across genomes).
+    for ref, genomes in by_ref.items():
         wt = WorktreeManager(REPO_ROOT, ref, os.path.join(WORKTREE_ROOT, f"{split}_eval"))
         ev = make_evaluator(args, out_root, wt, splits, pod_tag=f"v15{split[0]}")
-        ev.evaluate([g], list(splits[split]))
-        prev[g.genome_id] = g.to_dict()
+        ev.evaluate(genomes, list(splits[split]))
+        for g in genomes:
+            prev[g.genome_id] = g.to_dict()
         json.dump(prev, open(state_path, "w"), indent=1)
+    for g, _ in picked:
         print(f"{g.genome_id}: {split} resolved {sum(r.resolved for r in g.results.values())}/{len(splits[split])}")
     return 0
 
