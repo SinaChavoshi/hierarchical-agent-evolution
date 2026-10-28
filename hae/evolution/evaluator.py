@@ -123,6 +123,37 @@ class GenomeEvaluator:
             return ""
 
     def _run_job(self, genome: HarnessGenome, instance_id: str, harness_root: str, genome_cfg: str) -> TaskResult:
+        """Run one job, retrying (up to 2 more times) when it failed for infrastructure reasons.
+
+        A failure caused by the Kubernetes API or a pod (not by the agent) must not count
+        against the genome, so such runs are discarded and re-run.
+        """
+        result = self._run_job_once(genome, instance_id, harness_root, genome_cfg)
+        for attempt in range(2):
+            if not self._is_infra_failure(genome.genome_id, instance_id, result):
+                break
+            self.logger(f"[v15-eval] {genome.genome_id} {instance_id}: infrastructure failure "
+                        f"({result.status}); discarding and retrying ({attempt + 1}/2)")
+            d = os.path.join(self.evals_root, genome.genome_id, instance_id)
+            import shutil
+            shutil.rmtree(d, ignore_errors=True)
+            time.sleep(30)
+            result = self._run_job_once(genome, instance_id, harness_root, genome_cfg)
+        return result
+
+    _INFRA_MARKERS = ("Unable to connect to the server", "TLS handshake timeout", "i/o timeout",
+                      "connection refused", "error dialing backend", "the server is currently unable")
+
+    def _is_infra_failure(self, genome_id: str, instance_id: str, result: TaskResult) -> bool:
+        d = os.path.join(self.evals_root, genome_id, instance_id)
+        if os.path.exists(os.path.join(d, "grade.json")) and result.status in ("ok", "timeout"):
+            return False
+        if result.status in ("pod_error",) or result.status.startswith("error"):
+            return True
+        tail = self.log_tail(genome_id, instance_id, n_chars=4000)
+        return any(m in tail for m in self._INFRA_MARKERS)
+
+    def _run_job_once(self, genome: HarnessGenome, instance_id: str, harness_root: str, genome_cfg: str) -> TaskResult:
         d = os.path.join(self.evals_root, genome.genome_id, instance_id)
         if os.path.exists(os.path.join(d, "grade.json")):
             return self._result_from_dir(genome.genome_id, instance_id)
