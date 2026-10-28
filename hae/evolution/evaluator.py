@@ -142,7 +142,8 @@ class GenomeEvaluator:
         return result
 
     _INFRA_MARKERS = ("Unable to connect to the server", "TLS handshake timeout", "i/o timeout",
-                      "connection refused", "error dialing backend", "the server is currently unable")
+                      "connection refused", "error dialing backend", "the server is currently unable",
+                      "dial tcp", "connection timed out")
 
     def _is_infra_failure(self, genome_id: str, instance_id: str, result: TaskResult) -> bool:
         d = os.path.join(self.evals_root, genome_id, instance_id)
