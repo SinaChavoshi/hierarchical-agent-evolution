@@ -61,7 +61,10 @@ class GenomeEvaluator:
         self.pod_tag = re.sub(r"[^a-z0-9-]", "", pod_tag.lower())[:10] or "v15"
         self.logger = logger
         self._lock = threading.Lock()
-        self.pool = PodPool(create=self._ensure_pod, delete=lambda pod: self.batch.delete_pod(pod, self.context),
+        # V16: infra failures are never scored; a job still failing after this many retries keeps an
+        # infra status (not `ok`) so reports can exclude it and it can be re-run.
+        self.infra_retries = int(os.environ.get("HAE_INFRA_RETRIES", "5"))
+        self.pool = PodPool(create=self._ensure_pod, delete=self._delete_pod,
                             name=lambda iid: self._pod_name("pool", iid), lookahead=prewarm_pods)
 
     # ------------------------------------------------------------------ #
@@ -88,6 +91,19 @@ class GenomeEvaluator:
         h = hashlib.sha1(f"{genome_id}:{instance_id}:{time.time_ns()}".encode()).hexdigest()[:6]
         slug = re.sub(r"[^a-z0-9-]+", "-", instance_id.lower().replace("__", "-")).strip("-")
         return f"{self.pod_tag}-{h}-{slug}"[:63].rstrip("-")
+
+    def _delete_pod(self, pod: str) -> None:
+        """Delete with retries: a delete lost to an API-server timeout leaks a 2-CPU pod."""
+        for attempt in range(6):
+            try:
+                res = self.batch._kubectl(self.context, ["delete", "pod", pod, "--ignore-not-found=true",
+                                                         "--wait=false"], timeout_s=60)
+                if res.returncode == 0:
+                    return
+            except Exception:
+                pass
+            time.sleep(5 * (attempt + 1))
+        self.logger(f"[v15-eval] could not delete pod {pod}")
 
     def _ensure_pod(self, pod: str, instance_id: str) -> Optional[str]:
         b = self.batch
@@ -159,15 +175,15 @@ class GenomeEvaluator:
         against the genome, so such runs are discarded and re-run.
         """
         result = self._run_job_once(genome, instance_id, harness_root, genome_cfg)
-        for attempt in range(2):
+        for attempt in range(self.infra_retries):
             if not self._is_infra_failure(genome.genome_id, instance_id, result):
                 break
             self.logger(f"[v15-eval] {genome.genome_id} {instance_id}: infrastructure failure "
-                        f"({result.status}); discarding and retrying ({attempt + 1}/2)")
+                        f"({result.status}); discarding and retrying ({attempt + 1}/{self.infra_retries})")
             d = os.path.join(self.evals_root, genome.genome_id, instance_id)
             import shutil
             shutil.rmtree(d, ignore_errors=True)
-            time.sleep(30)
+            time.sleep(30 * (attempt + 1))
             result = self._run_job_once(genome, instance_id, harness_root, genome_cfg)
         return result
 
@@ -279,4 +295,5 @@ class GenomeEvaluator:
                 self.logger(f"[v15-eval] ({i}/{len(jobs)}, {time.time()-t0:.0f}s) {g.genome_id} {t}: "
                             f"resolved={r.resolved} f2p={r.f2p_passed}/{r.f2p_total} tokens={r.tokens//1000}k "
                             f"stop={r.stop} status={r.status}")
+        self.pool.drain()
         self.logger(f"[v15-eval] pod pool: {self.pool.stats}")

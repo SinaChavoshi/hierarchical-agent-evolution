@@ -101,6 +101,16 @@ class PodPool:
     def release(self, pod: str) -> None:
         self._delete(pod)
 
+    def drain(self) -> None:
+        """Delete every prewarmed pod that was not used (end of an `evaluate` call)."""
+        with self._lock:
+            leftovers = [e for lst in self._warm.values() for e in lst]
+            self._warm.clear()
+            self._outstanding = 0
+            self._queue, self._next, self._started = [], 0, 0
+        for pod, fut in leftovers:
+            threading.Thread(target=self._discard, args=(pod, fut), daemon=True).start()
+
     def close(self) -> None:
         with self._lock:
             if self._closed:

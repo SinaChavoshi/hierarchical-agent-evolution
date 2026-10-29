@@ -79,6 +79,17 @@ class PodPoolTest(unittest.TestCase):
         time.sleep(0.05)
         self.assertEqual(sorted(c.created), sorted(c.deleted))
 
+    def test_drain_deletes_unused_prewarms(self):
+        c = _FakeCluster()
+        pool = PodPool(create=c.create, delete=c.delete, name=c.name, lookahead=3)
+        pool.set_queue(["a", "b", "c", "d"])
+        pod, _ = pool.acquire("a")
+        pool.release(pod)
+        pool.drain()
+        time.sleep(0.1)
+        self.assertEqual(sorted(c.created), sorted(c.deleted))
+        pool.close()
+
     def test_zero_lookahead_is_plain_create_delete(self):
         c = _FakeCluster()
         pool = PodPool(create=c.create, delete=c.delete, name=c.name, lookahead=0)
