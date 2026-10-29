@@ -266,6 +266,16 @@ class GenomeEvaluator:
             if not todo:
                 continue
             path, err = self.worktrees.materialize(g)
+            for attempt in range(3):
+                if not err or "patch does not apply" in err:
+                    break
+                # Infrastructure (e.g. disk full, git lock): retry, never score it.
+                self.logger(f"[v15-eval] {g.genome_id}: cannot materialize ({err[-300:]}); retry {attempt + 1}/3")
+                self.worktrees.remove(g.genome_id)
+                time.sleep(60)
+                path, err = self.worktrees.materialize(g)
+            if err and "patch does not apply" not in err:
+                raise RuntimeError(f"{g.genome_id}: worktree cannot be materialized (infrastructure): {err[-500:]}")
             if err:
                 self.logger(f"[v15-eval] {g.genome_id}: cannot materialize ({err}); scoring as failed")
                 for t in todo:
