@@ -70,6 +70,14 @@ class GenomeEvaluator:
         cfg["company_id"] = f"v15_{genome.genome_id}"
         pol = cfg.setdefault("epistemic_policy", {})
         pol["v15_knobs"] = dict(genome.knobs)  # unknown keys land in `EpistemicPolicyGene.extra`
+        # V16: the genome's organization. org_mode off leaves the harness exactly V15.
+        pol["v16_org"] = genome.org_mode
+        if genome.roles:
+            cfg["role_library"] = [dict(r) for r in genome.roles]
+        if genome.ceo_policy:
+            cfg["ceo_policy"] = dict(genome.ceo_policy)
+        if genome.org_mode != "off" and isinstance(cfg.get("ceo_policy"), dict):
+            cfg["ceo_policy"]["enabled"] = True
         path = os.path.join(self.genome_cfg_root, f"{genome.genome_id}.json")
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(cfg, fh, indent=1, sort_keys=True)
@@ -117,6 +125,24 @@ class GenomeEvaluator:
             stop=str(swe.get("stop") or ""),
             status=status if grade else (status if status != "ok" else "no_grade"),
         )
+
+    def org_records(self, genome_id: str, task_ids: Optional[Sequence[str]] = None) -> List[Dict[str, Any]]:
+        """`record.json["swebench"]["org"]` blocks (plus the graded outcome) of a genome's runs."""
+        out: List[Dict[str, Any]] = []
+        root = os.path.join(self.evals_root, genome_id)
+        if not os.path.isdir(root):
+            return out
+        for t in sorted(task_ids if task_ids is not None else os.listdir(root)):
+            d = os.path.join(root, t)
+            try:
+                rec = json.load(open(os.path.join(d, "record.json"), encoding="utf-8"))
+                grade = json.load(open(os.path.join(d, "grade.json"), encoding="utf-8"))
+            except Exception:
+                continue
+            org = (rec.get("swebench") or {}).get("org")
+            if org:
+                out.append({"task": t, "resolved": bool(grade.get("resolved")), "org": org})
+        return out
 
     def log_tail(self, genome_id: str, instance_id: str, n_chars: int = 6000) -> str:
         p = os.path.join(self.evals_root, genome_id, f"{instance_id}.stdout.log")

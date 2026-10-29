@@ -8,6 +8,12 @@ Protocol per generation (successive halving):
 
 The `random` mode is the equal-budget control: every non-seed genome is a uniform random
 knob sample with no code changes, evaluated with exactly the same halving schedule.
+
+V16: genomes may carry an organization (org_mode, role library, CEO policy). With `p_org > 0`
+the evolve mode also breeds organizations (role rewrite/add/remove, CEO-policy mutation, org
+crossover; `hae.evolution.org_evolution`), and parents' libraries are updated with the role
+credits measured in their training runs before breeding. In random mode a seed with an
+organization gets a random organization per child (`random_org`) on top of random knobs.
 The test split is never touched here; see `scripts/v15_evolve.py test`.
 """
 
@@ -24,6 +30,7 @@ from hae.evolution.evaluator import GenomeEvaluator
 from hae.evolution.genome import HarnessGenome
 from hae.evolution.leakage import LeakageGate
 from hae.evolution.mutation import CodeMutator, crossover_patches, failure_digest
+import hae.evolution.org_evolution as orgevo
 from hae.swebench.harness_knobs import crossover_knobs, mutate_knobs, sample_knobs
 
 
@@ -38,6 +45,7 @@ class EvolutionConfig:
     p_code: float = 0.5
     p_knob: float = 0.3
     p_cross: float = 0.2
+    p_org: float = 0.0  # V16: probability of an organization mutation (taken from p_code/p_knob mass)
     seed: int = 15
     stage1_tasks: List[str] = field(default_factory=list)
     train_tasks: List[str] = field(default_factory=list)
@@ -46,13 +54,16 @@ class EvolutionConfig:
 class EvolutionRun:
     def __init__(self, cfg: EvolutionConfig, evaluator: GenomeEvaluator, out_root: str,
                  code_mutator: Optional[CodeMutator] = None, leakage: Optional[LeakageGate] = None,
-                 logger: Callable[[str], None] = print) -> None:
+                 logger: Callable[[str], None] = print, seed_genome: Optional[HarnessGenome] = None,
+                 org_mutator: Optional["orgevo.OrgMutator"] = None) -> None:
         self.cfg = cfg
         self.evaluator = evaluator
         self.out_root = os.path.abspath(out_root)
         self.code_mutator = code_mutator
         self.leakage = leakage
         self.logger = logger
+        self.seed_genome = seed_genome
+        self.org_mutator = org_mutator
         self.rng = random.Random(cfg.seed)
         self.genomes: Dict[str, HarnessGenome] = {}
         self.generation = 0
@@ -105,34 +116,86 @@ class EvolutionRun:
         contenders = self.rng.sample(pool, k)
         return max(contenders, key=lambda g: self.fitness(g, self.cfg.train_tasks))
 
+    def _org_of(self, parent: HarnessGenome) -> Dict[str, Any]:
+        """Parent's organization with the role credits from its training runs folded in."""
+        roles = parent.roles
+        if parent.has_org and parent.roles:
+            recs = self.evaluator.org_records(parent.genome_id, self.cfg.train_tasks)
+            roles = orgevo.apply_role_stats(parent.roles, orgevo.aggregate_role_stats(recs))
+        return {"org_mode": parent.org_mode, "roles": [dict(r) for r in roles], "ceo_policy": dict(parent.ceo_policy)}
+
+    def _child(self, cid: str, gen: int, parents: List[HarnessGenome], origin: str, knobs: Dict[str, Any],
+               patch: str, org: Optional[Dict[str, Any]] = None, notes: Optional[List[str]] = None) -> HarnessGenome:
+        org = org if org is not None else self._org_of(parents[0])
+        return HarnessGenome(genome_id=cid, generation=gen, parent_ids=[p.genome_id for p in parents], origin=origin,
+                             knobs=knobs, patch=patch, notes=list(notes or []), **org)
+
+    def _make_org_child(self, cid: str, gen: int, pool: List[HarnessGenome]) -> Optional[HarnessGenome]:
+        parent = self._pick_parent(pool)
+        org = self._org_of(parent)
+        recs = self.evaluator.org_records(parent.genome_id, self.cfg.train_tasks)
+        digest = orgevo.org_digest(org["roles"], orgevo.aggregate_role_stats(recs), recs)
+        r = self.rng.random()
+        roles, note = None, ""
+        if r < 0.35 and self.org_mutator is not None:
+            roles, note = self.org_mutator.role_rewrite(org["roles"], digest, self.rng, gen)
+        elif r < 0.55 and self.org_mutator is not None:
+            roles, note = self.org_mutator.role_add(org["roles"], digest, self.rng, gen)
+        elif r < 0.70:
+            roles, note = orgevo.role_remove(org["roles"], self.rng)
+        if roles is None:
+            pol, mode, note2 = orgevo.ceo_mutate(org["ceo_policy"], org["org_mode"], self.rng)
+            org.update(ceo_policy=pol, org_mode=mode)
+            note = (note + "; " if note else "") + note2
+            origin = "mutate_ceo"
+        else:
+            assert orgevo.generalists_present(roles), "generalists must never be removed"
+            org["roles"] = roles
+            origin = note.split(" ", 1)[0]
+        self.logger(f"[v16] {cid}: {note}")
+        return self._child(cid, gen, [parent], origin, dict(parent.knobs), parent.patch, org, [note])
+
     def _make_child(self, gen: int, idx: int, pool: List[HarnessGenome]) -> Optional[HarnessGenome]:
         cid = self._new_id(gen, idx)
+        seed = self.genomes.get("seed")
         if self.cfg.mode == "random":
-            return HarnessGenome(genome_id=cid, generation=gen, origin="random", knobs=sample_knobs(self.rng))
-        r = self.rng.random()
+            knobs = sample_knobs(self.rng)
+            if seed is not None and seed.has_org and seed.roles:
+                roles, pol, mode = orgevo.random_org(seed.roles, seed.ceo_policy, self.rng)
+                return HarnessGenome(genome_id=cid, generation=gen, origin="random", knobs=knobs, patch=seed.patch,
+                                     org_mode=mode, roles=roles, ceo_policy=pol)
+            return HarnessGenome(genome_id=cid, generation=gen, origin="random", knobs=knobs,
+                                 patch=seed.patch if seed is not None else "")
+        has_org = any(g.has_org and g.roles for g in pool)
+        if has_org and self.cfg.p_org > 0 and self.rng.random() < self.cfg.p_org:
+            return self._make_org_child(cid, gen, pool)
+        # Remaining probability mass is split among code / knob / crossover as in V15.
+        r = self.rng.random() * (self.cfg.p_code + self.cfg.p_knob + self.cfg.p_cross)
         if r < self.cfg.p_code and self.code_mutator is not None:
             parent = self._pick_parent(pool)
             logs = {t: self.evaluator.log_tail(parent.genome_id, t) for t in parent.results}
             digest = failure_digest(parent, logs)
             res = self.code_mutator.propose(parent, cid, digest, self.rng)
             if res is not None:
-                return HarnessGenome(genome_id=cid, generation=gen, parent_ids=[parent.genome_id],
-                                     origin="mutate_code", knobs=dict(parent.knobs), patch=res.patch,
-                                     notes=[f"targets={res.targets}", f"attempts={res.attempts}",
-                                            f"rationale={res.rationale}"])
+                return self._child(cid, gen, [parent], "mutate_code", dict(parent.knobs), res.patch,
+                                   notes=[f"targets={res.targets}", f"attempts={res.attempts}",
+                                          f"rationale={res.rationale}"])
             self.logger(f"[v15] {cid}: code mutation failed validation; falling back to knob mutation")
-            return HarnessGenome(genome_id=cid, generation=gen, parent_ids=[parent.genome_id],
-                                 origin="mutate_knobs", knobs=mutate_knobs(parent.knobs, self.rng),
-                                 patch=parent.patch, notes=["fallback after failed code mutation"])
+            return self._child(cid, gen, [parent], "mutate_knobs", mutate_knobs(parent.knobs, self.rng),
+                               parent.patch, notes=["fallback after failed code mutation"])
         if r < self.cfg.p_code + self.cfg.p_knob or len(pool) < 2:
             parent = self._pick_parent(pool)
-            return HarnessGenome(genome_id=cid, generation=gen, parent_ids=[parent.genome_id],
-                                 origin="mutate_knobs", knobs=mutate_knobs(parent.knobs, self.rng),
-                                 patch=parent.patch)
+            return self._child(cid, gen, [parent], "mutate_knobs", mutate_knobs(parent.knobs, self.rng), parent.patch)
         a, b = self.rng.sample(pool, 2)
         patch = crossover_patches(self.evaluator.worktrees, a, b, cid, self.leakage) if self.leakage else a.patch
-        return HarnessGenome(genome_id=cid, generation=gen, parent_ids=[a.genome_id, b.genome_id],
-                             origin="crossover", knobs=crossover_knobs(a.knobs, b.knobs, self.rng), patch=patch)
+        org = self._org_of(a)
+        notes: List[str] = []
+        if a.has_org and b.has_org and a.roles and b.roles:
+            roles, pol, note = orgevo.org_crossover(org["roles"], self._org_of(b)["roles"], org["ceo_policy"],
+                                                    b.ceo_policy, self.rng)
+            org.update(roles=roles, ceo_policy=pol)
+            notes.append(note)
+        return self._child(cid, gen, [a, b], "crossover", crossover_knobs(a.knobs, b.knobs, self.rng), patch, org, notes)
 
     def _dedupe(self, child: HarnessGenome) -> bool:
         return any(g.content_hash == child.content_hash for g in self.genomes.values())
@@ -170,7 +233,13 @@ class EvolutionRun:
 
     def run(self) -> None:
         if "seed" not in self.genomes:
-            self.genomes["seed"] = HarnessGenome(genome_id="seed", generation=0, origin="seed")
+            if self.seed_genome is not None:
+                sg = HarnessGenome.from_dict({**self.seed_genome.to_dict(), "genome_id": "seed", "generation": 0,
+                                              "origin": "seed", "results": {}})
+                sg.results = dict(self.seed_genome.results)
+                self.genomes["seed"] = sg
+            else:
+                self.genomes["seed"] = HarnessGenome(genome_id="seed", generation=0, origin="seed")
             self.save()
         # The hand-designed seed is evaluated on the full training split first: it is the
         # baseline every genome is compared against, and its failures seed the first code mutations.

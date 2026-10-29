@@ -1,9 +1,11 @@
 """`HarnessGenome`: the V15 unit of evolution.
 
-A genome is (knobs, patch):
+A genome is (knobs, patch) plus, from V16, an organization (org_mode, roles, ceo_policy):
   * `knobs`  typed settings from `hae.swebench.harness_knobs.KNOB_SPACE`;
   * `patch`  a unified diff against the harness source at the experiment's base commit,
-             restricted to `EVOLVABLE_FILES`. An empty patch is the unmodified seed harness.
+             restricted to `EVOLVABLE_FILES`. An empty patch is the unmodified seed harness;
+  * `org_mode` off | static | dynamic (`hae.swebench.org_binding`); `roles` the role library
+             (`RoleAllele` dicts) and `ceo_policy` (`CEOPolicyGene` dict) used when org_mode != off.
 """
 
 from __future__ import annotations
@@ -21,6 +23,10 @@ EVOLVABLE_FILES: List[str] = [
     "hae/swebench/hierarchical_mcts.py",
     "hae/swebench/agentic.py",
 ]
+
+
+# Role fields written from evaluation evidence; they do not change what a genome *is*.
+_ROLE_STAT_KEYS = ("uses", "mean_delta_u", "support_rate", "tasks_resolved")
 
 
 @dataclass
@@ -53,14 +59,26 @@ class HarnessGenome:
     patch: str = ""
     notes: List[str] = field(default_factory=list)
     results: Dict[str, TaskResult] = field(default_factory=dict)
+    org_mode: str = "off"
+    roles: List[Dict[str, Any]] = field(default_factory=list)
+    ceo_policy: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         self.knobs = resolve_knobs(self.knobs)
+        self.org_mode = self.org_mode if self.org_mode in ("off", "static", "dynamic") else "off"
 
     # ------------------------------------------------------------------ #
     @property
+    def has_org(self) -> bool:
+        return self.org_mode != "off" or bool(self.roles) or bool(self.ceo_policy)
+
+    @property
     def content_hash(self) -> str:
-        blob = json.dumps({"knobs": self.knobs, "patch": self.patch}, sort_keys=True)
+        content: Dict[str, Any] = {"knobs": self.knobs, "patch": self.patch}
+        if self.has_org:  # V15 genomes keep their hashes
+            content.update({"org_mode": self.org_mode, "ceo_policy": self.ceo_policy,
+                            "roles": [{k: v for k, v in r.items() if k not in _ROLE_STAT_KEYS} for r in self.roles]})
+        blob = json.dumps(content, sort_keys=True)
         return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:12]
 
     @property
@@ -121,6 +139,9 @@ class HarnessGenome:
             knobs=dict(d.get("knobs") or {}),
             patch=d.get("patch", "") or "",
             notes=list(d.get("notes") or []),
+            org_mode=d.get("org_mode", "off") or "off",
+            roles=[dict(r) for r in (d.get("roles") or [])],
+            ceo_policy=dict(d.get("ceo_policy") or {}),
         )
         g.results = {k: TaskResult.from_dict(v) for k, v in (d.get("results") or {}).items()}
         return g

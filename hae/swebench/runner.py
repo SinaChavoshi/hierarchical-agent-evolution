@@ -567,6 +567,7 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
         total_budget = int(budget_moves if budget_moves is not None else policy.search_budget_moves)
         remaining = total_budget
         if is_v13_hierarchical_mcts or is_v12_agentic:
+            harness_org = None
             candidate_mods: List[str] = []
             if root.module:
                 candidate_mods.append(root.module)
@@ -603,6 +604,13 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
                     knobs=dict(pol_extra.get("v15_knobs") or nested_extra.get("v15_knobs") or {}),
                 )
                 engine_mode = "v13_hierarchical_mcts"
+                # V16: optional role library / CEO policy binding (org_mode off = exactly V15).
+                from hae.swebench.org_binding import build_harness_org
+
+                harness_org = build_harness_org(self.genome, pol_extra, self.task.problem_statement,
+                                                self.task.repo, logger=lambda m: print(m, flush=True))
+                if harness_org is not None:
+                    harness_org.attach(engine)
             else:
                 from hae.swebench.agentic import AgenticSweEngine
 
@@ -676,6 +684,8 @@ class SweBenchCompanyRunner(HierarchicalCompanyRunner):
                 "agentic_trajectory": ag_res.get("trajectory", []),
                 "best_checkpoint": ag_res.get("best_checkpoint"),
             }
+            if harness_org is not None:
+                swe_block["org"] = harness_org.summary()
             deliverable = self._epistemic_deliverable(state, last_search, 1)
             deliverable += (
                 f"\n\n### SWE-bench V12 Agentic {self.task.instance_id}\n```json\n"
