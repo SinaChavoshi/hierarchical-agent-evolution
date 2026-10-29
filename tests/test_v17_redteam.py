@@ -254,6 +254,104 @@ class V17RedTeamHookTests(unittest.TestCase):
         op, target, _ = eng.select_next_mcts_operation(["pkg/calc.py"])
         self.assertEqual((op, target), ("CONT", "b1"))
 
+    def test_blackboard_dedup_falsifier_independence_and_questions(self):
+        from hae.swebench.org_binding import V17_BLACKBOARD_QUESTIONS
+
+        eng = self._engine()
+        lib = [RoleAllele.from_dict(r) for r in make_library()]
+        org = HarnessOrg(
+            lib, CEOPolicyGene(), "static", ["negative"],
+            logger=lambda _: None,
+            redteam={**V17_BLACKBOARD_QUESTIONS, "max_questions": 1, "answer_turns": 2},
+        )
+        org.attach(eng)
+
+        # Post finding, hypothesis, and decision
+        e1 = org.post_blackboard("finding", "pkg/calc.py:1 add_items does not validate negative b", author="recon")
+        self.assertIsNotNone(e1)
+        # Duplicate finding is ignored
+        self.assertIsNone(org.post_blackboard("finding", "pkg/calc.py:1 add_items does not validate negative b", author="recon"))
+        org.post_blackboard("hypothesis", "Executor claims adding +0 fixes everything", author="executor")
+        org.post_blackboard("decision", "Target consumer_local in pkg/calc.py", author="architect")
+        org.post_blackboard("failing_case", "add_items(1, -2) -> AssertionError", author="falsifier")
+
+        # Verify disk sync to /testbed/.hae/blackboard.jsonl
+        self.assertTrue(eng.executor.exists(".hae/blackboard.jsonl"))
+        disk_lines = [json.loads(line) for line in eng.executor.read_file(".hae/blackboard.jsonl").splitlines() if line.strip()]
+        self.assertEqual(len(disk_lines), 4)
+
+        # Falsifier independence: falsifier sees finding, decision, failing_case, NEVER executor hypothesis
+        fals_bb = org.render_blackboard_for("L1_AdversarialFalsifier")
+        self.assertIn("FINDING", fals_bb)
+        self.assertIn("DECISION", fals_bb)
+        self.assertIn("FAILING_CASE", fals_bb)
+        self.assertNotIn("Executor claims adding +0 fixes everything", fals_bb)
+
+        # Refiner sees everything including hypothesis and failing_case
+        ref_bb = org.render_blackboard_for("L2_DeltaRefinement_b1")
+        self.assertIn("Executor claims adding +0 fixes everything", ref_bb)
+        self.assertIn("add_items(1, -2) -> AssertionError", ref_bb)
+
+        # Directed question: refiner asks falsifier a question; controller wakes falsifier to answer (budget=1)
+        qa_replies = iter([
+            ("add_items(0, -999) raises ValueError instead of returning -999", ""),
+            ("should not be called because max_questions=1", ""),
+        ])
+        org._orig_call_ref = lambda role, msgs, **kw: next(qa_replies)
+        new_qs = org.ingest_blackboard_text(
+            '```blackboard\n{"type": "question", "to": "falsifier", "content": "Which input breaks b1?"}\n```',
+            author="refiner",
+        )
+        self.assertEqual(len(new_qs), 1)
+        answered = org.answer_pending_questions()
+        self.assertEqual(answered, 1)
+        self.assertEqual(org.questions_asked, 1)
+        self.assertEqual(org.questions_answered, 1)
+
+        # Second question exceeds max_questions=1 and is not dispatched
+        org.ingest_blackboard_text(
+            '```blackboard\n{"type": "question", "to": "recon", "content": "Second question over budget?"}\n```',
+            author="refiner",
+        )
+        self.assertEqual(org.answer_pending_questions(), 0)
+        self.assertEqual(org.questions_asked, 1)
+
+    def test_duplicate_patch_rate_and_failing_case_sharing(self):
+        from hae.swebench.org_binding import V17_BLACKBOARD_ONLY
+
+        eng = self._engine()
+        call_seq = iter([
+            ("```bash\npython3 -c 'print(1)'\n```", ""),
+            ("```submit\nVERDICT: FAIL: fails for b=-5\n```", ""),
+            ("```bash\npython3 -c 'print(1)'\n```", ""),
+            ("```submit\nVERDICT: FAIL: still fails for b=-5\n```", ""),
+        ])
+        eng._call_specialist_turn = lambda role, msgs, **kw: next(call_seq)
+        lib = [RoleAllele.from_dict(r) for r in make_library()]
+        org = HarnessOrg(
+            lib, CEOPolicyGene(), "static", ["negative"],
+            logger=lambda _: None,
+            redteam={**V17_BLACKBOARD_ONLY, "panel_size": 1, "max_turns": 6},
+        )
+        org.attach(eng)
+        cp = PatchCheckpoint(
+            diff="--- a/pkg/calc.py\n+++ b/pkg/calc.py\n@@ -1,2 +1,2 @@\n def add_items(a, b):\n-    return a + b\n+    return a + b + 0\n",
+            changed_files=["pkg/calc.py"],
+            file_contents={"pkg/calc.py": "def add_items(a, b):\n    return a + b + 0\n"},
+            compile_ok=True, static_ok=True, repro_ok=True, repo_tests_ok=True, gatekeeper_ok=True,
+        )
+        ok1, _ = eng.run_falsifier_episode(cp)
+        ok2, _ = eng.run_falsifier_episode(cp)
+        self.assertFalse(ok1)
+        self.assertFalse(ok2)
+        self.assertEqual(len(org.candidate_shas), 2)
+        self.assertEqual(org.duplicate_patches, 1)
+        self.assertAlmostEqual(org.duplicate_patch_rate(), 0.5)
+        self.assertGreaterEqual(org.failing_cases_shared, 1)
+        bb_types = [e["type"] for e in org.blackboard]
+        self.assertIn("failing_case", bb_types)
+        self.assertIn("ruled_out", bb_types)
+
 
 class V17FitnessAndEvolutionTests(unittest.TestCase):
     def test_red_team_score_and_fitness(self):
@@ -366,11 +464,17 @@ class V17FitnessAndEvolutionTests(unittest.TestCase):
 
         a17 = v17_experiment.arm_genome("A17")
         s_arm = v17_experiment.arm_genome("S")
+        b17 = v17_experiment.arm_genome("B17")
+        q17 = v17_experiment.arm_genome("Q17")
         self.assertEqual(a17.knobs["min_budget_moves"], 250)
         self.assertEqual(a17.redteam["no_edit"], False)
+        self.assertEqual(a17.redteam["blackboard_on"], False)
         self.assertEqual(s_arm.redteam["no_edit"], True)
-        self.assertEqual(s_arm.redteam["lock_repro_test"], True)
-        self.assertEqual(s_arm.redteam["skeptic_default"], True)
+        self.assertEqual(s_arm.redteam["blackboard_on"], False)
+        self.assertEqual(b17.redteam["blackboard_on"], True)
+        self.assertEqual(b17.redteam["max_questions"], 0)
+        self.assertEqual(q17.redteam["blackboard_on"], True)
+        self.assertEqual(q17.redteam["max_questions"], 3)
 
 
 if __name__ == "__main__":

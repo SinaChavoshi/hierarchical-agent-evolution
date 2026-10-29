@@ -39,7 +39,13 @@ from hae.evolution.mutation import CodeMutator  # noqa: E402
 from hae.evolution.role_gates import RoleGates  # noqa: E402
 from hae.evolution.workspace import WorktreeManager  # noqa: E402
 from hae.swebench.harness_knobs import V17_HIGH_BUDGET_KNOBS  # noqa: E402
-from hae.swebench.org_binding import V17_DEFAULT_REDTEAM, V17_PERMISSIVE_REDTEAM, V17_STRICT_REDTEAM  # noqa: E402
+from hae.swebench.org_binding import (  # noqa: E402
+    V17_BLACKBOARD_ONLY,
+    V17_BLACKBOARD_QUESTIONS,
+    V17_DEFAULT_REDTEAM,
+    V17_PERMISSIVE_REDTEAM,
+    V17_STRICT_REDTEAM,
+)
 
 SEED_GENOME = os.path.join(REPO_ROOT, "configs", "genomes", "v16_seed_harness.json")
 V12_GENOME = os.path.join(REPO_ROOT, "configs", "genomes", "v12_agentic_swebench_firm_0.json")
@@ -92,17 +98,18 @@ def arm_genome(arm: str) -> HarnessGenome:
     lib = json.load(open(LIBRARY, encoding="utf-8"))
     knobs = dict(V17_HIGH_BUDGET_KNOBS)
     patch = champion_patch()
-    if arm == "A17":
-        return HarnessGenome(
-            genome_id="A17", knobs=knobs, patch=patch, origin="arm-A17", org_mode="dynamic",
-            roles=lib["role_library"], ceo_policy=lib["ceo_policy"], redteam=dict(V17_PERMISSIVE_REDTEAM),
-        )
-    if arm == "S":
-        return HarnessGenome(
-            genome_id="S", knobs=knobs, patch=patch, origin="arm-S", org_mode="dynamic",
-            roles=lib["role_library"], ceo_policy=lib["ceo_policy"], redteam=dict(V17_STRICT_REDTEAM),
-        )
-    raise ValueError(f"Unknown V17 arm {arm!r}")
+    rt_map = {
+        "A17": V17_PERMISSIVE_REDTEAM,
+        "S": V17_STRICT_REDTEAM,
+        "B17": V17_BLACKBOARD_ONLY,
+        "Q17": V17_BLACKBOARD_QUESTIONS,
+    }
+    if arm not in rt_map:
+        raise ValueError(f"Unknown V17 arm {arm!r}")
+    return HarnessGenome(
+        genome_id=arm, knobs=knobs, patch=patch, origin=f"arm-{arm}", org_mode="dynamic",
+        roles=lib["role_library"], ceo_policy=lib["ceo_policy"], redteam=dict(rt_map[arm]),
+    )
 
 
 def make_evaluator(args, out_root: str, wt: WorktreeManager, splits: Dict, pod_tag: str,
@@ -250,7 +257,7 @@ def main() -> int:
 
     p = sub.add_parser("arms"); common(p)
     p.add_argument("--split", choices=["stage1", "train", "val", "test"], required=True)
-    p.add_argument("--arms", nargs="*", default=[], choices=["A17", "S"])
+    p.add_argument("--arms", nargs="*", default=[], choices=["A17", "S", "B17", "Q17"])
     p.add_argument("--genomes", nargs="*", default=[], help="label=run_dir:genome_id (promoted R/Rr genomes)")
     p.add_argument("--runs", type=int, default=1)
     p.add_argument("--label-verdicts", action="store_true", help="Grade intermediate candidate patches in org.verdicts")
@@ -261,7 +268,7 @@ def main() -> int:
 
     p = sub.add_parser("evolve"); common(p)
     p.add_argument("--mode", choices=["evolve", "random"], required=True)
-    p.add_argument("--seed-arm", choices=["A17", "S"], default="A17")
+    p.add_argument("--seed-arm", choices=["A17", "S", "B17", "Q17"], default="A17")
     p.add_argument("--population", type=int, default=8)
     p.add_argument("--generations", type=int, default=6)
     p.add_argument("--promote-k", type=int, default=3)

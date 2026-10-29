@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import math
 import random
 import re
@@ -66,6 +67,14 @@ REDTEAM_SPACE: Dict[str, KnobSpec] = {
                  description="Prefer continuous CONT refinement over resetting to HEAD across episodes."),
         KnobSpec("max_turns", "int", 10, 6, 20,
                  "Turn budget per red-team falsifier panelist."),
+        KnobSpec("blackboard_on", "bool", True,
+                 description="Maintain shared /testbed/.hae/blackboard.jsonl with typed findings, ruled_out, and decisions."),
+        KnobSpec("max_questions", "int", 2, 0, 6,
+                 "Maximum directed cross-role questions answered per task."),
+        KnobSpec("answer_turns", "int", 2, 1, 4,
+                 "Maximum turns when waking a role to answer a directed question."),
+        KnobSpec("falsifier_shares_tests", "bool", True,
+                 description="Post executable failing test cases from the falsifier to the blackboard on rejection."),
     )
 }
 
@@ -79,6 +88,10 @@ V17_PERMISSIVE_REDTEAM: Dict[str, Any] = {
     "evidence_tests": False,
     "continuous_build": False,
     "max_turns": 10,
+    "blackboard_on": False,
+    "max_questions": 0,
+    "answer_turns": 2,
+    "falsifier_shares_tests": False,
 }
 
 V17_STRICT_REDTEAM: Dict[str, Any] = {
@@ -89,7 +102,33 @@ V17_STRICT_REDTEAM: Dict[str, Any] = {
     "evidence_tests": True,
     "continuous_build": False,
     "max_turns": 12,
+    "blackboard_on": False,
+    "max_questions": 0,
+    "answer_turns": 2,
+    "falsifier_shares_tests": False,
 }
+
+V17_BLACKBOARD_ONLY: Dict[str, Any] = {
+    **V17_STRICT_REDTEAM,
+    "blackboard_on": True,
+    "falsifier_shares_tests": True,
+    "max_questions": 0,
+}
+
+V17_BLACKBOARD_QUESTIONS: Dict[str, Any] = {
+    **V17_STRICT_REDTEAM,
+    "blackboard_on": True,
+    "falsifier_shares_tests": True,
+    "max_questions": 3,
+    "answer_turns": 2,
+}
+
+BLACKBOARD_REL = ".hae/blackboard.jsonl"
+BLACKBOARD_TYPES = ("finding", "hypothesis", "ruled_out", "failing_case", "question", "answer", "decision")
+FALSIFIER_VISIBLE_TYPES = ("finding", "ruled_out", "decision", "failing_case")
+MAX_BB_ENTRY_CHARS = 320
+MAX_BB_ENTRIES = 32
+_BB_BLOCK_RE = re.compile(r"```blackboard\s*\n(.*?)```", re.DOTALL | re.IGNORECASE)
 
 # Log-calibrated anti-patterns distilled from V16 false-PASS divergence audit.
 CALIBRATED_SKEPTIC_PROMPT = (
@@ -223,20 +262,290 @@ class HarnessOrg:
         self.stall_counter = 0
         self.last_recruit_episode = -10 ** 9
         self.unstaffed_calls: Dict[str, int] = {}
-        # V17 red-team state
+        # V17 red-team & structured blackboard state
         self.verdicts: List[Dict[str, Any]] = []
         self.edit_blocks_refused: int = 0
         self.repro_restorations: int = 0
+        self.blackboard: List[Dict[str, Any]] = []
+        self._bb_dedup_keys: set = set()
+        self.questions_asked: int = 0
+        self.questions_answered: int = 0
+        self.failing_cases_shared: int = 0
+        self.candidate_shas: List[str] = []
+        self.duplicate_patches: int = 0
         self._locked_repro: Optional[str] = None
         self._in_falsifier: bool = False
+        self._in_question_answer: bool = False
         self._active_falsifier_role: Optional[RoleAllele] = None
         self._falsifier_bash_count: int = 0
         self._falsifier_cp: Optional[Any] = None
         self._last_falsifier_text: str = ""
         self._current_node_id: str = ""
         self._current_episode_idx: int = 0
+        self._engine_ref: Optional[Any] = None
+        self._orig_call_ref: Optional[Callable] = None
         if self.mode in ("static", "dynamic") and self.library:
             self._staff()
+
+    # ------------------------------------------------------------------ #
+    # V17 Structured Shared Blackboard & Directed Questions
+    # ------------------------------------------------------------------ #
+    def post_blackboard(self, entry_type: str, content: str, author: str = "controller",
+                        to: str = "", ref_id: str = "", episode: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        """Append a typed, size-capped, deduplicated entry to the shared blackboard and flush to disk."""
+        if not self.has_redteam or not self.redteam.get("blackboard_on"):
+            return None
+        etype = str(entry_type or "").strip().lower()
+        if etype not in BLACKBOARD_TYPES:
+            return None
+        norm = re.sub(r"\s+", " ", str(content or "")).strip()
+        if not norm:
+            return None
+        norm = norm[:MAX_BB_ENTRY_CHARS]
+        target = str(to or "").strip().lower()
+        dedup_key = (etype, target, norm[:160].lower())
+        if dedup_key in self._bb_dedup_keys:
+            return None
+        self._bb_dedup_keys.add(dedup_key)
+        entry = {
+            "id": f"bb_{len(self.blackboard) + 1}",
+            "type": etype,
+            "author": str(author or "controller").strip().lower(),
+            "to": target,
+            "ref_id": str(ref_id or "").strip(),
+            "content": norm,
+            "episode": self._current_episode_idx if episode is None else int(episode),
+        }
+        self.blackboard.append(entry)
+        if len(self.blackboard) > MAX_BB_ENTRIES:
+            # Preserve decisions, findings, and failing_cases preferentially when evicting
+            for i, old in enumerate(self.blackboard):
+                if old["type"] not in ("decision", "finding", "failing_case"):
+                    self.blackboard.pop(i)
+                    break
+            else:
+                self.blackboard.pop(0)
+        self._flush_blackboard_to_disk()
+        return entry
+
+    def _flush_blackboard_to_disk(self) -> None:
+        eng = self._engine_ref
+        if eng is None or not hasattr(eng, "executor"):
+            return
+        try:
+            payload = "\n".join(json.dumps(e, ensure_ascii=False) for e in self.blackboard) + "\n"
+            eng.executor.write_file(BLACKBOARD_REL, payload)
+        except Exception:
+            pass
+
+    def sync_blackboard_from_disk(self) -> List[Dict[str, Any]]:
+        """Ingest any JSONL entries appended directly to `/testbed/.hae/blackboard.jsonl` by an agent."""
+        if not self.has_redteam or not self.redteam.get("blackboard_on"):
+            return []
+        eng = self._engine_ref
+        if eng is None or not hasattr(eng, "executor"):
+            return []
+        new_questions: List[Dict[str, Any]] = []
+        try:
+            if not eng.executor.exists(BLACKBOARD_REL):
+                return []
+            raw = eng.executor.read_file(BLACKBOARD_REL)
+            known_ids = {e["id"] for e in self.blackboard}
+            for line in (raw or "").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                obj = json.loads(line)
+                if not isinstance(obj, Mapping) or obj.get("id") in known_ids:
+                    continue
+                added = self.post_blackboard(
+                    str(obj.get("type") or "finding"),
+                    str(obj.get("content") or ""),
+                    author=str(obj.get("author") or "agent"),
+                    to=str(obj.get("to") or ""),
+                    ref_id=str(obj.get("ref_id") or ""),
+                )
+                if added and added["type"] == "question":
+                    new_questions.append(added)
+        except Exception:
+            pass
+        return new_questions
+
+    def ingest_blackboard_text(self, text: str, author: str) -> List[Dict[str, Any]]:
+        """Parse ```blackboard ... ``` JSON blocks from a specialist response."""
+        if not self.has_redteam or not self.redteam.get("blackboard_on") or not text:
+            return []
+        new_questions: List[Dict[str, Any]] = []
+        for block in _BB_BLOCK_RE.findall(text):
+            for line in block.splitlines():
+                line = line.strip()
+                if not line or not line.startswith("{"):
+                    continue
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                if not isinstance(obj, Mapping):
+                    continue
+                added = self.post_blackboard(
+                    str(obj.get("type") or "finding"),
+                    str(obj.get("content") or ""),
+                    author=author,
+                    to=str(obj.get("to") or ""),
+                    ref_id=str(obj.get("ref_id") or ""),
+                )
+                if added and added["type"] == "question":
+                    new_questions.append(added)
+        return new_questions
+
+    def render_blackboard_for(self, specialist_name: str) -> str:
+        """Compact blackboard digest injected at episode start; preserves falsifier independence."""
+        if not self.has_redteam or not self.redteam.get("blackboard_on"):
+            return ""
+        layer = layer_of(specialist_name) or ("recon" if "Recon" in specialist_name else "agent")
+        visible: List[Dict[str, Any]] = []
+        for e in self.blackboard:
+            et = e["type"]
+            if layer == "falsifier":
+                # Falsifier sees ONLY objective facts, ruled-out approaches, decisions, and failing cases,
+                # plus questions specifically addressed to the falsifier. NEVER executor hypotheses/persuasion.
+                if et in FALSIFIER_VISIBLE_TYPES or (et == "question" and e.get("to") == "falsifier"):
+                    visible.append(e)
+            else:
+                if et == "failing_case" and not self.redteam.get("falsifier_shares_tests"):
+                    continue
+                visible.append(e)
+
+        lines = ["", "", "## Shared Blackboard (`/testbed/.hae/blackboard.jsonl`)"]
+        if visible:
+            for e in visible[-18:]:
+                tag = f"[{e['id']} {e['type'].upper()} by {e['author']}"
+                if e.get("to"):
+                    tag += f" -> {e['to']}"
+                if e.get("ref_id"):
+                    tag += f" re:{e['ref_id']}"
+                tag += "]"
+                lines.append(f"- {tag} {e['content']}")
+        else:
+            lines.append("- (No entries recorded yet.)")
+
+        if layer == "falsifier":
+            lines.append(
+                "Blackboard rule (Falsifier Independence): Judge the candidate patch cold. "
+                "Reply ONLY with executable failing cases (`failing_case`), never opinions."
+            )
+        else:
+            q_budget = max(0, int(self.redteam.get("max_questions") or 0) - self.questions_asked)
+            lines.append(
+                "Blackboard rules: Do NOT re-grep files already documented in `FINDING`, do NOT repeat approaches "
+                "in `RULED_OUT`, and ensure your patch passes every `FAILING_CASE`. You may append concise entries "
+                "using a fenced ` ```blackboard ` block containing one JSON object per line: "
+                '`{"type": "finding|hypothesis|ruled_out", "content": "..."}`'
+                + (
+                    f' or ask a targeted question ({q_budget} remaining): '
+                    '`{"type": "question", "to": "falsifier|recon|architect|executor", "content": "..."}`.'
+                    if q_budget > 0 else "."
+                )
+            )
+        return "\n".join(lines)[:2600]
+
+    def answer_pending_questions(self) -> int:
+        """Wake target roles in short (`answer_turns`) read-only episodes to answer directed questions."""
+        if (
+            not self.has_redteam
+            or not self.redteam.get("blackboard_on")
+            or self._in_question_answer
+            or self._orig_call_ref is None
+        ):
+            return 0
+        max_q = int(self.redteam.get("max_questions") or 0)
+        if self.questions_asked >= max_q:
+            return 0
+        answered_refs = {e.get("ref_id") for e in self.blackboard if e.get("type") == "answer" and e.get("ref_id")}
+        pending = [
+            e for e in self.blackboard
+            if e.get("type") == "question" and e.get("id") not in answered_refs
+        ]
+        if not pending:
+            return 0
+
+        ans_turns = max(1, int(self.redteam.get("answer_turns") or 2))
+        answered_now = 0
+        eng = self._engine_ref
+        for q in pending:
+            if self.questions_asked >= max_q:
+                break
+            self.questions_asked += 1
+            target = str(q.get("to") or "falsifier").strip().lower()
+            if target not in ("falsifier", "recon", "architect", "executor", "refiner"):
+                target = "falsifier"
+            spec_map = {
+                "falsifier": "L1_AdversarialFalsifier",
+                "recon": "L1_Reconnaissance",
+                "architect": "L0_StrategicArchitect",
+                "executor": "L2_BranchExecutor_b1_general",
+                "refiner": "L2_DeltaRefinement_b1",
+            }
+            spec_name = spec_map[target]
+            sys_prompt = (
+                f"You are **{target.upper()}** woken for at most {ans_turns} turn(s) to answer a directed question "
+                f"on the shared blackboard.\n"
+                + (
+                    "CRITICAL (Falsifier Independence): Reply ONLY with a concrete executable failing test case "
+                    "(exact Python input, command, and expected vs actual output) that breaks the patch. "
+                    "Do NOT offer opinions or design advice.\n"
+                    if target == "falsifier"
+                    else "Provide a concise, factual answer (file paths, line numbers, or concrete behavior).\n"
+                )
+                + "You may optionally run ONE `bash` or `read` block first, then give your final concise answer."
+                + self.render_blackboard_for(spec_name)
+            )
+            msgs: List[Dict[str, str]] = [
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": f"Question [{q['id']}] from {q['author']}: {q['content']}"},
+            ]
+            self._in_question_answer = True
+            prev_fals = self._in_falsifier
+            if target == "falsifier":
+                self._in_falsifier = True
+            ans_text = ""
+            try:
+                for _t in range(ans_turns):
+                    resp = self._orig_call_ref(spec_name, msgs, temperature=0.1, max_tokens=600)
+                    txt = str(resp[0] if isinstance(resp, tuple) else resp or "").strip()
+                    if not txt:
+                        break
+                    ans_text = txt
+                    # Allow a quick read-only bash/read check on non-final turns if engine is available
+                    m_bash = re.search(r"```bash\s*\n(.*?)```", txt, re.DOTALL)
+                    if _t + 1 < ans_turns and m_bash and eng is not None and hasattr(eng, "execute_bash_tool"):
+                        obs = eng.execute_bash_tool(m_bash.group(1).strip(), spec_name, _t + 1)
+                        msgs.append({"role": "assistant", "content": txt})
+                        msgs.append({"role": "user", "content": str(obs)[:1200] + "\nNow state your concise answer."})
+                        continue
+                    break
+            except Exception:
+                pass
+            finally:
+                self._in_falsifier = prev_fals
+                self._in_question_answer = False
+
+            if ans_text:
+                clean = re.sub(r"```(?:bash|blackboard|submit).*?```", "", ans_text, flags=re.DOTALL).strip()
+                if not clean:
+                    clean = ans_text
+                posted = self.post_blackboard(
+                    "answer", clean, author=target, to=str(q.get("author") or ""), ref_id=str(q["id"])
+                )
+                if posted is not None:
+                    self.questions_answered += 1
+                    answered_now += 1
+        return answered_now
+
+    def duplicate_patch_rate(self) -> float:
+        if not self.candidate_shas:
+            return 0.0
+        return round(self.duplicate_patches / float(len(self.candidate_shas)), 4)
 
     # ------------------------------------------------------------------ #
     def by_id(self, role_id: str) -> Optional[RoleAllele]:
@@ -346,10 +655,11 @@ class HarnessOrg:
         extra_sys = ""
         if layer == "falsifier" and self.has_redteam and self.redteam.get("skeptic_default"):
             extra_sys = CALIBRATED_SKEPTIC_PROMPT
-        if (not persona and not extra_sys) or not messages or messages[0].get("role") != "system":
+        bb_sys = self.render_blackboard_for(specialist_name) if not self._in_question_answer else ""
+        if (not persona and not extra_sys and not bb_sys) or not messages or messages[0].get("role") != "system":
             return messages
         first = dict(messages[0])
-        first["content"] = str(first.get("content") or "") + persona + extra_sys
+        first["content"] = str(first.get("content") or "") + persona + extra_sys + bb_sys
         return [first] + list(messages[1:])
 
     # ------------------------------------------------------------------ #
@@ -371,6 +681,26 @@ class HarnessOrg:
         self.episodes.append({"episode": episode_idx, "node": node_id, "parent": parent_id, "layer": layer,
                               "role_id": role_id, "value": round(value, 4), "delta_v": round(delta_v, 4),
                               "falsifier_role_id": fals.role_id if fals else "", "falsifier_ok": falsifier_ok})
+        if self.has_redteam and self.redteam.get("blackboard_on"):
+            self.sync_blackboard_from_disk()
+            locus = str(getattr(node, "locus", "") or "")
+            claim = str(getattr(node, "hypothesis_claim", "") or "")[:160]
+            if value < 0.5 or falsifier_ok is False:
+                diag = str(getattr(node, "falsifier_critique", "") or "")[:140]
+                self.post_blackboard(
+                    "ruled_out",
+                    f"Node {node_id} ({locus}) rejected (v={value:.2f}): {claim} | {diag}",
+                    author=layer,
+                    episode=episode_idx,
+                )
+            elif claim:
+                self.post_blackboard(
+                    "hypothesis",
+                    f"Node {node_id} ({locus}, v={value:.2f}): {claim}",
+                    author=layer,
+                    episode=episode_idx,
+                )
+            self.answer_pending_questions()
         if delta_v < self.policy.stall_delta_u:
             self.stall_counter += 1
         else:
@@ -446,18 +776,26 @@ class HarnessOrg:
         return True, ""
 
     def attach(self, engine: Any) -> None:
-        """Wrap the engine's LLM-call, node-evaluation, and (in V17) red-team & reproduction hooks."""
+        """Wrap the engine's LLM-call, node-evaluation, and (in V17) red-team & blackboard hooks."""
         org = self
+        self._engine_ref = engine
         orig_call = getattr(engine, "_call_specialist_turn", None)
         orig_eval = getattr(engine, "evaluate_and_register_mcts_node", None)
         if orig_call is None or orig_eval is None:
             self.logger("[v16-org] engine lacks _call_specialist_turn/evaluate_and_register_mcts_node; org inactive")
             return
+        self._orig_call_ref = orig_call
 
         def _call(role_name: str, messages: List[Dict[str, str]], *args: Any, **kwargs: Any):
             res = orig_call(role_name, org.inject(role_name, messages), *args, **kwargs)
-            if org._in_falsifier and isinstance(res, tuple) and len(res) >= 1:
-                org._last_falsifier_text = str(res[0] or "")
+            txt = str(res[0] if isinstance(res, tuple) and len(res) >= 1 else (res or ""))
+            if org._in_falsifier:
+                org._last_falsifier_text = txt
+            if org.has_redteam and org.redteam.get("blackboard_on") and not org._in_question_answer:
+                author = layer_of(role_name) or ("recon" if "Recon" in role_name else "agent")
+                new_qs = org.ingest_blackboard_text(txt, author=author)
+                if new_qs:
+                    org.answer_pending_questions()
             return res
 
         def _eval(*args: Any, **kwargs: Any):
@@ -491,6 +829,7 @@ class HarnessOrg:
     def _attach_redteam_hooks(self, engine: Any) -> None:
         org = self
         orig_recon = getattr(engine, "run_recon_episode", None)
+        orig_arch = getattr(engine, "run_architect_episode", None)
         orig_verify = getattr(engine, "verify_current_workspace", None)
         orig_falsifier = getattr(engine, "run_falsifier_episode", None)
         orig_sr = getattr(engine, "execute_str_replace_tool", None)
@@ -498,7 +837,7 @@ class HarnessOrg:
         orig_bash = getattr(engine, "execute_bash_tool", None)
         orig_select = getattr(engine, "select_next_mcts_operation", None)
 
-        # 1. Lock reproduction script once verified failing on HEAD.
+        # 1. Lock reproduction script once verified failing on HEAD & populate blackboard from recon/architect.
         if orig_recon is not None:
             def _recon(*args: Any, **kwargs: Any):
                 brief = orig_recon(*args, **kwargs)
@@ -509,8 +848,41 @@ class HarnessOrg:
                             org._locked_repro = engine.executor.read_file(rel)
                     except Exception:
                         pass
+                if org.redteam.get("blackboard_on") and brief is not None:
+                    cfiles = list(getattr(brief, "candidate_files", None) or [])[:6]
+                    repro_ok = bool(getattr(brief, "repro_fails_on_head", False))
+                    summary = str(getattr(brief, "summary", "") or "")[:180]
+                    org.post_blackboard(
+                        "finding",
+                        f"Recon candidate_files={cfiles}; repro_fails_on_head={repro_ok}. {summary}",
+                        author="recon",
+                        episode=0,
+                    )
+                    org.sync_blackboard_from_disk()
+                    org.answer_pending_questions()
                 return brief
             engine.run_recon_episode = _recon
+
+        if orig_arch is not None:
+            def _arch(*args: Any, **kwargs: Any):
+                plan = orig_arch(*args, **kwargs)
+                if org.redteam.get("blackboard_on") and isinstance(plan, Mapping):
+                    diag = str(plan.get("root_cause_diagnosis") or "")[:180]
+                    loci = [
+                        f"{b.get('locus')}:{b.get('target_files', [])[:2]}"
+                        for b in (plan.get("branches") or [])[:3]
+                        if isinstance(b, Mapping)
+                    ]
+                    if diag or loci:
+                        org.post_blackboard(
+                            "decision",
+                            f"Architect diagnosis: {diag} | branches={loci}",
+                            author="architect",
+                            episode=0,
+                        )
+                    org.answer_pending_questions()
+                return plan
+            engine.run_architect_episode = _arch
 
         if orig_verify is not None:
             def _verify(*args: Any, **kwargs: Any):
@@ -596,7 +968,8 @@ class HarnessOrg:
                 return obs
             engine.execute_bash_tool = _bash
 
-        # 3. Wrap run_falsifier_episode for panel_size, max_turns, skeptic_default, evidence_tests, and verdict logging.
+        # 3. Wrap run_falsifier_episode for panel_size, max_turns, skeptic_default, evidence_tests,
+        #    duplicate-patch tracking, and blackboard failing_case sharing.
         if orig_falsifier is not None:
             def _falsifier(cp: Any, max_turns: int = 8) -> Tuple[bool, str]:
                 turns = int(org.redteam.get("max_turns") or max_turns)
@@ -606,6 +979,21 @@ class HarnessOrg:
                 final_ok = True
                 final_msg = ""
                 snap_cp = copy.deepcopy(cp)
+
+                diff_str = str(getattr(cp, "diff", "") or "")
+                diff_sha = hashlib.sha1(diff_str.encode("utf-8", errors="replace")).hexdigest()[:12]
+                if diff_str.strip():
+                    if diff_sha in org.candidate_shas:
+                        org.duplicate_patches += 1
+                        if org.redteam.get("blackboard_on"):
+                            cfiles = list(getattr(cp, "changed_files", None) or [])
+                            org.post_blackboard(
+                                "ruled_out",
+                                f"DUPLICATE PATCH ({diff_sha[:8]}) on {cfiles}: identical diff was already evaluated. "
+                                "Do NOT resubmit the same patch.",
+                                author="falsifier",
+                            )
+                    org.candidate_shas.append(diff_sha)
 
                 for idx, role in enumerate(panelists, 1):
                     org._active_falsifier_role = role
@@ -667,8 +1055,35 @@ class HarnessOrg:
                             last_rid, _, _ = panel_results[-1]
                             panel_results[-1] = (last_rid, False, ev_msg)
 
-                diff_str = str(getattr(cp, "diff", "") or "")
-                diff_sha = hashlib.sha1(diff_str.encode("utf-8", errors="replace")).hexdigest()[:12]
+                # Share executable failing test case on the blackboard when rejected
+                if not final_ok and org.redteam.get("blackboard_on") and org.redteam.get("falsifier_shares_tests"):
+                    suite_rel = getattr(engine, "falsification_script_rel", ".hae/falsification_suite.py")
+                    suite_snip = ""
+                    try:
+                        if engine.executor.exists(suite_rel):
+                            suite_snip = engine.executor.read_file(suite_rel).strip()[-200:]
+                    except Exception:
+                        pass
+                    fail_body = f"Patch {diff_sha[:8]} failed: {final_msg[:200]}"
+                    if suite_snip:
+                        fail_body += f" | test ({suite_rel}): {suite_snip}"
+                    posted_fc = org.post_blackboard("failing_case", fail_body, author="falsifier")
+                    if posted_fc is not None:
+                        org.failing_cases_shared += 1
+                    # If no concrete assertion/script was shared and question budget remains, ask falsifier for minimal input
+                    if (
+                        not suite_snip
+                        and "AssertionError" not in final_msg
+                        and int(org.redteam.get("max_questions") or 0) > org.questions_asked
+                    ):
+                        org.post_blackboard(
+                            "question",
+                            f"Which minimal Python input or test command breaks patch {diff_sha[:8]}?",
+                            author="refiner",
+                            to="falsifier",
+                        )
+                        org.answer_pending_questions()
+
                 org.verdicts.append({
                     "episode": org._current_episode_idx,
                     "node": org._current_node_id,
@@ -726,6 +1141,17 @@ class HarnessOrg:
             }
             out["edit_blocks_refused"] = self.edit_blocks_refused
             out["repro_restorations"] = self.repro_restorations
+            out["candidate_patches_total"] = len(self.candidate_shas)
+            out["duplicate_patches"] = self.duplicate_patches
+            out["duplicate_patch_rate"] = self.duplicate_patch_rate()
+            out["blackboard"] = {
+                "enabled": bool(self.redteam.get("blackboard_on")),
+                "entries_count": len(self.blackboard),
+                "questions_asked": self.questions_asked,
+                "questions_answered": self.questions_answered,
+                "failing_cases_shared": self.failing_cases_shared,
+                "entries": list(self.blackboard),
+            }
         return out
 
 

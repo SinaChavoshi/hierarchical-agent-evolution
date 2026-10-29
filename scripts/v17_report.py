@@ -82,6 +82,12 @@ def org_and_redteam_metrics(where: Dict[str, str], arm: str, g_meta: Dict[str, A
     verdicts_total = 0
     edit_blocks = 0
     repro_restores = 0
+    cand_total = 0
+    dup_total = 0
+    bb_entries = 0
+    bb_questions = 0
+    bb_answers = 0
+    bb_failing = 0
     tokens_list: List[int] = []
     role_dv: Dict[str, List[float]] = collections.defaultdict(list)
 
@@ -105,6 +111,13 @@ def org_and_redteam_metrics(where: Dict[str, str], arm: str, g_meta: Dict[str, A
             swaps += len(org.get("swaps") or [])
             edit_blocks += int(org.get("edit_blocks_refused") or 0)
             repro_restores += int(org.get("repro_restorations") or 0)
+            cand_total += int(org.get("candidate_patches_total") or 0)
+            dup_total += int(org.get("duplicate_patches") or 0)
+            bb = org.get("blackboard") or {}
+            bb_entries += int(bb.get("entries_count") or 0)
+            bb_questions += int(bb.get("questions_asked") or 0)
+            bb_answers += int(bb.get("questions_answered") or 0)
+            bb_failing += int(bb.get("failing_cases_shared") or 0)
             for layer, m in (org.get("team") or {}).items():
                 staffed[layer] += 1
                 hires[layer] += 0 if m.get("is_generalist") else 1
@@ -150,6 +163,7 @@ def org_and_redteam_metrics(where: Dict[str, str], arm: str, g_meta: Dict[str, A
     fpr = round(fp / (fp + tn), 3) if (fp + tn) > 0 else None
     sens = round(tp / (tp + fn), 3) if (tp + fn) > 0 else None
     spec = round(tn / (tn + fp), 3) if (tn + fp) > 0 else None
+    dup_rate = round(dup_total / cand_total, 3) if cand_total > 0 else 0.0
     return {
         "runs": runs,
         "mean_tokens": int(sum(tokens_list) / len(tokens_list)) if tokens_list else 0,
@@ -167,6 +181,15 @@ def org_and_redteam_metrics(where: Dict[str, str], arm: str, g_meta: Dict[str, A
             "specificity": spec,
             "edit_blocks_refused": edit_blocks,
             "repro_restorations": repro_restores,
+            "candidate_patches_total": cand_total,
+            "duplicate_patches": dup_total,
+            "duplicate_patch_rate": dup_rate,
+        },
+        "blackboard": {
+            "entries_total": bb_entries,
+            "questions_asked": bb_questions,
+            "questions_answered": bb_answers,
+            "failing_cases_shared": bb_failing,
         },
         "mean_delta_v_per_role": {k: round(sum(v) / len(v), 3) for k, v in role_dv.items()},
     }
@@ -209,7 +232,11 @@ def main() -> int:
     ap.add_argument("--dirs", nargs="+", required=True)
     ap.add_argument("--splits", default=DEFAULT_SPLITS)
     ap.add_argument("--evolve-dir", default="")
-    ap.add_argument("--pairs", nargs="*", default=["S:A17", "R:A17", "R:S", "R:Rr", "R:V12"])
+    ap.add_argument(
+        "--pairs",
+        nargs="*",
+        default=["S:A17", "B17:S", "Q17:B17", "Q17:S", "R:A17", "R:S", "R:Q17", "R:Rr", "R:V12"],
+    )
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
@@ -251,14 +278,17 @@ def main() -> int:
         print(json.dumps(out, indent=1))
         return 0
     print(f"{args.split}: {len(tasks)} tasks")
-    print(f"{'arm':<10} {'runs':<12} {'mean':>5} {'maj':>4} {'agree':>6} {'FPR':>6} {'TP/FP/TN/FN':<15} {'tokens':>8}")
+    print(f"{'arm':<8} {'runs':<10} {'mean':>5} {'maj':>4} {'agree':>6} {'FPR':>6} {'dup%':>6} {'TP/FP/TN/FN':<15} {'bb(e/q)':<9} {'tokens':>8}")
     for arm, a in out["arms"].items():
         rt = a["org"]["redteam"]
+        bb = a["org"]["blackboard"]
         cm = rt["confusion"]
         cm_s = f"{cm['tp']}/{cm['fp']}/{cm['tn']}/{cm['fn']}"
         fpr_s = f"{rt['false_pass_rate']:.2f}" if rt["false_pass_rate"] is not None else "  - "
-        print(f"{arm:<10} {str(a['runs']):<12} {a['mean']:>5} {a['majority']:>4} "
-              f"{str(a['run_agreement']):>6} {fpr_s:>6} {cm_s:<15} {a['org']['mean_tokens']:>8}")
+        dup_s = f"{rt['duplicate_patch_rate']*100:.1f}%"
+        bb_s = f"{bb['entries_total']}/{bb['questions_answered']}"
+        print(f"{arm:<8} {str(a['runs']):<10} {a['mean']:>5} {a['majority']:>4} "
+              f"{str(a['run_agreement']):>6} {fpr_s:>6} {dup_s:>6} {cm_s:<15} {bb_s:<9} {a['org']['mean_tokens']:>8}")
     for pair, p in out["pairs"].items():
         print(f"{pair}: {p['wins']}:{p['losses']} sign p={p['sign_p']}, Δrate={p['mean_rate_diff']:+.3f} CI95={p['ci95']}")
     if out.get("evolution", {}).get("generations"):
