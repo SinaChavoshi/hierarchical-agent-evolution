@@ -406,7 +406,12 @@ def call_openai_compatible_rest(
         headers.update(extra_headers)
 
     last_err = None
-    for attempt in range(max_retries):
+    # Connection-level failures (router restart, port-forward reconnect) are retried with
+    # exponential backoff for up to HAE_LLM_CONN_RETRY_S seconds without consuming attempts.
+    conn_deadline = time.monotonic() + float(os.environ.get("HAE_LLM_CONN_RETRY_S", "180"))
+    conn_failures = 0
+    attempt = 0
+    while attempt < max_retries:
         req = urllib.request.Request(url, data=body, headers=headers, method="POST")
         try:
             with urllib.request.urlopen(req, timeout=_request_timeout_s(effective_max_tokens)) as resp:
@@ -488,13 +493,31 @@ def call_openai_compatible_rest(
             last_err = f"HTTP {e.code}: {err_body}"
             if e.code in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
                 time.sleep((2 ** attempt) + 1.5)
+                attempt += 1
                 continue
             raise RuntimeError(f"OpenAI-compatible API error: {last_err}")
         except Exception as e:
             last_err = str(e)
+            if _is_connection_error(e) and time.monotonic() < conn_deadline:
+                time.sleep(min(30.0, 2.0 * (2 ** min(conn_failures, 4))))
+                conn_failures += 1
+                continue
+            attempt += 1
             time.sleep(2.0)
 
     raise RuntimeError(f"OpenAI-compatible API failed after {max_retries} attempts: {last_err}")
+
+
+def _is_connection_error(exc: BaseException) -> bool:
+    """True for transport failures where the request never reached the model server."""
+    import http.client
+    import socket
+    if isinstance(exc, urllib.error.URLError) and not isinstance(exc, urllib.error.HTTPError):
+        reason = getattr(exc, "reason", None)
+        if isinstance(reason, (socket.timeout, TimeoutError)):
+            return False
+        return True
+    return isinstance(exc, (ConnectionError, http.client.RemoteDisconnected, http.client.IncompleteRead))
 
 def call_anthropic_rest(
     prompt: str,

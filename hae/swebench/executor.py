@@ -357,6 +357,39 @@ class KubectlExecutor(_RemoteExecutor):
         argv += ["sh", "-c", 'cd "$1" && shift && exec "$@"', "sh", cwd]
         return argv
 
+    # kubectl/API-server errors raised before the command starts in the container. Safe to retry:
+    # the command never ran.
+    TRANSIENT_TRANSPORT_MARKERS = (
+        "Unable to connect to the server",
+        "TLS handshake timeout",
+        "unable to upgrade connection",
+        "error dialing backend",
+        "connect: connection timed out",
+        "connect: connection refused",
+        "i/o timeout",
+        "the server is currently unable to handle the request",
+        "http2: client connection lost",
+    )
+    transport_retry_s: float = float(os.environ.get("HAE_KUBECTL_RETRY_S", "90"))
+
+    def _is_transient_transport_failure(self, res: ExecResult) -> bool:
+        if res.rc == 0 or res.timed_out or res.stdout.strip():
+            return False
+        err = res.stderr or ""
+        return any(m in err for m in self.TRANSIENT_TRANSPORT_MARKERS)
+
+    def run(self, argv: Sequence[str], cwd: Optional[str] = None, timeout_s: float = 60.0,
+            env: Optional[Mapping[str, str]] = None, stdin: str = "",
+            interactive: Optional[bool] = None) -> ExecResult:
+        deadline = time.monotonic() + self.transport_retry_s
+        delay = 1.0
+        while True:
+            res = super().run(argv, cwd=cwd, timeout_s=timeout_s, env=env, stdin=stdin, interactive=interactive)
+            if not self._is_transient_transport_failure(res) or time.monotonic() + delay > deadline:
+                return res
+            time.sleep(delay)
+            delay = min(16.0, delay * 2)
+
     def describe(self) -> str:
         return f"kubectl:{self.namespace}/{self.pod}" + (f"/{self.container}" if self.container else "") + f":{self.root}"
 

@@ -20,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from hae.evolution.genome import HarnessGenome, TaskResult
+from hae.evolution.pod_pool import PodPool, interleave_jobs
 from hae.evolution.workspace import WorktreeManager
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -39,7 +40,7 @@ class GenomeEvaluator:
                  worktrees: WorktreeManager, vllm_url: str, vllm_model: str, context: str,
                  workers: int = 4, budget_moves: int = 30, max_iterations: int = 2,
                  instance_timeout_s: int = 2400, pod_tag: str = "v15",
-                 logger: Callable[[str], None] = print) -> None:
+                 logger: Callable[[str], None] = print, prewarm_pods: int = 4) -> None:
         self.batch = _load_batch_module()
         self.out_root = os.path.abspath(out_root)
         self.evals_root = os.path.join(self.out_root, "evals")
@@ -60,6 +61,8 @@ class GenomeEvaluator:
         self.pod_tag = re.sub(r"[^a-z0-9-]", "", pod_tag.lower())[:10] or "v15"
         self.logger = logger
         self._lock = threading.Lock()
+        self.pool = PodPool(create=self._ensure_pod, delete=lambda pod: self.batch.delete_pod(pod, self.context),
+                            name=lambda iid: self._pod_name("pool", iid), lookahead=prewarm_pods)
 
     # ------------------------------------------------------------------ #
     def genome_config_path(self, genome: HarnessGenome) -> str:
@@ -186,10 +189,9 @@ class GenomeEvaluator:
         d = os.path.join(self.evals_root, genome.genome_id, instance_id)
         if os.path.exists(os.path.join(d, "grade.json")):
             return self._result_from_dir(genome.genome_id, instance_id)
-        pod = self._pod_name(genome.genome_id, instance_id)
-        err = self._ensure_pod(pod, instance_id)
+        pod, err = self.pool.acquire(instance_id)
         if err:
-            self.batch.delete_pod(pod, self.context)
+            self.pool.release(pod)
             self.logger(f"[v15-eval] {genome.genome_id} {instance_id}: {err}")
             return TaskResult(instance_id=instance_id, status=f"pod_error")
         status = "ok"
@@ -210,13 +212,13 @@ class GenomeEvaluator:
         except Exception as exc:
             status = f"error: {type(exc).__name__}: {exc}"[:200]
         finally:
-            self.batch.delete_pod(pod, self.context)
+            self.pool.release(pod)
         return self._result_from_dir(genome.genome_id, instance_id, status=status)
 
     # ------------------------------------------------------------------ #
     def evaluate(self, genomes: Sequence[HarnessGenome], task_ids: Sequence[str]) -> None:
         """Evaluate every genome on every task it has not been evaluated on yet (in place)."""
-        jobs: List[Tuple[HarnessGenome, str, str, str]] = []
+        prepared: Dict[str, Tuple[HarnessGenome, str, str, List[str]]] = {}
         for g in genomes:
             todo = [t for t in task_ids if t not in g.results]
             if not todo:
@@ -227,12 +229,16 @@ class GenomeEvaluator:
                 for t in todo:
                     g.results[t] = TaskResult(instance_id=t, status="materialize_error")
                 continue
-            cfg = self.genome_config_path(g)
-            jobs += [(g, t, path, cfg) for t in todo]
-        if not jobs:
+            prepared[g.genome_id] = (g, path, self.genome_config_path(g), todo)
+        if not prepared:
             return
-        self.logger(f"[v15-eval] {len(jobs)} job(s) across {len({j[0].genome_id for j in jobs})} genome(s), "
-                    f"{self.workers} worker(s)")
+        # Interleave so every genome runs under the same cluster load over the course of the run.
+        order = interleave_jobs(list(prepared), {gid: v[3] for gid, v in prepared.items()}, list(task_ids))
+        jobs = [(prepared[gid][0], t, prepared[gid][1], prepared[gid][2]) for gid, t in order]
+        self.logger(f"[v15-eval] {len(jobs)} job(s) across {len(prepared)} genome(s), "
+                    f"{self.workers} worker(s), prewarm={self.pool.lookahead}")
+        self.pool.set_queue([t for g, t, _, _ in jobs if not os.path.exists(
+            os.path.join(self.evals_root, g.genome_id, t, "grade.json"))])
         t0 = time.time()
         with ThreadPoolExecutor(max_workers=self.workers) as pool:
             futs = {pool.submit(self._run_job, g, t, p, c): (g, t) for g, t, p, c in jobs}
@@ -247,3 +253,4 @@ class GenomeEvaluator:
                 self.logger(f"[v15-eval] ({i}/{len(jobs)}, {time.time()-t0:.0f}s) {g.genome_id} {t}: "
                             f"resolved={r.resolved} f2p={r.f2p_passed}/{r.f2p_total} tokens={r.tokens//1000}k "
                             f"stop={r.stop} status={r.status}")
+        self.logger(f"[v15-eval] pod pool: {self.pool.stats}")

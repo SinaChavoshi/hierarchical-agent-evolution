@@ -19,6 +19,16 @@ GATE_TEST_MODULES: List[str] = [
 ]
 
 
+# Infrastructure files that are not part of any candidate. They are copied from this repository into
+# every worktree on every `materialize` call (including cached worktrees), so all candidates run on
+# the same, current infrastructure (LLM client retries, kubectl transport retries, org binding).
+INFRA_SYNC_FILES: List[str] = [
+    "hae/infra/llm.py",
+    "hae/swebench/executor.py",
+    "hae/swebench/org_binding.py",
+]
+
+
 def _run(cmd: List[str], cwd: str, timeout: float = 300.0, env: Optional[dict] = None) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                           errors="replace", timeout=timeout, env=env)
@@ -34,11 +44,29 @@ class GateResult:
 class WorktreeManager:
     """Creates one detached git worktree per genome under `root_dir`."""
 
-    def __init__(self, repo_root: str, base_ref: str, root_dir: str) -> None:
+    def __init__(self, repo_root: str, base_ref: str, root_dir: str, sync_infra: bool = True) -> None:
         self.repo_root = os.path.abspath(repo_root)
         self.base_ref = base_ref
         self.root_dir = os.path.abspath(root_dir)
+        self.sync_infra = sync_infra
         os.makedirs(self.root_dir, exist_ok=True)
+
+    def infra_commit(self) -> str:
+        """Commit of this repository plus a dirty marker, recorded with every run."""
+        head = _run(["git", "rev-parse", "HEAD"], cwd=self.repo_root, timeout=30).stdout.strip()
+        dirty = _run(["git", "status", "--porcelain", "--", *INFRA_SYNC_FILES], cwd=self.repo_root,
+                     timeout=30).stdout.strip()
+        return head + ("+dirty" if dirty else "")
+
+    def _sync_infra(self, path: str) -> None:
+        if not self.sync_infra:
+            return
+        for rel in INFRA_SYNC_FILES:
+            src = os.path.join(self.repo_root, rel)
+            if os.path.exists(src):
+                dst = os.path.join(path, rel)
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copyfile(src, dst)
 
     def path_for(self, genome_id: str) -> str:
         return os.path.join(self.root_dir, genome_id)
@@ -47,6 +75,7 @@ class WorktreeManager:
         """Create (or reuse) the worktree for `genome`. Returns `(path, error)`."""
         path = self.path_for(genome.genome_id)
         if os.path.isdir(os.path.join(path, "hae")):
+            self._sync_infra(path)
             return path, None
         if os.path.exists(path):
             shutil.rmtree(path, ignore_errors=True)
@@ -59,6 +88,7 @@ class WorktreeManager:
             if not ok:
                 self.remove(genome.genome_id)
                 return path, f"patch does not apply: {msg}"
+        self._sync_infra(path)
         return path, None
 
     def remove(self, genome_id: str) -> None:
@@ -101,7 +131,8 @@ def run_gate(worktree: str, timeout: float = 600.0) -> GateResult:
     """Safety gate: the patch touches only evolvable files, compiles, and passes the gate unit tests."""
     patch = current_patch(worktree)
     stray = _run(["git", "status", "--porcelain"], cwd=worktree, timeout=60).stdout.splitlines()
-    stray_files = [ln[3:].strip() for ln in stray if ln[3:].strip() and ln[3:].strip() not in EVOLVABLE_FILES]
+    allowed = set(EVOLVABLE_FILES) | set(INFRA_SYNC_FILES)
+    stray_files = [ln[3:].strip() for ln in stray if ln[3:].strip() and ln[3:].strip() not in allowed]
     if stray_files:
         return GateResult(False, "scope", f"edits outside evolvable files: {stray_files[:5]}")
     for rel in touched_files(patch):
