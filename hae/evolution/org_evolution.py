@@ -1,11 +1,14 @@
-"""V16: evolution operators for a genome's organization (role library + CEO policy + org_mode).
+"""V16/V17: evolution operators for a genome's organization and red team.
 
-  role_rewrite   the LLM rewrites one specialist using the role's measured credit and the parent's
-                 org evidence (never generalists);
-  role_add       the LLM writes one new specialist for a layer;
-  role_remove    drop one specialist (generalists are never removed);
-  ceo_mutate     jitter 1-3 CEO-policy genes within bounds; flip static <-> dynamic with p=0.2;
-  org_crossover  union of two role libraries (capped) + uniform CEO-policy crossover.
+  role_rewrite     the LLM rewrites one specialist using the role's measured credit and the parent's
+                   org evidence (never generalists);
+  redteam_rewrite  (V17) the LLM rewrites a red-team (`falsifier`) specialist from its verdict
+                   confusion matrix (TP/FP/TN/FN counts and the red team's own critique strings,
+                   never hidden-test content);
+  role_add         the LLM writes one new specialist for a layer;
+  role_remove      drop one specialist (generalists are never removed);
+  ceo_mutate       jitter 1-3 CEO-policy genes within bounds; flip static <-> dynamic with p=0.2;
+  org_crossover    union of two role libraries (capped) + uniform CEO-policy crossover.
 
 Every LLM-written role passes `RoleGates` (leakage, ban list, schema, lengths) or the operator
 returns None. `random_org` is the matched random-search control (no LLM, no evidence).
@@ -21,11 +24,17 @@ import re
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from hae.evolution.role_gates import LLM_LAYERS, RoleGates, to_allele
-from hae.genome.schema import CEO_POLICY_BOUNDS, MAX_ROLE_LIBRARY, CEOPolicyGene
+from hae.genome.schema import CEO_POLICY_BOUNDS, DELTA_U_SCALE, MAX_ROLE_LIBRARY, CEOPolicyGene
 
-# Falsifier credit per graded run: +FALSIFIER_CREDIT when it passed the final patch and the hidden
-# tests agreed, -FALSIFIER_CREDIT when it passed a patch the hidden tests reject.
+# V16 fallback when labelled verdicts are absent:
 FALSIFIER_CREDIT = 0.1
+# V17 per-verdict credit scaled by DELTA_U_SCALE so +1 maps to quality=1.0:
+# correct (+1), false pass (-2), false reject (-1).
+VERDICT_CREDIT_TP = 1.0 * DELTA_U_SCALE
+VERDICT_CREDIT_TN = 1.0 * DELTA_U_SCALE
+VERDICT_CREDIT_FP = -2.0 * DELTA_U_SCALE
+VERDICT_CREDIT_FN = -1.0 * DELTA_U_SCALE
+
 CEO_EVOLVABLE = ("exploration_c", "optimistic_prior", "stall_delta_u", "stall_moves", "recruit_w_stall",
                  "recruit_w_headcount", "recruit_bias", "recruit_cooldown_moves")
 
@@ -35,14 +44,16 @@ CEO_EVOLVABLE = ("exploration_c", "optimistic_prior", "stall_delta_u", "stall_mo
 # --------------------------------------------------------------------------- #
 
 def aggregate_role_stats(org_records: Sequence[Mapping[str, Any]]) -> Dict[str, Dict[str, float]]:
-    """Per role: episodes, sum of ΔV, tasks staffed, tasks resolved (from graded runs)."""
+    """Per role: episodes, sum of ΔV, tasks staffed, tasks resolved, plus V17 verdict confusion counts."""
     out: Dict[str, Dict[str, float]] = {}
 
     def st(rid: str) -> Dict[str, float]:
-        return out.setdefault(rid, {"episodes": 0, "sum_delta_v": 0.0, "tasks": 0, "resolved": 0})
+        return out.setdefault(rid, {"episodes": 0, "sum_delta_v": 0.0, "tasks": 0, "resolved": 0,
+                                    "tp": 0, "fp": 0, "tn": 0, "fn": 0})
 
     for rec in org_records:
         org = rec.get("org") or {}
+        vg = rec.get("verdicts_grade") or {}
         resolved = bool(rec.get("resolved"))
         staffed = set()
         for rid, c in (org.get("credits") or {}).items():
@@ -52,14 +63,41 @@ def aggregate_role_stats(org_records: Sequence[Mapping[str, Any]]) -> Dict[str, 
             staffed.add(rid)
         for layer, member in (org.get("team") or {}).items():
             staffed.add(member.get("role_id", ""))
-        eps = org.get("episodes") or []
-        last_ok = [e for e in eps if e.get("falsifier_ok") is not None]
-        if last_ok:
-            fid = last_ok[-1].get("falsifier_role_id") or ""
-            if fid and last_ok[-1].get("falsifier_ok"):
-                s = st(fid)
-                s["episodes"] += 1
-                s["sum_delta_v"] += FALSIFIER_CREDIT if resolved else -FALSIFIER_CREDIT
+
+        labelled = vg.get("labelled_verdicts") or []
+        if labelled:
+            for vd in labelled:
+                gt = bool(vd.get("ground_truth_resolved"))
+                for p in (vd.get("panel") or []):
+                    fid = str(p.get("role_id") or "")
+                    if not fid:
+                        continue
+                    passed = bool(p.get("passed"))
+                    s = st(fid)
+                    s["episodes"] += 1
+                    staffed.add(fid)
+                    if passed and gt:
+                        s["tp"] += 1
+                        s["sum_delta_v"] += VERDICT_CREDIT_TP
+                    elif passed and not gt:
+                        s["fp"] += 1
+                        s["sum_delta_v"] += VERDICT_CREDIT_FP
+                    elif not passed and not gt:
+                        s["tn"] += 1
+                        s["sum_delta_v"] += VERDICT_CREDIT_TN
+                    else:
+                        s["fn"] += 1
+                        s["sum_delta_v"] += VERDICT_CREDIT_FN
+        else:
+            eps = org.get("episodes") or []
+            last_ok = [e for e in eps if e.get("falsifier_ok") is not None]
+            if last_ok:
+                fid = last_ok[-1].get("falsifier_role_id") or ""
+                if fid and last_ok[-1].get("falsifier_ok"):
+                    s = st(fid)
+                    s["episodes"] += 1
+                    s["sum_delta_v"] += FALSIFIER_CREDIT if resolved else -FALSIFIER_CREDIT
+
         for rid in staffed:
             if rid:
                 s = st(rid)
@@ -102,12 +140,59 @@ def org_digest(roles: Sequence[Mapping[str, Any]], stats: Mapping[str, Mapping[s
             continue
         ep = int(s.get("episodes") or 0)
         mean = (float(s.get("sum_delta_v") or 0) / ep) if ep else 0.0
+        extra_rt = ""
+        if int(s.get("tp", 0) + s.get("fp", 0) + s.get("tn", 0) + s.get("fn", 0)) > 0:
+            extra_rt = (f" [verdicts: TP={int(s.get('tp', 0))}, FP={int(s.get('fp', 0))}, "
+                        f"TN={int(s.get('tn', 0))}, FN={int(s.get('fn', 0))}]")
         lines.append(f"- {r.get('name')} ({r.get('layer')}{', generalist' if r.get('is_generalist') else ''}): "
                      f"staffed on {int(s.get('tasks', 0))} runs ({int(s.get('resolved', 0))} resolved), "
-                     f"{ep} credited episodes, mean ΔV {mean:+.3f}")
+                     f"{ep} credited episodes, mean ΔV {mean:+.3f}{extra_rt}")
     unused = [r.get("name") for r in roles if r.get("role_id") not in stats and r.get("layer") in LLM_LAYERS]
     if unused:
         lines.append("Never staffed: " + ", ".join(unused))
+    return "\n".join(lines)
+
+
+def _sanitize_critique(text: str) -> str:
+    """Strip file paths, module names, and issue identifiers so only general failure patterns remain."""
+    s = re.sub(r"[A-Za-z0-9_./-]+\.py(?:::[A-Za-z0-9_:\[\]-]+)?", "<file>", text or "")
+    s = re.sub(r"\b[a-z0-9_]+__[a-z0-9_-]+\b", "<task>", s, flags=re.I)
+    return s[:220].strip()
+
+
+def redteam_digest(roles: Sequence[Mapping[str, Any]], stats: Mapping[str, Mapping[str, float]],
+                   org_records: Sequence[Mapping[str, Any]]) -> str:
+    """Confusion matrix and sanitized false-PASS / false-REJECT notes of the red team (never hidden-test content)."""
+    tp = fp = tn = fn = 0
+    fp_reasons: List[str] = []
+    fn_reasons: List[str] = []
+    for rec in org_records:
+        vg = rec.get("verdicts_grade") or {}
+        tp += int(vg.get("rt_tp") or 0)
+        fp += int(vg.get("rt_fp") or 0)
+        tn += int(vg.get("rt_tn") or 0)
+        fn += int(vg.get("rt_fn") or 0)
+        for vd in (vg.get("labelled_verdicts") or []):
+            gt = bool(vd.get("ground_truth_resolved"))
+            for p in (vd.get("panel") or []):
+                crit = _sanitize_critique(str(p.get("critique") or ""))
+                if not crit:
+                    continue
+                if p.get("passed") and not gt and len(fp_reasons) < 4:
+                    fp_reasons.append(f"False PASS rationale: {crit}")
+                elif (not p.get("passed")) and gt and len(fn_reasons) < 3:
+                    fn_reasons.append(f"False REJECT rationale: {crit}")
+    lines = [
+        f"Red-team confusion matrix across training runs: True PASS (TP)={tp}, False PASS (FP)={fp}, "
+        f"True REJECT (TN)={tn}, False REJECT (FN)={fn}.",
+        org_digest(roles, stats, org_records),
+    ]
+    if fp_reasons:
+        lines.append("Sample False-PASS rationales (where the red team certified an incomplete/broken patch):")
+        lines += [f"  * {x}" for x in fp_reasons]
+    if fn_reasons:
+        lines.append("Sample False-REJECT rationales (where the red team rejected a valid patch):")
+        lines += [f"  * {x}" for x in fn_reasons]
     return "\n".join(lines)
 
 
@@ -144,7 +229,7 @@ LAYERS_TEXT = (
     "architect: one JSON call that writes the verification contract and 3 causal branches (no tools).\n"
     "executor: multi-turn GEN episode from clean HEAD (bash, view_file, str_replace, submit).\n"
     "refiner: multi-turn CONT episode that fixes a parent patch from its critique.\n"
-    "falsifier: multi-turn adversarial audit, returns VERDICT: PASS or VERDICT: FAIL: <reason>."
+    "falsifier: multi-turn read/test-only adversarial audit, returns VERDICT: PASS or VERDICT: FAIL: <reason>."
 )
 
 
@@ -183,7 +268,6 @@ class OrgMutator:
         specs = _specialists(roles)
         if not specs:
             return None, "no specialist to rewrite"
-        # Prefer used roles with the lowest measured ΔV; otherwise a random specialist.
         used = [r for r in specs if int(r.get("uses") or 0) > 0]
         target = min(used, key=lambda r: float(r.get("mean_delta_u") or 0)) if used and rng.random() < 0.7 else rng.choice(specs)
         prompt = (f"## Harness layers\n{LAYERS_TEXT}\n\n## How the organization performed\n{digest}\n\n"
@@ -196,17 +280,46 @@ class OrgMutator:
         new = self._ask_role(prompt, target["layer"], generation, f"v16-rewrite:{target['role_id']}")
         if new is None:
             return None, f"rewrite of {target['name']} failed gates"
-        new["role_id"] = target["role_id"]  # same slot; statistics restart with the new text
+        new["role_id"] = target["role_id"]
         new["uses"], new["mean_delta_u"], new["tasks_resolved"] = 0, 0.0, 0
         out = [new if r.get("role_id") == target["role_id"] else dict(r) for r in roles]
         return out, f"role_rewrite {target['name']} -> {new['name']}"
 
+    def redteam_rewrite(self, roles: List[Dict[str, Any]], rt_digest: str, rng: random.Random,
+                        generation: int) -> Tuple[Optional[List[Dict[str, Any]]], str]:
+        """V17: rewrite a red-team (`falsifier`) specialist from its confusion matrix to eliminate False PASSes."""
+        fals_specs = [r for r in _specialists(roles) if r.get("layer") == "falsifier"]
+        if not fals_specs:
+            return self.role_add(roles, rt_digest, rng, generation, force_layer="falsifier")
+        used = [r for r in fals_specs if int(r.get("uses") or 0) > 0]
+        target = min(used, key=lambda r: float(r.get("mean_delta_u") or 0)) if used else rng.choice(fals_specs)
+        prompt = (f"## Red-Team Falsifier Calibration Task\n"
+                  f"The falsifier layer is a strictly read/test-only evaluator that audits candidate patches and "
+                  f"emits VERDICT: PASS or VERDICT: FAIL: <reason>. A False PASS counts double negative.\n\n"
+                  f"## Red-Team Confusion Matrix & Evidence\n{rt_digest}\n\n"
+                  f"## Falsifier Role to Rewrite\n"
+                  + json.dumps({k: target.get(k) for k in ("name", "goal", "backstory", "playbook", "failure_modes",
+                                                            "domain_tags", "temperature")}, indent=1)
+                  + "\n\nRewrite this falsifier role to cut False PASSes while preserving True PASSes: require "
+                    "concrete executable checks (boundary values, sibling method/class parity, return types, "
+                    "exception/warning classes, and running existing module tests) before approving. "
+                    "Playbook 4-8 steps <= 200 chars each; domain_tags 5-12 general lowercase words. Output: " + ROLE_JSON)
+        new = self._ask_role(prompt, "falsifier", generation, f"v17-rt-rewrite:{target['role_id']}")
+        if new is None:
+            return None, f"redteam_rewrite of {target['name']} failed gates"
+        new["role_id"] = target["role_id"]
+        new["uses"], new["mean_delta_u"], new["tasks_resolved"] = 0, 0.0, 0
+        out = [new if r.get("role_id") == target["role_id"] else dict(r) for r in roles]
+        return out, f"redteam_rewrite {target['name']} -> {new['name']}"
+
     def role_add(self, roles: List[Dict[str, Any]], digest: str, rng: random.Random,
-                 generation: int) -> Tuple[Optional[List[Dict[str, Any]]], str]:
+                 generation: int, force_layer: Optional[str] = None) -> Tuple[Optional[List[Dict[str, Any]]], str]:
         if len(roles) >= MAX_ROLE_LIBRARY:
             return None, "library full"
         counts = {layer: sum(1 for r in _specialists(roles) if r["layer"] == layer) for layer in LLM_LAYERS}
-        layer = rng.choice([l for l in LLM_LAYERS if counts[l] == min(counts.values())] if rng.random() < 0.5 else list(LLM_LAYERS))
+        layer = force_layer or rng.choice(
+            [l for l in LLM_LAYERS if counts[l] == min(counts.values())] if rng.random() < 0.5 else list(LLM_LAYERS)
+        )
         existing = "\n".join(f"- {r['name']} ({r['layer']}): {r.get('goal', '')}" for r in _specialists(roles))
         prompt = (f"## Harness layers\n{LAYERS_TEXT}\n\n## How the organization performed\n{digest}\n\n"
                   f"## Existing specialists\n{existing}\n\nWrite ONE new {layer} specialist that targets a failure "
@@ -287,5 +400,5 @@ def generalists_present(roles: Sequence[Mapping[str, Any]]) -> bool:
     return set(LLM_LAYERS) <= layers
 
 
-__all__ = ["aggregate_role_stats", "apply_role_stats", "org_digest", "OrgMutator", "role_remove", "ceo_mutate",
-           "org_crossover", "random_org", "generalists_present"]
+__all__ = ["aggregate_role_stats", "apply_role_stats", "org_digest", "redteam_digest", "OrgMutator",
+           "role_remove", "ceo_mutate", "org_crossover", "random_org", "generalists_present"]

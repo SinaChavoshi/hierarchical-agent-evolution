@@ -3,7 +3,9 @@
 Each (genome, task) job:
   1. runs the agent from the genome's materialized worktree (`harness_root`) with the genome's knobs,
   2. grades the prediction with this repository's `scripts/grade_in_testbed.py` (never the candidate's),
-  3. caches `prediction.json` / `record.json` / `grade.json` so a restarted run resumes.
+  3. (V17, training split only when `label_verdicts=True`) labels every red-team checkpoint verdict
+     against the hidden tests while the pod is still up,
+  4. caches `prediction.json` / `record.json` / `grade.json` / `verdicts_grade.json` so a restarted run resumes.
 """
 
 from __future__ import annotations
@@ -14,6 +16,8 @@ import importlib.util
 import json
 import os
 import re
+import subprocess
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -24,6 +28,7 @@ from hae.evolution.pod_pool import PodPool, interleave_jobs
 from hae.evolution.workspace import WorktreeManager
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+GRADE_SCRIPT = os.path.join(REPO_ROOT, "scripts", "grade_in_testbed.py")
 
 
 def _load_batch_module():
@@ -40,7 +45,8 @@ class GenomeEvaluator:
                  worktrees: WorktreeManager, vllm_url: str, vllm_model: str, context: str,
                  workers: int = 4, budget_moves: int = 30, max_iterations: int = 2,
                  instance_timeout_s: int = 2400, pod_tag: str = "v15",
-                 logger: Callable[[str], None] = print, prewarm_pods: int = 4) -> None:
+                 logger: Callable[[str], None] = print, prewarm_pods: int = 4,
+                 label_verdicts: bool = False) -> None:
         self.batch = _load_batch_module()
         self.out_root = os.path.abspath(out_root)
         self.evals_root = os.path.join(self.out_root, "evals")
@@ -60,6 +66,7 @@ class GenomeEvaluator:
         self.instance_timeout_s = instance_timeout_s
         self.pod_tag = re.sub(r"[^a-z0-9-]", "", pod_tag.lower())[:10] or "v15"
         self.logger = logger
+        self.label_verdicts = bool(label_verdicts)
         self._lock = threading.Lock()
         # V16: infra failures are never scored; a job still failing after this many retries keeps an
         # infra status (not `ok`) so reports can exclude it and it can be re-run.
@@ -75,6 +82,8 @@ class GenomeEvaluator:
         pol["v15_knobs"] = dict(genome.knobs)  # unknown keys land in `EpistemicPolicyGene.extra`
         # V16: the genome's organization. org_mode off leaves the harness exactly V15.
         pol["v16_org"] = genome.org_mode
+        if genome.has_redteam:
+            pol["v17_redteam"] = dict(genome.redteam)
         if genome.roles:
             cfg["role_library"] = [dict(r) for r in genome.roles]
         if genome.ceo_policy:
@@ -116,15 +125,116 @@ class GenomeEvaluator:
             return f"pod not Ready: {wait.stdout.strip()[-300:]}"
         return None
 
+    def _label_verdicts_in_pod(self, pod: str, instance_id: str, d: str) -> None:
+        """V17 (training split only): grade each candidate patch judged by the red team while `pod` is up."""
+        vg_path = os.path.join(d, "verdicts_grade.json")
+        if os.path.exists(vg_path):
+            return
+        try:
+            rec = json.load(open(os.path.join(d, "record.json"), encoding="utf-8"))
+            grade = json.load(open(os.path.join(d, "grade.json"), encoding="utf-8"))
+            pred = json.load(open(os.path.join(d, "prediction.json"), encoding="utf-8"))
+        except Exception:
+            return
+        swe = rec.get("swebench") or {}
+        org = swe.get("org") or {}
+        verdicts = list(org.get("verdicts") or [])
+        patches = dict(org.get("verdict_patches") or {})
+        final_patch = (pred.get("model_patch") or "").strip()
+        final_sha = hashlib.sha1(final_patch.encode("utf-8", errors="replace")).hexdigest()[:12] if final_patch else ""
+        final_resolved = bool(grade.get("resolved"))
+
+        # Fallback when `verdicts` was not populated (e.g. A17 with org_mode=off and no v17_redteam):
+        # derive the single final falsifier verdict from mcts_tree if any node ran the falsifier.
+        if not verdicts:
+            mcts_tree = ((rec.get("epistemic_search") or {}).get("stats") or {}).get("mcts_tree") or {}
+            for nid, nd in mcts_tree.items():
+                if nid != "root" and nd.get("falsifier_ok") is not None and (nd.get("repro_ok") and nd.get("repo_tests_ok")):
+                    verdicts.append({
+                        "episode": 1,
+                        "node": nid,
+                        "diff_sha": final_sha,
+                        "panel": [{"role_id": "generalist_falsifier", "passed": bool(nd.get("falsifier_ok")), "critique": ""}],
+                        "falsifier_ok": bool(nd.get("falsifier_ok")),
+                    })
+
+        resolved_by_sha: Dict[str, bool] = {}
+        if final_sha:
+            resolved_by_sha[final_sha] = final_resolved
+        extra_graded = 0
+        for vd in verdicts:
+            sha = str(vd.get("diff_sha") or "")
+            if not sha or sha in resolved_by_sha:
+                continue
+            patch_str = (patches.get(sha) or "").strip()
+            if not patch_str:
+                resolved_by_sha[sha] = False
+                continue
+            if patch_str == final_patch:
+                resolved_by_sha[sha] = final_resolved
+                continue
+            if extra_graded >= 2 or not pod:
+                resolved_by_sha[sha] = final_resolved
+                continue
+            extra_graded += 1
+            v_pred = os.path.join(d, f"verdict_{sha}.pred.json")
+            v_grade = os.path.join(d, f"verdict_{sha}.grade.json")
+            try:
+                if not os.path.exists(v_grade):
+                    with open(v_pred, "w", encoding="utf-8") as fh:
+                        json.dump({"instance_id": instance_id, "model_name_or_path": "v17-verdict",
+                                   "model_patch": patch_str + ("\n" if not patch_str.endswith("\n") else "")}, fh)
+                    cmd = [
+                        sys.executable, GRADE_SCRIPT,
+                        "--instance-id", instance_id,
+                        "--dataset", self.dataset_by_task[instance_id],
+                        "--executor", "kubectl", "--pod", pod, "--container", "testbed",
+                        "--prediction", v_pred,
+                        "--out", v_grade,
+                    ]
+                    subprocess.run(cmd, cwd=REPO_ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   timeout=600, text=True, errors="replace")
+                vg_obj = json.load(open(v_grade, encoding="utf-8")) if os.path.exists(v_grade) else {}
+                resolved_by_sha[sha] = bool(vg_obj.get("resolved"))
+            except Exception:
+                resolved_by_sha[sha] = False
+
+        tp = fp = tn = fn = 0
+        labelled: List[Dict[str, Any]] = []
+        for vd in verdicts:
+            sha = str(vd.get("diff_sha") or "")
+            gt = bool(resolved_by_sha.get(sha, final_resolved))
+            passed = bool(vd.get("falsifier_ok"))
+            if passed and gt:
+                tp += 1
+            elif passed and not gt:
+                fp += 1
+            elif not passed and not gt:
+                tn += 1
+            else:
+                fn += 1
+            labelled.append({**vd, "ground_truth_resolved": gt})
+
+        with open(vg_path, "w", encoding="utf-8") as fh:
+            json.dump({
+                "instance_id": instance_id,
+                "rt_tp": tp, "rt_fp": fp, "rt_tn": tn, "rt_fn": fn,
+                "labelled_verdicts": labelled,
+            }, fh, indent=1, sort_keys=True)
+
     def _result_from_dir(self, genome_id: str, instance_id: str, status: str = "ok") -> TaskResult:
         d = os.path.join(self.evals_root, genome_id, instance_id)
-        rec, grade = {}, {}
+        rec, grade, vg = {}, {}, {}
         try:
             rec = json.load(open(os.path.join(d, "record.json"), encoding="utf-8"))
         except Exception:
             pass
         try:
             grade = json.load(open(os.path.join(d, "grade.json"), encoding="utf-8"))
+        except Exception:
+            pass
+        try:
+            vg = json.load(open(os.path.join(d, "verdicts_grade.json"), encoding="utf-8"))
         except Exception:
             pass
         swe = rec.get("swebench") or {}
@@ -140,10 +250,14 @@ class GenomeEvaluator:
             moves_used=int(swe.get("moves_used") or 0),
             stop=str(swe.get("stop") or ""),
             status=status if grade else (status if status != "ok" else "no_grade"),
+            rt_tp=int(vg.get("rt_tp") or 0),
+            rt_fp=int(vg.get("rt_fp") or 0),
+            rt_tn=int(vg.get("rt_tn") or 0),
+            rt_fn=int(vg.get("rt_fn") or 0),
         )
 
     def org_records(self, genome_id: str, task_ids: Optional[Sequence[str]] = None) -> List[Dict[str, Any]]:
-        """`record.json["swebench"]["org"]` blocks (plus the graded outcome) of a genome's runs."""
+        """`record.json["swebench"]["org"]` blocks (plus graded outcome and V17 labelled verdicts) of a genome's runs."""
         out: List[Dict[str, Any]] = []
         root = os.path.join(self.evals_root, genome_id)
         if not os.path.isdir(root):
@@ -155,9 +269,21 @@ class GenomeEvaluator:
                 grade = json.load(open(os.path.join(d, "grade.json"), encoding="utf-8"))
             except Exception:
                 continue
+            vg = {}
+            vg_path = os.path.join(d, "verdicts_grade.json")
+            if os.path.exists(vg_path):
+                try:
+                    vg = json.load(open(vg_path, encoding="utf-8"))
+                except Exception:
+                    vg = {}
             org = (rec.get("swebench") or {}).get("org")
-            if org:
-                out.append({"task": t, "resolved": bool(grade.get("resolved")), "org": org})
+            if org or vg:
+                out.append({
+                    "task": t,
+                    "resolved": bool(grade.get("resolved")),
+                    "org": org or {},
+                    "verdicts_grade": vg,
+                })
         return out
 
     def log_tail(self, genome_id: str, instance_id: str, n_chars: int = 6000) -> str:
@@ -169,11 +295,7 @@ class GenomeEvaluator:
             return ""
 
     def _run_job(self, genome: HarnessGenome, instance_id: str, harness_root: str, genome_cfg: str) -> TaskResult:
-        """Run one job, retrying (up to 2 more times) when it failed for infrastructure reasons.
-
-        A failure caused by the Kubernetes API or a pod (not by the agent) must not count
-        against the genome, so such runs are discarded and re-run.
-        """
+        """Run one job, retrying when it failed for infrastructure reasons."""
         result = self._run_job_once(genome, instance_id, harness_root, genome_cfg)
         for attempt in range(self.infra_retries):
             if not self._is_infra_failure(genome.genome_id, instance_id, result):
@@ -191,8 +313,6 @@ class GenomeEvaluator:
                       "connection refused", "error dialing backend", "the server is currently unable",
                       "dial tcp", "connection timed out")
 
-    # Signs that the sandbox pod was starved (CPU/memory overcommit on the node) before the agent
-    # even started: the package-import probe timed out or was OOM-killed.
     _STARVED_MARKERS = ("[container] timed out after 120s", "command terminated with exit code 137")
 
     def _sandbox_starved(self, genome_id: str, instance_id: str) -> bool:
@@ -212,13 +332,10 @@ class GenomeEvaluator:
         if os.path.exists(grade_path) and result.status == "timeout":
             return False
         if os.path.exists(grade_path) and result.status == "ok":
-            # A grade with no FAIL_TO_PASS results means grading itself failed (e.g. kubectl exec
-            # timeout during the hidden-test run), not that the agent failed.
             try:
                 grade = json.load(open(grade_path, encoding="utf-8"))
             except Exception:
                 return True
-            # An empty model patch is a genuine agent failure (graded without running tests).
             return not grade.get("f2p_total") and not grade.get("note") and int(grade.get("patch_chars") or 0) > 0
         if result.status == "failed":
             return True
@@ -230,12 +347,14 @@ class GenomeEvaluator:
     def _run_job_once(self, genome: HarnessGenome, instance_id: str, harness_root: str, genome_cfg: str) -> TaskResult:
         d = os.path.join(self.evals_root, genome.genome_id, instance_id)
         if os.path.exists(os.path.join(d, "grade.json")):
+            if self.label_verdicts and not os.path.exists(os.path.join(d, "verdicts_grade.json")):
+                self._label_verdicts_in_pod("", instance_id, d)
             return self._result_from_dir(genome.genome_id, instance_id)
         pod, err = self.pool.acquire(instance_id)
         if err:
             self.pool.release(pod)
             self.logger(f"[v15-eval] {genome.genome_id} {instance_id}: {err}")
-            return TaskResult(instance_id=instance_id, status=f"pod_error")
+            return TaskResult(instance_id=instance_id, status="pod_error")
         status = "ok"
         try:
             res = self.batch.run_policy_on_instance(
@@ -247,10 +366,11 @@ class GenomeEvaluator:
             )
             status = str(res.get("status") or "ok")
             if status == "timeout":
-                # Record the timeout as a graded failure so the job is not retried forever.
                 os.makedirs(d, exist_ok=True)
                 with open(os.path.join(d, "grade.json"), "w", encoding="utf-8") as fh:
                     json.dump({"instance_id": instance_id, "resolved": False, "note": "agent timeout"}, fh)
+            elif self.label_verdicts and os.path.exists(os.path.join(d, "grade.json")):
+                self._label_verdicts_in_pod(pod, instance_id, d)
         except Exception as exc:
             status = f"error: {type(exc).__name__}: {exc}"[:200]
         finally:
@@ -269,7 +389,6 @@ class GenomeEvaluator:
             for attempt in range(3):
                 if not err or "patch does not apply" in err:
                     break
-                # Infrastructure (e.g. disk full, git lock): retry, never score it.
                 self.logger(f"[v15-eval] {g.genome_id}: cannot materialize ({err[-300:]}); retry {attempt + 1}/3")
                 self.worktrees.remove(g.genome_id)
                 time.sleep(60)
@@ -284,7 +403,6 @@ class GenomeEvaluator:
             prepared[g.genome_id] = (g, path, self.genome_config_path(g), todo)
         if not prepared:
             return
-        # Interleave so every genome runs under the same cluster load over the course of the run.
         order = interleave_jobs(list(prepared), {gid: v[3] for gid, v in prepared.items()}, list(task_ids))
         jobs = [(prepared[gid][0], t, prepared[gid][1], prepared[gid][2]) for gid, t in order]
         self.logger(f"[v15-eval] {len(jobs)} job(s) across {len(prepared)} genome(s), "

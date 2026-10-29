@@ -26,6 +26,7 @@ INFRA_SYNC_FILES: List[str] = [
     "hae/infra/llm.py",
     "hae/swebench/executor.py",
     "hae/swebench/org_binding.py",
+    "hae/swebench/harness_knobs.py",
 ]
 
 

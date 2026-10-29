@@ -212,6 +212,7 @@ def run_policy_on_instance(instance_id: str, pod: str, dataset: str, policy_tag:
     if not (os.path.exists(pred_path) and os.path.exists(rec_path)):
         reset_testbed(pod, context)
         env = dict(os.environ)
+        default_wall = "5400" if instance_timeout_s >= 5400 else str(max(1650, instance_timeout_s - 750))
         env.update({
             "LLM_PROVIDER": "vllm",
             "V5_TYPESAFE_PROTOCOL": "1",
@@ -219,6 +220,7 @@ def run_policy_on_instance(instance_id: str, pod: str, dataset: str, policy_tag:
             "VLLM_MODEL": vllm_model,
             "VLLM_MAX_TOKENS": env.get("VLLM_MAX_TOKENS", "8192"),
             "HAE_REQUIRE_NETWORK_ISOLATION": "0",
+            "HAE_AGENTIC_MAX_WALL_S": env.get("HAE_AGENTIC_MAX_WALL_S", default_wall),
             "PYTHONPATH": agent_root,
         })
         cmd = [
