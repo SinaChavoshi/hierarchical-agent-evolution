@@ -229,6 +229,11 @@ def cmd_evolve(args) -> int:
         st = json.load(open(os.path.join(args.seed_results_from, "train_state.json")))
         src = HarnessGenome.from_dict(st[args.seed_results_key])
         seed.results = {t: r for t, r in src.results.items() if t in splits["train"]}
+        src_evals = os.path.abspath(os.path.join(args.seed_results_from, "evals", args.seed_results_key))
+        dst_evals = os.path.join(out_root, "evals", "seed")
+        if os.path.isdir(src_evals) and not os.path.exists(dst_evals):
+            os.makedirs(os.path.dirname(dst_evals), exist_ok=True)
+            os.symlink(src_evals, dst_evals)
     code_mut = org_mut = leak = None
     if is_evo:
         llm = v15.make_llm(args)

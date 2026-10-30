@@ -149,15 +149,20 @@ def update_from_screening(screen_dirs: List[str], n_stage1: int = 10, out_path: 
     def _disc_score(tid: str) -> tuple:
         rs = by_task.get(tid) or []
         if not rs:
-            return (0, 0, 0, tid)
+            return (0, 0, 0, 0, tid)
         resolves = [bool(r.get("resolved")) for r in rs]
-        # Highest priority: tasks where arms disagree (some resolve, some fail)
+        # Highest priority: tasks where arms disagree on resolution (some resolve, some fail)
         disagree = int(any(resolves) and not all(resolves))
-        # Second priority: tasks with red-team false positives (rt_fp > 0) or partial f2p progress
-        fp = sum(int(r.get("rt_fp", 0)) for r in rs)
-        partial = int(any(0.0 < float(r.get("f2p_rate", 0.0)) < 1.0 for r in rs))
-        non_trivial_solve = int(any(resolves))
-        return (disagree, fp > 0, partial, non_trivial_solve, tid)
+        # Second priority: tasks with partial f2p progress (0 < f2p_passed < f2p_total)
+        partial = sum(
+            1 for r in rs
+            if 0 < int(r.get("f2p_passed", 0)) < max(1, int(r.get("f2p_total", 1)))
+        )
+        # Third priority: tasks where arms disagree on red-team false positives (rt_fp)
+        fps = [int(r.get("rt_fp", 0)) > 0 for r in rs]
+        fp_disagree = int(any(fps) and not all(fps))
+        fp_total = sum(int(r.get("rt_fp", 0)) for r in rs)
+        return (disagree, partial, fp_disagree, fp_total > 0, tid)
 
     ranked = sorted(train, key=_disc_score, reverse=True)
     splits["stage1"] = sorted(ranked[:n_stage1])

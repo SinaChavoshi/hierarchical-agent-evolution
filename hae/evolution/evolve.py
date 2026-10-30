@@ -134,6 +134,7 @@ class EvolutionRun:
         org = org if org is not None else self._org_of(parents[0])
         if org.get("redteam"):
             knobs = dict(knobs)
+            knobs["min_budget_moves"] = max(180, int(knobs.get("min_budget_moves", 250)))
             knobs["enable_falsifier"] = True
         return HarnessGenome(genome_id=cid, generation=gen, parent_ids=[p.genome_id for p in parents], origin=origin,
                              knobs=knobs, patch=patch, notes=list(notes or []), **org)
@@ -151,7 +152,7 @@ class EvolutionRun:
                 org["roles"] = roles
                 self.logger(f"[v17] {cid}: {note}")
                 return self._child(cid, gen, [parent], "redteam_rewrite", dict(parent.knobs), parent.patch, org, [note])
-        new_rt, note = mutate_redteam(org.get("redteam") or {}, self.rng, n_genes=self.rng.randint(1, 2))
+        new_rt, note = mutate_redteam(org.get("redteam") or {}, self.rng, n_genes=self.rng.randint(2, 4))
         org["redteam"] = new_rt
         self.logger(f"[v17] {cid}: {note}")
         return self._child(cid, gen, [parent], "redteam_mutate", dict(parent.knobs), parent.patch, org, [note])
