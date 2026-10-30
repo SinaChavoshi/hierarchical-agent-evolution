@@ -294,10 +294,11 @@ class V17RedTeamHookTests(unittest.TestCase):
 
         # Directed question: refiner asks falsifier a question; controller wakes falsifier to answer (budget=1)
         qa_replies = iter([
+            ("```bash\npython3 -c 'print(42)'\n```", ""),
             ("add_items(0, -999) raises ValueError instead of returning -999", ""),
             ("should not be called because max_questions=1", ""),
         ])
-        org._orig_call_ref = lambda role, msgs, **kw: next(qa_replies)
+        org._orig_call_ref = lambda role, msgs, temperature=0.2, enable_thinking=True: next(qa_replies)
         new_qs = org.ingest_blackboard_text(
             '```blackboard\n{"type": "question", "to": "falsifier", "content": "Which input breaks b1?"}\n```',
             author="refiner",

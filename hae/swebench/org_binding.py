@@ -511,7 +511,10 @@ class HarnessOrg:
             ans_text = ""
             try:
                 for _t in range(ans_turns):
-                    resp = self._orig_call_ref(spec_name, msgs, temperature=0.1, max_tokens=600)
+                    try:
+                        resp = self._orig_call_ref(spec_name, msgs, temperature=0.1, enable_thinking=False)
+                    except TypeError:
+                        resp = self._orig_call_ref(spec_name, msgs, temperature=0.1)
                     txt = str(resp[0] if isinstance(resp, tuple) else resp or "").strip()
                     if not txt:
                         break
@@ -519,7 +522,10 @@ class HarnessOrg:
                     # Allow a quick read-only bash/read check on non-final turns if engine is available
                     m_bash = re.search(r"```bash\s*\n(.*?)```", txt, re.DOTALL)
                     if _t + 1 < ans_turns and m_bash and eng is not None and hasattr(eng, "execute_bash_tool"):
-                        obs = eng.execute_bash_tool(m_bash.group(1).strip(), spec_name, _t + 1)
+                        try:
+                            obs = eng.execute_bash_tool(m_bash.group(1).strip(), timeout_s=30.0)
+                        except TypeError:
+                            obs = eng.execute_bash_tool(m_bash.group(1).strip())
                         msgs.append({"role": "assistant", "content": txt})
                         msgs.append({"role": "user", "content": str(obs)[:1200] + "\nNow state your concise answer."})
                         continue
