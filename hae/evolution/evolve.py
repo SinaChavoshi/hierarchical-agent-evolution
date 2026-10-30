@@ -132,6 +132,9 @@ class EvolutionRun:
     def _child(self, cid: str, gen: int, parents: List[HarnessGenome], origin: str, knobs: Dict[str, Any],
                patch: str, org: Optional[Dict[str, Any]] = None, notes: Optional[List[str]] = None) -> HarnessGenome:
         org = org if org is not None else self._org_of(parents[0])
+        if org.get("redteam"):
+            knobs = dict(knobs)
+            knobs["enable_falsifier"] = True
         return HarnessGenome(genome_id=cid, generation=gen, parent_ids=[p.genome_id for p in parents], origin=origin,
                              knobs=knobs, patch=patch, notes=list(notes or []), **org)
 
@@ -182,8 +185,14 @@ class EvolutionRun:
         cid = self._new_id(gen, idx)
         seed = self.genomes.get("seed")
         if self.cfg.mode == "random":
-            knobs = sample_knobs(self.rng)
-            rt = sample_redteam(self.rng) if (seed is not None and seed.has_redteam) else {}
+            if seed is not None and seed.has_redteam:
+                knobs = mutate_knobs(seed.knobs, self.rng, n_genes=4, strength=0.20)
+                knobs["min_budget_moves"] = max(180, int(knobs.get("min_budget_moves", 250)))
+                knobs["enable_falsifier"] = True
+                rt = sample_redteam(self.rng)
+            else:
+                knobs = sample_knobs(self.rng)
+                rt = {}
             if seed is not None and seed.has_org and seed.roles:
                 roles, pol, mode = orgevo.random_org(seed.roles, seed.ceo_policy, self.rng)
                 return HarnessGenome(genome_id=cid, generation=gen, origin="random", knobs=knobs, patch=seed.patch,
