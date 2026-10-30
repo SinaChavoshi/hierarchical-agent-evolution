@@ -207,7 +207,7 @@ def summarize_evolution(evolve_dir: str, tasks: List[str]) -> Dict[str, Any]:
     by_gen: Dict[int, List[HarnessGenome]] = collections.defaultdict(list)
     for gid, gd in (st.get("genomes") or {}).items():
         g = HarnessGenome.from_dict(gd)
-        if g.evaluated_on(tasks):
+        if g.generation >= 0 and g.evaluated_on(tasks):
             by_gen[g.generation].append(g)
     traj = []
     for gen, gs in sorted(by_gen.items()):

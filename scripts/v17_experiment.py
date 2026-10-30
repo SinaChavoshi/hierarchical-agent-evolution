@@ -241,6 +241,22 @@ def cmd_evolve(args) -> int:
         code_mut = CodeMutator(wt, leak, llm)
         org_mut = orgevo.OrgMutator(RoleGates(splits, REPO_ROOT), llm)
     run = EvolutionRun(cfg, ev, out_root, code_mutator=code_mut, leakage=leak, seed_genome=seed, org_mutator=org_mut)
+    if is_evo and args.seed_results_from:
+        st = json.load(open(os.path.join(args.seed_results_from, "train_state.json")))
+        for arm_name in ("S", "B17", "Q17"):
+            key = f"{arm_name}__r1"
+            if key in st and arm_name not in run.genomes:
+                fg = arm_genome(arm_name)
+                fg.generation = -1
+                src_g = HarnessGenome.from_dict(st[key])
+                fg.results = {t: r for t, r in src_g.results.items() if t in splits["train"]}
+                run.genomes[arm_name] = fg
+                src_ev = os.path.abspath(os.path.join(args.seed_results_from, "evals", key))
+                dst_ev = os.path.join(out_root, "evals", arm_name)
+                if os.path.isdir(src_ev) and not os.path.exists(dst_ev):
+                    os.makedirs(os.path.dirname(dst_ev), exist_ok=True)
+                    os.symlink(src_ev, dst_ev)
+        run.save()
     run.run()
     return 0
 

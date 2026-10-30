@@ -168,6 +168,12 @@ def mutate_redteam(cfg: Mapping[str, Any], rng: random.Random, n_genes: int = 2)
     for name in chosen:
         base[name] = REDTEAM_SPACE[name].mutate(base[name], rng, strength=0.3)
         notes.append(f"{name}={base[name]}")
+    if "blackboard_on" not in chosen and (
+        ("max_questions" in chosen and int(base.get("max_questions") or 0) > 0)
+        or ("falsifier_shares_tests" in chosen and bool(base.get("falsifier_shares_tests")))
+    ):
+        base["blackboard_on"] = True
+        notes.append("blackboard_on=True")
     return resolve_redteam(base), "redteam_mutate " + ", ".join(notes)
 
 

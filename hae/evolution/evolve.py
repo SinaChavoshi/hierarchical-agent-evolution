@@ -150,8 +150,11 @@ class EvolutionRun:
             if roles is not None:
                 assert orgevo.generalists_present(roles), "generalists must never be removed"
                 org["roles"] = roles
-                self.logger(f"[v17] {cid}: {note}")
-                return self._child(cid, gen, [parent], "redteam_rewrite", dict(parent.knobs), parent.patch, org, [note])
+                new_rt, rt_note = mutate_redteam(org.get("redteam") or {}, self.rng, n_genes=self.rng.randint(1, 2))
+                org["redteam"] = new_rt
+                full_note = f"{note}; {rt_note}"
+                self.logger(f"[v17] {cid}: {full_note}")
+                return self._child(cid, gen, [parent], "redteam_rewrite", dict(parent.knobs), parent.patch, org, [full_note])
         new_rt, note = mutate_redteam(org.get("redteam") or {}, self.rng, n_genes=self.rng.randint(2, 4))
         org["redteam"] = new_rt
         self.logger(f"[v17] {cid}: {note}")
