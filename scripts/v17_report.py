@@ -102,7 +102,10 @@ def org_and_redteam_metrics(where: Dict[str, str], arm: str, g_meta: Dict[str, A
                 rec = json.load(open(rec_path, encoding="utf-8"))
                 org = (rec.get("swebench") or {}).get("org")
                 resolved = bool(json.load(open(grade_path, encoding="utf-8")).get("resolved"))
-                tokens_list.append(int(rec.get("tokens_used") or 0))
+                tu = rec.get("token_usage")
+                if isinstance(tu, dict):
+                    tu = tu.get("total_tokens", 0)
+                tokens_list.append(int(tu or rec.get("tokens_used") or 0))
             except Exception:
                 continue
             if not org:
@@ -142,10 +145,10 @@ def org_and_redteam_metrics(where: Dict[str, str], arm: str, g_meta: Dict[str, A
                 try:
                     vg = json.load(open(vg_path, encoding="utf-8"))
                     cm = vg.get("confusion") or {}
-                    tp += int(cm.get("tp", 0))
-                    fp += int(cm.get("fp", 0))
-                    tn += int(cm.get("tn", 0))
-                    fn += int(cm.get("fn", 0))
+                    tp += int(cm.get("tp", vg.get("rt_tp", 0)))
+                    fp += int(cm.get("fp", vg.get("rt_fp", 0)))
+                    tn += int(cm.get("tn", vg.get("rt_tn", 0)))
+                    fn += int(cm.get("fn", vg.get("rt_fn", 0)))
                     continue
                 except Exception:
                     pass

@@ -276,6 +276,7 @@ class HarnessOrg:
         self._locked_repro: Optional[str] = None
         self._in_falsifier: bool = False
         self._in_question_answer: bool = False
+        self._attempted_question_ids: Set[str] = set()
         self._active_falsifier_role: Optional[RoleAllele] = None
         self._falsifier_bash_count: int = 0
         self._falsifier_cp: Optional[Any] = None
@@ -464,7 +465,9 @@ class HarnessOrg:
         answered_refs = {e.get("ref_id") for e in self.blackboard if e.get("type") == "answer" and e.get("ref_id")}
         pending = [
             e for e in self.blackboard
-            if e.get("type") == "question" and e.get("id") not in answered_refs
+            if e.get("type") == "question"
+            and e.get("id") not in answered_refs
+            and e.get("id") not in self._attempted_question_ids
         ]
         if not pending:
             return 0
@@ -475,6 +478,7 @@ class HarnessOrg:
         for q in pending:
             if self.questions_asked >= max_q:
                 break
+            self._attempted_question_ids.add(str(q.get("id") or ""))
             self.questions_asked += 1
             target = str(q.get("to") or "falsifier").strip().lower()
             if target not in ("falsifier", "recon", "architect", "executor", "refiner"):
@@ -1076,10 +1080,10 @@ class HarnessOrg:
                     posted_fc = org.post_blackboard("failing_case", fail_body, author="falsifier")
                     if posted_fc is not None:
                         org.failing_cases_shared += 1
-                    # If no concrete assertion/script was shared and question budget remains, ask falsifier for minimal input
+                    # If no concrete assertion/traceback in critique and question budget remains, ask falsifier for minimal input
                     if (
-                        not suite_snip
-                        and "AssertionError" not in final_msg
+                        "AssertionError" not in final_msg
+                        and "Traceback" not in final_msg
                         and int(org.redteam.get("max_questions") or 0) > org.questions_asked
                     ):
                         org.post_blackboard(
