@@ -101,3 +101,60 @@ grading, the V15 splits, and the same infra commit (recorded in each `run_meta.j
   ids and repository names, and a file-path check.
 - Generalists are never removed (asserted in the evolve loop).
 - The test split is read only in step 3.
+
+---
+
+## Results (Oct 29–30, 2026)
+
+*Model: `reflection/Beam-1.0-501B-A23B-NVFP4` behind the llm-d v1.0.0 router.*
+
+### 1. Summary across splits
+
+| Arm | Organization | Train (21 dev, 1 run) | Validation (10 dev, 2 runs; mean / maj) | **Test (28 unseen Verified, 2 runs; mean / maj)** | Test runs `[r1, r2]` | Test agreement | Test mean tokens |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | ---: |
+| **A** | `org_mode=off` (V15 champion `evo_g5_03`) | 4/21 | 4.0/10 (`[4, 4]`) / 3 | **16.5/28 (58.9%)** / 15 | `[17, 16]` | 0.893 | 195.8k |
+| **B** | Refreshed library, `static` | 4/21 | 4.5/10 (`[4, 5]`) / 4 | **15.5/28 (55.4%)** / 14 | `[16, 15]` | 0.893 | 211.6k |
+| **C** | Refreshed library, `dynamic` | 4/21 | **5.0/10 (`[5, 5]`)** / 5 | **16.5/28 (58.9%)** / 15 | `[15, 18]` | 0.893 | 208.8k |
+| **D** (`evo_g1_07`) | Evolved org + code from C (best val of top-3 train) | **6/21** | **5.0/10 (`[6, 4]`)** / 4 | **15.5/28 (55.4%)** / 14 | `[15, 16]` | 0.893 | 184.4k |
+| **E** (`ran_g0_02`) | Random search org + knobs from C (best val of top-3 train) | **6/21** | 4.0/10 (`[5, 3]`) / 3 | **16.0/28 (57.1%)** / 15 | `[15, 17]` | 0.929 | 159.9k |
+| **V12** | Flat single-agent ReAct (68 moves) | — | — | **16.5/28 (58.9%)** / 16 | `[17, 16]` | 0.964 | 149.6k |
+
+All 3 validation candidates per search arm (`D1=evo_g5_04`: `[4, 4]` mean 4.0; `D2=evo_g1_07`: `[6, 4]` mean 5.0; `D3=evo_g1_02`: `[4, 6]` mean 5.0; `E1=ran_g0_02`: `[5, 3]` mean 4.0; `E2=ran_g4_04`: `[4, 3]` mean 3.5; `E3=ran_g4_05`: `[4, 4]` mean 4.0) were evaluated twice on the 10-task validation split. `D2` (`evo_g1_07`) beat `D3` (`evo_g1_02`) on the pre-registered training-fitness tie-break (`0.2925` vs `0.2668`), and `E1` (`ran_g0_02`) beat `E3` (`ran_g4_05`) (`0.2996` vs `0.2829`).
+
+### 2. Paired comparisons on the 28 unseen Test tasks
+
+Per-task majority outcomes (exact two-sided sign test on discordant tasks) and 95% bootstrap CIs (10,000 resamples over tasks) on the mean resolve-rate difference:
+
+| Comparison | Majority wins : losses | Sign test *p* | Mean Δ resolve rate | 95% bootstrap CI |
+| :--- | :---: | :---: | :---: | :---: |
+| `C` vs `A` (dynamic org vs no org) | 1 : 1 | 1.000 | +0.000 | `[-0.071, +0.071]` |
+| `B` vs `A` (static org vs no org) | 0 : 1 | 1.000 | −0.036 | `[-0.107, +0.036]` |
+| `D` vs `E` (evolved org vs random org) | 0 : 1 | 1.000 | −0.018 | `[-0.107, +0.054]` |
+| `D` vs `A` (evolved org vs V15 champion) | 0 : 1 | 1.000 | −0.036 | `[-0.107, +0.036]` |
+| `C` vs `V12` (dynamic org vs flat ReAct) | 1 : 2 | 1.000 | +0.000 | `[-0.107, +0.107]` |
+| `A` vs `V12` (V15 champion vs flat ReAct) | 1 : 2 | 1.000 | +0.000 | `[-0.107, +0.107]` |
+
+### 3. Organization metrics on Test (`n = 56` runs per arm)
+
+| Metric | Arm B (`static`) | Arm C (`dynamic`) | Arm D (`evo_g1_07`) | Arm E (`ran_g0_02`) |
+| :--- | :---: | :---: | :---: | :---: |
+| Specialist hire rate — `architect` | 0.321 | 0.321 | 0.321 | 0.036 |
+| Specialist hire rate — `executor` | 0.536 | 0.536 | 0.536 | 0.500 |
+| Specialist hire rate — `refiner` | 0.393 | 0.411 | 0.375 | 0.286 |
+| Specialist hire rate — `falsifier` | 0.179 | 0.179 | 0.179 | 0.179 |
+| Mid-run CEO role swaps per run | 0.000 | 0.089 | 0.054 | 0.000 |
+| Resolve rate when first executor (`b1`) is a specialist | 18/30 (60.0%) | 18/30 (60.0%) | 17/30 (56.7%) | 18/28 (64.3%) |
+| Resolve rate when first executor (`b1`) is a generalist | 13/26 (50.0%) | 15/26 (57.7%) | 14/26 (53.8%) | 14/28 (50.0%) |
+| **Falsifier agreement with hidden tests** | **33/56 (58.9%)** | **33/56 (58.9%)** | **40/56 (71.4%)** | **36/56 (64.3%)** |
+
+### 4. Conclusions and diagnosis
+
+1. **Validation gains did not transfer to the unseen test set.** On validation (`n = 10` × 2 runs), adding the dynamic organization (`C`: `5.0/10`) and evolving the organization (`D2`: `5.0/10`, `D3`: `5.0/10`, with `D3` uniquely solving the 39-test `sqlfluff__sqlfluff-880` task on both replicates) improved over the V15 champion `A` (`4.0/10`) and random search `E` (`4.0/10`). On the 28 unseen Verified test tasks, however, all arms clustered tightly between `15.5/28` (`55.4%`) and `16.5/28` (`58.9%`), with no statistically significant difference (`p = 1.0`).
+2. **Flat ReAct (`V12`) matched the hierarchical harness at matched move floor (`16.5/28`).** Under identical cluster load and budget floor (`68` moves), flat single-agent ReAct achieved `[17, 16]` (`16.5/28`, `149.6k` tokens), tying `A` and `C` (`16.5/28`) with lower token cost and higher replicate agreement (`0.964` vs `0.893`).
+3. **Why organization evolution plateaued:**
+   - **Permissive falsifier / premature `VERDICT: PASS`:** The single-role falsifier agreed with the hidden test suite only `58.9%` of the time in `B`/`C` (`33/56`), rubber-stamping incomplete patches (`resolved_by_agentic_gatekeeper` or `resolved_by_hierarchical_ab_mcts` on tasks where hidden `FAIL_TO_PASS` or `PASS_TO_PASS` tests failed). Evolution (`D`) improved falsifier agreement to `40/56` (`71.4%`), but the falsifier was only hired as a specialist on `17.9%` of runs and received a tiny `±0.1` terminal credit only on the final episode.
+   - **Tight turn caps (`68` moves, `6` falsifier turns, `10–18` executor turns):** Complex multi-file tasks exhausted episode turn caps before the executor or falsifier could run thorough regression checks.
+   - **No structured cross-role memory or communication:** Episodes could not share discovered facts, ruled-out hypotheses, or failing inputs except through one-way summary strings, leading to repeated search and duplicate candidate patches.
+
+Raw data: `results/v16/train_arms_2026-10-29/`, `results/v16/evolve_2026-10-29/`, `results/v16/random_2026-10-29/`, `results/v16/val_2026-10-29/`, `results/v16/test_2026-10-29/report.json`, `results/v16/v12_test_2026-10-29/`.
+

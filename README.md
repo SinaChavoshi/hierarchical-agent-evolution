@@ -64,6 +64,7 @@ therefore works on a small diff, however large the repository grows.
 | External oracles catch what self-written tests miss | The ratchet's own suites were green, yet the held-out oracle scored 9 / 15 until recovery milestones fixed the rest | Holds |
 | Hierarchy vs flat ReAct on SWE-bench | 21 / 28 vs 19 / 28 on unseen Verified tasks, with no task lost | **Not clean**: prompts contained test-task examples. V15 re-runs a cleaned harness |
 | **V15: searched harness vs hand design** | 28 unseen Verified tasks, cleaned harness: evolved **17 / 28**, random settings search 16 / 28, hand-designed seed 12 / 28 (evolved vs seed 5 : 0, p = 0.063) | Search beats the seed; **evolution does not beat random search** at matched budget (0 : 4). [Results](results/v15/test_2026-10-28/README.md) |
+| **V16: role library + CEO policy evolution** | 28 unseen Verified tasks × 2 runs: V15 champion `A` **16.5 / 28**, static roles `B` 15.5 / 28, dynamic CEO `C` **16.5 / 28** (`[15, 18]`), evolved org `D` 15.5 / 28, random org `E` 16.0 / 28, flat ReAct `V12` **16.5 / 28** | Validation lift (`5.0/10` vs `4.0/10`) did not transfer to test; falsifier false-passes (`29–41%`) and tight turn caps bottlenecked multi-role gains. [Results](experiments/v16/README.md) |
 
 The V14 retrospective explains why the SWE-bench numbers can't be cited yet:
 [`experiments/v14/v14_retrospective.md`](experiments/v14/v14_retrospective.md).
