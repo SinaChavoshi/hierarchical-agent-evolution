@@ -1,157 +1,288 @@
 # Hierarchical Agent Evolution (HAE)
 
-**HAE** is a self-hosted, evolutionary multi-agent software engineering harness running open-weight models (`Beam-1.0-501B-A23B` NVFP4 on vLLM + `llm-d` v1.0) and isolated container sandboxes on Google Kubernetes Engine (GKE). Rather than hand-tuning a static prompt pipeline, HAE treats **the engineering organization itself—its search policy, one-line specialist role playbooks ("Company DNA"), independent Red-Team verification rules, and inter-agent blackboard bandwidth—as a declarative genome evolved empirically against real container execution.**
+HAE is a harness that lets open-weight LLMs fix bugs and build software in real
+repositories. A patch is accepted only after it has been proven to work.
+Everything runs self-hosted on GKE, and the harness itself is now the thing
+being evolved.
 
-- [Industry direction: why the harness matters *more* as models improve](#industry-direction-why-the-harness-matters-more-as-models-improve)
-- [How HAE works](#how-hae-works)
-- [Key empirical findings (V14 to V17)](#key-empirical-findings-v14-to-v17)
-- [Related research and industry foundations](#related-research-and-industry-foundations)
-- [Lessons learned across 17 iterations](#lessons-learned-across-17-iterations)
-- [Kubernetes and `llm-d` co-design](#kubernetes-and-llm-d-co-design)
-- [Roadmap](#roadmap)
-- [Repository layout and quickstart](#repository-layout-and-quickstart)
-
----
-
-## Industry direction: why the harness matters *more* as models improve
-
-As foundation models double in coding capability and context length, a natural question arises: *will agent harnesses become thin wrappers that get competed away?* Across both frontier labs and open-weight production systems, empirical evidence points to the opposite conclusion:
-
-$$\text{Agentic Reliability} = \text{Model} \times \text{Harness}$$
-
-Model progress **shifts where the harness creates leverage** rather than eliminating it:
-
-1. **Inference-Time Search Unlocks *"Move 37"* Beyond Linear Model Priors:** Left in a single linear ReAct loop, even 500B+ models overwhelmingly anchor on the immediate symptom site in a stack trace (**`86%`**—`508 / 590`—of best-branch attempts in our V15 logs targeted `consumer_local` crash sites) and pile on local guards when edge cases fail. Wrapping models in **Adaptive Branching Monte Carlo Tree Search (`AB-MCTS`) over Git checkpoints** forces deliberate exploration of non-obvious upstream structural fixes (*"Move 37"*) whenever symptom patches stagnate.
-2. **Scaffolding Shrinks, Independent Verification Compounds (*"Improvement by Subtraction"*):** Early harnesses compensated for weak models with rigid JSON step-planners and tight artificial turn caps. Stronger models thrive when artificial step ceilings are lifted (`68 → 250` moves in V17) so agents self-terminate on proof—yet **firewalled Red-Team verification and immutable test contracts become *more* critical**, because stronger models are also far better at rationalizing subtle edge-case discrepancies (`68.5%` false-`PASS` rate in V16 before Red-Team hardening) or weakening self-written tests.
-3. **Clean Contexts, Typed Blackboards & Git Ratchets Beat Raw Context Windows:** Even with 200k–1M token contexts, single-session loops and free-chatting multi-agent swarms degrade through *context rot*, *conversational sycophancy*, and *one-shot diff collapse*. Passing **compact typed artifacts** across garbage-collected episodes and **ratcheting verified Git commits** keeps reasoning sharp, reviewers cold and independent, and KV-cache prefixes warm.
-4. **From Hand-Crafted Prompts to Evolvable "Company DNA" on Kubernetes:** Every new model generation changes optimal turn budgets, branch breadth, specialist roles, and communication bandwidth. Encoding **who is on the team, how strict QA is, and how much agents talk** as a compact genome evolved on Kubernetes turns harness design into a continuous, leakage-gated empirical loop.
+- [Overview](#overview)
+- [Lessons learned](#lessons-learned)
+- [Architecture](#architecture)
+- [Roadmap and vision](#roadmap-and-vision)
+- [Repository layout and running](#repository-layout-and-running)
 
 ---
 
-## How HAE works
+## Overview
 
-![HAE V15–V17 system architecture](experiments/v17/assets/hae_architecture_v17.svg)
+### What the harness does
 
-HAE combines five mechanisms across clean-context episodes inside each task's sandbox Pod:
+A single agent working in one long conversation tends to fail in predictable
+ways:
+- Its context fills up with grep output and test logs.
+- It commits to the first plausible fix.
+- It "verifies" that fix with a test it wrote itself.
 
-| Layer / Mechanism | Role in the Harness | Handoff Artifact / Invariant |
+HAE breaks the work into roles, gives each role a fresh, small context, and
+lets work move upward only once it can be checked.
+
+| Role | What it does | What it hands back |
 | :--- | :--- | :--- |
-| **`L0-Macro` Milestone Ratchet** | Splits greenfield or large multi-file specs into a topological DAG of bounded commits (`≤ 600` LoC) | Certified Git tags whose test suites lock permanently as cumulative regression guards |
-| **`L1-A` Recon & Locked Repro** | Localizes fault candidates and writes `/testbed/.hae/reproduce_issue.py` | `< 800`-token `ReconBrief` + **immutable** reproduction script locked once failing on `HEAD` |
-| **`L0` Architect, CEO & `AB-MCTS`** | Writes invariants; uses **Beta Thompson sampling** over empirical checkpoint values $V(s_i) \in [0, 1]$ to arbitrate **deeper refinement (`CONT`)** vs. **wider causal branching (`GEN`)**; UCB CEO staffs 1-line specialist playbooks & swaps stalled roles | Branch dispatch across 4 causal loci: `consumer_local`, **`producer_upstream` (*"Move 37"*)**, `codebase_symmetry`, and Negative-Ledger **`counterfactual_move37`** |
-| **Typed Blackboard & Budgeted Q&A (`V17`)** | Coordinates episodes & parallel branches via deduplicated `/testbed/.hae/blackboard.jsonl` (`≤ 320` chars/entry, `≤ 32` entries) + budgeted 2-turn micro-Q&A (`max_questions` cap) | Typed `finding`, `hypothesis`, `ruled_out`, `failing_case`, `question`, `answer`, `decision` (stops re-grepping & 3× duplicate-patch loops) |
-| **`L2` Executors & Refiners** | Execute interactive ReAct tools (`view`, `bash`, `str_replace`, `submit`) from a clean Git checkpoint in a fresh context window | Candidate `git diff` checkpoint $s_i$ (raw grep/bash logs are garbage-collected on return) |
-| **Firewalled `L1-B` Red Team (`V17`)** | Runs deterministic compile/repro/module tests (`evidence_tests`), followed by `panel_size` (`1–3`) read-only adversarial reviewers (`no_edit=True`, `skeptic_default=True`) | Sees `git diff` + objective blackboard facts **only** (never builder `hypothesis` prose); returns $V(s_i)$ + executable `failing_case` reproducers (`V = 1.0` self-terminates) |
+| **Recon (L1-A)** | Finds where the fault lives and writes a script that reproduces it | A short brief (< 800 tokens) and a failing repro |
+| **Controller (L0)** | Writes a contract (invariants, anti-cheat rules) and decides the next move: start a new hypothesis (`GEN`) or refine a near-miss (`CONT`) | A dispatch |
+| **Executors (L2)** | Edit code in the task's sandbox with ReAct tools, each starting from a clean git checkpoint | A candidate `git diff` |
+| **Verifier (L1-B)** | First runs deterministic checks (compile, repro, target tests). Then a read-only *falsifier* agent tries to break the patch and adds edge-case tests | A score V ∈ [0, 1] and a critique |
 
-### Unlocking *"Move 37"* with Clean-Context `AB-MCTS`
+The controller treats each git checkpoint as a node in a search tree. It uses
+Thompson sampling over Beta posteriors (AB-MCTS) to decide where to spend the
+next attempt. A patch is accepted only at V = 1.0.
 
-Adapted from Sakana AI's [AB-MCTS](https://arxiv.org/abs/2503.04412), `L0` models each Git checkpoint $s_i$ with a $\text{Beta}(\alpha_i, \beta_i)$ posterior updated strictly from container execution signals (`compile_ok`, `repro_ok`, `repo_tests_ok`, `falsifier_ok`, minus diff bloat). When a `CONT` delta-refinement fails to improve its parent ($V(s_{\text{child}}) \le V(s_{\text{parent}}) + 0.02$), backpropagation penalizes $\beta \mathrel{+}= 2.5$ and boosts `gen_alpha`—automatically pivoting compute away from dead-end local symptom guards toward **`producer_upstream`** (fixing the upstream parser/builder/AST invariant where bad state originated), **`codebase_symmetry`** (enforcing parity across sibling implementations), or **`counterfactual_move37`** (synthesizing a fresh structural hypothesis from a Negative Evidence Ledger of all prior failures).
+For work too big for one diff, an outer **milestone ratchet** (L0-Macro) splits
+a spec into a DAG of milestones. Each certified milestone is committed and
+tagged, and earlier milestones' tests re-run as a regression guard. Every step
+therefore works on a small diff, however large the repository grows.
 
-### "Company DNA": One-Line Evolvable Organizational Genomes (`V16–V17`)
+### Why it works
 
-Instead of brittle multi-page prompts, an HAE engineering organization is encoded as compact, human-readable primitives:
-- **1-Line Specialist Goal + 3–8 Imperative 1-Line Playbook Steps (`RoleAllele`):** Refreshed from redacted failure digests (`15` roles: `5` zero-token byte-identical generalists + `10` failure-mode specialists such as *Cross-File Impact Architect*, *Root-Cause Locus Architect*, *Multi-File Parity Executor*, *Critique-Driven Refiner*, and *Sibling Parity Falsifier*; see [`experiments/v16/role_refresh_report.md`](experiments/v16/role_refresh_report.md)).
-- **UCB + Locus-Aware CEO Policy (`CEOPolicyGene`):** Hires specialists only when empirical $\Delta V$ quality $\times$ tag overlap + UCB exploration beats the generalist, routes matching executors to *"Move 37"* branches, swaps stalled roles mid-run, and (in `V17`) staffs Red-Team panelists by measured confusion-matrix accuracy.
-- **Automated Anti-Leakage Gate (`LeakageGate` + `RoleGates`):** Every evolved code diff and role mutation is deterministically checked against AST/token identifiers extracted from all train, validation, and test patches plus a repository/instance-ID ban list before any Pod is scheduled.
+- **Small contexts stay sharp.** Raw transcripts are thrown away at every
+  layer boundary. Only artifacts that can be checked move up, so no agent
+  reasons over a polluted context.
+- **Authors don't grade their own work.** The falsifier never wrote the patch,
+  and the deterministic gate can't be argued with. This is where single agents
+  most often fool themselves.
+- **Search over checkpoints instead of restarts.** A near-miss gets refined
+  from where it stood, and a dead end loses probability mass. A single agent
+  would instead restart or dig deeper into a wrong idea.
+- **Bounded diffs keep review honest.** The ratchet keeps each step small
+  enough for the verifier to actually read.
 
----
+### What the evidence shows so far
 
-## Key empirical findings (V14 to V17)
-
-| Experiment / Question | Benchmark & Controls | Headline Result | Status & Reference |
-| :--- | :--- | :--- | :--- |
-| **Git Milestone Ratchet vs. one-shot builds (`V14`)** | Greenfield `MiniSQL` engine (`2,345` LoC) graded by a **15-suite held-out `sqlite3` differential oracle** | **`15 / 15` (`100%`)** with 7-commit `L0-Macro` ratchet vs. **`8 / 15` (`53%`)** monolithic `AB-MCTS` (`+1,651`-line diff) vs. **`0 / 15` (`0%`)** flat ReAct | **Holds cleanly** (not compute-matched: `1.80M` vs `0.37M` tokens). [Results](results/ratchet/planner_driven_minisql_eval_2026-10-23/README.md) |
-| **Linear symptom tunnel vision (`V15` trace audit)** | `590` training & validation runs across candidate harnesses | **`86%` (`508 / 590`)** of initial attempts targeted `consumer_local` symptom sites; `45%` passed self-checks while failing hidden edge/sibling tests | **Holds** — motivates `AB-MCTS` *"Move 37"* branching & specialist roles. [Audit](experiments/v16/role_refresh_report.md) |
-| **Evolved harness vs. hand-designed seed (`V15`)** | **28 unseen `SWE-bench Verified` tasks** (zero hints, `LeakageGate` active, single pass) | Evolved **`17 / 28` (`60.7%`)** vs. hand-designed seed **`12 / 28` (`42.9%`)** (`5 : 0` discordant wins, $p = 0.063$); matched-budget random knob search **`16 / 28`** | **Complete:** Search beats hand design; 1-rep 21-task selection tied random search. [Results](results/v15/test_2026-10-28/README.md) |
-| **"Company DNA" roles & dynamic CEO (`V16`)** | 6-gen train (`21` tasks) → **2-replicate validation (`10` tasks)** → **2-replicate unseen Verified test (`28` tasks)** | **Train:** `A/B/C = 4/21` → top `D/E = 6/21`.<br>**2×10 Val:** Dynamic org `C` **`5.0 / 10` mean** (**`5 / 10` majority**, **`1.00` agreement**) vs. `A` `4.0 / 10` mean (`3 / 10` majority); evolved `D2` **`5.0 / 10` mean** vs. random `E1` `4.0 / 10` | **Train & Val complete; 2×28 Test + `V12` + official container re-grade actively running.** [V16 README](experiments/v16/README.md) |
-| **Permissive LLM QA rubber-stamping (`V16 → V17`)** | Audit of **`670` falsifier-certified (`PASS`) training runs** in V16 | Only **`211 / 670` (`31.5%`)** passed hidden tests (`68.5%` false `PASS`), alongside 3× blind duplicate-patch loops under pure isolation | **Diagnostic complete** — directly motivates V17's firewalled Red Team & Blackboard. [V16 README](experiments/v16/README.md) |
-| **Firewalled Red Team + Typed Blackboard + `250`-move autonomy (`V17`)** | `41` container-screened train tasks (`10` discriminative `stage1`), `2×10` val, `2×28` unseen Verified tasks (`A17`, `S`, `B17`, `Q17`, `R`, `Rr`, `V12`) | Evaluates strict read-only QA (`2×` FP verdict fitness), `/testbed/.hae/blackboard.jsonl` + budgeted 2-turn Q&A, duplicate-patch rate, and self-terminating `250`-move budgets | **Staged (`v17-redteam`)** — launches immediately after V16 test finishes. [V17 Plan](experiments/v17/README.md) |
-
-> **Note on Scientific Hygiene & Earlier V14 Numbers:** Our Oct 27 audit ([`experiments/v14/v14_retrospective.md`](experiments/v14/v14_retrospective.md)) discovered that V14's SWE-bench scripts contained 4 gold-fix AST detectors and test-task prompt examples; those V14 SWE-bench scores are retired and never cited as clean generalization. All `V15+` runs strip every hint/detector and enforce `LeakageGate`. In `V17`, expanding the training pool with 20 disjoint `SWE-bench Verified` tasks makes the 28-task final evaluation **"unseen tasks"** (sharing upstream repositories, strictly disjoint by instance ID) rather than V15/V16's *"unseen benchmark"*.
-
----
-
-## Related research and industry foundations
-
-HAE does not invent standalone agent primitives in a vacuum; it builds directly upon foundational work across the open research and engineering community, integrating and co-evolving them on a Kubernetes + `llm-d` substrate:
-
-| Project / Group | Reference | Foundation We Build Upon |
+| Finding | Evidence | Status |
 | :--- | :--- | :--- |
-| **Princeton NLP (`SWE-agent`)** | [Yang et al., NeurIPS 2024](https://arxiv.org/abs/2405.15793) · [swebench.com](https://www.swebench.com/) | **Agent-Computer Interfaces (ACI):** compact, syntax-guarded file viewing, search, and editing primitives inside containerized repositories. |
-| **Sakana AI (`AB-MCTS` & `DGM`)** | [AB-MCTS (2025)](https://arxiv.org/abs/2503.04412) · [Darwin Gödel Machine (2025)](https://arxiv.org/abs/2505.22954) | **Adaptive Branching MCTS** (Thompson sampling over `GEN` vs. `CONT` posteriors) and **open-ended evolution of self-modifying coding agents** against execution benchmarks. |
-| **UIUC (`Agentless`)** | [Xia et al., 2024](https://arxiv.org/abs/2407.01489) · [GitHub](https://github.com/OpenAutoCoder/Agentless) | **Execution-gated localization & reproduction filtering:** separating fault localization, reproduction scripting, and regression testing. |
-| **All Hands AI (`OpenHands`)** | [Wang et al., ICLR 2025](https://arxiv.org/abs/2407.16741) · [GitHub](https://github.com/All-Hands-AI/OpenHands) | **Containerized sandbox execution** and Git-checkpointed iterative tool loops at scale. |
-| **Aider** | [Architect / Editor Benchmarks (2024)](https://aider.chat/2024/09/26/architect.html) | **Architect / Editor separation:** decoupling high-level causal design (`L0`) from surgical diff application (`L2`). |
-| **MetaGPT & UC Berkeley (`MAST`)** | [MetaGPT (ICLR 2024)](https://arxiv.org/abs/2308.00352) · [MAST (2025)](https://arxiv.org/abs/2503.13657) | **Typed artifact SOPs over free-form chat** and empirical failure taxonomies of role drift, chat misalignment, and weak verification in multi-agent LLM systems. |
-| **OpenAI, LangChain & Thoughtworks** | [SWE-bench Verified](https://openai.com/index/introducing-swe-bench-verified/) · [Context Engineering](https://blog.langchain.com/context-engineering-for-agents/) · [Fowler / Böckeler](https://martinfowler.com/articles/exploring-gen-ai.html) | **Human-validated container oracles**, **harness improvement by subtraction** as models strengthen, and repo-level memory artifacts. |
-| **Anthropic Engineering** | [Building Effective Agents](https://www.anthropic.com/research/building-effective-agents) · [Effective Harnesses (2025)](https://www.anthropic.com/research/effective-harnesses-for-long-running-agents) · [Long-Running Apps (2026)](https://www.anthropic.com/research/harness-design-long-running-apps) | **Immutable test contracts**, clean Git shift handoffs, **strict builder/evaluator separation with log-calibrated QA skepticism**, and testing continuous vs. sprint-reset builds. |
+| Small steps beat one big attempt | MiniSQL engine graded by a held-out `sqlite3` oracle: milestone ratchet **15 / 15**, one-shot hierarchical **8 / 15**, flat ReAct **0 / 15** | Holds. Compute not matched (1.80M vs 0.37M tokens) |
+| External oracles catch what self-written tests miss | The ratchet's own suites were green, yet the held-out oracle scored 9 / 15 until recovery milestones fixed the rest | Holds |
+| Hierarchy vs flat ReAct on SWE-bench | 21 / 28 vs 19 / 28 on unseen Verified tasks, with no task lost | **Not clean**: prompts contained test-task examples. V15 re-runs a cleaned harness |
+| **V15: searched harness vs hand design** | 28 unseen Verified tasks, cleaned harness: evolved **17 / 28**, random settings search 16 / 28, hand-designed seed 12 / 28 (evolved vs seed 5 : 0, p = 0.063) | Search beats the seed; **evolution does not beat random search** at matched budget (0 : 4). [Results](results/v15/test_2026-10-28/README.md) |
+| **V16: role library + CEO policy evolution** | 28 unseen Verified tasks × 2 runs: V15 champion `A` **16.5 / 28**, static roles `B` 15.5 / 28, dynamic CEO `C` **16.5 / 28** (`[15, 18]`), evolved org `D` 15.5 / 28, random org `E` 16.0 / 28, flat ReAct `V12` **16.5 / 28** | Validation lift (`5.0/10` vs `4.0/10`) did not transfer to test; falsifier false-passes (`29–41%`) and tight turn caps bottlenecked multi-role gains. [Results](experiments/v16/README.md) |
+
+The V14 retrospective explains why the SWE-bench numbers can't be cited yet:
+[`experiments/v14/v14_retrospective.md`](experiments/v14/v14_retrospective.md).
+V15 is the first run designed to produce a clean, held-out answer
+([design](experiments/v15/README.md)).
 
 ---
 
-## Lessons learned across 17 iterations
+## Lessons learned
 
-Per-version protocols, raw logs, and retrospectives are indexed in [`experiments/README.md`](experiments/README.md).
+Fifteen versions fall into four eras. Per-version details are in
+[`experiments/README.md`](experiments/README.md).
 
-- **Era 1 · Execution-Grounded Firms (`V1–V7`):** *An LLM judge is Goodhart's target, not a metric* (`V1` judge scores climbed `25 → 97` with `+0.045` execution correlation; every version since `V2` grades strictly by running code). Grammar-constrained outputs cut output tokens by `92%` (`V5`), outcome-trained value heads beat uncalibrated LLM confidence priors (`V7`), and workspace/cache bugs proved that **isolation must be verified, never assumed** (`V3–V4`).
-- **Era 2 · Single-Layer SWE-bench Agents (`V8–V12`):** *Real repositories require interactive exploration, not static JSON plans* (`4–6 / 30` with packet plans → `14 / 30` once interactive ReAct tools landed in `V12`), and stronger tree search (`PUCT → AB-MCTS` in `V9`) could not rescue weak per-node execution or `4 / 7` false self-verifications.
-- **Era 3 · Clean-Context Hierarchy & Ratchets (`V13–V14`):** *Pass verified artifacts, never raw transcripts*; external differential oracles (`sqlite3` on `MiniSQL`) catch subtle gaps that green self-authored tests miss (`9 / 15 → 15 / 15` after recovery milestones); and **benchmark leakage creeps in silently** unless blocked deterministically by AST/token gates ([`v14_retrospective.md`](experiments/v14/v14_retrospective.md)).
-- **Era 4 · Co-Evolving Code, "Company DNA", Red Teams & Blackboards (`V15–V17`):** *Fitness must discriminate* (replacing flat stage-1 tasks with intermediate-variance tasks + partial `FAIL_TO_PASS` + Red-Team confusion-matrix accuracy); *strict QA needs generous step budgets* (`250` moves) so rejections trigger repairs rather than timeouts; and *typed blackboards + asymmetric firewalls* resolve blind duplicate-patch loops without sacrificing cold reviewer independence.
+### Era 1 · Evolving agent firms (V1–V7)
+
+*Populations of multi-agent "firms" bred and selected on small coding tasks.*
+
+- **An LLM judge is a target, not a measurement.** Judged fitness climbed
+  from 25 to 97 while real execution didn't improve at all (correlation
+  +0.045). Everything since has been graded by running code.
+- **Honest fitness is necessary but not enough.** Held-out unit tests fixed
+  the scoring. But the tasks were soon solved by every firm (30 / 30), and
+  once everyone passes, selection has nothing to choose between.
+- **Isolation has to be tested, not assumed.** In V3, child firms quietly
+  inherited their parents' passing code through a workspace bug.
+  V4's cross-firm response cache made different firms receive identical
+  answers. Both made "independent" samples not independent.
+- **Constrain the output format and you save tokens.** Grammar-constrained
+  JSON packets cut output tokens per call by 92%.
+- **Models can't tell you how confident they should be.** LLM-stated priors
+  on hypotheses were uncalibrated. A value head learned from outcomes beat the
+  base rate.
+
+### Era 2 · Real GitHub issues, single-layer agents (V8–V12)
+
+*The same ideas on a 30-task SWE-bench dev cohort.*
+
+- **Real repositories need exploration, not plans.** Agents that exchanged
+  structured JSON plans stalled at 4–6 / 30. Giving them interactive tools
+  (view, bash, edit, run) more than doubled that to 14 / 30.
+- **A better search algorithm can't rescue a weak step.** Swapping PUCT for
+  AB-MCTS barely moved results until the individual steps got better.
+- **Agents believe their own tests.** In V8, 4 of 7 "self-verified" fixes
+  failed the real tests. Self-verification needs an independent check.
+
+### Era 3 · Hierarchical verification (V13–V14)
+
+*Context-bounded layers, a falsifier, search over git checkpoints, and the
+milestone ratchet.*
+
+- **Pass artifacts, not transcripts.** Fresh small contexts with a brief, a
+  diff or a critique outperformed long single conversations.
+- **An outside oracle is worth more than more internal tests.** On MiniSQL the
+  internal suites passed while the held-out `sqlite3` oracle failed 6 of 15
+  checks.
+- **Bounded steps beat one big attempt, at a price.** The ratchet reached
+  15 / 15 where a single 1,651-line attempt reached 8 / 15, but it used about
+  5× the tokens. On SWE-bench the hierarchy cost 1.6× the tokens and 1.5× the
+  time of flat ReAct.
+- **Benchmark leakage is easy to create and hard to see.** It crept in three
+  times:
+  - First, as repo-specific hints (3 strings in prompts grew to 25).
+  - Then as "generic" detectors that injected the gold fix.
+  - Finally, as prompt examples that described specific test tasks.
+  
+  A grep for repo names didn't catch them. The lesson became code: an
+  automated leakage gate now rejects any change that introduces identifiers
+  from gold or hidden-test patches.
+
+### Era 4 · Evolving the harness (V15)
+
+*The V14 harness becomes the genome: 18 knobs plus a patch against its source.*
+
+- **Fitness has to discriminate.** The first stage-1 task subset was useless:
+  all 8 genomes solved the same task and failed the other five, so ranking
+  came down to token cost. It was replaced with near-miss tasks and partial
+  credit, before any selection happened.
+- **Keep the grader out of the search space.** Genomes can change prompts,
+  search and verification, but never the grader, the datasets or the
+  evaluator.
+- **Name infrastructure accurately.** Until Oct 27 the "llm-d gateway" was a
+  custom Python proxy. V15 now runs on the real llm-d router. The old proxy's
+  rewrites were audited as no-ops for SWE-bench, so the switch changes speed,
+  not agent behavior.
 
 ---
 
-## Kubernetes and `llm-d` co-design
+## Architecture
 
-HAE's harness architecture and GKE serving layer are co-designed around how multi-branch search interacts with distributed KV caches:
+![HAE V15 system architecture: evolution loop, harness and GKE serving with llm-d](experiments/v15/assets/v15_system_architecture.svg)
 
-- **GPU Serving Pool (`k8s/beam-501b-nvfp4-serving.yaml`):** Three replicas of **`Beam-1.0-501B-A23B` (NVFP4)**, each running multi-node vLLM (`TP=4` across two `g4-standard-96` nodes; `12×` NVIDIA RTX PRO 6000 Blackwell `96 GB` GPUs total) with prefix caching and **`DFlash2`** speculative decoding.
-- **Why Clean Contexts + Typed Blackboards Fit `llm-d` v1.0 (`k8s/llm-d/`):** Free-form multi-agent chat creates diverging conversation histories that bust KV caches. In HAE, parallel `AB-MCTS` episodes share a deterministic system prefix, verification contract, and deduplicated blackboard digest—cutting warm-prefix follow-up TTFT from **`1.4–2.2 s` to `~0.25 s`**.
-- **Endpoint Picker (EPP) Tuning Under Evolutionary Load:** Fronted by **`llm-d` standalone router v1.0.0** (`Gateway API Inference Extension v1.6.2`), re-weighting the EPP scorers to **`queue-scorer: 3`, `kv-cache-utilization-scorer: 2`, `prefix-cache-scorer: 1`** eliminated single-replica hot-spotting at 28-way worker concurrency with zero infrastructure discards.
-- **Single-Use Pre-Warmed Sandbox Pods:** Official `SWE-bench` task containers (`2 CPU / 6 GiB` on `e2-standard-8` CPU pools) are pre-warmed asynchronously, scheduled in interleaved `(genome, task)` order so all arms experience identical cluster load, and **used once then destroyed** so side effects outside `/testbed` can never leak across runs.
+The system has three layers that talk to each other:
 
-Setup & manifests: [`k8s/README.md`](k8s/README.md) · [`k8s/llm-d/README.md`](k8s/llm-d/README.md).
+1. **Evolution loop (V15).** This runs on a coordinator.
+   - A population of 8 harness genomes is bred by code mutation (a meta-model
+     proposes edits to the harness source), knob mutation and crossover.
+   - Every child must pass the leakage gate, compile, and pass the harness
+     unit tests before it costs any GPU time.
+   - Children are evaluated by successive halving: 6 stage-1 tasks for all,
+     21 training tasks for the top 3.
+   - Fitness is resolve rate, plus 0.25 × partial `FAIL_TO_PASS` credit,
+     minus a small token-cost term.
+   - 10 validation tasks pick the final genome. 28 unseen SWE-bench Verified
+     tasks are run once, at the end, against random search, the hand-designed
+     seed and flat ReAct.
+2. **Harness under test.** Each genome runs from its own git worktree with its
+   own knobs. The harness drives tools and tests inside a SWE-bench sandbox pod
+   through `kubectl exec`. A fixed grader that genomes can't modify runs the
+   `FAIL_TO_PASS` and `PASS_TO_PASS` tests and writes `grade.json`.
+3. **Serving on GKE.** Every LLM call goes through the llm-d router, both from
+   the harness layers and from the meta-model that writes code mutations.
+   - The router fronts three replicas of **Beam-1.0-501B-A23B (NVFP4)**.
+   - Each replica is vLLM with tensor parallelism 4 across two
+     `g4-standard-96` nodes (12× RTX PRO 6000 Blackwell in total).
+   - Each replica has prefix caching and DFlash2 speculative decoding.
+
+### How the harness uses llm-d
+
+The harness and llm-d fit together because of how the harness talks to the
+model. Every layer starts a *fresh* context, but those contexts share long
+prefixes: the system prompt, the contract, the recon brief and the file views.
+Evolution then runs many genome × task jobs in parallel.
+
+| llm-d component | Role in HAE |
+| :--- | :--- |
+| **Envoy proxy** (`:8000`) | One OpenAI-compatible endpoint for every agent layer and for the meta-model |
+| **Endpoint Picker (EPP)** | Scores each replica per request, using metrics scraped from each vLLM `/metrics` |
+| ↳ prefix-cache scorer (weight 3) | Keeps an episode's calls on the replica that already holds their prefix in KV cache |
+| ↳ queue scorer (2) and KV-cache-use scorer (2) | Spread parallel evolution workers across replicas without overloading one |
+| **InferencePool** | Points at the Ray head of each TP=4 replica. Set to fail open so a scheduler problem doesn't stall a run |
+
+In a routing check, requests sharing a long prefix all landed on one replica.
+The first request took 1.4–2.2 s and follow-ups about 0.25 s. Setup and
+values: [`k8s/llm-d/`](k8s/llm-d/README.md). Cluster setup:
+[`k8s/README.md`](k8s/README.md).
+
+Deeper specs:
+- Inner engine: [`experiments/v13/v13_hierarchical_agentic_ab_mcts_architecture.md`](experiments/v13/v13_hierarchical_agentic_ab_mcts_architecture.md)
+- Milestone ratchet: [`experiments/v14/v14_generalized_macro_ratchet_architecture.md`](experiments/v14/v14_generalized_macro_ratchet_architecture.md)
+- Evolution: [`experiments/v15/README.md`](experiments/v15/README.md)
 
 ---
 
-## Roadmap
+## Roadmap and vision
 
-| Horizon | Milestone | Success Criteria & Current State |
+**Vision.** We want a self-hosted engineering harness whose design is
+*discovered* rather than hand-written. It should be evolved under fitness that
+only rewards code that runs, protected against benchmark leakage by
+construction, and able to scale from a one-line bug fix to a multi-week build
+by ratcheting small, verified steps.
+
+| Horizon | Goal | Done when |
 | :--- | :--- | :--- |
-| **Done · `V15`** | Clean harness code + knob evolution | Evolved **`17 / 28`** vs. seed **`12 / 28`** and random **`16 / 28`** on unseen `SWE-bench Verified` under `LeakageGate` ([results](results/v15/test_2026-10-28/README.md)) |
-| **Running · `V16`** | "Company DNA" 1-line role playbooks & dynamic UCB CEO | Train & `2×10` validation complete (`Arm C` `5.0/10` mean, `1.00` agreement; `D2` `5.0/10` mean); **`2×28` unseen Verified test + official `swebench` re-grade in progress** ([V16](experiments/v16/README.md)) |
-| **Staged · `V17`** | Firewalled Red Team, Typed Blackboard (`.hae/blackboard.jsonl`) & `250`-move self-terminating budgets | Code & 41-task screened splits ready on `v17-redteam`; launches immediately post-V16 across `A17`, `S`, `B17`, `Q17`, `R`, `Rr`, `V12` ([V17 plan](experiments/v17/README.md)) |
-| **Next** | Standardized external comparisons | `SWE-bench Pro` (public) with `≥ 3` seeds, official `swebench` grading, and matched-token comparisons vs. `mini-SWE-agent` & `OpenHands` on the identical Beam endpoint |
-| **Long-Horizon & Serving** | `10k+` LoC ratcheted synthesis & deeper `llm-d` co-optimization | Second `10k+` LoC greenfield target with external differential oracle + evolving ratchet/prompt-prefix layout + per-layer KV-cache telemetry & prefill/decode disaggregation |
+| **Done: V15** | Show that evolution beats hand design | Evolved 17/28 vs seed 12/28 vs random 16/28 on held-out test: beats the seed, ties random search ([results](results/v15/test_2026-10-28/README.md)) |
+| **Next** | Comparable, trustworthy numbers | SWE-bench Pro (public), ≥ 3 seeds, official `swebench` grading, external baselines at matched budget |
+| **Then** | Long-horizon builds | ≥ 10k LoC on a second target with an external oracle, with ratchet settings evolved too |
+| **Serving** | Make the harness and llm-d co-designed | Prefix hit rate and latency per layer measured and optimized |
+
+**Follow-ups from V15.**
+- Re-grade the final predictions with the official `swebench eval` harness
+  (today's grader is approximate), and re-run V12 flat ReAct under the same
+  load as the V15 test.
+- Evolution only tied random search: run more generations and repeated
+  evaluations (≥ 2 seeds per genome) to cut selection noise before claiming
+  an evolutionary advantage.
+
+**Next: comparable numbers.**
+- Run the selected harness on SWE-bench Pro (public) with at least 3 seeds.
+- Compare against mini-SWE-agent and OpenHands on the same Beam endpoint, at
+  matched token budgets.
+- Run the leakage gate on *every* prompt or harness change, not only on
+  evolved patches.
+
+**Then: long-horizon builds.**
+- Add a second greenfield target with an external oracle, such as an
+  interpreter checked against a reference implementation, and scale to 10k+
+  LoC.
+- Make the ratchet's settings evolvable too: milestone size, diff caps,
+  planner prompts and recovery policy.
+
+**Serving: co-design with llm-d.**
+- Measure prefix-cache hit rate and latency per harness layer.
+- Order prompts so stable content comes first, and consider making that
+  layout an evolvable gene.
+- Calibrate llm-d's prefix-cache-affinity filter for Beam on this hardware.
+  It's currently off because its saturation threshold is uncalibrated.
+- Evaluate prefill/decode disaggregation for the long-prefix, short-output
+  calls the falsifier and recon make.
 
 ---
 
-## Repository layout and quickstart
+## Repository layout and running
 
 ```text
 hae/
-  evolution/      Harness genome, code/knob/org/Red-Team mutation, AST/token LeakageGate, RoleGates, evaluator
-  swebench/       Hierarchical AB-MCTS ("Move 37" loci), external org/Red-Team/Blackboard binding, knobs, ReAct loop
-  hierarchical/   L0-Macro Git milestone ratchet planner, cumulative tag regression engine & verifier plugins
-  epistemic/      Era 1–2 epistemic search, gatekeeper, learned value heads
-  genome/ runtime/ evaluation/ orchestration/   RoleAllele, CEOPolicyGene & Era 1 firm evolution
-  infra/          OpenAI/vLLM client with transport retries, config, telemetry
-configs/
-  genomes/        Seed & baseline harness genomes (V8–V16, V12 flat ReAct control)
-  roles/          Refreshed V16/V17 "Company DNA" 15-role library (5 generalists + 10 specialists)
-data/swebench/    50-task dev pool plus V15/V16 and V17 (41-train / 10-val / 28-test) splits
-k8s/              GKE manifests for Beam-501B NVFP4 multi-node vLLM & llm-d v1.0 router (k8s/llm-d/)
-scripts/          Experiment runners (v15_evolve.py, v16_experiment.py, v17_experiment.py), pod grader, reports
-experiments/      V1–V17 design specs, role refresh reports, evaluation analyses & retrospectives
-results/          Harvested runs: candidate diffs, grade.json, verdicts_grade.json, telemetry summaries
-tests/            Hermetic stdlib unittest suite (leakage gates, org binding, Red Team, blackboard)
+  evolution/      V15: harness genome, mutation (code + knobs), leakage gate, evaluator, evolution loop
+  swebench/       L0-Micro hierarchical AB-MCTS (hierarchical_mcts.py), knobs (harness_knobs.py), ReAct engine, runner
+  hierarchical/   L0-Macro milestone ratchet and verifier plugins
+  epistemic/      Era 1–2 epistemic search, gatekeeper, value heads
+  genome/ runtime/ evaluation/ orchestration/   Era 1 firm evolution
+  infra/          LLM client (vLLM / OpenAI API), config, telemetry
+configs/genomes/  V8–V15 harness genomes (V15 seed: v15_seed_harness_firm_0.json)
+data/swebench/    50-task dev pool and the V15 train / validation / test splits
+k8s/              GKE serving (Beam-501B, Qwen3.8) and the llm-d router (k8s/llm-d/)
+scripts/          SWE-bench batch runner, grader, V15 evolution CLI, ratchet evals
+experiments/      per-version design notes, reports and retrospectives
+results/          harvested runs: patches, grade.json, records, summaries
+tests/            stdlib unittest suite, no network access needed
 ```
 
-**Run hermetic unit tests:**
+**Tests:**
 
 ```bash
 PYTHONPATH=. python3 -m unittest discover -s tests -q
 ```
 
-**Deploy `Beam-1.0-501B-A23B` (NVFP4) behind `llm-d` v1.0 on GKE** (details in [`k8s/README.md`](k8s/README.md) & [`k8s/llm-d/README.md`](k8s/llm-d/README.md)):
+**Serve Beam-501B behind llm-d.** See [`k8s/README.md`](k8s/README.md) and
+[`k8s/llm-d/README.md`](k8s/llm-d/README.md).
 
 ```bash
 kubectl apply -f k8s/beam-501b-nvfp4-serving.yaml
@@ -161,7 +292,15 @@ helm install beam-501b-router oci://ghcr.io/llm-d/charts/llm-d-router-standalone
 kubectl port-forward svc/beam-501b-router-epp 8000:8000
 ```
 
-**Run a single SWE-bench task with the hierarchical `AB-MCTS` harness:**
+**Evolve the harness (V15):**
+
+```bash
+PYTHONPATH=. python3 scripts/v15_evolve.py evolve --mode evolve --out results/v15/my_run --workers 4
+PYTHONPATH=. python3 scripts/v15_evolve.py evolve --mode random --out results/v15/my_random --workers 2 \
+  --seed-results-from results/v15/my_run
+```
+
+**Run one SWE-bench task with the hierarchical harness** (`v13_hier_mcts` policy):
 
 ```bash
 PYTHONPATH=. python3 -u scripts/swebench_kubectl_batch.py --out-root results/swebench/my_run \
@@ -169,22 +308,11 @@ PYTHONPATH=. python3 -u scripts/swebench_kubectl_batch.py --out-root results/swe
   --vllm-model reflection/Beam-1.0-501B-A23B-NVFP4 --instances marshmallow-code__marshmallow-1702
 ```
 
-**Run an `L0-Macro` Git Milestone Ratchet build:**
+**Run a milestone build:**
 
 ```bash
 PYTHONPATH=. python3 -m hae.cli --mode ratchet --workspace-dir /path/to/repo \
   --objective "Build a tokenizer, parser and evaluator with unit tests." --acceptance-cmd "pytest -q" --resume
-```
-
-**Run harness & Company DNA evolution (`V15` on `main`; `V16` / `V17` experiment suites):**
-
-```bash
-# V15 code + knob evolution
-PYTHONPATH=. python3 scripts/v15_evolve.py evolve --mode evolve --out results/v15/my_run --workers 4
-
-# V17 Red-Team + Typed Blackboard + Company DNA arms & evolution (v17-redteam branch)
-PYTHONPATH=. python3 -u scripts/v17_experiment.py arms --split val --arms A17 S B17 Q17 --runs 2 --out results/v17/val
-PYTHONPATH=. python3 -u scripts/v17_experiment.py evolve --mode evolve --seed-arm Q17 --out results/v17/evolve
 ```
 
 Licensed under Apache-2.0 ([`LICENSE`](LICENSE)).
