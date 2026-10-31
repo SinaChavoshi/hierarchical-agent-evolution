@@ -121,17 +121,20 @@ All jobs within validation and test run interleaved in a single GKE worker pool 
 | **`Rr`** | Random (`REDTEAM_SPACE`) | Random (`REDTEAM_SPACE`) | **6-gen Random Search** (matched eval budget) | Controls for search budget vs. directional evolution (`H3`) |
 | **`V12`** | Single-agent self-check | N/A (single linear context) | Fixed (`budget_moves=250`, `7200 s`) | Matched-budget flat ReAct baseline (`H4`) |
 
-### Results Table (Placeholder — Populated Upon V17 Completion)
+### Interim Results (Phase 1 Fixed Arms & Phase 2 Evolution Complete; `Rr` & Phase 3 Val/Test Running)
 
-| Arm | Train (`41`) | Train Red-Team Precision / Recall | Val Mean (`2×10`) | Unseen Test Mean (`2×28`) | Official `swebench` Re-Grade (`2×28`) | Duplicate-Patch Rate | Cap-Binding Rate | Mean Tokens |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **`A17`** (Permissive + 250 moves) | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* |
-| **`S`** (+ Strict Red Team, no channel) | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* |
-| **`B17`** (`S` + Typed Blackboard) | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* |
-| **`Q17`** (`B17` + Budgeted Q&A) | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* |
-| **`R`** (Full Co-Evolution) | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* |
-| **`Rr`** (Matched Random Search) | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* |
-| **`V12`** (Flat ReAct, 250 moves) | — | — | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* | *⏳ pending* |
+| Arm / Genome | Train (`41` tasks) | Train Red-Team `TP / FP / TN / FN` (`FPR`) | Val Mean (`2×10`) | Unseen Test Mean (`2×28`) | Duplicate-Patch Rate | Blackboard (`entries/q`) | Mean Tokens |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`A17`** (Permissive + 250 moves) | `13 / 41` (`31.7%`) | `11 / 21 / 20 / 9` (`FPR = 51.2%`) | *⏳ running next* | *⏳ pending* | `14.8%` | `0 / 0` | `566.8k` |
+| **`S`** (+ Strict Red Team, no channel) | `12 / 41` (`29.3%`) | `10 / 16 / 31 / 7` (`FPR = 34.0%`) | *⏳ running next* | *⏳ pending* | `15.6%` | `0 / 0` | `669.6k` |
+| **`B17`** (`S` + Typed Blackboard) | **`14 / 41` (`34.1%`)** | **`11 / 16 / 41 / 11` (`FPR = 28.1%`)** | *⏳ running next* | *⏳ pending* | `19.0%` | `261 / 0` | `674.7k` |
+| **`Q17`** (`B17` + Budgeted Q&A) | `13 / 41` (`31.7%`) | `9 / 19 / 31 / 12` (`FPR = 38.0%`) | *⏳ running next* | *⏳ pending* | **`11.3%`** | `231 / 0` | `642.0k` |
+| **`R` Top-1 (`evo_g1_05`)** (`mutate_ceo`) | **`15 / 41` (`36.6%`)** | `11 / 26 / 17 / 7` | *⏳ running next* | *⏳ pending* | — | — | **`477.5k`** |
+| **`R` Top-2 (`evo_g0_06`)** (`redteam_rewrite`) | **`15 / 41` (`36.6%`)** | **`13 / 23 / 11 / 3`** | *⏳ running next* | *⏳ pending* | — | — | `554.4k` |
+| **`R` Top-3 (`evo_g0_02`)** (`mutate_code`) | **`15 / 41` (`36.6%`)** | `12 / 24 / 8 / 2` | *⏳ running next* | *⏳ pending* | — | — | `587.0k` |
+| **`R` Population Union (`32` genomes)** | **`19 / 41` (`46.3%`)** | — | — | — | — | — | — |
+| **`Rr`** (Matched Random Search, Gen 2/3 running) | `14 / 41` (`34.1%` so far) | `12 / 18 / 25 / 20` | *⏳ running next* | *⏳ pending* | — | — | `584.1k` |
+| **`V12`** (Flat ReAct, 250 moves) | — | — | — | *⏳ pending* | — | — | — |
 
 ### Launch Commands (`scripts/v17_experiment.py`)
 
