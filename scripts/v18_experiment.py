@@ -637,7 +637,10 @@ def cmd_arms(args: argparse.Namespace) -> int:
     )
 
     def _ckpt() -> None:
-        _dump_json(state_path, {g.genome_id: g.to_dict() for g in genomes})
+        curr = _load_state(state_path)
+        for g in genomes:
+            curr[g.genome_id] = g.to_dict()
+        _dump_json(state_path, curr)
 
     ev.evaluate_batch(genomes, list(splits[args.split]), on_result=_ckpt)
     _ckpt()
