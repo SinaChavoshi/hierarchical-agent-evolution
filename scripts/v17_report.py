@@ -161,22 +161,22 @@ def org_and_redteam_metrics(where: Dict[str, str], arm: str, g_meta: Dict[str, A
                     continue
                 except Exception:
                     pass
-            patches = dict(org.get("verdict_patches") or {})
-            for vd in verdicts:
-                sha = str(vd.get("diff_sha") or "")
-                patch_str = (patches.get(sha) or "").strip() if sha and patches else "nonempty"
-                gt = False if not patch_str else resolved
+            if verdicts:
+                # Without per-checkpoint container grading (`verdicts_grade.json`), only the final
+                # verdict has a ground-truth container grade (`resolved` in `grade.json`).
+                vd = verdicts[-1]
                 passed = bool(vd.get("falsifier_ok") if "falsifier_ok" in vd else vd.get("passed"))
-                if passed and gt:
+                if passed and resolved:
                     tp += 1
-                elif passed and not gt:
+                elif passed and not resolved:
                     fp += 1
-                elif not passed and not gt:
+                elif not passed and not resolved:
                     tn += 1
                 else:
                     fn += 1
 
     fpr = round(fp / (fp + tn), 3) if (fp + tn) > 0 else None
+    prec = round(tp / (tp + fp), 3) if (tp + fp) > 0 else None
     sens = round(tp / (tp + fn), 3) if (tp + fn) > 0 else None
     spec = round(tn / (tn + fp), 3) if (tn + fp) > 0 else None
     dup_rate = round(dup_total / cand_total, 3) if cand_total > 0 else 0.0
@@ -192,6 +192,8 @@ def org_and_redteam_metrics(where: Dict[str, str], arm: str, g_meta: Dict[str, A
             "config": g_meta.get("redteam") or {},
             "verdicts_total": verdicts_total,
             "confusion": {"tp": tp, "fp": fp, "tn": tn, "fn": fn},
+            "precision": prec,
+            "recall": sens,
             "false_pass_rate": fpr,
             "sensitivity": sens,
             "specificity": spec,
@@ -294,17 +296,19 @@ def main() -> int:
         print(json.dumps(out, indent=1))
         return 0
     print(f"{args.split}: {len(tasks)} tasks")
-    print(f"{'arm':<8} {'runs':<10} {'mean':>5} {'maj':>4} {'agree':>6} {'FPR':>6} {'dup%':>6} {'TP/FP/TN/FN':<15} {'bb(e/q)':<9} {'tokens':>8}")
+    print(f"{'arm':<8} {'runs':<10} {'mean':>5} {'maj':>4} {'agree':>6} {'Prec':>6} {'Rec':>6} {'FPR':>6} {'dup%':>6} {'TP/FP/TN/FN':<15} {'bb(e/q)':<9} {'tokens':>8}")
     for arm, a in out["arms"].items():
         rt = a["org"]["redteam"]
         bb = a["org"]["blackboard"]
         cm = rt["confusion"]
         cm_s = f"{cm['tp']}/{cm['fp']}/{cm['tn']}/{cm['fn']}"
+        prec_s = f"{rt['precision']:.2f}" if rt.get("precision") is not None else "  - "
+        rec_s = f"{rt['recall']:.2f}" if rt.get("recall") is not None else "  - "
         fpr_s = f"{rt['false_pass_rate']:.2f}" if rt["false_pass_rate"] is not None else "  - "
         dup_s = f"{rt['duplicate_patch_rate']*100:.1f}%"
         bb_s = f"{bb['entries_total']}/{bb['questions_answered']}"
         print(f"{arm:<8} {str(a['runs']):<10} {a['mean']:>5} {a['majority']:>4} "
-              f"{str(a['run_agreement']):>6} {fpr_s:>6} {dup_s:>6} {cm_s:<15} {bb_s:<9} {a['org']['mean_tokens']:>8}")
+              f"{str(a['run_agreement']):>6} {prec_s:>6} {rec_s:>6} {fpr_s:>6} {dup_s:>6} {cm_s:<15} {bb_s:<9} {a['org']['mean_tokens']:>8}")
     for pair, p in out["pairs"].items():
         print(f"{pair}: {p['wins']}:{p['losses']} sign p={p['sign_p']}, Δrate={p['mean_rate_diff']:+.3f} CI95={p['ci95']}")
     if out.get("evolution", {}).get("generations"):
