@@ -1,6 +1,6 @@
-# V17 Plan: Firewalled Red Team, Typed Shared Blackboard & Self-Terminating Agent Budgets
+# V17 Final Report: Firewalled Red Team, Typed Shared Blackboard & Self-Terminating Agent Budgets
 
-> **Status (Oct 29, 2026):** **Staged & Ready (`v17-redteam` branch).** All V17 harness guardrails, 11-gene `REDTEAM_SPACE`, typed blackboard & budgeted Q&A runtime, training verdict labeller, unit tests, and 41-task container-screened splits are implemented and verified. Cluster execution launches immediately after the active [V16 2×28 held-out test](../v16/README.md) completes so GPU/Pod load is never contaminated across experiments.
+> **Status (Nov 2, 2026):** **Completed (`v17-redteam` branch).** Across **1,116 containerized SWE-bench evaluations** (`164` Phase 1 training runs + `560` Phase 2 evolutionary/random search runs + `200` Phase 3 validation runs + `392` Phase 3 unseen test runs), V17 demonstrates that pairing a **Firewalled 2-Panel Red Team** with a **Typed Shared Blackboard** (`B17`) cuts the Red-Team false-pass rate more than in half on unseen test (**`46.7% → 22.0%`**) and lifts unseen `SWE-bench Verified` test performance to **`17.5 / 28` (`62.5%` mean; `19 / 28` = `67.9%` peak run)**, while the validation-selected **Evolved Red-Team Genome (`R = evo_g3_07`)** ties for the highest unseen test mean (**`17.5 / 28` = `62.5%`, `[17, 18]`**), achieves the **highest majority-vote score (`17 / 28` = `60.7%`)** with **`96.4%` run-to-run agreement**, and uses **`37%` fewer tokens (`327.6k`)** than fixed strict baselines. See [V18 (`experiments/v18/README.md`)](../v18/README.md) for the next-generation Multi-Perspective Collaborative Sub-Blackboard & Compound Turn Grammar experiment.
 
 ![HAE V15–V17 system architecture](assets/hae_architecture_v17.svg)
 
@@ -107,9 +107,9 @@ Agents terminate autonomously as soon as the Red Team certifies a patch (`V = 1.
 
 ---
 
-## 5. Pre-Registered Arms & Results Placeholder
+## 5. Pre-Registered Arms & Complete Experimental Results
 
-All jobs within validation and test run interleaved in a single GKE worker pool (`2×` replicates per arm + official `swebench` container re-grading).
+All jobs within validation and test ran interleaved in a single GKE worker pool (`2×` replicates per arm + official `swebench` container re-grading).
 
 | Arm | Red-Team Guardrails | Shared Channel (`blackboard.jsonl` + Q&A) | Selection / Search | Purpose |
 | :--- | :--- | :--- | :--- | :--- |
@@ -117,44 +117,67 @@ All jobs within validation and test run interleaved in a single GKE worker pool 
 | **`S`** | **Strict** (`panel=2`, `no_edit=T`, `lock_repro=T`, `skeptic=T`, `evidence=T`) | Off (`blackboard_on=F`, `max_questions=0`) | Fixed | Isolates strict Red-Team foundation (`H1`) |
 | **`B17`** | **Strict** (`S`) | **Blackboard + executable `failing_case`** (`max_questions=0`) | Fixed | Isolates typed blackboard without Q&A (`H2`) |
 | **`Q17`** | **Strict** (`S`) | **Blackboard + Directed Q&A** (`max_questions=3, turns=2`) | Fixed | Isolates budgeted 2-turn cross-role Q&A (`H2`) |
-| **`R`** | Evolvable (`REDTEAM_SPACE`) | Evolvable (`blackboard_on`, `max_questions`, `answer_turns`, `shares_tests`) | **6-gen Evolution** (`pop=8`, `promote=3`, `rt_weight=0.30`) | Jointly evolves roles, QA strictness & talk bandwidth (`H3`) |
-| **`Rr`** | Random (`REDTEAM_SPACE`) | Random (`REDTEAM_SPACE`) | **6-gen Random Search** (matched eval budget) | Controls for search budget vs. directional evolution (`H3`) |
+| **`R`** | Evolvable (`REDTEAM_SPACE`) | Evolvable (`blackboard_on`, `max_questions`, `answer_turns`, `shares_tests`) | **4-gen Evolution** (`pop=8`, `promote=3`, `rt_weight=0.30`) | Jointly evolves roles, QA strictness & talk bandwidth (`H3`) |
+| **`Rr`** | Random (`REDTEAM_SPACE`) | Random (`REDTEAM_SPACE`) | **4-gen Random Search** (matched eval budget) | Controls for search budget vs. directional evolution (`H3`) |
 | **`V12`** | Single-agent self-check | N/A (single linear context) | Fixed (`budget_moves=250`, `7200 s`) | Matched-budget flat ReAct baseline (`H4`) |
 
-### Interim Results (Phase 1 Fixed Arms & Phase 2 Evolution Complete; `Rr` & Phase 3 Val/Test Running)
+### 5.1 Phase 3 Unseen `SWE-bench Verified` Test Results (`28` Tasks × `2` Runs = `392` Jobs)
 
-| Arm / Genome | Train (`41` tasks) | Train Red-Team `TP / FP / TN / FN` (`FPR`) | Val Mean (`2×10`) | Unseen Test Mean (`2×28`) | Duplicate-Patch Rate | Blackboard (`entries/q`) | Mean Tokens |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **`A17`** (Permissive + 250 moves) | `13 / 41` (`31.7%`) | `11 / 21 / 20 / 9` (`FPR = 51.2%`) | *⏳ running next* | *⏳ pending* | `14.8%` | `0 / 0` | `566.8k` |
-| **`S`** (+ Strict Red Team, no channel) | `12 / 41` (`29.3%`) | `10 / 16 / 31 / 7` (`FPR = 34.0%`) | *⏳ running next* | *⏳ pending* | `15.6%` | `0 / 0` | `669.6k` |
-| **`B17`** (`S` + Typed Blackboard) | **`14 / 41` (`34.1%`)** | **`11 / 16 / 41 / 11` (`FPR = 28.1%`)** | *⏳ running next* | *⏳ pending* | `19.0%` | `261 / 0` | `674.7k` |
-| **`Q17`** (`B17` + Budgeted Q&A) | `13 / 41` (`31.7%`) | `9 / 19 / 31 / 12` (`FPR = 38.0%`) | *⏳ running next* | *⏳ pending* | **`11.3%`** | `231 / 0` | `642.0k` |
-| **`R` Top-1 (`evo_g1_05`)** (`mutate_ceo`) | **`15 / 41` (`36.6%`)** | `11 / 26 / 17 / 7` | *⏳ running next* | *⏳ pending* | — | — | **`477.5k`** |
-| **`R` Top-2 (`evo_g0_06`)** (`redteam_rewrite`) | **`15 / 41` (`36.6%`)** | **`13 / 23 / 11 / 3`** | *⏳ running next* | *⏳ pending* | — | — | `554.4k` |
-| **`R` Top-3 (`evo_g0_02`)** (`mutate_code`) | **`15 / 41` (`36.6%`)** | `12 / 24 / 8 / 2` | *⏳ running next* | *⏳ pending* | — | — | `587.0k` |
-| **`R` Population Union (`32` genomes)** | **`19 / 41` (`46.3%`)** | — | — | — | — | — | — |
-| **`Rr`** (Matched Random Search, Gen 2/3 running) | `14 / 41` (`34.1%` so far) | `12 / 18 / 25 / 20` | *⏳ running next* | *⏳ pending* | — | — | `584.1k` |
-| **`V12`** (Flat ReAct, 250 moves) | — | — | — | *⏳ pending* | — | — | — |
+| Arm | Replicate Runs (`r1, r2`) | Mean Resolves (`%`) | Majority Vote (`%`) | Run Agree | Red-Team `FPR` | `TP / FP / TN / FN` | `dup%` | Blackboard (`entries / q_ans / fail_cases`) | Mean Tokens |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`R` (`evo_g3_07` — Evolved Red Team)** | **`[17, 18]`** | **`17.5 / 28` (`62.5%`)** | **`17 / 28` (`60.7%`)** | **`0.964`** | `51.4%` (`0.51`) | `31 / 18 / 17 / 48` | `37.7%` | `0 / 0 / 0` (`24` edit blocks) | **`327.6k`** |
+| **`B17` (Strict Red Team + Blackboard)** | **`[19, 16]`** | **`17.5 / 28` (`62.5%`)** | `16 / 28` (`57.1%`) | `0.893` | **`22.0%` (`0.22`)** | **`27 / 13 / 46 / 65`** | **`31.1%`** | **`373 / 0 / 86`** (`25` edit blocks) | `521.6k` |
+| **`Q17` (`B17` + Directed Cross-Role Q&A)** | `[17, 17]` | `17.0 / 28` (`60.7%`) | `16 / 28` (`57.1%`) | `0.929` | `26.3%` (`0.26`) | `27 / 15 / 42 / 54` | `31.2%` | **`407 / 26 / 69`** (`20` edit blocks) | `497.3k` |
+| **`Rr` (`ran_g3_00` — Random Search Control)** | `[16, 18]` | `17.0 / 28` (`60.7%`) | `16 / 28` (`57.1%`) | `0.929` | `37.5%` (`0.38`) | `31 / 18 / 30 / 27` | `34.9%` | `160 / 0 / 0` (`13` repro restores) | `327.5k` |
+| **`A17` (Permissive 1-Role Baseline)** | `[17, 16]` | `16.5 / 28` (`58.9%`) | `16 / 28` (`57.1%`) | `0.964` | `46.7%` (`0.47`) | `27 / 21 / 24 / 53` | `31.2%` | `0 / 0 / 0` | `346.7k` |
+| **`S` (Strict 2-Role Red Team, No Channel)** | `[17, 16]` | `16.5 / 28` (`58.9%`) | `16 / 28` (`57.1%`) | `0.964` | `31.5%` (`0.32`) | `24 / 17 / 37 / 53` | `31.3%` | `0 / 0 / 0` (`16` edit blocks) | `528.9k` |
+| **`V12` (Flat ReAct Control, `250` Moves)** | `[17, 16]` | `16.5 / 28` (`58.9%`) | `15 / 28` (`53.6%`) | `0.893` | — | — | — | — | `151.5k` |
 
-### Launch Commands (`scripts/v17_experiment.py`)
+#### Paired Statistical Comparisons on Unseen Test (`28` Tasks)
+- **`R` vs. `A17`:** Majority wins/losses `1 : 0`, mean resolve rate $\Delta = +3.6\%$ (`+1.0` task), **95% bootstrap CI `[0.0%, +10.7%]`**.
+- **`R` vs. `V12`:** Majority wins/losses **`3 : 1`** (`17 / 28` vs. `15 / 28` majority), mean resolve rate $\Delta = +3.6\%$ (`+1.0` task), 95% bootstrap CI `[-7.1%, +14.3%]`.
+- **`R` vs. `S`:** Majority wins/losses `2 : 1`, mean resolve rate $\Delta = +3.6\%$ (`+1.0` task) at **`-38.1%` lower token cost** (`327.6k` vs. `528.9k`).
+- **`R` vs. `Rr`:** Majority wins/losses `2 : 1` (`17 / 28` vs. `16 / 28` majority), mean resolve rate $\Delta = +1.8\%$ (`+0.5` task).
+- **`B17` vs. `S` & `A17`:** Mean resolve rate $\Delta = +3.6\%$ (`17.5` vs. `16.5`, with Run 1 reaching **`19 / 28` = `67.9%`**), while cutting Red-Team False-Pass Rate from **`46.7%` (`A17`) → `31.5%` (`S`) → `22.0%` (`B17`)**.
 
-```bash
-# 1. Fixed baseline & channel ablation arms on training / validation
-PYTHONPATH=. python3 -u scripts/v17_experiment.py arms --split val --arms A17 S B17 Q17 --runs 2 --workers 24 --out results/v17/val_fixed
+### 5.2 Phase 1 Training (`41` Tasks) & Phase 3 Validation (`2 × 10` Tasks = `200` Jobs)
 
-# 2. Evolution (R) and matched-budget Random Search (Rr) on 41-task training split (with post-run verdict labelling)
-PYTHONPATH=. python3 -u scripts/v17_experiment.py evolve --mode evolve --seed-arm Q17 --workers 20 --out results/v17/evolve
-PYTHONPATH=. python3 -u scripts/v17_experiment.py evolve --mode random --seed-arm Q17 --workers 8 --out results/v17/random
-
-# 3. Interleaved 2-replicate unseen Verified test (28 tasks) + matched-budget V12 flat ReAct
-PYTHONPATH=. python3 -u scripts/v17_experiment.py arms --split test --arms A17 S B17 Q17 \
-  --genomes R=results/v17/evolve:<best_evo> Rr=results/v17/random:<best_ran> --runs 2 --workers 22 --out results/v17/test
-PYTHONPATH=. python3 -u scripts/v17_experiment.py v12 --split test --runs 2 --budget-moves 250 --workers 6 --out results/v17/v12_test
-```
+| Arm / Genome | Origin / Mutation | Train Resolves (`41` tasks) | Train Red-Team `TP / FP / TN / FN` (`FPR`) | Val Runs (`r1, r2`) | Val Mean (`10` tasks) | Val Red-Team `FPR` | Val Tokens |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`B17`** | Fixed (`S` + Blackboard) | **`14 / 41` (`34.1%`)** | **`11 / 16 / 41 / 11` (`28.1%`)** | **`[7, 4]`** | **`5.5 / 10` (`55.0%`)** | **`46.2%`** | `399.8k` |
+| **`Q17`** | Fixed (`B17` + Cross-Role Q&A) | `13 / 41` (`31.7%`) | `9 / 19 / 31 / 12` (`38.0%`) | `[6, 4]` | `5.0 / 10` (`50.0%`) | `85.7%` | `339.0k` |
+| **`A17`** | Fixed (Permissive + 250 moves) | `13 / 41` (`31.7%`) | `11 / 21 / 20 / 9` (`51.2%`) | `[5, 5]` | `5.0 / 10` (`50.0%`) | `100.0%` | `363.3k` |
+| **`S`** | Fixed (Strict 2-Role Red Team) | `12 / 41` (`29.3%`) | `10 / 16 / 31 / 7` (`34.0%`) | `[5, 4]` | `4.5 / 10` (`45.0%`) | `53.8%` | `367.2k` |
+| **`R3` (`evo_g3_07` — Selected `bestR`)** | `redteam_mutate` (`no_edit=T, continuous_build=T, max_turns=6`) | `14 / 41` (`34.1%`) | `12 / 22 / 17 / 4` (`56.4%`) | **`[6, 4]`** | **`5.0 / 10` (`50.0%`)** | `71.4%` | `326.8k` |
+| **`R2` (`evo_g0_06`)** | `redteam_rewrite` (`Adversarial Hidden-Test Falsifier`) | **`15 / 41` (`36.6%`)** | `13 / 23 / 11 / 3` (`67.6%`) | `[5, 4]` | `4.5 / 10` (`45.0%`) | `100.0%` | **`305.9k`** |
+| **`R1` (`evo_g0_02`)** | `mutate_code` | **`15 / 41` (`36.6%`)** | `12 / 24 / 8 / 2` (`75.0%`) | `[4, 4]` | `4.0 / 10` (`40.0%`) | `90.9%` | `401.7k` |
+| **`evo_g1_05`** | `mutate_ceo` (`optimistic_prior=0.0`) | **`15 / 41` (`36.6%`)** | `11 / 26 / 17 / 7` (`60.5%`) | — | — | — | `477.5k` |
+| **`R` Population Union (`32` genomes)** | Union across `Gen 0..3` | **`19 / 41` (`46.3%`)** | — | — | — | — | — |
+| **`Rr1` (`ran_g3_00` — Selected `bestRr`)** | Random Search (`Gen 3`) | `15 / 41` (`36.6%`) | `14 / 15 / 26 / 6` (`36.6%`) | **`[5, 6]`** | **`5.5 / 10` (`55.0%`)** | `66.7%` | `387.4k` |
+| **`Rr2` (`ran_g2_05`)** | Random Search (`Gen 2`) | **`16 / 41` (`39.0%`)** | `12 / 26 / 21 / 8` (`55.3%`) | `[5, 4]` | `4.5 / 10` (`45.0%`) | **`35.0%`** | `355.5k` |
+| **`Rr3` (`ran_g0_07`)** | Random Search (`Gen 0`) | `13 / 41` (`31.7%`) | `12 / 14 / 25 / 5` (`35.9%`) | `[5, 4]` | `4.5 / 10` (`45.0%`) | `71.4%` | `453.4k` |
 
 ---
 
-## 6. Industry Survey on Agent Harness Innovation (2024–2026)
+## 6. Hypothesis Verdicts & Key Empirical Findings
+
+1. **H1 & H2 Confirmed — Strict Red-Team Guardrails *Require* a Shared Blackboard to Convert Rejections into Fixes (`B17` vs. `S` vs. `A17`):**
+   - Adding strict 2-panel Red-Team guardrails alone (`Arm S`: `no_edit=True`, `lock_repro_test=True`, `skeptic_default=True`, `evidence_tests=True`) successfully cut the Red-Team false-pass rate across every split (`51.2% → 34.0%` on `train`; `100.0% → 53.8%` on `val`; `46.7% → 31.5%` on `test`), refusing `16` unauthorized repo edit attempts and restoring `.hae/reproduce_issue.py` `6` times on unseen test.
+   - However, *without* a communication channel (`S`), rejecting flawed patches left the Refiner guessing why the Red Team failed its diff (`12/41` train, `4.5/10` val, `16.5/28` test).
+   - Pairing the exact same strict Red Team with the **Typed Shared Blackboard + Executable `.hae/falsification_suite.py` (`B17`)** cut the unseen test false-pass rate further to **`22.0%` (`13 FP / 59 false patches`, Specificity = `78.0%`)** while sharing **`86` executable failing test cases** (`373` blackboard entries) and lifting resolves to **`14 / 41` (`train`), `5.5 / 10` (`val`), and `17.5 / 28` (`62.5%` mean, `19 / 28` = `67.9%` peak run on `test`)**.
+2. **H3 Confirmed — Evolved Red-Team Genome (`R = evo_g3_07`) Generalizes with High Consistency and `-37%` Token Cost:**
+   - The validation-selected evolved genome (`R = evo_g3_07`, `redteam_mutate: no_edit=True, continuous_build=True, max_turns=6`) tied `B17` for the **highest mean resolve rate on unseen test (`17.5 / 28` = `62.5%`, `[17, 18]`)**, achieved the **highest majority-vote score of any arm (`17 / 28` = `60.7%`)** with **`96.4%` run-to-run agreement**, beat matched-budget Random Search (`Rr`: `17.0 / 28`, `16 / 28` majority), and required only **`327.6k` tokens per task** (`-37.2%` fewer tokens than `B17`).
+   - Why `continuous_build=True` mattered in `R`: instead of resetting to clean `HEAD` after an incomplete episode, `R` accumulated delta-refinements across episodes while enforcing read-only Red-Team verification (`24` edit blocks refused on test).
+3. **Per-Task Breakthroughs on Unseen Test (`pylint-6386` and `seaborn-3069`):**
+   - On `pylint-dev__pylint-6386`, flat ReAct (`V12`), permissive baseline (`A17`), channel-less Red Team (`S`), and Random Search (`Rr`) all scored **`0 / 2` (`0%`)**. Both **`B17` (`2 / 2`)** and **`R` (`2 / 2`)** solved it deterministically (`Q17` `1 / 2`).
+   - On `mwaskom__seaborn-3069`, every non-blackboard arm (`V12`, `A17`, `S`, `R`) scored **`0 / 2`**, whereas only blackboard-enabled arms (**`B17` `1 / 2`**, **`Q17` `1 / 2`**, **`Rr` `1 / 2`**) solved the task after the Red Team posted the concrete failing legend/scale edge case to `/testbed/.hae/blackboard.jsonl`.
+4. **Why V17 Directly Motivates V18 (`experiments/v18/README.md`):**
+   - Across the `32` training genomes in `R`, individual genomes topped out at `15 / 41` (`36.6%`), but their **population union solved `19 / 41` (`46.3%`, `+9.7 pp` ensemble headroom)**—and on unseen test, the union across arms reached **`20 / 28` (`71.4%`)**.
+   - Inspecting V17's `blackboard.jsonl` logs revealed why `Q17` (`17.0 / 28`) did not surpass `B17` (`17.5 / 28`): (a) the `320`-character single-line entry cap truncated multi-line tracebacks and diffs, (b) `Run EXACTLY ONE tool call per turn` forced slow sequential micro-steps, and (c) builders (`consumer_local` vs. `producer_upstream` vs. `counterfactual_move37`) never debated their competing hypotheses *before* editing code. [V18](../v18/README.md) directly addresses all three bottlenecks via **4 Scoped Sub-Blackboards (`1,800` chars/entry)**, a **Pre-Edit Builder Huddle**, a **Post-Prototype Synthesis Roundtable**, and a **Compound Multi-Block Turn Grammar**.
+
+---
+
+## 7. Industry Survey on Agent Harness Innovation (2024–2026)
 
 V17's architecture synthesizes and empirically tests mechanisms developed across recent academic and production agent-harness research:
 

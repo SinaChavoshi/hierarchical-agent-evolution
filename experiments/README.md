@@ -1,4 +1,4 @@
-# Experiments index (V1 → V17)
+# Experiments index (V1 → V18)
 
 This directory holds the design notes, evaluation reports, retrospectives, and pre-registered protocols for every HAE iteration across four architectural eras. Raw outputs (patches, `grade.json`, `verdicts_grade.json`, telemetry records) live in [`../results/`](../results/). For the project overview, industry context, and headline findings, see the [top-level README](../README.md).
 
@@ -58,7 +58,7 @@ This directory holds the design notes, evaluation reports, retrospectives, and p
 
 ---
 
-## Era 4 · Evolving the harness, "Company DNA" & firewalled Red Teams (V15 → V17)
+## Era 4 · Evolving the harness, "Company DNA", firewalled Red Teams & collaborative blackboards (V15 → V18)
 
 *All instance hints and AST detectors removed; automated AST/token `LeakageGate` enforced on every code and role mutation; real `llm-d v1.0.0` standalone prefix/queue router on GKE.*
 
@@ -66,8 +66,9 @@ This directory holds the design notes, evaluation reports, retrospectives, and p
 | :--- | :--- | :--- | :--- |
 | **V14 retro** | Full audit of `V13–V14` prompts & detectors; formal separation of train / val / unseen test splits | Stripped 4 gold-fix detectors & test-task examples; motivated `LeakageGate` | [retrospective](v14/v14_retrospective.md) |
 | **V15** | **Harness code + 18-knob evolution** (`pop=8`, 6 gens, `LeakageGate`, unit-test gate, matched random-search control) | **Complete:** Evolved **`17 / 28` (`60.7%`)** vs hand-designed seed **`12 / 28` (`42.9%`)** (`5:0` discordant, $p=0.063$) and random search **`16 / 28`** on unseen `SWE-bench Verified`; logs showed `86%` (`508/590`) `consumer_local` anchoring | [design](v15/README.md) · [test results](../results/v15/test_2026-10-28/README.md) |
-| **V16** | **"Company DNA" (1-line specialist roles + 3–8 line playbooks + UCB CEO staffing & stall swaps)** + single-use pre-warmed Pod pool + `llm-d` EPP queue tuning | **Train & 2×10 Val complete; 2×28 Test running:** On 2×10 validation, dynamic org `C` reached **`5.0 / 10` mean** (`5 / 10` majority, **`1.00` agreement**) vs `A` `4.0 / 10` mean (`3 / 10` majority), and evolved `D2` (`evo_g1_07`) reached **`5.0 / 10` mean** vs random `E1` `4.0 / 10`. Log audit uncovered **`31.5%` (`211 / 670`) falsifier precision** & 3× duplicate-patch loops | [protocol & interim results](v16/README.md) · [role refresh](v16/role_refresh_report.md) |
-| **V17** | **Foundational Red-Team guardrails** (`no_edit`, `lock_repro_test`, `skeptic_default`, `2×` FP verdict fitness) + **Typed Shared Blackboard (`.hae/blackboard.jsonl`) & budgeted 2-turn Q&A** + **`250`-move self-terminating budgets** + `41`-task discriminative pool | **Staged (`v17-redteam`):** Launches immediately after `V16` test & official re-grade finish; compares `A17`, `S`, `B17`, `Q17`, `R`, `Rr`, and matched-budget `V12` | [experiment plan](v17/README.md) · [architecture SVG](v17/assets/hae_architecture_v17.svg) |
+| **V16** | **"Company DNA" (1-line specialist roles + 3–8 line playbooks + UCB CEO staffing & stall swaps)** + single-use pre-warmed Pod pool + `llm-d` EPP queue tuning | **Complete (`2×28` Test):** On 2×10 validation, dynamic org `C` reached **`5.0 / 10` mean** (`5 / 10` majority, **`1.00` agreement**) vs `A` `4.0 / 10` mean (`3 / 10` majority). On 2×28 unseen test, `A`, `C`, and `V12` tied at **`16.5 / 28` (`58.9%`)** (`C` `[15, 18]`). Log audit uncovered **`31.5%` (`211 / 670`) falsifier precision** & 3× duplicate-patch loops | [final report](v16/README.md) · [role refresh](v16/role_refresh_report.md) |
+| **V17** | **Foundational Red-Team guardrails** (`no_edit`, `lock_repro_test`, `skeptic_default`, `2×` FP verdict fitness) + **Typed Shared Blackboard (`.hae/blackboard.jsonl`) & budgeted 2-turn Q&A** + **`250`-move self-terminating budgets** + `41`-task discriminative pool | **Complete (`1,116` container runs):** On 2×28 unseen test, **`R` (`evo_g3_07`)** and **`B17`** tied for highest mean at **`17.5 / 28` (`62.5%`)**, with **`B17` Run 1 hitting `19 / 28` (`67.9%`)** and cutting Red-Team false-pass rate from **`46.7%` (`A17`) → `22.0%` (`B17`)**, while **`R`** achieved the highest majority vote (**`17 / 28` = `60.7%`**, `96.4%` agreement) at **`-37%` token cost (`327.6k`)** | [final report](v17/README.md) · [architecture SVG](v17/assets/hae_architecture_v17.svg) |
+| **V18** | **4 Scoped Sub-Blackboards** (`#recon-map`, `#builders-room`, `#redteam-chamber`, `#verdicts-and-repros`, `1,800` chars/entry) + **Pre-Edit Builder Huddle** + **Post-Prototype Synthesis Roundtable** + **Compound Multi-Block Turns** | **Active / Next:** Targets the `19 / 41` (`46.3%`) train union and `20 / 28` (`71.4%`) unseen test union uncovered in V17 | [experiment plan](v18/README.md) |
 
 ---
 

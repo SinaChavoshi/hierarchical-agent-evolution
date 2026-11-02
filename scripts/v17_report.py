@@ -139,7 +139,16 @@ def org_and_redteam_metrics(where: Dict[str, str], arm: str, g_meta: Dict[str, A
                 fals_agree[0] += int(bool(last[-1]["falsifier_ok"]) == resolved)
                 fals_agree[1] += 1
 
-            verdicts = org.get("verdicts") or []
+            verdicts = list(org.get("verdicts") or [])
+            if not verdicts:
+                mcts_tree = ((rec.get("epistemic_search") or {}).get("stats") or {}).get("mcts_tree") or {}
+                for nid, nd in mcts_tree.items():
+                    if nid != "root" and nd.get("falsifier_ok") is not None and (nd.get("repro_ok") and nd.get("repo_tests_ok")):
+                        verdicts.append({
+                            "episode": 1,
+                            "node": nid,
+                            "falsifier_ok": bool(nd.get("falsifier_ok")),
+                        })
             verdicts_total += len(verdicts)
             if os.path.exists(vg_path):
                 try:
@@ -152,13 +161,17 @@ def org_and_redteam_metrics(where: Dict[str, str], arm: str, g_meta: Dict[str, A
                     continue
                 except Exception:
                     pass
-            if verdicts:
-                passed = bool(verdicts[-1].get("passed"))
-                if passed and resolved:
+            patches = dict(org.get("verdict_patches") or {})
+            for vd in verdicts:
+                sha = str(vd.get("diff_sha") or "")
+                patch_str = (patches.get(sha) or "").strip() if sha and patches else "nonempty"
+                gt = False if not patch_str else resolved
+                passed = bool(vd.get("falsifier_ok") if "falsifier_ok" in vd else vd.get("passed"))
+                if passed and gt:
                     tp += 1
-                elif passed and not resolved:
+                elif passed and not gt:
                     fp += 1
-                elif not passed and not resolved:
+                elif not passed and not gt:
                     tn += 1
                 else:
                     fn += 1

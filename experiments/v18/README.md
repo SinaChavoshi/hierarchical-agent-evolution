@@ -1,6 +1,6 @@
 # V18 Plan: Collaborative Builder Roundtables, Scoped Sub-Blackboards & Compound Multi-Block Turns
 
-> **Status (Oct 31, 2026):** **Pre-Registered Design Plan (`experiments/v18/README.md`).** Designed from empirical trace analysis of 1,240+ V17 Phase 1 & Phase 2 container runs. Launches immediately after V17 Phase 3 (`2×10` validation and `2×28` unseen test) completes.
+> **Status (Nov 2, 2026):** **Active / Ready for Implementation (`experiments/v18/README.md`).** V17 (`1,116` container runs across train, evolution, validation, and unseen test) is now **100% complete** ([V17 Final Report](../v17/README.md)): `B17` (Strict Red Team + Blackboard) and `R` (`evo_g3_07`) lifted unseen `SWE-bench Verified` test resolves to **`17.5 / 28` (`62.5%` mean; `19 / 28` = `67.9%` peak run)** and cut Red-Team false-pass rates from **`46.7%` → `22.0%`**, while uncovering a **`19 / 41` (`46.3%`) training union** and **`20 / 28` (`71.4%`) unseen test union** across complementary agent trajectories that V18 is designed to capture within a single collaborative team.
 
 ---
 
