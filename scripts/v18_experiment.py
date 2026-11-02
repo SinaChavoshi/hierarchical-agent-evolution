@@ -642,7 +642,7 @@ def cmd_arms(args: argparse.Namespace) -> int:
             curr[g.genome_id] = g.to_dict()
         _dump_json(state_path, curr)
 
-    ev.evaluate_batch(genomes, list(splits[args.split]), on_result=_ckpt)
+    ev.evaluate(genomes, list(splits[args.split]))
     _ckpt()
     return 0
 
@@ -686,7 +686,7 @@ def cmd_flat(args: argparse.Namespace) -> int:
         _dump_json(state_path, curr)
 
     tasks = list(splits[args.split])
-    ev.evaluate_batch(genomes, tasks, on_result=_ckpt)
+    ev.evaluate(genomes, tasks)
     _ckpt()
     if args.runs >= 2:
         synthesize_flat_3x_select(out_root, tasks, base_id="Flat_1x_V18", runs=args.runs)
