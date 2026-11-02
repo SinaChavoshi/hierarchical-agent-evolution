@@ -221,10 +221,12 @@ def main() -> int:
     p.add_argument("--partial-weight", type=float, default=0.25)
     p.add_argument("--seed", type=int, default=15)
     p.add_argument("--seed-results-from", default="", help="Reuse the seed genome's evaluations from another run dir")
-    for name in ("validate", "test"):
+    for name in ("validate", "test", "eval"):
         p = sub.add_parser(name); common(p)
         p.add_argument("--out", required=True)
         p.add_argument("--genomes", nargs="+", required=True, help="run_dir:genome_id entries")
+        if name == "eval":
+            p.add_argument("--split", choices=["train", "val", "test"], required=True)
     p = sub.add_parser("report"); p.add_argument("--out", required=True)
 
     args = ap.parse_args()
@@ -236,6 +238,8 @@ def main() -> int:
         return _eval_named(args, "val")
     if args.cmd == "test":
         return _eval_named(args, "test")
+    if args.cmd == "eval":
+        return _eval_named(args, args.split)
     return cmd_report(args)
 
 

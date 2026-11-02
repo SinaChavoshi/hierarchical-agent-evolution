@@ -6,10 +6,12 @@
 ##     -n default -f k8s/llm-d/beam-501b-router.values.yaml
 ##   kubectl port-forward svc/beam-501b-router-epp 8000:8000
 ##
-## Scheduling profile: the chart's default llm-d "intelligent inference scheduling" profile:
-##   prefix-cache-scorer (weight 3)   -> route requests that share a prompt prefix to the replica holding it
-##   queue-scorer (weight 2)          -> prefer replicas with fewer waiting requests (vllm:num_requests_waiting)
+## Scheduling profile: llm-d "intelligent inference scheduling" scorers, re-weighted for V16:
+##   queue-scorer (weight 3)          -> prefer replicas with fewer waiting requests (vllm:num_requests_waiting)
 ##   kv-cache-utilization-scorer (2)  -> prefer replicas with free KV cache (vllm:kv_cache_usage_perc)
+##   prefix-cache-scorer (weight 1)   -> route requests that share a prompt prefix to the replica holding it
+## The chart default (prefix 3, queue 2, KV 2) let prefix stickiness overload one replica in V15
+## (one replica at max-num-seqs with waiting requests while the others were idle).
 ## Endpoint metrics are scraped from each vLLM head's /metrics on port 8000.
 ## (The optimized-baseline prefix-cache-affinity-filter is not used: its saturation gate needs
 ## per-hardware calibration, which has not been done for Beam-501B on RTX PRO 6000 TP=4.)
@@ -40,6 +42,29 @@ router:
     flags:
       v: 2
     pluginsConfigFile: "default-plugins.yaml"
+    pluginsCustomConfig:
+      default-plugins.yaml: |
+        apiVersion: llm-d.ai/v1
+        kind: EndpointPickerConfig
+        plugins:
+        - type: queue-scorer
+        - type: kv-cache-utilization-scorer
+        - type: prefix-cache-scorer
+        - type: metrics-data-source
+          parameters:
+            scheme: "http"
+            path: "/metrics"
+            insecureSkipVerify: true
+        - type: core-metrics-extractor
+        schedulingProfiles:
+        - name: default
+          plugins:
+          - pluginRef: queue-scorer
+            weight: 3
+          - pluginRef: kv-cache-utilization-scorer
+            weight: 2
+          - pluginRef: prefix-cache-scorer
+            weight: 1
     resources:
       requests:
         cpu: "2"

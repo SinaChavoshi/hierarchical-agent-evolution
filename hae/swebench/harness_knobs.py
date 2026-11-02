@@ -65,16 +65,16 @@ class KnobSpec:
 KNOB_SPACE: Dict[str, KnobSpec] = {
     spec.name: spec
     for spec in (
-        KnobSpec("min_budget_moves", "int", 68, 30, 110, "Floor on the total L2 move budget per instance."),
-        KnobSpec("max_episodes", "int", 4, 1, 7, "Maximum AB-MCTS episodes (GEN or CONT) per instance."),
-        KnobSpec("recon_max_turns", "int", 3, 1, 8, "Turns given to the L1-A reconnaissance episode."),
-        KnobSpec("gen1_turns_min", "int", 14, 6, 24, "Minimum turns for the first GEN branch."),
-        KnobSpec("gen1_turns_max", "int", 18, 8, 30, "Maximum turns for the first GEN branch."),
-        KnobSpec("genk_turns_min", "int", 10, 4, 20, "Minimum turns for later GEN branches."),
-        KnobSpec("genk_turns_max", "int", 15, 6, 26, "Maximum turns for later GEN branches."),
-        KnobSpec("cont_turns_min", "int", 8, 3, 18, "Minimum turns for a CONT refinement episode."),
-        KnobSpec("cont_turns_max", "int", 12, 4, 24, "Maximum turns for a CONT refinement episode."),
-        KnobSpec("falsifier_max_turns", "int", 6, 2, 12, "Turns given to the L1-B adversarial falsifier."),
+        KnobSpec("min_budget_moves", "int", 68, 30, 300, "Floor on the total L2 move budget per instance."),
+        KnobSpec("max_episodes", "int", 4, 1, 16, "Maximum AB-MCTS episodes (GEN or CONT) per instance."),
+        KnobSpec("recon_max_turns", "int", 3, 1, 10, "Turns given to the L1-A reconnaissance episode."),
+        KnobSpec("gen1_turns_min", "int", 14, 6, 40, "Minimum turns for the first GEN branch."),
+        KnobSpec("gen1_turns_max", "int", 18, 8, 50, "Maximum turns for the first GEN branch."),
+        KnobSpec("genk_turns_min", "int", 10, 4, 35, "Minimum turns for later GEN branches."),
+        KnobSpec("genk_turns_max", "int", 15, 6, 45, "Maximum turns for later GEN branches."),
+        KnobSpec("cont_turns_min", "int", 8, 3, 30, "Minimum turns for a CONT refinement episode."),
+        KnobSpec("cont_turns_max", "int", 12, 4, 40, "Maximum turns for a CONT refinement episode."),
+        KnobSpec("falsifier_max_turns", "int", 6, 2, 24, "Turns given to the L1-B adversarial falsifier."),
         KnobSpec("gen1_temperature", "float", 0.2, 0.0, 0.9, "Sampling temperature for the first GEN branch."),
         KnobSpec("genk_temperature", "float", 0.35, 0.0, 1.0, "Sampling temperature for later GEN branches."),
         KnobSpec("cont_temperature", "float", 0.25, 0.0, 0.9, "Sampling temperature for CONT refinement."),
@@ -88,6 +88,21 @@ KNOB_SPACE: Dict[str, KnobSpec] = {
 }
 
 V14_DEFAULT_KNOBS: Dict[str, Any] = {name: spec.default for name, spec in KNOB_SPACE.items()}
+
+# V17 high-budget preset: removes tight step caps so agents self-decide when to terminate.
+V17_HIGH_BUDGET_KNOBS: Dict[str, Any] = {
+    **V14_DEFAULT_KNOBS,
+    "min_budget_moves": 250,
+    "max_episodes": 12,
+    "recon_max_turns": 5,
+    "gen1_turns_min": 24,
+    "gen1_turns_max": 40,
+    "genk_turns_min": 20,
+    "genk_turns_max": 36,
+    "cont_turns_min": 16,
+    "cont_turns_max": 32,
+    "falsifier_max_turns": 12,
+}
 
 
 def resolve_knobs(overrides: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:

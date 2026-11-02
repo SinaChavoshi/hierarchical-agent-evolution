@@ -335,6 +335,10 @@ class EpistemicPolicyGene(_Model):
 # name below, so `from hae.epistemic.org import RoleAllele` keeps working.
 
 ROLE_KINDS = ("probe", "synthesis", "both")
+# V16: the hierarchical SWE-bench harness layer a role staffs ("" = legacy role, ignored by the harness).
+ROLE_LAYERS = ("", "recon", "architect", "executor", "refiner", "falsifier")
+MAX_PLAYBOOK_STEPS = 8
+MAX_PLAYBOOK_STEP_CHARS = 200
 RECRUIT_MODES = ("library", "synthesize", "both")
 # dU of a single move that counts as "fully productive" when turning a role's
 # mean dU into a [0, 1] quality estimate. A SUPPORTED verdict lowers a
@@ -390,11 +394,28 @@ class RoleAllele(_Model):
     tasks_resolved: int = 0
     origin: str = "seed"
     created_generation: int = 0
+    # V16 (hierarchical harness): which layer the role staffs, its step-by-step playbook, the failure
+    # modes it targets, and whether it is the layer's generalist control (reproduces the V15 prompt).
+    layer: str = ""
+    playbook: List[str] = field(default_factory=list)
+    failure_modes: List[str] = field(default_factory=list)
+    is_generalist: bool = False
     extra: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not str(self.name).strip():
             raise GenomeValidationError("RoleAllele.name must be non-empty")
+        self.layer = str(self.layer or "").strip().lower()
+        if self.layer not in ROLE_LAYERS:
+            raise GenomeValidationError(f"RoleAllele.layer must be one of {ROLE_LAYERS}, got {self.layer!r}")
+        steps = [str(x).strip() for x in (self.playbook or []) if str(x).strip()]
+        if len(steps) > MAX_PLAYBOOK_STEPS:
+            raise GenomeValidationError(f"RoleAllele.playbook has {len(steps)} steps (max {MAX_PLAYBOOK_STEPS})")
+        if any(len(x) > MAX_PLAYBOOK_STEP_CHARS for x in steps):
+            raise GenomeValidationError(f"RoleAllele.playbook steps must be <= {MAX_PLAYBOOK_STEP_CHARS} chars")
+        self.playbook = steps
+        self.failure_modes = normalise_tags(self.failure_modes)
+        self.is_generalist = bool(self.is_generalist)
         if not str(self.role_id).strip():
             self.role_id = stable_role_id(self.name)
         if self.kind not in ROLE_KINDS:
@@ -409,6 +430,20 @@ class RoleAllele(_Model):
         self.mean_delta_u = float(self.mean_delta_u)
         self.support_rate = min(1.0, max(0.0, float(self.support_rate)))
         self.tasks_resolved = max(0, int(self.tasks_resolved))
+
+    def to_dict(self) -> Dict[str, Any]:
+        """`_Model.to_dict`, minus the V16 fields while they carry no information, so archived
+        (pre-V16) role libraries round-trip byte-identically."""
+        out = super().to_dict()
+        if not self.layer:
+            out.pop("layer", None)
+        if not self.playbook:
+            out.pop("playbook", None)
+        if not self.failure_modes:
+            out.pop("failure_modes", None)
+        if not self.is_generalist:
+            out.pop("is_generalist", None)
+        return out
 
     def can(self, kind: str) -> bool:
         """Whether the role may take `probe` (propose/experiment) or `synthesis` moves."""
