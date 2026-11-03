@@ -271,7 +271,7 @@ def generate_report(
         "",
         "## 3. Paired Bootstrap 95% Confidence Intervals & Exact McNemar Tests",
         "",
-        "| Hypothesis Comparison | Net Task Diff ($\Delta$) | 95% Bootstrap CI (Tasks) | Exact McNemar $p$ | Statistical Verdict ($\alpha = 0.05$) |",
+        r"| Hypothesis Comparison | Net Task Diff ($\Delta$) | 95% Bootstrap CI (Tasks) | Exact McNemar $p$ | Statistical Verdict ($\alpha = 0.05$) |",
         "| :--- | :---: | :---: | :---: | :--- |",
     ])
     pairs = [
