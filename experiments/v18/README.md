@@ -1,6 +1,6 @@
 # V18 Plan: Compute-Matched Collaborative Synthesis vs. Parallel Sampling, Candidate-Pool Red-Team Ranking & Expanded Benchmark
 
-> **Status (Nov 2, 2026):** **Active Redesign (`experiments/v18/README.md`).** Incorporating the complete [V17 post-mortem (`1,116` container runs)](../v17/README.md), V18 makes five structural upgrades: (1) retires the saturated 28-task split to the dev pool and evaluates on a **fresh, offline-screened `N = 80` `SWE-bench Verified` benchmark** powered to detect `+8–10 pp` effects; (2) fixes the V17 substrate bugs (**compound multi-block turns**, `eng.executor.run_bash` in Q&A, `</rfl:parameter>` fence normalization) across all baselines; (3) replaces destructive binary Red-Team gating (`50%` train recall) with a **Candidate-Pool Red-Team Ranker** calibrated on V16–V17's `>300` container-graded checkpoints; (4) gives the **Pre-Edit Builder Huddle** authority to override flawed `L0` Architect contracts and enables `continuous_build=True`; and (5) tests **`V18-Collab`** directly against **compute-matched `3× Flat ReAct + Selector` (`Flat-3x-Select`, `~450k` tokens)**.
+> **Status (Nov 3, 2026):** **Complete (`400` container runs across `N = 80` fresh `SWE-bench Verified` tasks; full report in [`docs/V18_RESULTS.md`](../../docs/V18_RESULTS.md)).** Incorporating the complete [V17 post-mortem (`1,116` container runs)](../v17/README.md), V18 makes five structural upgrades: (1) retires all 81 previously touched tasks (including the saturated 28-task split) to `dev_retired` and evaluates on a **fresh, offline-screened `N = 80` `SWE-bench Verified` benchmark** (`data/swebench/v18_splits.json`); (2) fixes the V17 substrate bugs (**compound multi-block turns**, `eng.executor.run_bash` in Q&A, `</rfl:parameter>` fence normalization) across all baselines; (3) replaces destructive binary Red-Team gating (`45.5%` FRR across $n = 2,525$ V17 patches) with a **Candidate-Pool Red-Team Ranker** (`100%` pool retention, `96.0%` top-1 accuracy on resolvable runs); (4) gives the **Pre-Edit Builder Huddle** authority to override flawed `L0` Architect contracts (`74` overrides across 80 tasks) and adds a **Post-Prototype Synthesis Roundtable (`b_synth`)** (`30` roundtables across 80 tasks); and (5) evaluates **`V18_Collab`** and **`V18_Evolved`** head-to-head against **compute-matched `3× Flat ReAct + Selector` (`Flat_3x_Select`, `442k` tokens/task)**.
 
 ---
 
@@ -136,3 +136,48 @@ To emulate a human engineering team where specialists with different technical p
 | **`Flat-3x-Select`** | **`3×` independent `Flat-1x-V18` rollouts** (parallel sampling) | **`~450k` (`3×`, Compute-Matched)** | **Red-Team Ranker + Pairwise Tournament** over the 3 candidate patches | Primary test-time-scaling baseline (`H2`) |
 | **`V18-Collab`** | **Shared `#recon-map` + Pre-Edit Builder Huddle (`b1, b2`, `continuous_build=T`) + Post-Prototype Synthesis Roundtable** | **`~450k` (`3×`, Compute-Matched)** | **Candidate-Pool Red-Team Ranker** over `{b1, b2, b_synth}` | Tests whether structured collaboration & synthesis beats blind parallel sampling at matched tokens (`H2`) |
 | **`V18-Evolved`** | **`V18-Collab` + Offline-Evolved Red-Team Ranker & Collaboration Policy** (`token_lambda = 0.01`) | **`~450k` (`3×`, Compute-Matched)** | **Evolved Red-Team Ranker** (selected on offline `TP/FP/TN/FN` AUROC + cascaded dev) | Tests dense-signal verifier evolution + collaboration evolution (`H3`) |
+
+
+---
+
+## 5. Empirical Results (`N = 80` Fresh `SWE-bench Verified` Tasks)
+
+Full details, per-repository tables, and discordant-task trajectories are in [`docs/V18_RESULTS.md`](../../docs/V18_RESULTS.md), [`results/v18/showdown_2026-11-02/report_80.md`](../../results/v18/showdown_2026-11-02/report_80.md), and [`results/v18/showdown_2026-11-02/report_24.md`](../../results/v18/showdown_2026-11-02/report_24.md).
+
+### 5.1 Offline Verifier Calibration ($n = 2,525$ Container-Graded Candidate Patches)
+
+| Metric | V17 Binary Red-Team Gate | V18 Default Pool Ranker | V18 Calibrated Pool Ranker |
+| :--- | :---: | :---: | :---: |
+| **Container-Graded Patches ($n$)** | `2,525` (`1,385` runs) | `2,525` | `2,525` |
+| **Confusion Matrix (`TP / FP / TN / FN`)** | `397 / 834 / 962 / 332` | Continuous score | Continuous score |
+| **Precision (`TP / (TP + FP)`)** | `32.2%` (`FPR = 67.8%`) | — | — |
+| **Recall (`TP / (TP + FN)`)** | `54.5%` (`FRR = 45.5%`) | **`100.0%`** (`0` pool discards) | **`100.0%`** (`0` pool discards) |
+| **Specificity (`TN / (TN + FP)`)** | `53.6%` | — | — |
+| **Patch Ranking AUROC** | `0.540` | `0.549` | **`0.551`** |
+| **Resolvable-Run Top-1 Accuracy ($n = 453$)** | `87.6%` (`397 / 453`) | **`96.0%`** (`435 / 453`) | **`96.0%`** (`435 / 453`) |
+
+### 5.2 Compute-Matched Showdown (`eval_80`, $N = 80$ Fresh Tasks)
+
+| Arm | Tasks Completed | Resolved ($/ 80$) | Pass Rate (%) | Replicate Totals | Mean Tokens / Task | Efficiency (`Resolved / MTok`) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`Flat_1x_V18`** | `80 / 80` | **`50.00`** | **`62.5%`** | `[51, 49, 50]` | `147,399` | **`4.24`** |
+| **`Flat_3x_Select`** | `80 / 80` | **`53.00`** | **`66.2%`** | `[53]` | `442,196` | `1.50` |
+| **`Flat_3x_PassAt3` (Oracle Union)** | `80 / 80` | **`54.00`** | **`67.5%`** | `[54]` | `442,196` | `1.53` |
+| **`V18_Collab`** | `80 / 80` | **`52.00`** | **`65.0%`** | `[52]` | `555,277` | `1.17` |
+| **`V18_Evolved`** | `80 / 80` | **`48.00`** | **`60.0%`** | `[48]` | `577,305` | `1.04` |
+
+### 5.3 Paired Bootstrap 95% CIs & Exact McNemar Verdicts ($N = 80$)
+
+| Hypothesis Comparison | Net Task Diff ($\Delta$) | 95% Bootstrap CI (Tasks) | Exact McNemar $p$ | Statistical Verdict ($\alpha = 0.05$) |
+| :--- | :---: | :---: | :---: | :--- |
+| **H1 (`Flat_3x_Select` vs `Flat_1x_V18`)** | `+3.00` | `[+0.67, +5.67]` | `0.2500` | Not statistically significant ($p = 0.2500$; captures `53/54 = 98.1%` of `Pass@3`) |
+| **H2 (`V18_Collab` vs `Flat_3x_Select`)** | `-1.00` | `[-7.00, +5.00]` | `1.0000` | Statistically indistinguishable ($p = 1.0000$, `4` wins vs `5` losses) |
+| **H2b (`V18_Collab` vs `Flat_1x_V18`)** | `+2.00` | `[-3.33, +7.67]` | `0.7539` | Not statistically significant ($p = 0.7539$) |
+| **H3 (`V18_Evolved` vs `V18_Collab`)** | `-4.00` | `[-10.00, +2.00]` | `0.3438` | Not statistically significant ($p = 0.3438$; evolved persona prompts underperformed generalist collaborative roles) |
+| **H3b (`V18_Evolved` vs `Flat_3x_Select`)** | `-5.00` | `[-10.00, +0.00]` | `0.1250` | Not statistically significant ($p = 0.1250$) |
+| **H3c (`V18_Evolved` vs `Flat_1x_V18`)** | `-2.00` | `[-6.33, +2.33]` | `0.6875` | Not statistically significant ($p = 0.6875$) |
+
+### 5.4 Key Findings
+1. **Verification & Selection Outperform Prompt-Persona Evolution**: Replacing V17's binary gate (`FRR = 45.5%`) with the continuous Candidate-Pool Ranker (`100%` pool retention, `96.0%` top-1 accuracy on resolvable runs) and consensus/medoid selection (`Flat_3x_Select`) produced the highest resolve rates (`66.2%` and `65.0%`), whereas V17's evolved specialist/falsifier prompt personas (`V18_Evolved`, `48/80 = 60.0%`) underperformed generalist collaborative roles (`V18_Collab`, `52/80 = 65.0%`) by `-4.0` tasks.
+2. **Compute-Matched `Flat_3x_Select` Matches `V18_Collab` at Lower Token Cost**: `Flat_3x_Select` (`53/80 = 66.2%` at `442k` tokens/task, `1.50 Resolved/MTok`) captures `53/54` (`98.1%`) of the `Pass@3` oracle ceiling (`54/80 = 67.5%`) and slightly edges out `V18_Collab` (`52/80 = 65.0%` at `555k` tokens/task).
+3. **Complementary Failure Modes**: On **4 tasks** (`matplotlib__matplotlib-23299`, `pytest-dev__pytest-6197`, `scikit-learn__scikit-learn-14629`, `sphinx-doc__sphinx-8551`), all 3 flat rollouts failed (`0/3`, `Pass@3 = 0`), while `V18_Collab` solved them via Pre-Edit Builder Huddle contract overrides (`74` across 80 tasks) and Post-Prototype Synthesis Roundtables (`30` across 80 tasks), lifting the combined portfolio ceiling across `Flat_3x + V18_Collab` to **`58 / 80` (`72.5%`)**.

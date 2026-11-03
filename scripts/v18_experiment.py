@@ -32,7 +32,7 @@ import json
 import os
 import subprocess
 import sys
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
@@ -525,6 +525,17 @@ def score_flat_rollout_blind(eval_dir: str, cal_weights: Optional[Mapping[str, A
     return (score, diff_sha, entry)
 
 
+def _diff_line_tokens(patch: str) -> Set[str]:
+    """Extract normalized added/removed line tokens from a unified diff for medoid consensus scoring."""
+    out: Set[str] = set()
+    for ln in (patch or "").splitlines():
+        if ln.startswith(("+++", "---", "@@", "diff ", "index ")):
+            continue
+        if ln[:1] in "+-" and ln[1:].strip():
+            out.add(ln[0] + " ".join(ln[1:].strip().split()))
+    return out
+
+
 def synthesize_flat_3x_select(out_root: str, tasks: Sequence[str], base_id: str = "Flat_1x_V18", runs: int = 3) -> HarnessGenome:
     """Construct `Flat_3x_Select` by blindly ranking the `runs` independent rollouts of `base_id` per task."""
     cal_weights = V18_COLLAB_REDTEAM
@@ -543,9 +554,9 @@ def synthesize_flat_3x_select(out_root: str, tasks: Sequence[str], base_id: str 
     )
 
     for tid in tasks:
-        candidates: List[Tuple[float, int, str, int, Dict[str, Any]]] = []
+        candidates: List[Tuple[float, int, int, str, Dict[str, Any]]] = []
         sha_counts: Dict[str, int] = collections.Counter()
-        raw_items: List[Tuple[int, str, float, str, Dict[str, Any]]] = []
+        raw_items: List[Tuple[int, str, float, str, Dict[str, Any], Set[str], Dict[str, Any]]] = []
 
         for r_idx, rid in enumerate(rep_ids, 1):
             eval_dir = os.path.join(out_root, "evals", rid, tid)
@@ -553,25 +564,42 @@ def synthesize_flat_3x_select(out_root: str, tasks: Sequence[str], base_id: str 
             res_dict = ((saved.get(rid) or {}).get("results") or {}).get(tid)
             if res_dict is None:
                 continue
+            pred_path = os.path.join(eval_dir, "prediction.json")
+            patch = ""
+            if os.path.exists(pred_path):
+                try:
+                    patch = str(_load_json(pred_path).get("model_patch") or "")
+                except Exception:
+                    patch = ""
             if sha:
                 sha_counts[sha] += 1
-            raw_items.append((r_idx, rid, score, sha, res_dict))
+            raw_items.append((r_idx, rid, score, sha, meta, _diff_line_tokens(patch), res_dict))
 
         if not raw_items:
             continue
 
-        # Add majority-vote / consensus bonus (+0.25 if >=2 rollouts produced the exact same patch SHA)
-        for r_idx, rid, score, sha, res_dict in raw_items:
-            consensus_bonus = 0.25 if (sha and sha_counts[sha] >= 2) else 0.0
-            candidates.append((round(score + consensus_bonus, 5), -r_idx, rid, sha_counts.get(sha, 0), res_dict))
+        # Blind Candidate-Pool + Medoid Consensus Selector:
+        # 1. Self-verification score (`repro_ok`, `repo_tests_ok`, `audit_ok`, bloat regularization)
+        # 2. Exact-SHA majority vote bonus (+2.5 when >=2 independent rollouts produce identical SHA and pass repro_ok)
+        # 3. Pairwise normalized diff-line Jaccard overlap (+0.5 * medoid similarity across rollouts)
+        for idx_i, (r_idx, rid, score, sha, meta, dtoks_i, res_dict) in enumerate(raw_items):
+            overlap_sum = 0.0
+            for idx_j, (_, _, _, _, _, dtoks_j, _) in enumerate(raw_items):
+                if idx_i == idx_j or not dtoks_i or not dtoks_j:
+                    continue
+                overlap_sum += len(dtoks_i & dtoks_j) / float(len(dtoks_i | dtoks_j))
+            majority_bonus = 2.5 if (sha and sha_counts[sha] >= 2 and meta.get("repro_ok")) else 0.0
+            total_score = round(score + majority_bonus + 0.5 * overlap_sum, 5)
+            diff_lines = int(meta.get("diff_lines", 0) or 0)
+            candidates.append((total_score, diff_lines, -r_idx, rid, res_dict))
 
-        candidates.sort(key=lambda t: (t[0], t[3], t[1]), reverse=True)
-        _, _, winning_rid, _, winning_res = candidates[0]
+        candidates.sort(key=lambda t: (t[0], t[1], t[2]), reverse=True)
+        _, _, _, winning_rid, winning_res = candidates[0]
 
         # Sum tokens and elapsed time across all 3 rollouts so Flat_3x_Select reflects true 3x compute cost!
-        total_tokens = sum(int(item[4].get("tokens", 0) or 0) for item in raw_items)
-        total_elapsed = round(sum(float(item[4].get("elapsed_s", 0.0) or 0.0) for item in raw_items), 2)
-        total_moves = sum(int(item[4].get("moves", 0) or 0) for item in raw_items)
+        total_tokens = sum(int(item[6].get("tokens", 0) or 0) for item in raw_items)
+        total_elapsed = round(sum(float(item[6].get("elapsed_s", 0.0) or 0.0) for item in raw_items), 2)
+        total_moves = sum(int(item[6].get("moves", 0) or 0) for item in raw_items)
 
         merged_res = dict(winning_res)
         merged_res["tokens"] = total_tokens
