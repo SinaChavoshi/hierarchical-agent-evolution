@@ -42,13 +42,39 @@ BRANCH_LOCI = ("consumer_local", "producer_upstream", "codebase_symmetry", "coun
 _PREFIXES: Tuple[Tuple[str, str], ...] = (
     ("L0_", "architect"),
     ("L2_BranchExecutor_", "executor"),
+    ("L2_SynthesisRoundtable", "executor"),
+    ("L2_BuilderHuddle_", "executor"),
     ("L2_DeltaRefinement_", "refiner"),
     ("L1_AdversarialFalsifier", "falsifier"),
 )
 
 # --------------------------------------------------------------------------- #
-# V17 Red-Team Gene Space
+# V17 Red-Team & V18 Collaborative Gene Space
 # --------------------------------------------------------------------------- #
+
+COLLAB_SPACE: Dict[str, KnobSpec] = {
+    spec.name: spec
+    for spec in (
+        KnobSpec("sub_blackboards_on", "bool", False,
+                 description="Route entries into 4 scoped sub-blackboards (#recon-map, #builders-room, #redteam-chamber, #verdicts-and-repros)."),
+        KnobSpec("entry_char_limit", "int", 320, 320, 2400,
+                 "Max characters per blackboard entry (320 in V17, 1800 in V18)."),
+        KnobSpec("auto_index_views", "bool", False,
+                 description="Automatically index viewed/edited file ranges and top def/class headers into #recon-map."),
+        KnobSpec("pre_huddle_rounds", "int", 0, 0, 2,
+                 "Pre-Edit Builder Huddle rounds in #builders-room with contract-override authority."),
+        KnobSpec("synthesis_roundtable", "bool", False,
+                 description="Convene a Post-Prototype Synthesis Roundtable when 2+ distinct candidate patches exist."),
+        KnobSpec("pool_ranker", "bool", False,
+                 description="Retain all repro+pytest-passing patches in a candidate pool and rank continuously via Red-Team Ranker."),
+        KnobSpec("ranker_falsifier_weight", "float", 0.45, 0.1, 0.9,
+                 "Weight of Red-Team panelist pass fraction in continuous candidate-pool ranking."),
+        KnobSpec("ranker_simplicity_weight", "float", 0.15, 0.0, 0.5,
+                 "Weight of diff parsimony (1 / (1 + diff_lines/80)) in continuous candidate-pool ranking."),
+        KnobSpec("ranker_synthesis_bonus", "float", 0.08, 0.0, 0.3,
+                 "Tie-break bonus for a verified hybrid synthesis patch (`b_synth`) that passes all checks."),
+    )
+}
 
 REDTEAM_SPACE: Dict[str, KnobSpec] = {
     spec.name: spec
@@ -75,12 +101,14 @@ REDTEAM_SPACE: Dict[str, KnobSpec] = {
                  "Maximum turns when waking a role to answer a directed question."),
         KnobSpec("falsifier_shares_tests", "bool", True,
                  description="Post executable failing test cases from the falsifier to the blackboard on rejection."),
+        *COLLAB_SPACE.values(),
     )
 }
 
 V17_DEFAULT_REDTEAM: Dict[str, Any] = {name: spec.default for name, spec in REDTEAM_SPACE.items()}
 
 V17_PERMISSIVE_REDTEAM: Dict[str, Any] = {
+    **V17_DEFAULT_REDTEAM,
     "panel_size": 1,
     "no_edit": False,
     "lock_repro_test": False,
@@ -95,6 +123,7 @@ V17_PERMISSIVE_REDTEAM: Dict[str, Any] = {
 }
 
 V17_STRICT_REDTEAM: Dict[str, Any] = {
+    **V17_DEFAULT_REDTEAM,
     "panel_size": 2,
     "no_edit": True,
     "lock_repro_test": True,
@@ -123,12 +152,91 @@ V17_BLACKBOARD_QUESTIONS: Dict[str, Any] = {
     "answer_turns": 2,
 }
 
+V18_COLLAB_REDTEAM: Dict[str, Any] = {
+    **V17_BLACKBOARD_QUESTIONS,
+    "panel_size": 2,
+    "max_turns": 10,
+    "sub_blackboards_on": True,
+    "entry_char_limit": 1800,
+    "auto_index_views": True,
+    "pre_huddle_rounds": 1,
+    "synthesis_roundtable": True,
+    "pool_ranker": True,
+    "ranker_falsifier_weight": 0.45,
+    "ranker_simplicity_weight": 0.15,
+    "ranker_synthesis_bonus": 0.08,
+}
+
 BLACKBOARD_REL = ".hae/blackboard.jsonl"
-BLACKBOARD_TYPES = ("finding", "hypothesis", "ruled_out", "failing_case", "question", "answer", "decision")
-FALSIFIER_VISIBLE_TYPES = ("finding", "ruled_out", "decision", "failing_case")
+SUB_BLACKBOARD_DIR_REL = ".hae/blackboards"
+SUB_BLACKBOARDS = ("recon-map", "builders-room", "redteam-chamber", "verdicts-and-repros")
+BLACKBOARD_TYPES = (
+    "finding", "hypothesis", "ruled_out", "failing_case",
+    "question", "answer", "decision", "design_note",
+    "critique", "amendment", "synthesis",
+)
+FALSIFIER_VISIBLE_TYPES = ("finding", "ruled_out", "decision", "failing_case", "amendment")
 MAX_BB_ENTRY_CHARS = 320
-MAX_BB_ENTRIES = 32
+MAX_BB_ENTRIES = 48
 _BB_BLOCK_RE = re.compile(r"```blackboard\s*\n(.*?)```", re.DOTALL | re.IGNORECASE)
+
+
+def infer_blackboard_channel(entry_type: str, author: str = "", to: str = "", explicit_channel: str = "") -> str:
+    """Route a blackboard entry to one of the 4 scoped sub-blackboards."""
+    ch = str(explicit_channel or "").strip().lower().lstrip("#")
+    if ch in SUB_BLACKBOARDS:
+        return ch
+    et = str(entry_type or "").strip().lower()
+    au = str(author or "").strip().lower()
+    tg = str(to or "").strip().lower()
+    if et == "finding" or au == "recon":
+        return "recon-map"
+    if et in ("failing_case", "ruled_out"):
+        return "verdicts-and-repros"
+    if et in ("question", "answer"):
+        if tg == "falsifier" or au == "falsifier":
+            return "verdicts-and-repros"
+        if tg == "recon" or au == "recon":
+            return "recon-map"
+        return "builders-room"
+    if au == "falsifier":
+        return "redteam-chamber"
+    return "builders-room"
+
+
+def score_candidate_patch(entry: Mapping[str, Any], redteam: Optional[Mapping[str, Any]] = None) -> float:
+    """Continuous Candidate-Pool Red-Team Ranker score for a candidate checkpoint."""
+    cfg = redteam or V18_COLLAB_REDTEAM
+    repro_ok = bool(entry.get("repro_ok"))
+    repo_tests_ok = bool(entry.get("repo_tests_ok"))
+    compile_ok = bool(entry.get("compile_ok", True))
+    static_ok = bool(entry.get("static_ok", True))
+    expanded_ok = bool(entry.get("expanded_tests_ok", True))
+    new_fails = int(entry.get("new_test_failures") or 0)
+    panel_pass_rate = float(entry.get("panel_pass_rate") or 0.0)
+    ran_ev = float(entry.get("ran_evidence") or 0.0)
+    diff_lines = max(1, int(entry.get("diff_lines") or 1))
+    episode = max(1, int(entry.get("episode") or 1))
+    is_synth = bool(entry.get("is_synthesis"))
+
+    base_gate = (
+        (1.5 if repro_ok else 0.0)
+        + (1.5 if repo_tests_ok else 0.0)
+        + (0.4 if (compile_ok and static_ok) else 0.0)
+        + (0.3 if (expanded_ok and repo_tests_ok) else 0.0)
+        - 0.25 * min(4, max(0, new_fails))
+    )
+    w_fals = float(cfg.get("ranker_falsifier_weight", 0.45))
+    w_simp = float(cfg.get("ranker_simplicity_weight", 0.15))
+    w_syn = float(cfg.get("ranker_synthesis_bonus", 0.08))
+    # Only penalize excessive diff bloat (>100 lines) so complete multi-hunk fixes (10-60 lines)
+    # are not penalized relative to incomplete 2-line symptom patches; reward later refined episodes.
+    bloat_penalty = max(0.0, float(diff_lines - 100) / 100.0)
+    simplicity = 1.0 / (1.0 + bloat_penalty)
+    refinement_bonus = 0.02 * min(6, episode)
+    fals_term = w_fals * (0.85 * panel_pass_rate + 0.15 * ran_ev)
+    synth_term = w_syn if (is_synth and repro_ok and repo_tests_ok) else 0.0
+    return round(base_gate + fals_term + w_simp * simplicity + refinement_bonus + synth_term, 5)
 
 # Log-calibrated anti-patterns distilled from V16 false-PASS divergence audit.
 CALIBRATED_SKEPTIC_PROMPT = (
@@ -268,7 +376,7 @@ class HarnessOrg:
         self.stall_counter = 0
         self.last_recruit_episode = -10 ** 9
         self.unstaffed_calls: Dict[str, int] = {}
-        # V17 red-team & structured blackboard state
+        # V17/V18 red-team, scoped sub-blackboards, huddle, synthesis & candidate-pool ranker state
         self.verdicts: List[Dict[str, Any]] = []
         self.edit_blocks_refused: int = 0
         self.repro_restorations: int = 0
@@ -279,10 +387,18 @@ class HarnessOrg:
         self.failing_cases_shared: int = 0
         self.candidate_shas: List[str] = []
         self.duplicate_patches: int = 0
+        self.candidate_pool: List[Dict[str, Any]] = []
+        self.huddle_notes: List[Dict[str, Any]] = []
+        self.contract_overrides: int = 0
+        self.synthesis_runs: int = 0
+        self._synthesis_ran: bool = False
+        self._in_synthesis: bool = False
+        self._last_panel_results: List[Tuple[str, bool, str, bool]] = []
+        self._last_expanded_ok: bool = True
         self._locked_repro: Optional[str] = None
         self._in_falsifier: bool = False
         self._in_question_answer: bool = False
-        self._attempted_question_ids: Set[str] = set()
+        self._attempted_question_ids: set = set()
         self._active_falsifier_role: Optional[RoleAllele] = None
         self._falsifier_bash_count: int = 0
         self._falsifier_cp: Optional[Any] = None
@@ -295,10 +411,11 @@ class HarnessOrg:
             self._staff()
 
     # ------------------------------------------------------------------ #
-    # V17 Structured Shared Blackboard & Directed Questions
+    # V17/V18 Structured Shared Blackboard, 4 Sub-Blackboards & Directed Q&A
     # ------------------------------------------------------------------ #
     def post_blackboard(self, entry_type: str, content: str, author: str = "controller",
-                        to: str = "", ref_id: str = "", episode: Optional[int] = None) -> Optional[Dict[str, Any]]:
+                        to: str = "", ref_id: str = "", episode: Optional[int] = None,
+                        channel: str = "") -> Optional[Dict[str, Any]]:
         """Append a typed, size-capped, deduplicated entry to the shared blackboard and flush to disk."""
         if not self.has_redteam or not self.redteam.get("blackboard_on"):
             return None
@@ -308,14 +425,17 @@ class HarnessOrg:
         norm = re.sub(r"\s+", " ", str(content or "")).strip()
         if not norm:
             return None
-        norm = norm[:MAX_BB_ENTRY_CHARS]
+        char_limit = int(self.redteam.get("entry_char_limit") or MAX_BB_ENTRY_CHARS)
+        norm = norm[:max(MAX_BB_ENTRY_CHARS, char_limit)]
         target = str(to or "").strip().lower()
-        dedup_key = (etype, target, norm[:160].lower())
+        resolved_channel = infer_blackboard_channel(etype, author=author, to=target, explicit_channel=channel)
+        dedup_key = (resolved_channel, etype, target, norm[:180].lower())
         if dedup_key in self._bb_dedup_keys:
             return None
         self._bb_dedup_keys.add(dedup_key)
         entry = {
             "id": f"bb_{len(self.blackboard) + 1}",
+            "channel": resolved_channel,
             "type": etype,
             "author": str(author or "controller").strip().lower(),
             "to": target,
@@ -325,9 +445,10 @@ class HarnessOrg:
         }
         self.blackboard.append(entry)
         if len(self.blackboard) > MAX_BB_ENTRIES:
-            # Preserve decisions, findings, and failing_cases preferentially when evicting
+            # Preserve decisions, amendments, syntheses, findings, and failing_cases preferentially when evicting
+            protected = ("decision", "amendment", "synthesis", "finding", "failing_case")
             for i, old in enumerate(self.blackboard):
-                if old["type"] not in ("decision", "finding", "failing_case"):
+                if old["type"] not in protected:
                     self.blackboard.pop(i)
                     break
             else:
@@ -342,6 +463,11 @@ class HarnessOrg:
         try:
             payload = "\n".join(json.dumps(e, ensure_ascii=False) for e in self.blackboard) + "\n"
             eng.executor.write_file(BLACKBOARD_REL, payload)
+            if self.redteam.get("sub_blackboards_on"):
+                for ch in SUB_BLACKBOARDS:
+                    ch_entries = [e for e in self.blackboard if e.get("channel") == ch]
+                    ch_payload = "\n".join(json.dumps(e, ensure_ascii=False) for e in ch_entries) + ("\n" if ch_entries else "")
+                    eng.executor.write_file(f"{SUB_BLACKBOARD_DIR_REL}/{ch}.jsonl", ch_payload)
         except Exception:
             pass
 
@@ -371,6 +497,7 @@ class HarnessOrg:
                     author=str(obj.get("author") or "agent"),
                     to=str(obj.get("to") or ""),
                     ref_id=str(obj.get("ref_id") or ""),
+                    channel=str(obj.get("channel") or ""),
                 )
                 if added and added["type"] == "question":
                     new_questions.append(added)
@@ -400,6 +527,7 @@ class HarnessOrg:
                     author=author,
                     to=str(obj.get("to") or ""),
                     ref_id=str(obj.get("ref_id") or ""),
+                    channel=str(obj.get("channel") or ""),
                 )
                 if added and added["type"] == "question":
                     new_questions.append(added)
@@ -410,51 +538,86 @@ class HarnessOrg:
         if not self.has_redteam or not self.redteam.get("blackboard_on"):
             return ""
         layer = layer_of(specialist_name) or ("recon" if "Recon" in specialist_name else "agent")
+        sub_on = bool(self.redteam.get("sub_blackboards_on"))
         visible: List[Dict[str, Any]] = []
         for e in self.blackboard:
             et = e["type"]
+            ch = e.get("channel") or infer_blackboard_channel(et, e.get("author", ""), e.get("to", ""))
             if layer == "falsifier":
-                # Falsifier sees ONLY objective facts, ruled-out approaches, decisions, and failing cases,
-                # plus questions specifically addressed to the falsifier. NEVER executor hypotheses/persuasion.
-                if et in FALSIFIER_VISIBLE_TYPES or (et == "question" and e.get("to") == "falsifier"):
+                # Falsifier sees ONLY objective facts (#recon-map), contract decisions/amendments,
+                # #redteam-chamber notes, and #verdicts-and-repros failing cases/ruled_out/questions to falsifier.
+                # NEVER builder hypotheses, design_notes, syntheses, or persuasion.
+                if ch == "builders-room" and et not in ("decision", "amendment"):
+                    continue
+                if et in FALSIFIER_VISIBLE_TYPES or ch == "redteam-chamber" or (et in ("question", "answer") and (e.get("to") == "falsifier" or e.get("author") == "falsifier")):
                     visible.append(e)
             else:
+                # Builders/Architect/Refiners never see internal #redteam-chamber notes, only published #verdicts-and-repros.
+                if ch == "redteam-chamber":
+                    continue
                 if et == "failing_case" and not self.redteam.get("falsifier_shares_tests"):
                     continue
                 visible.append(e)
 
-        lines = ["", "", "## Shared Blackboard (`/testbed/.hae/blackboard.jsonl`)"]
-        if visible:
-            for e in visible[-18:]:
-                tag = f"[{e['id']} {e['type'].upper()} by {e['author']}"
-                if e.get("to"):
-                    tag += f" -> {e['to']}"
-                if e.get("ref_id"):
-                    tag += f" re:{e['ref_id']}"
-                tag += "]"
-                lines.append(f"- {tag} {e['content']}")
+        max_render_chars = 4200 if sub_on else 2600
+        if not sub_on:
+            lines = ["", "", "## Shared Blackboard (`/testbed/.hae/blackboard.jsonl`)"]
+            if visible:
+                for e in visible[-18:]:
+                    tag = f"[{e['id']} {e['type'].upper()} by {e['author']}"
+                    if e.get("to"):
+                        tag += f" -> {e['to']}"
+                    if e.get("ref_id"):
+                        tag += f" re:{e['ref_id']}"
+                    tag += "]"
+                    lines.append(f"- {tag} {e['content']}")
+            else:
+                lines.append("- (No entries recorded yet.)")
         else:
-            lines.append("- (No entries recorded yet.)")
+            lines = ["", "", "## Scoped Team Sub-Blackboards (`/testbed/.hae/blackboards/*.jsonl`)"]
+            allowed_channels = (
+                ("recon-map", "redteam-chamber", "verdicts-and-repros", "builders-room")
+                if layer == "falsifier"
+                else ("recon-map", "builders-room", "verdicts-and-repros")
+            )
+            any_shown = False
+            for ch in allowed_channels:
+                ch_items = [e for e in visible if (e.get("channel") or "builders-room") == ch][-10:]
+                if not ch_items:
+                    continue
+                any_shown = True
+                lines.append(f"### #{ch}")
+                for e in ch_items:
+                    tag = f"[{e['id']} {e['type'].upper()} by {e['author']}"
+                    if e.get("to"):
+                        tag += f" -> {e['to']}"
+                    if e.get("ref_id"):
+                        tag += f" re:{e['ref_id']}"
+                    tag += "]"
+                    lines.append(f"- {tag} {e['content']}")
+            if not any_shown:
+                lines.append("- (No entries recorded yet.)")
 
         if layer == "falsifier":
             lines.append(
                 "Blackboard rule (Falsifier Independence): Judge the candidate patch cold. "
-                "Reply ONLY with executable failing cases (`failing_case`), never opinions."
+                "Reply ONLY with executable failing cases (`failing_case` on `#verdicts-and-repros`), never opinions."
             )
         else:
             q_budget = max(0, int(self.redteam.get("max_questions") or 0) - self.questions_asked)
+            ch_hint = '`"channel": "recon-map|builders-room|verdicts-and-repros", `' if sub_on else ""
             lines.append(
-                "Blackboard rules: Do NOT re-grep files already documented in `FINDING`, do NOT repeat approaches "
-                "in `RULED_OUT`, and ensure your patch passes every `FAILING_CASE`. You may append concise entries "
-                "using a fenced ` ```blackboard ` block containing one JSON object per line: "
-                '`{"type": "finding|hypothesis|ruled_out", "content": "..."}`'
+                "Blackboard rules: Do NOT re-grep files already documented in `#recon-map` (`FINDING`), do NOT repeat approaches "
+                "in `RULED_OUT`, and ensure your patch passes every `FAILING_CASE`. You may emit a ` ```blackboard ` block "
+                "alongside your tool block in the same turn: "
+                f'`{{{ch_hint}"type": "finding|hypothesis|design_note|critique|amendment|ruled_out", "content": "..."}}`'
                 + (
                     f' or ask a targeted question ({q_budget} remaining): '
                     '`{"type": "question", "to": "falsifier|recon|architect|executor", "content": "..."}`.'
                     if q_budget > 0 else "."
                 )
             )
-        return "\n".join(lines)[:2600]
+        return "\n".join(lines)[:max_render_chars]
 
     def answer_pending_questions(self) -> int:
         """Wake target roles in short (`answer_turns`) read-only episodes to answer directed questions."""
@@ -477,6 +640,8 @@ class HarnessOrg:
         ]
         if not pending:
             return 0
+
+        from hae.swebench.agentic import _strip_rfl_artifacts, parse_agent_action
 
         ans_turns = max(1, int(self.redteam.get("answer_turns") or 2))
         answered_now = 0
@@ -507,7 +672,7 @@ class HarnessOrg:
                     if target == "falsifier"
                     else "Provide a concise, factual answer (file paths, line numbers, or concrete behavior).\n"
                 )
-                + "You may optionally run ONE `bash` or `read` block first, then give your final concise answer."
+                + "You may optionally run ONE `bash` or `view_file` block first, then give your final concise answer."
                 + self.render_blackboard_for(spec_name)
             )
             msgs: List[Dict[str, str]] = [
@@ -519,26 +684,36 @@ class HarnessOrg:
             if target == "falsifier":
                 self._in_falsifier = True
             ans_text = ""
+            last_tool_obs = ""
             try:
                 for _t in range(ans_turns):
                     try:
                         resp = self._orig_call_ref(spec_name, msgs, temperature=0.1, enable_thinking=False)
                     except TypeError:
                         resp = self._orig_call_ref(spec_name, msgs, temperature=0.1)
-                    txt = str(resp[0] if isinstance(resp, tuple) else resp or "").strip()
+                    txt = _strip_rfl_artifacts(str(resp[0] if isinstance(resp, tuple) else resp or "")).strip()
                     if not txt:
                         break
                     ans_text = txt
-                    # Allow a quick read-only bash/read check on non-final turns if engine is available
-                    m_bash = re.search(r"```bash\s*\n(.*?)```", txt, re.DOTALL)
-                    if _t + 1 < ans_turns and m_bash and eng is not None and hasattr(eng, "execute_bash_tool"):
-                        try:
-                            obs = eng.execute_bash_tool(m_bash.group(1).strip(), timeout_s=30.0)
-                        except TypeError:
-                            obs = eng.execute_bash_tool(m_bash.group(1).strip())
-                        msgs.append({"role": "assistant", "content": txt})
-                        msgs.append({"role": "user", "content": str(obs)[:1200] + "\nNow state your concise answer."})
-                        continue
+                    act = parse_agent_action(txt)
+                    obs = ""
+                    if act.kind == "bash" and act.command and eng is not None:
+                        if hasattr(eng, "execute_bash_tool"):
+                            try:
+                                obs = eng.execute_bash_tool(act.command, timeout_s=30.0)
+                            except TypeError:
+                                obs = eng.execute_bash_tool(act.command)
+                        elif hasattr(eng, "executor") and hasattr(eng.executor, "run_bash"):
+                            res_b = eng.executor.run_bash(act.command, timeout_s=30)
+                            obs = f"exit={res_b.rc}\n{(res_b.stdout or '')}\n{(res_b.stderr or '')}".strip()
+                    elif act.kind == "view_file" and act.path and eng is not None and hasattr(eng, "execute_view_file_tool"):
+                        obs = eng.execute_view_file_tool(act.path, act.start_line, act.end_line)
+                    if obs:
+                        last_tool_obs = f"[Executed {act.kind}: `{act.command or act.path}`] -> {str(obs)[:600]}"
+                        if _t + 1 < ans_turns:
+                            msgs.append({"role": "assistant", "content": txt})
+                            msgs.append({"role": "user", "content": str(obs)[:1400] + "\nNow state your concise factual answer without emitting another tool block."})
+                            continue
                     break
             except Exception:
                 pass
@@ -546,12 +721,23 @@ class HarnessOrg:
                 self._in_falsifier = prev_fals
                 self._in_question_answer = False
 
-            if ans_text:
-                clean = re.sub(r"```(?:bash|blackboard|submit).*?```", "", ans_text, flags=re.DOTALL).strip()
-                if not clean:
-                    clean = ans_text
+            if ans_text or last_tool_obs:
+                clean = _strip_rfl_artifacts(ans_text)
+                clean = re.sub(r"```(?:bash|sh|shell|view_file|blackboard|submit).*?```", "", clean, flags=re.DOTALL).strip()
+                clean = re.sub(r"<tool_call>.*?(?:</tool_call>|\Z)", "", clean, flags=re.DOTALL | re.IGNORECASE).strip()
+                if not clean and last_tool_obs:
+                    clean = last_tool_obs
+                elif last_tool_obs and len(clean) < 40:
+                    clean = f"{clean} ({last_tool_obs})"
+                elif not clean:
+                    clean = _strip_rfl_artifacts(ans_text).strip()
                 posted = self.post_blackboard(
-                    "answer", clean, author=target, to=str(q.get("author") or ""), ref_id=str(q["id"])
+                    "answer",
+                    clean,
+                    author=target,
+                    to=str(q.get("author") or ""),
+                    ref_id=str(q["id"]),
+                    channel=str(q.get("channel") or ""),
                 )
                 if posted is not None:
                     self.questions_answered += 1
@@ -791,8 +977,346 @@ class HarnessOrg:
             return False, f"Expanded evidence_tests pytest ({' '.join(extra_files)}) FAILED (exit {res_pt.rc}):\n{pt_raw[-1200:]}"
         return True, ""
 
+    # ------------------------------------------------------------------ #
+    # V18 Pre-Edit Builder Huddle, Candidate-Pool Ranker & Synthesis Roundtable
+    # ------------------------------------------------------------------ #
+    def run_pre_edit_builder_huddle(self, engine: Any, contract: Any, branches: List[Any]) -> Tuple[Any, List[Any]]:
+        """Run a short Pre-Edit Builder Huddle in `#builders-room` with authority to amend/override the L0 contract."""
+        rounds = int(self.redteam.get("pre_huddle_rounds") or 0)
+        if rounds <= 0 or self._orig_call_ref is None:
+            return contract, branches
+
+        recon = getattr(engine, "recon_brief", None)
+        recon_txt = recon.to_compact_prompt_block() if (recon is not None and hasattr(recon, "to_compact_prompt_block")) else ""
+        contract_txt = contract.to_prompt_block() if (contract is not None and hasattr(contract, "to_prompt_block")) else str(contract)
+        branch_summary = [
+            {
+                "locus": getattr(b, "locus", ""),
+                "title": getattr(b, "title", ""),
+                "target_files": list(getattr(b, "target_files", []) or []),
+                "plan": str(getattr(b, "mechanism_and_plan", ""))[:260],
+            }
+            for b in (branches or [])[:3]
+        ]
+        obj_txt = engine.runner.objective_text() if hasattr(engine, "runner") and hasattr(engine.runner, "objective_text") else ""
+
+        for r_idx in range(1, rounds + 1):
+            # Persona 1: Upstream State-Invariant Builder
+            sys_a = (
+                "You are **Builder-A (Upstream State-Invariant & Producer Architect)** in the Pre-Edit Builder Huddle (`#builders-room`).\n"
+                "Critically examine the Reconnaissance code excerpts and the L0 Seed Architect's contract/branch plan BEFORE any code is edited.\n"
+                "Respond with a single JSON object:\n"
+                "{\n"
+                '  "diagnosis_critique": "Does L0\'s diagnosis match the actual code in Recon, or did L0 misdiagnose the root cause / miss an upstream caller?",\n'
+                '  "branch1_target_files": ["path/to/file.py"],\n'
+                '  "branch1_plan": "Concrete surgical fix plan for Branch 1 (primary/upstream invariant)"\n'
+                "}"
+            )
+            user_a = (
+                f"{obj_txt[:2200]}\n\n"
+                f"### Reconnaissance Code Map (`#recon-map`)\n{recon_txt[:2200]}\n\n"
+                f"### L0 Proposed Contract & Branches\n{contract_txt[:1200]}\n"
+                f"Branches: {json.dumps(branch_summary, ensure_ascii=False)}\n\n"
+                "Emit your JSON huddle assessment for `#builders-room` now."
+            )
+            try:
+                resp_a = self._orig_call_ref(
+                    "L2_BuilderHuddle_Upstream",
+                    [{"role": "system", "content": sys_a}, {"role": "user", "content": user_a}],
+                    temperature=0.2,
+                    enable_thinking=False,
+                )
+            except TypeError:
+                resp_a = self._orig_call_ref(
+                    "L2_BuilderHuddle_Upstream",
+                    [{"role": "system", "content": sys_a}, {"role": "user", "content": user_a}],
+                    temperature=0.2,
+                )
+            txt_a = str(resp_a[0] if isinstance(resp_a, tuple) else resp_a or "").strip()
+            if txt_a:
+                self.huddle_notes.append({"round": r_idx, "role": "builder_upstream", "text": txt_a[:1200]})
+                self.post_blackboard(
+                    "design_note",
+                    f"[Huddle R{r_idx} Upstream Builder] {txt_a}",
+                    author="builder_upstream",
+                    channel="builders-room",
+                    episode=0,
+                )
+
+            # Persona 2: Call-Site & Backward-Compatibility Surgeon (with Contract-Override Authority)
+            sys_b = (
+                "You are **Builder-B (Call-Site & Backward-Compatibility Surgeon)** in the Pre-Edit Builder Huddle (`#builders-room`).\n"
+                "You have explicit authority to AMEND or OVERRIDE a flawed L0 Architect contract or branch assignment if the Reconnaissance code shows L0's assumption is wrong or over-constrained.\n"
+                "Respond with a single JSON object:\n"
+                "{\n"
+                '  "override_contract": true,\n'
+                '  "amended_invariants": ["revised falsifiable invariant 1", "revised invariant 2"],\n'
+                '  "branch1_plan": "Final agreed plan for Branch 1 (`b1`)",\n'
+                '  "branch2_target_files": ["path/to/file.py"],\n'
+                '  "branch2_plan": " genuinely orthogonal plan for Branch 2 (`b2`: e.g. minimal call-site / sibling / backward-compat fix)"\n'
+                "}"
+            )
+            user_b = (
+                f"{obj_txt[:2000]}\n\n"
+                f"### Reconnaissance Code Map (`#recon-map`)\n{recon_txt[:1800]}\n\n"
+                f"### Builder-A Huddle Note\n{txt_a[:1200]}\n\n"
+                "Emit your JSON response (with `override_contract`, `amended_invariants`, `branch1_plan`, and `branch2_plan`) now."
+            )
+            try:
+                resp_b = self._orig_call_ref(
+                    "L2_BuilderHuddle_Surgeon",
+                    [{"role": "system", "content": sys_b}, {"role": "user", "content": user_b}],
+                    temperature=0.2,
+                    enable_thinking=False,
+                )
+            except TypeError:
+                resp_b = self._orig_call_ref(
+                    "L2_BuilderHuddle_Surgeon",
+                    [{"role": "system", "content": sys_b}, {"role": "user", "content": user_b}],
+                    temperature=0.2,
+                )
+            txt_b = str(resp_b[0] if isinstance(resp_b, tuple) else resp_b or "").strip()
+            if txt_b:
+                self.huddle_notes.append({"round": r_idx, "role": "builder_surgeon", "text": txt_b[:1200]})
+                m_json = re.search(r"\{.*\}", txt_b, flags=re.DOTALL)
+                parsed_b = {}
+                if m_json:
+                    try:
+                        parsed_b = json.loads(m_json.group(0))
+                    except Exception:
+                        parsed_b = {}
+                if isinstance(parsed_b, dict):
+                    if parsed_b.get("override_contract") and isinstance(parsed_b.get("amended_invariants"), list):
+                        new_invs = [str(x).strip() for x in parsed_b["amended_invariants"] if str(x).strip()][:6]
+                        if new_invs and contract is not None and hasattr(contract, "invariants"):
+                            contract.invariants = new_invs
+                            self.contract_overrides += 1
+                            self.post_blackboard(
+                                "amendment",
+                                f"Builder Huddle amended L0 contract invariants: {new_invs}",
+                                author="builder_surgeon",
+                                channel="builders-room",
+                                episode=0,
+                            )
+                    b1_plan = str(parsed_b.get("branch1_plan") or "").strip()
+                    b2_plan = str(parsed_b.get("branch2_plan") or "").strip()
+                    b2_files = parsed_b.get("branch2_target_files")
+                    if b1_plan and branches and hasattr(branches[0], "mechanism_and_plan"):
+                        branches[0].mechanism_and_plan = b1_plan
+                    if b2_plan and len(branches) >= 2 and hasattr(branches[1], "mechanism_and_plan"):
+                        branches[1].mechanism_and_plan = b2_plan
+                        if isinstance(b2_files, list) and b2_files:
+                            branches[1].target_files = [str(f).strip() for f in b2_files if str(f).strip()]
+                self.post_blackboard(
+                    "design_note",
+                    f"[Huddle R{r_idx} Surgeon Decision] {txt_b}",
+                    author="builder_surgeon",
+                    channel="builders-room",
+                    episode=0,
+                )
+        return contract, branches
+
+    def register_candidate_in_pool(
+        self,
+        node_id: str,
+        locus: str,
+        cp: Any,
+        panel_results: Sequence[Tuple[str, bool, str, bool]],
+        expanded_ok: bool = True,
+        is_synthesis: bool = False,
+    ) -> Optional[Dict[str, Any]]:
+        """Store a compiling non-empty checkpoint in `self.candidate_pool` with its continuous Red-Team Ranker score."""
+        if cp is None:
+            return None
+        diff_str = str(getattr(cp, "diff", "") or "")
+        if not diff_str.strip() or not getattr(cp, "compile_ok", True):
+            return None
+        diff_sha = hashlib.sha1(diff_str.encode("utf-8", errors="replace")).hexdigest()[:12]
+        diff_lines = sum(
+            1 for ln in diff_str.splitlines()
+            if ln[:1] in "+-" and not ln.startswith(("+++", "---"))
+        )
+        if panel_results:
+            pass_rate = sum(1.0 for _, ok, _, _ in panel_results if ok) / float(len(panel_results))
+            ran_ev = sum(1.0 for _, _, _, ev in panel_results if ev) / float(len(panel_results))
+            critiques = " | ".join(f"{rid}: {crit[:220]}" for rid, ok, crit, _ in panel_results if not ok)
+        else:
+            pass_rate = 1.0 if getattr(cp, "audit_ok", False) else 0.5
+            ran_ev = 1.0 if getattr(cp, "audit_ok", False) else 0.0
+            critiques = ""
+
+        preserved_cp = copy.deepcopy(cp)
+        if preserved_cp.repro_ok and preserved_cp.repo_tests_ok and self.redteam.get("pool_ranker"):
+            preserved_cp.gatekeeper_ok = True
+
+        entry: Dict[str, Any] = {
+            "node_id": str(node_id),
+            "locus": str(locus),
+            "episode": max(1, int(self._current_episode_idx or 1)),
+            "diff_sha": diff_sha,
+            "diff": diff_str,
+            "changed_files": list(getattr(cp, "changed_files", []) or []),
+            "diff_lines": max(1, diff_lines),
+            "repro_ok": bool(getattr(cp, "repro_ok", False)),
+            "repo_tests_ok": bool(getattr(cp, "repo_tests_ok", False)),
+            "compile_ok": bool(getattr(cp, "compile_ok", True)),
+            "static_ok": bool(getattr(cp, "static_ok", True)),
+            "expanded_tests_ok": bool(expanded_ok),
+            "new_test_failures": int(getattr(cp, "new_test_failures", 0) or 0),
+            "panel_pass_rate": round(pass_rate, 4),
+            "ran_evidence": round(ran_ev, 4),
+            "is_synthesis": bool(is_synthesis),
+            "critique": critiques[:500],
+            "checkpoint": preserved_cp,
+        }
+        entry["rank_score"] = score_candidate_patch(entry, self.redteam)
+        # Update existing entry with same diff_sha if higher score or keep distinct
+        for idx, existing in enumerate(self.candidate_pool):
+            if existing["diff_sha"] == diff_sha:
+                if entry["rank_score"] >= existing["rank_score"]:
+                    self.candidate_pool[idx] = entry
+                return self.candidate_pool[idx]
+        self.candidate_pool.append(entry)
+        return entry
+
+    def distinct_pool_candidates(self) -> List[Dict[str, Any]]:
+        """Return candidate pool entries sorted by descending `rank_score`."""
+        return sorted(
+            self.candidate_pool,
+            key=lambda e: (
+                float(e.get("rank_score") or 0.0),
+                1 if e.get("repro_ok") and e.get("repo_tests_ok") else 0,
+                float(e.get("panel_pass_rate") or 0.0),
+                int(e.get("episode") or 1),
+                -int(e.get("diff_lines") or 999),
+            ),
+            reverse=True,
+        )
+
+    def best_pool_candidate(self) -> Optional[Dict[str, Any]]:
+        ranked = self.distinct_pool_candidates()
+        return ranked[0] if ranked else None
+
+    def apply_best_pool_candidate(self, engine: Any) -> Optional[Dict[str, Any]]:
+        """Restore the highest-scoring candidate from `self.candidate_pool` into `/testbed` and `engine.checkpoints`."""
+        best = self.best_pool_candidate()
+        if best is None or best.get("checkpoint") is None:
+            return None
+        cp = best["checkpoint"]
+        try:
+            curr_diff, _, _ = engine._current_diff_and_files()
+            if curr_diff != cp.diff:
+                engine._restore_checkpoint(cp)
+            if hasattr(engine, "checkpoints"):
+                engine.checkpoints.append(cp)
+        except Exception:
+            pass
+        return best
+
+    def run_synthesis_roundtable(self, engine: Any) -> Optional[Dict[str, Any]]:
+        """Convene a Post-Prototype Synthesis Roundtable over the top 2 distinct candidate diffs (`b1`, `b2`)."""
+        if (
+            not self.has_redteam
+            or not self.redteam.get("synthesis_roundtable")
+            or self._synthesis_ran
+            or self._in_synthesis
+        ):
+            return None
+        ranked = self.distinct_pool_candidates()
+        if len(ranked) < 2:
+            return None
+        cand1, cand2 = ranked[0], ranked[1]
+        # If cand1 already passed repro, repo_tests, and 100% of the Red-Team panel, no synthesis needed unless forced
+        if cand1.get("repro_ok") and cand1.get("repo_tests_ok") and float(cand1.get("panel_pass_rate") or 0.0) >= 1.0:
+            return cand1
+
+        self._synthesis_ran = True
+        self._in_synthesis = True
+        self.synthesis_runs += 1
+        try:
+            self.logger(
+                f"[v18-collab] Launching Post-Prototype Synthesis Roundtable over `{cand1['node_id']}` "
+                f"(score={cand1['rank_score']:.3f}) and `{cand2['node_id']}` (score={cand2['rank_score']:.3f})"
+            )
+            self.post_blackboard(
+                "synthesis",
+                f"Convening Synthesis Roundtable comparing {cand1['node_id']} ({cand1['changed_files']}, score={cand1['rank_score']:.2f}) "
+                f"and {cand2['node_id']} ({cand2['changed_files']}, score={cand2['rank_score']:.2f}).",
+                author="architect",
+                channel="builders-room",
+            )
+            if cand1.get("checkpoint") is not None:
+                engine._restore_checkpoint(cand1["checkpoint"])
+            obj_txt = engine.runner.objective_text() if hasattr(engine, "runner") and hasattr(engine.runner, "objective_text") else ""
+            repro_rel = getattr(engine, "repro_script_rel", ".hae/reproduce_issue.py")
+            synth_prompt = (
+                f"{obj_txt}\n\n"
+                f"### Post-Prototype Synthesis Roundtable (`#builders-room`)\n"
+                f"Two builders independently prototyped candidate patches for this issue:\n\n"
+                f"#### Candidate 1 (`{cand1['node_id']}`, `{cand1['locus']}`, score={cand1['rank_score']:.2f}, "
+                f"repro_ok={cand1['repro_ok']}, repo_tests_ok={cand1['repo_tests_ok']}, panel_pass={cand1['panel_pass_rate']:.2f}) "
+                f"— **CURRENTLY APPLIED IN `/testbed`**\n"
+                f"Critique / Notes: {cand1.get('critique') or 'Passed local gatekeeper'}\n"
+                f"```diff\n{cand1['diff'][:3000]}\n```\n\n"
+                f"#### Candidate 2 (`{cand2['node_id']}`, `{cand2['locus']}`, score={cand2['rank_score']:.2f}, "
+                f"repro_ok={cand2['repro_ok']}, repo_tests_ok={cand2['repo_tests_ok']}, panel_pass={cand2['panel_pass_rate']:.2f})\n"
+                f"Critique / Notes: {cand2.get('critique') or 'Alternative prototype'}\n"
+                f"```diff\n{cand2['diff'][:3000]}\n```\n\n"
+                "### Your Mandate as Synthesis Roundtable Lead (4-8 Turns)\n"
+                "1. Candidate 1 is currently applied in `/testbed`. Compare Candidate 1 and Candidate 2 against every failing case in `#verdicts-and-repros`.\n"
+                "2. If Candidate 2 handles an upstream caller, sibling class, or edge case that Candidate 1 missed (or vice versa), merge the best parts using `str_replace`.\n"
+                f"3. Run `python {repro_rel}` and `pytest` via `bash`, post a brief `synthesis` note on ` ```blackboard `, and emit ` ```submit `."
+            )
+            if hasattr(engine, "run_specialist_loop") and hasattr(engine, "_system_prompt"):
+                engine.run_specialist_loop(
+                    specialist_name="L2_SynthesisRoundtable_b_synth",
+                    system_prompt=engine._system_prompt(
+                        "Post-Prototype Synthesis Roundtable Lead",
+                        "Synthesize the strongest elements of Candidate 1 and Candidate 2 so all reproduction, pytest, and Red-Team edge cases pass.",
+                    ),
+                    initial_user_prompt=synth_prompt,
+                    max_turns=8,
+                    temperature=0.2,
+                    is_auditor=False,
+                )
+            gate_ok, _msg, cp_syn = engine.verify_current_workspace(
+                specialist="L2_SynthesisRoundtable_b_synth",
+                turn=99,
+                is_auditor=False,
+            )
+            if cp_syn is not None and cp_syn.diff.strip() and cp_syn.compile_ok:
+                panel_res: List[Tuple[str, bool, str, bool]] = []
+                exp_ok = True
+                if cp_syn.repro_ok and cp_syn.repo_tests_ok and getattr(engine, "enable_falsifier", True):
+                    self._current_node_id = "b_synth"
+                    engine.run_falsifier_episode(cp_syn, max_turns=int(self.redteam.get("max_turns") or 8))
+                    panel_res = list(self._last_panel_results)
+                    exp_ok = self._last_expanded_ok
+                syn_entry = self.register_candidate_in_pool(
+                    node_id="b_synth",
+                    locus="synthesis_roundtable",
+                    cp=cp_syn,
+                    panel_results=panel_res,
+                    expanded_ok=exp_ok,
+                    is_synthesis=True,
+                )
+                if syn_entry is not None:
+                    self.post_blackboard(
+                        "synthesis",
+                        f"Synthesized candidate `b_synth` on {cp_syn.changed_files}: repro_ok={cp_syn.repro_ok}, "
+                        f"repo_tests_ok={cp_syn.repo_tests_ok}, rank_score={syn_entry['rank_score']:.3f}.",
+                        author="executor",
+                        channel="builders-room",
+                    )
+                    return syn_entry
+        except Exception as exc:
+            self.logger(f"[v18-collab] synthesis roundtable error: {exc}")
+        finally:
+            self._in_synthesis = False
+        return self.best_pool_candidate()
+
     def attach(self, engine: Any) -> None:
-        """Wrap the engine's LLM-call, node-evaluation, and (in V17) red-team & blackboard hooks."""
+        """Wrap the engine's LLM-call, node-evaluation, and (in V17/V18) red-team & collaborative hooks."""
         org = self
         self._engine_ref = engine
         orig_call = getattr(engine, "_call_specialist_turn", None)
@@ -821,11 +1345,37 @@ class HarnessOrg:
             parent_id = str(bound.get("parent_id", "root"))
             org._current_node_id = str(bound.get("node_id", ""))
             org._current_episode_idx = int(bound.get("episode_idx", 0) or 0)
+            org._last_panel_results = []
+            org._last_expanded_ok = True
             parent = getattr(engine, "mcts_nodes", {}).get(parent_id)
             parent_value = float(getattr(parent, "value", 0.0) or 0.0)
             node = orig_eval(*args, **kwargs)
             try:
+                cp = getattr(node, "checkpoint", None)
+                if org.has_redteam and cp is not None and getattr(cp, "diff", "").strip() and getattr(cp, "compile_ok", True):
+                    entry = org.register_candidate_in_pool(
+                        node_id=org._current_node_id,
+                        locus=str(getattr(node, "locus", "") or ""),
+                        cp=cp,
+                        panel_results=org._last_panel_results,
+                        expanded_ok=org._last_expanded_ok,
+                        is_synthesis=False,
+                    )
+                    if entry is not None and org.redteam.get("pool_ranker") and cp.repro_ok and cp.repo_tests_ok:
+                        # Under pool_ranker, preserve empirical value proportional to rank_score so a false rejection
+                        # by one panelist does not destroy a repro+pytest-verified checkpoint.
+                        node.value = max(float(getattr(node, "value", 0.0) or 0.0), min(0.95, 0.78 + 0.17 * float(entry["panel_pass_rate"])))
+                        cp.gatekeeper_ok = True
                 org.after_episode(org._current_node_id, parent_id, parent_value, node, org._current_episode_idx)
+                if (
+                    org.has_redteam
+                    and org.redteam.get("synthesis_roundtable")
+                    and not org._synthesis_ran
+                    and len(org.distinct_pool_candidates()) >= 2
+                ):
+                    org.run_synthesis_roundtable(engine)
+                    if org.redteam.get("pool_ranker"):
+                        org.apply_best_pool_candidate(engine)
             except Exception as exc:  # never let bookkeeping break a run
                 org.logger(f"[v16-org] credit error: {exc}")
             return node
@@ -846,14 +1396,17 @@ class HarnessOrg:
         org = self
         orig_recon = getattr(engine, "run_recon_episode", None)
         orig_arch = getattr(engine, "run_architect_episode", None)
+        orig_seed_arch = getattr(engine, "formulate_seed_contract_and_branches", None)
         orig_verify = getattr(engine, "verify_current_workspace", None)
         orig_falsifier = getattr(engine, "run_falsifier_episode", None)
+        orig_view = getattr(engine, "execute_view_file_tool", None)
         orig_sr = getattr(engine, "execute_str_replace_tool", None)
         orig_wf = getattr(engine, "execute_write_file_tool", None)
         orig_bash = getattr(engine, "execute_bash_tool", None)
         orig_select = getattr(engine, "select_next_mcts_operation", None)
+        orig_run = getattr(engine, "run", None)
 
-        # 1. Lock reproduction script once verified failing on HEAD & populate blackboard from recon/architect.
+        # 1. Lock reproduction script once verified failing on HEAD & populate #recon-map / #builders-room.
         if orig_recon is not None:
             def _recon(*args: Any, **kwargs: Any):
                 brief = orig_recon(*args, **kwargs)
@@ -865,14 +1418,27 @@ class HarnessOrg:
                     except Exception:
                         pass
                 if org.redteam.get("blackboard_on") and brief is not None:
-                    cfiles = list(getattr(brief, "candidate_files", None) or [])[:6]
+                    cfiles = list(
+                        getattr(brief, "inspected_files", None)
+                        or getattr(brief, "candidate_files", None)
+                        or []
+                    )[:6]
                     repro_ok = bool(getattr(brief, "repro_fails_on_head", False))
-                    summary = str(getattr(brief, "summary", "") or "")[:180]
+                    consumer = str(getattr(brief, "consumer_locus", "") or "")
+                    producer = str(getattr(brief, "producer_upstream_locus", "") or "")
+                    siblings = str(getattr(brief, "conventions_and_siblings", "") or "")
+                    summary = str(
+                        getattr(brief, "raw_summary", "")
+                        or getattr(brief, "summary", "")
+                        or ""
+                    )[:600]
                     org.post_blackboard(
                         "finding",
-                        f"Recon candidate_files={cfiles}; repro_fails_on_head={repro_ok}. {summary}",
+                        f"Recon candidate_files={cfiles}; consumer={consumer}; producer={producer}; "
+                        f"siblings={siblings}; repro_fails_on_head={repro_ok}. {summary}",
                         author="recon",
                         episode=0,
+                        channel="recon-map",
                     )
                     org.sync_blackboard_from_disk()
                     org.answer_pending_questions()
@@ -883,7 +1449,7 @@ class HarnessOrg:
             def _arch(*args: Any, **kwargs: Any):
                 plan = orig_arch(*args, **kwargs)
                 if org.redteam.get("blackboard_on") and isinstance(plan, Mapping):
-                    diag = str(plan.get("root_cause_diagnosis") or "")[:180]
+                    diag = str(plan.get("root_cause_diagnosis") or "")[:300]
                     loci = [
                         f"{b.get('locus')}:{b.get('target_files', [])[:2]}"
                         for b in (plan.get("branches") or [])[:3]
@@ -895,10 +1461,55 @@ class HarnessOrg:
                             f"Architect diagnosis: {diag} | branches={loci}",
                             author="architect",
                             episode=0,
+                            channel="builders-room",
                         )
                     org.answer_pending_questions()
                 return plan
             engine.run_architect_episode = _arch
+
+        if orig_seed_arch is not None:
+            def _seed_arch(*args: Any, **kwargs: Any):
+                contract, branches = orig_seed_arch(*args, **kwargs)
+                if org.redteam.get("blackboard_on"):
+                    invs = list(getattr(contract, "invariants", []) or [])[:4]
+                    loci = [
+                        f"{getattr(b, 'locus', '')}:{list(getattr(b, 'target_files', []) or [])[:2]}"
+                        for b in (branches or [])[:3]
+                    ]
+                    org.post_blackboard(
+                        "decision",
+                        f"L0 Seed Architect contract invariants={invs} | branches={loci}",
+                        author="architect",
+                        episode=0,
+                        channel="builders-room",
+                    )
+                    if int(org.redteam.get("pre_huddle_rounds") or 0) > 0:
+                        contract, branches = org.run_pre_edit_builder_huddle(engine, contract, list(branches or []))
+                        engine.contract = contract
+                        engine.branch_queue = list(branches)
+                    org.answer_pending_questions()
+                return contract, branches
+            engine.formulate_seed_contract_and_branches = _seed_arch
+
+        if orig_view is not None:
+            def _view(rel_path: str, start_line: int, end_line: int, *args: Any, **kwargs: Any):
+                obs = orig_view(rel_path, start_line, end_line, *args, **kwargs)
+                if (
+                    org.redteam.get("blackboard_on")
+                    and org.redteam.get("auto_index_views")
+                    and not org._in_falsifier
+                    and "ERROR:" not in str(obs)
+                ):
+                    defs = re.findall(r"^\s*\d+\s*\|\s*((?:def|class)\s+[A-Za-z_][A-Za-z0-9_]*[^:\n]*)", str(obs), flags=re.M)
+                    sig_note = f" — symbols: {', '.join(d.strip() for d in defs[:5])}" if defs else ""
+                    org.post_blackboard(
+                        "finding",
+                        f"Indexed `{rel_path}` lines {start_line}-{end_line}{sig_note}",
+                        author="recon",
+                        channel="recon-map",
+                    )
+                return obs
+            engine.execute_view_file_tool = _view
 
         if orig_verify is not None:
             def _verify(*args: Any, **kwargs: Any):
@@ -947,7 +1558,20 @@ class HarnessOrg:
                         "has already been verified failing on HEAD and is locked. Fix the repository code instead "
                         "of weakening or editing the reproduction test."
                     )
-                return orig_sr(path, old_str, new_str, *args, **kwargs)
+                obs = orig_sr(path, old_str, new_str, *args, **kwargs)
+                if (
+                    org.redteam.get("blackboard_on")
+                    and org.redteam.get("auto_index_views")
+                    and not org._in_falsifier
+                    and "SUCCESS" in str(obs)
+                ):
+                    org.post_blackboard(
+                        "design_note",
+                        f"Applied surgical edit to `{rel}` ({len((new_str or '').splitlines())} replacement lines).",
+                        author="executor",
+                        channel="builders-room",
+                    )
+                return obs
             engine.execute_str_replace_tool = _sr
 
         if orig_wf is not None:
@@ -985,13 +1609,14 @@ class HarnessOrg:
             engine.execute_bash_tool = _bash
 
         # 3. Wrap run_falsifier_episode for panel_size, max_turns, skeptic_default, evidence_tests,
-        #    duplicate-patch tracking, and blackboard failing_case sharing.
+        #    duplicate-patch tracking, candidate-pool ranking, and blackboard failing_case sharing.
         if orig_falsifier is not None:
             def _falsifier(cp: Any, max_turns: int = 8) -> Tuple[bool, str]:
                 turns = int(org.redteam.get("max_turns") or max_turns)
                 panel_k = max(1, int(org.redteam.get("panel_size") or 1))
                 panelists = org.panel_roles(panel_k)
                 panel_results: List[Tuple[str, bool, str]] = []
+                panel_results_with_ev: List[Tuple[str, bool, str, bool]] = []
                 final_ok = True
                 final_msg = ""
                 snap_cp = copy.deepcopy(cp)
@@ -1008,6 +1633,7 @@ class HarnessOrg:
                                 f"DUPLICATE PATCH ({diff_sha[:8]}) on {cfiles}: identical diff was already evaluated. "
                                 "Do NOT resubmit the same patch.",
                                 author="falsifier",
+                                channel="verdicts-and-repros",
                             )
                     org.candidate_shas.append(diff_sha)
 
@@ -1034,6 +1660,9 @@ class HarnessOrg:
                         except Exception:
                             pass
 
+                    suite_rel = getattr(engine, "falsification_script_rel", ".hae/falsification_suite.py")
+                    ran_evidence = org._falsifier_bash_count > 0 or engine.executor.exists(suite_rel)
+
                     # Enforce skeptic_default: require explicit VERDICT: PASS and executed test evidence.
                     if ok and org.redteam.get("skeptic_default"):
                         has_explicit_pass = bool(
@@ -1044,8 +1673,6 @@ class HarnessOrg:
                             re.search(r"VERDICT\s*:\s*FAIL", msg or "", flags=re.I)
                             or re.search(r"VERDICT\s*:\s*FAIL", org._last_falsifier_text or "", flags=re.I)
                         )
-                        suite_rel = getattr(engine, "falsification_script_rel", ".hae/falsification_suite.py")
-                        ran_evidence = org._falsifier_bash_count > 0 or engine.executor.exists(suite_rel)
                         if has_fail or not has_explicit_pass or not ran_evidence:
                             ok = False
                             reason = (
@@ -1057,12 +1684,19 @@ class HarnessOrg:
 
                     rid = role.role_id if role is not None else "generalist_falsifier"
                     panel_results.append((rid, bool(ok), str(msg)))
+                    panel_results_with_ev.append((rid, bool(ok), str(msg), bool(ran_evidence)))
                     final_ok = bool(ok)
                     final_msg = f"[Panel {idx}/{panel_k} ({role.name if role else 'Generalist'})] {msg}"
-                    if not ok:
+                    # Under V18 pool_ranker, let all panelists vote if panel_k <= 2 and ran_evidence is True so pass_rate is calibrated;
+                    # under V17 binary gating (pool_ranker=False), short-circuit on first failure.
+                    if not ok and not org.redteam.get("pool_ranker"):
+                        break
+                    if not ok and not ran_evidence:
                         break
 
-                if final_ok and org.redteam.get("evidence_tests"):
+                final_ok = all(p_ok for _, p_ok, _ in panel_results) if panel_results else False
+                ev_ok = True
+                if (final_ok or org.redteam.get("pool_ranker")) and org.redteam.get("evidence_tests"):
                     ev_ok, ev_msg = org._run_expanded_evidence_tests(engine, cp)
                     if not ev_ok:
                         final_ok = False
@@ -1070,6 +1704,10 @@ class HarnessOrg:
                         if panel_results:
                             last_rid, _, _ = panel_results[-1]
                             panel_results[-1] = (last_rid, False, ev_msg)
+                            panel_results_with_ev[-1] = (last_rid, False, ev_msg, panel_results_with_ev[-1][3])
+
+                org._last_panel_results = list(panel_results_with_ev)
+                org._last_expanded_ok = bool(ev_ok)
 
                 # Share executable failing test case on the blackboard when rejected
                 if not final_ok and org.redteam.get("blackboard_on") and org.redteam.get("falsifier_shares_tests"):
@@ -1077,13 +1715,18 @@ class HarnessOrg:
                     suite_snip = ""
                     try:
                         if engine.executor.exists(suite_rel):
-                            suite_snip = engine.executor.read_file(suite_rel).strip()[-200:]
+                            suite_snip = engine.executor.read_file(suite_rel).strip()[-350:]
                     except Exception:
                         pass
-                    fail_body = f"Patch {diff_sha[:8]} failed: {final_msg[:200]}"
+                    fail_body = f"Patch {diff_sha[:8]} failed: {final_msg[:350]}"
                     if suite_snip:
                         fail_body += f" | test ({suite_rel}): {suite_snip}"
-                    posted_fc = org.post_blackboard("failing_case", fail_body, author="falsifier")
+                    posted_fc = org.post_blackboard(
+                        "failing_case",
+                        fail_body,
+                        author="falsifier",
+                        channel="verdicts-and-repros",
+                    )
                     if posted_fc is not None:
                         org.failing_cases_shared += 1
                     # If no concrete assertion/traceback in critique and question budget remains, ask falsifier for minimal input
@@ -1097,6 +1740,7 @@ class HarnessOrg:
                             f"Which minimal Python input or test command breaks patch {diff_sha[:8]}?",
                             author="refiner",
                             to="falsifier",
+                            channel="verdicts-and-repros",
                         )
                         org.answer_pending_questions()
 
@@ -1113,25 +1757,60 @@ class HarnessOrg:
 
             engine.run_falsifier_episode = _falsifier
 
-        # 4. Optional continuous_build: prefer refining compiling uncertified nodes over resetting to HEAD.
-        if orig_select is not None and org.redteam.get("continuous_build"):
+        # 4. Branch scheduling: continuous_build OR V18 synthesis_roundtable (ensure b2 runs if b1 wasn't unanimously certified).
+        if orig_select is not None and (org.redteam.get("continuous_build") or org.redteam.get("synthesis_roundtable")):
             def _select(candidate_modules: List[str]):
                 nodes = getattr(engine, "mcts_nodes", {}) or {}
-                cont_cands = [
-                    n for nid, n in nodes.items()
-                    if nid != "root"
-                    and getattr(n, "checkpoint", None) is not None
-                    and n.checkpoint.diff.strip()
-                    and n.checkpoint.compile_ok
-                    and not getattr(n, "is_certified_global_optimum", False)
-                    and getattr(n, "stagnant_steps", 0) < 3
-                    and len(getattr(n, "children", [])) < 4
-                ]
-                if cont_cands:
-                    best = max(cont_cands, key=lambda n: (n.value, n.episode_index))
-                    return "CONT", best.node_id, None
+                if org.redteam.get("synthesis_roundtable"):
+                    root_children = [n for nid, n in nodes.items() if nid != "root" and getattr(n, "parent_id", "") == "root"]
+                    bqueue = getattr(engine, "branch_queue", []) or []
+                    # If b1 ran and was not certified global optimum, launch orthogonal b2 from branch_queue so the two builders have distinct prototypes to synthesize!
+                    if len(root_children) == 1 and bqueue and not getattr(root_children[0], "is_certified_global_optimum", False):
+                        spec = bqueue.pop(0)
+                        return "GEN", "root", spec
+                if org.redteam.get("continuous_build"):
+                    cont_cands = [
+                        n for nid, n in nodes.items()
+                        if nid != "root"
+                        and getattr(n, "checkpoint", None) is not None
+                        and n.checkpoint.diff.strip()
+                        and n.checkpoint.compile_ok
+                        and not getattr(n, "is_certified_global_optimum", False)
+                        and getattr(n, "stagnant_steps", 0) < 3
+                        and len(getattr(n, "children", [])) < 4
+                    ]
+                    if cont_cands:
+                        best = max(cont_cands, key=lambda n: (n.value, n.episode_index))
+                        return "CONT", best.node_id, None
                 return orig_select(candidate_modules)
             engine.select_next_mcts_operation = _select
+
+        # 5. Wrap engine.run to finalize Synthesis Roundtable & Candidate-Pool Red-Team Ranker selection.
+        if orig_run is not None and (org.redteam.get("pool_ranker") or org.redteam.get("synthesis_roundtable")):
+            def _run(*args: Any, **kwargs: Any):
+                res = orig_run(*args, **kwargs)
+                try:
+                    if org.redteam.get("synthesis_roundtable") and not org._synthesis_ran and len(org.distinct_pool_candidates()) >= 2:
+                        org.run_synthesis_roundtable(engine)
+                    if org.redteam.get("pool_ranker") and org.candidate_pool:
+                        best_cand = org.apply_best_pool_candidate(engine)
+                        if best_cand is not None and isinstance(res, dict):
+                            cp_b = best_cand["checkpoint"]
+                            res["synthesized_paths"] = list(cp_b.changed_files)
+                            res["patch_chars"] = len(cp_b.diff)
+                            res["resolved_by_self_oracle"] = bool(cp_b.repro_ok and cp_b.repo_tests_ok)
+                            res["best_checkpoint"] = {
+                                "specialist": cp_b.specialist,
+                                "turn": cp_b.turn,
+                                "rank_key": list(cp_b.rank_key()),
+                                "rank_score": best_cand["rank_score"],
+                                "changed_files": cp_b.changed_files,
+                                "note": cp_b.note,
+                            }
+                except Exception as exc:
+                    org.logger(f"[v18-collab] pool ranker finalize error: {exc}")
+                return res
+            engine.run = _run
 
     def summary(self) -> Dict[str, Any]:
         out: Dict[str, Any] = {
@@ -1155,14 +1834,30 @@ class HarnessOrg:
             out["verdict_patches"] = {
                 vd["diff_sha"]: vd["diff"] for vd in self.verdicts if vd.get("diff_sha") and vd.get("diff")
             }
+            for cand in self.candidate_pool:
+                if cand.get("diff_sha") and cand.get("diff"):
+                    out["verdict_patches"].setdefault(cand["diff_sha"], cand["diff"])
             out["edit_blocks_refused"] = self.edit_blocks_refused
             out["repro_restorations"] = self.repro_restorations
             out["candidate_patches_total"] = len(self.candidate_shas)
             out["duplicate_patches"] = self.duplicate_patches
             out["duplicate_patch_rate"] = self.duplicate_patch_rate()
+            out["candidate_pool"] = [
+                {k: v for k, v in c.items() if k not in ("diff", "checkpoint")}
+                for c in self.distinct_pool_candidates()
+            ]
+            out["huddle_notes_count"] = len(self.huddle_notes)
+            out["contract_overrides"] = self.contract_overrides
+            out["synthesis_runs"] = self.synthesis_runs
+            by_channel = {
+                ch: sum(1 for e in self.blackboard if e.get("channel") == ch)
+                for ch in SUB_BLACKBOARDS
+            }
             out["blackboard"] = {
                 "enabled": bool(self.redteam.get("blackboard_on")),
+                "sub_blackboards_on": bool(self.redteam.get("sub_blackboards_on")),
                 "entries_count": len(self.blackboard),
+                "by_channel": by_channel,
                 "questions_asked": self.questions_asked,
                 "questions_answered": self.questions_answered,
                 "failing_cases_shared": self.failing_cases_shared,

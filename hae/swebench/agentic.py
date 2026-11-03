@@ -124,7 +124,7 @@ def _strip_line_number_prefixes(block: str) -> str:
 
 @dataclasses.dataclass
 class ParsedAction:
-    kind: str  # "bash" | "view_file" | "str_replace" | "write_file" | "submit" | "none"
+    kind: str  # "bash" | "view_file" | "str_replace" | "write_file" | "submit" | "blackboard" | "none"
     raw: str = ""
     command: str = ""
     path: str = ""
@@ -134,6 +134,14 @@ class ParsedAction:
     new_str: str = ""
     summary: str = ""
     error: str = ""
+    extra_views: List[Tuple[str, int, int]] = dataclasses.field(default_factory=list)
+    blackboard_blocks: List[str] = dataclasses.field(default_factory=list)
+
+
+_BLACKBOARD_FENCE_RE = re.compile(
+    r"```blackboard\b[^\n]*\n(?P<body>.*?)```",
+    re.DOTALL | re.IGNORECASE,
+)
 
 
 # Dedicated regex for `str_replace` that anchors on `>>>>` before closing ` ``` `,
@@ -180,6 +188,12 @@ def _strip_rfl_artifacts(val: str) -> str:
         if not m or m.start() == len(val):
             break
         val = val[: m.start()]
+    val = re.sub(
+        r"\n?\s*</?(?:rfl:)?(?:parameter|function|tool_call)\b[^>\n]{0,200}>\s*(?=\n|\Z)",
+        "",
+        val,
+        flags=re.IGNORECASE,
+    )
     val = re.sub(r"<(/?)rfl:", r"<\1", val, flags=re.IGNORECASE)
     return val
 
@@ -578,11 +592,97 @@ def _dispatch_xml_function(
     return None
 
 
+def _parse_view_file_body(body: str) -> Tuple[str, int, int]:
+    """Parse `(path, start_line, end_line)` from a `view_file` fence body."""
+    path = ""
+    start_line = 1
+    end_line = 350
+    for line in body.strip().splitlines():
+        if ":" in line:
+            k, v = line.split(":", 1)
+            k = k.strip().lower()
+            v = v.strip().strip("'\"")
+            if k in ("path", "file", "filepath"):
+                path = _clean_path_token(v)
+            elif k in ("start_line", "start", "from_line", "from"):
+                try:
+                    start_line = max(1, int(v))
+                except ValueError:
+                    pass
+            elif k in ("end_line", "end", "to_line", "to"):
+                try:
+                    end_line = max(1, int(v))
+                except ValueError:
+                    pass
+        elif not path and line.strip():
+            tok = line.strip()
+            m_range = re.match(r"^([^\s:]+)(?::(\d+)-(\d+)|\s+(\d+)\s+(\d+))?$", tok)
+            if m_range:
+                path = _clean_path_token(m_range.group(1))
+                if m_range.group(2) and m_range.group(3):
+                    start_line, end_line = int(m_range.group(2)), int(m_range.group(3))
+                elif m_range.group(4) and m_range.group(5):
+                    start_line, end_line = int(m_range.group(4)), int(m_range.group(5))
+    return path, start_line, end_line
+
+
+def _extract_all_view_file_ranges(text: str) -> List[Tuple[str, int, int]]:
+    """Return all `(path, start_line, end_line)` ranges from fenced or XML `view_file` blocks in `text`."""
+    out: List[Tuple[str, int, int]] = []
+    seen = set()
+    for m in re.finditer(r"```view_file\b[^\n]*\n(.*?)(?:```|\Z)", text, re.DOTALL | re.IGNORECASE):
+        p, s, e = _parse_view_file_body(_strip_rfl_artifacts(m.group(1)))
+        if p and (p, s, e) not in seen:
+            seen.add((p, s, e))
+            out.append((p, s, e))
+    norm_xml = re.sub(r"<(/?)rfl:", r"<\1", text, flags=re.IGNORECASE)
+    for m_x in re.finditer(
+        r"<(?:function\s*=\s*(?:view_file|read_file|view)|(?:view_file|read_file)\b[^>]*)\s*>?(.*?)(?:</function>|</view_file>|</read_file>|(?=<tool_call>)|\Z)",
+        norm_xml,
+        re.DOTALL | re.IGNORECASE,
+    ):
+        act = _parse_xml_tool_call(f"<tool_call><function=view_file>{m_x.group(1)}</function></tool_call>")
+        if act is not None and act.kind == "view_file" and act.path:
+            key = (act.path, act.start_line, act.end_line)
+            if key not in seen:
+                seen.add(key)
+                out.append(key)
+    return out
+
+
+def _attach_compound_blocks(
+    act: ParsedAction,
+    bb_blocks: List[str],
+    all_views: List[Tuple[str, int, int]],
+) -> ParsedAction:
+    if bb_blocks:
+        act.blackboard_blocks = list(bb_blocks)
+    if act.kind == "view_file" and act.path and all_views:
+        first_key = (act.path, act.start_line, act.end_line)
+        act.extra_views = [v for v in all_views if v != first_key][:3]
+    elif act.kind == "bash" and all_views:
+        act.extra_views = list(all_views[:3])
+    return act
+
+
 def parse_agent_action(response_text: str) -> ParsedAction:
-    """Extract the structured tool action from an assistant response."""
-    text = (response_text or "").strip()
-    if not text:
+    """Extract the structured tool action (plus optional compound `view_file` / `blackboard` blocks)."""
+    raw_full = (response_text or "").strip()
+    if not raw_full:
         return ParsedAction(kind="none", error="Empty response from model.")
+
+    bb_blocks = [
+        _strip_rfl_artifacts(m.group("body")).strip()
+        for m in _BLACKBOARD_FENCE_RE.finditer(raw_full)
+        if _strip_rfl_artifacts(m.group("body")).strip()
+    ]
+    text = _BLACKBOARD_FENCE_RE.sub("", raw_full).strip()
+    if not text and bb_blocks:
+        return ParsedAction(kind="blackboard", blackboard_blocks=bb_blocks, raw=raw_full)
+    if not text:
+        text = raw_full
+
+    all_views = _extract_all_view_file_ranges(text)
 
     # 0. Check for Qwen3.8 / Reflection Beam native `<tool_call><function=...>` XML format if it appears first
     xml_action = _parse_xml_tool_call(text)
@@ -598,11 +698,11 @@ def parse_agent_action(response_text: str) -> ParsedAction:
         default=len(text) + 1,
     )
     if xml_action is not None and m_xml_pos is not None and m_xml_pos.start() <= first_fence_pos:
-        return xml_action
+        return _attach_compound_blocks(xml_action, bb_blocks, all_views)
 
     # 1. Check for ```str_replace ... >>>>\n``` first (handles nested ``` inside docstrings)
     if m_sr_fence and (not m_other or m_sr_fence.start() <= m_other.start()):
-        return _parse_str_replace_body(m_sr_fence.group("body"), text)
+        return _attach_compound_blocks(_parse_str_replace_body(m_sr_fence.group("body"), raw_full), bb_blocks, all_views)
 
     # Also check if a ```str_replace fence was opened without matching _STR_REPLACE_FENCE_RE
     m_sr_open = re.search(r"```(?:str_replace|edit_file)\b[^\n]*\n(.*)", text, re.DOTALL | re.IGNORECASE)
@@ -610,17 +710,21 @@ def parse_agent_action(response_text: str) -> ParsedAction:
         inner = _strip_rfl_artifacts(m_sr_open.group(1))
         if inner.endswith("```"):
             inner = inner[:-3].rstrip()
-        return _parse_str_replace_body(inner, text)
+        return _attach_compound_blocks(_parse_str_replace_body(inner, raw_full), bb_blocks, all_views)
 
     # 2. Check for bare `path: ...\n<<<<\n...\n====\n...\n>>>>`
     m_bare_sr = _BARE_STR_REPLACE_RE.search(text)
     if m_bare_sr and (not m_other or m_bare_sr.start() <= m_other.start()):
-        return ParsedAction(
-            kind="str_replace",
-            path=_clean_path_token(m_bare_sr.group("path")),
-            old_str=m_bare_sr.group("old"),
-            new_str=_clean_new_str_tail(m_bare_sr.group("new")),
-            raw=text,
+        return _attach_compound_blocks(
+            ParsedAction(
+                kind="str_replace",
+                path=_clean_path_token(m_bare_sr.group("path")),
+                old_str=m_bare_sr.group("old"),
+                new_str=_clean_new_str_tail(m_bare_sr.group("new")),
+                raw=raw_full,
+            ),
+            bb_blocks,
+            all_views,
         )
 
     # 3. Check standard fenced blocks (`bash`, `view_file`, `write_file`, `submit`, `python`)
@@ -631,57 +735,41 @@ def parse_agent_action(response_text: str) -> ParsedAction:
         if tag in ("bash", "sh", "shell"):
             cmd = body.strip()
             if "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT" in cmd:
-                return ParsedAction(kind="submit", summary=cmd, raw=text)
+                return _attach_compound_blocks(ParsedAction(kind="submit", summary=cmd, raw=raw_full), bb_blocks, all_views)
             if re.match(r"^(?:str_replace|edit_file)\s*\n", cmd, re.IGNORECASE) or (
                 "\n<<<<\n" in cmd and "\n====\n" in cmd
             ):
                 sr_body = re.sub(r"^(?:str_replace|edit_file)\s*\n", "", cmd, flags=re.IGNORECASE)
-                return _parse_str_replace_body(sr_body, text)
-            return ParsedAction(kind="bash", command=cmd, raw=text)
+                return _attach_compound_blocks(_parse_str_replace_body(sr_body, raw_full), bb_blocks, all_views)
+            return _attach_compound_blocks(ParsedAction(kind="bash", command=cmd, raw=raw_full), bb_blocks, all_views)
 
         if tag == "submit":
-            return ParsedAction(kind="submit", summary=body.strip() or "Completed repair.", raw=text)
+            return _attach_compound_blocks(
+                ParsedAction(kind="submit", summary=body.strip() or "Completed repair.", raw=raw_full),
+                bb_blocks,
+                all_views,
+            )
 
         if tag == "view_file":
-            path = ""
-            start_line = 1
-            end_line = 350
-            for line in body.strip().splitlines():
-                if ":" in line:
-                    k, v = line.split(":", 1)
-                    k = k.strip().lower()
-                    v = v.strip().strip("'\"")
-                    if k in ("path", "file", "filepath"):
-                        path = v
-                    elif k in ("start_line", "start", "from_line", "from"):
-                        try:
-                            start_line = max(1, int(v))
-                        except ValueError:
-                            pass
-                    elif k in ("end_line", "end", "to_line", "to"):
-                        try:
-                            end_line = max(1, int(v))
-                        except ValueError:
-                            pass
-                elif not path and line.strip():
-                    tok = line.strip()
-                    m_range = re.match(r"^([^\s:]+)(?::(\d+)-(\d+)|\s+(\d+)\s+(\d+))?$", tok)
-                    if m_range:
-                        path = m_range.group(1)
-                        if m_range.group(2) and m_range.group(3):
-                            start_line, end_line = int(m_range.group(2)), int(m_range.group(3))
-                        elif m_range.group(4) and m_range.group(5):
-                            start_line, end_line = int(m_range.group(4)), int(m_range.group(5))
+            path, start_line, end_line = _parse_view_file_body(body)
             if not path:
-                return ParsedAction(kind="view_file", error="Missing `path:` in ```view_file block.", raw=text)
-            return ParsedAction(kind="view_file", path=path, start_line=start_line, end_line=end_line, raw=text)
+                return ParsedAction(kind="view_file", error="Missing `path:` in ```view_file block.", raw=raw_full)
+            return _attach_compound_blocks(
+                ParsedAction(kind="view_file", path=path, start_line=start_line, end_line=end_line, raw=raw_full),
+                bb_blocks,
+                all_views,
+            )
 
         if tag == "write_file":
             lines = body.splitlines()
             if lines and re.match(r"^\s*(?:path|file|filepath)\s*:\s*", lines[0], re.IGNORECASE):
                 p = lines[0].split(":", 1)[1].strip().strip("'\"")
                 content = "\n".join(lines[1:])
-                return ParsedAction(kind="write_file", path=p, new_str=content, raw=text)
+                return _attach_compound_blocks(
+                    ParsedAction(kind="write_file", path=p, new_str=content, raw=raw_full),
+                    bb_blocks,
+                    all_views,
+                )
 
         if tag in ("python", "py"):
             # Legacy Action: write_file + ```python support
@@ -691,11 +779,15 @@ def parse_agent_action(response_text: str) -> ParsedAction:
                 re.DOTALL | re.IGNORECASE,
             )
             if m_act_wf:
-                return ParsedAction(
-                    kind="write_file",
-                    path=_clean_path_token(m_act_wf.group(1)),
-                    new_str=body,
-                    raw=text,
+                return _attach_compound_blocks(
+                    ParsedAction(
+                        kind="write_file",
+                        path=_clean_path_token(m_act_wf.group(1)),
+                        new_str=body,
+                        raw=raw_full,
+                    ),
+                    bb_blocks,
+                    all_views,
                 )
             return ParsedAction(
                 kind="none",
@@ -704,22 +796,25 @@ def parse_agent_action(response_text: str) -> ParsedAction:
                     "To run Python or write `/testbed/.hae/reproduce_issue.py`, emit a ```bash block; "
                     "to edit a repository file, emit a ```str_replace block."
                 ),
-                raw=text,
+                raw=raw_full,
             )
 
     if xml_action is not None:
-        return xml_action
+        return _attach_compound_blocks(xml_action, bb_blocks, all_views)
 
     if "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT" in text:
-        return ParsedAction(kind="submit", summary=text, raw=text)
+        return _attach_compound_blocks(ParsedAction(kind="submit", summary=text, raw=raw_full), bb_blocks, all_views)
+
+    if bb_blocks:
+        return ParsedAction(kind="blackboard", blackboard_blocks=bb_blocks, raw=raw_full)
 
     return ParsedAction(
         kind="none",
         error=(
-            "No valid tool block found in your response. Emit EXACTLY ONE markdown fenced tool block per turn: "
+            "No valid tool block found in your response. Emit a markdown fenced tool block per turn: "
             "```bash ... ```, ```view_file ... ```, ```str_replace ... ```, or ```submit ... ```."
         ),
-        raw=text,
+        raw=raw_full,
     )
 
 
@@ -2043,6 +2138,12 @@ class AgenticSweEngine:
 
             if action.kind == "bash":
                 obs = self.execute_bash_tool(action.command)
+                if action.extra_views:
+                    extra_obs = [
+                        self.execute_view_file_tool(ep, es, ee)
+                        for ep, es, ee in action.extra_views[:3]
+                    ]
+                    obs = obs + "\n\n" + "\n\n".join(extra_obs)
                 if len(self.checkpoints) > initial_cp_count:
                     episode_edits = len(self.checkpoints) - initial_cp_count
                 if turn >= max(5, effective_max_turns // 2) and episode_edits == 0 and not is_auditor:
@@ -2058,12 +2159,16 @@ class AgenticSweEngine:
                     "turn": turn,
                     "action": "bash",
                     "command": action.command[:300],
+                    "extra_views": len(action.extra_views),
                     "reasoning_chars": len(reasoning),
                     "elapsed_s": round(dt, 2),
                 })
 
             elif action.kind == "view_file":
-                obs = self.execute_view_file_tool(action.path, action.start_line, action.end_line)
+                view_parts = [self.execute_view_file_tool(action.path, action.start_line, action.end_line)]
+                for ep, es, ee in action.extra_views[:3]:
+                    view_parts.append(self.execute_view_file_tool(ep, es, ee))
+                obs = "\n\n".join(view_parts)
                 if turn >= max(5, effective_max_turns // 2) and episode_edits == 0 and not is_auditor:
                     obs += (
                         f"\n\n[ACTION REQUIRED: Turn {turn}/{effective_max_turns} and no code edits have been made in this episode yet. "
@@ -2077,6 +2182,21 @@ class AgenticSweEngine:
                     "action": "view_file",
                     "path": action.path,
                     "range": [action.start_line, action.end_line],
+                    "extra_views": len(action.extra_views),
+                    "reasoning_chars": len(reasoning),
+                    "elapsed_s": round(dt, 2),
+                })
+
+            elif action.kind == "blackboard":
+                obs = (
+                    "Observation (blackboard): Recorded entry on the shared blackboard. "
+                    "Now emit your next action tool block (` ```bash `, ` ```view_file `, ` ```str_replace `, or ` ```submit `)."
+                )
+                messages.append({"role": "user", "content": obs})
+                self.trajectory_log.append({
+                    "specialist": specialist_name,
+                    "turn": turn,
+                    "action": "blackboard",
                     "reasoning_chars": len(reasoning),
                     "elapsed_s": round(dt, 2),
                 })
@@ -2223,12 +2343,12 @@ class AgenticSweEngine:
             "- Keep your `<think>` reasoning concise and focused (under 200 words per turn): decide the single next command or edit, close `</think>`, and immediately emit the tool block.\n"
             "- Do NOT page through entire large files 100 lines at a time with `view_file`! Use `git grep -n \"symbol\"` in `bash` to find exact line numbers first, then `view_file` only the relevant lines.\n"
             "- Combine related lookups into a single `bash` command so you localize and reproduce the issue within 2-4 turns.\n\n"
-            "## Available Tools (Emit EXACTLY ONE tool block per turn)\n\n"
+            "## Available Tools (Emit one primary tool block per turn, or up to 3 `view_file` blocks at once; optional `blackboard` block allowed alongside)\n\n"
             "1. **Run shell commands (`bash`)** — search code (`git grep -n`), create/run reproduction scripts, run `pytest`, inspect `git diff`:\n"
             "```bash\n"
             "git grep -n \"function_or_class_name\"\n"
             "```\n\n"
-            "2. **View file lines with line numbers (`view_file`)** — inspect up to 500 lines of any file in `/testbed`:\n"
+            "2. **View file lines with line numbers (`view_file`)** — inspect up to 500 lines of any file in `/testbed` (you may emit up to 3 `view_file` blocks in a single turn to inspect caller, callee, and test files together):\n"
             "```view_file\n"
             "path: path/to/file.py\n"
             "start_line: 100\n"
@@ -2248,7 +2368,7 @@ class AgenticSweEngine:
             "Brief explanation of the root cause and how the patch resolves it.\n"
             "```\n\n"
             "## Strict Engineering Rules\n"
-            "- Emit ONLY ONE tool block per response (` ```bash `, ` ```view_file `, ` ```str_replace `, or ` ```submit `; if using `<tool_call><function=...>`, always include `<parameter=path>`, `<parameter=old_str>`, `<parameter=new_str>` or `<parameter=command>`). Wait for the `Observation:` before taking the next step.\n"
+            "- Emit one primary tool block (` ```bash `, ` ```str_replace `, or ` ```submit `), or up to 3 ` ```view_file ` blocks in a single response (plus an optional ` ```blackboard ` JSON block when a shared blackboard is active; if using `<tool_call><function=...>`, always include `<parameter=path>`, `<parameter=old_str>`, `<parameter=new_str>` or `<parameter=command>`). Wait for the `Observation:` before taking the next step.\n"
             "- NEVER copy the `  123 | ` line numbers from `view_file` into `str_replace` blocks.\n"
             "- Store any standalone reproduction or scratch test scripts inside `/testbed/.hae/` (e.g. `/testbed/.hae/reproduce_issue.py`), NEVER as untracked files in `/testbed/`. Do NOT modify existing repository test files.\n"
             "- Make minimal, surgical changes that respect existing code style, docstrings, type annotations, warning classes, and sibling methods."

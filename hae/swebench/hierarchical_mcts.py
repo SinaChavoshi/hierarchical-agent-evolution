@@ -1335,12 +1335,29 @@ class HierarchicalAgenticMCTSEngine(AgenticSweEngine):
                 verdict_text = (action.summary or action.new_str or resp_text).strip()
                 break
             elif action.kind == "view_file":
-                obs = self.execute_view_file_tool(action.path, action.start_line, action.end_line)
+                view_parts = [self.execute_view_file_tool(action.path, action.start_line, action.end_line)]
+                for ep, es, ee in action.extra_views[:3]:
+                    view_parts.append(self.execute_view_file_tool(ep, es, ee))
+                obs = "\n\n".join(view_parts)
                 if turn >= max_turns - 1:
                     obs += "\n\n[FINAL FALSIFIER TURN: Emit ```submit with VERDICT: PASS or VERDICT: FAIL: <reason>.]"
                 messages.append({"role": "user", "content": obs})
             elif action.kind == "bash":
                 obs = self.execute_bash_tool(action.command)
+                if action.extra_views:
+                    extra_obs = [
+                        self.execute_view_file_tool(ep, es, ee)
+                        for ep, es, ee in action.extra_views[:3]
+                    ]
+                    obs = obs + "\n\n" + "\n\n".join(extra_obs)
+                if turn >= max_turns - 1:
+                    obs += "\n\n[FINAL FALSIFIER TURN: Emit ```submit with VERDICT: PASS or VERDICT: FAIL: <reason>.]"
+                messages.append({"role": "user", "content": obs})
+            elif action.kind == "blackboard":
+                obs = (
+                    "Observation (blackboard): Recorded entry on shared blackboard. "
+                    "Emit your next verification tool block (` ```bash `, ` ```view_file `, or ` ```submit `) now."
+                )
                 if turn >= max_turns - 1:
                     obs += "\n\n[FINAL FALSIFIER TURN: Emit ```submit with VERDICT: PASS or VERDICT: FAIL: <reason>.]"
                 messages.append({"role": "user", "content": obs})
