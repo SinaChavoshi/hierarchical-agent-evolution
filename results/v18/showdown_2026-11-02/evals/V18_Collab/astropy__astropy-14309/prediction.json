@@ -1,0 +1,5 @@
+{
+ "instance_id": "astropy__astropy-14309",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/astropy/io/fits/connect.py b/astropy/io/fits/connect.py\nindex 4b6150f4a..99a073f4c 100644\n--- a/astropy/io/fits/connect.py\n+++ b/astropy/io/fits/connect.py\n@@ -69,6 +69,8 @@ def is_fits(origin, filepath, fileobj, *args, **kwargs):\n             (\".fits\", \".fits.gz\", \".fit\", \".fit.gz\", \".fts\", \".fts.gz\")\n         ):\n             return True\n+    if len(args) == 0:\n+        return False\n     return isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))\n \n \ndiff --git a/astropy/io/votable/connect.py b/astropy/io/votable/connect.py\nindex 86f48f6cc..6c3891b8f 100644\n--- a/astropy/io/votable/connect.py\n+++ b/astropy/io/votable/connect.py\n@@ -39,6 +39,8 @@ def is_votable(origin, filepath, fileobj, *args, **kwargs):\n             return result\n         elif filepath is not None:\n             return is_votable(filepath)\n+        if len(args) == 0:\n+            return False\n         return isinstance(args[0], (VOTableFile, VOTable))\n \n     else:\n"
+}

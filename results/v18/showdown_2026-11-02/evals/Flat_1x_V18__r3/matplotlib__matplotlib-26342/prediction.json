@@ -1,0 +1,5 @@
+{
+ "instance_id": "matplotlib__matplotlib-26342",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/lib/matplotlib/contour.py b/lib/matplotlib/contour.py\nindex 3f84250b64..1c9d1d04d9 100644\n--- a/lib/matplotlib/contour.py\n+++ b/lib/matplotlib/contour.py\n@@ -1092,6 +1092,9 @@ class ContourSet(ContourLabeler, mcoll.Collection):\n \n         return kwargs\n \n+    def set_paths(self, paths):\n+        self._paths = list(paths)\n+\n     def _make_paths_from_contour_generator(self):\n         \"\"\"Compute ``paths`` using C extension.\"\"\"\n         if self._paths is not None:\n"
+}

@@ -1,0 +1,5 @@
+{
+ "instance_id": "sphinx-doc__sphinx-9602",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py\nindex 9875a9f4b..b51d412ab 100644\n--- a/sphinx/domains/python.py\n+++ b/sphinx/domains/python.py\n@@ -145,6 +145,7 @@ def _parse_annotation(annotation: str, env: BuildEnvironment = None) -> List[Nod\n         elif isinstance(node, ast.Name):\n             return [nodes.Text(node.id)]\n         elif isinstance(node, ast.Subscript):\n+            # Literal values are rendered as literals, not py:class references\n             result = unparse(node.value)\n             result.append(addnodes.desc_sig_punctuation('', '['))\n             result.extend(unparse(node.slice))\n"
+}

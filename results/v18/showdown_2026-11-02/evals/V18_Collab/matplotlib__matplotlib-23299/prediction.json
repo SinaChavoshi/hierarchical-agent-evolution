@@ -1,0 +1,5 @@
+{
+ "instance_id": "matplotlib__matplotlib-23299",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/lib/matplotlib/__init__.py b/lib/matplotlib/__init__.py\nindex c268a56724..a7d9ddaa73 100755\n--- a/lib/matplotlib/__init__.py\n+++ b/lib/matplotlib/__init__.py\n@@ -1095,6 +1095,11 @@ def rc_context(rc=None, fname=None):\n             rcParams.update(rc)\n         yield\n     finally:\n+        # Preserve a resolved backend so that rc_context does not revert\n+        # the backend to the (possibly sentinel) value captured on entry,\n+        # which would force get_backend() to re-resolve and close figures.\n+        orig = dict(orig)\n+        orig['backend'] = rcParams['backend']\n         dict.update(rcParams, orig)  # Revert to the original rcs.\n \n \n"
+}

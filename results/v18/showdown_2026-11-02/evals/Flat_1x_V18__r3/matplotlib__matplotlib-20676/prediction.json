@@ -1,0 +1,5 @@
+{
+ "instance_id": "matplotlib__matplotlib-20676",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/lib/matplotlib/widgets.py b/lib/matplotlib/widgets.py\nindex a199e45d4..e4e119f8b 100644\n--- a/lib/matplotlib/widgets.py\n+++ b/lib/matplotlib/widgets.py\n@@ -2369,7 +2369,14 @@ class ToolLineHandles:\n         line_fun = ax.axvline if self.direction == 'horizontal' else ax.axhline\n         self._line_props = line_props\n \n+        # The handles are initially invisible; do not let their (possibly 0)\n+        # positions affect the axes data limits, which would otherwise force\n+        # the axes to include 0.\n         self.artists = [line_fun(p, **line_props) for p in positions]\n+        # The handles are initially invisible; do not let their (possibly 0)\n+        # positions affect the axes data limits.\n+        ax.relim(visible_only=True)\n+        ax.autoscale_view()\n \n     @property\n     def positions(self):\n"
+}

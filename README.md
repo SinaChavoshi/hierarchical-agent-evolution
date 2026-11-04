@@ -2,13 +2,15 @@
 
 HAE is a harness that lets open-weight LLMs fix bugs and build software in real
 repositories. A patch is accepted only after it has been proven to work.
-Everything runs self-hosted on GKE, and the harness itself is now the thing
-being evolved.
+Everything runs self-hosted on GKE, and the harness itself is the system under
+empirical and evolutionary study across 18 iterative versions (`V1 → V18`).
+
+> **Program Synthesis & Final Conclusion (`V1 → V18`):** This track of experiments has concluded at **`v18-final`** (`400` container runs on the fresh $N = 80$ `SWE-bench Verified` benchmark; all GKE GPU/CPU clusters torn down). For the consolidated findings across all 18 versions and the roadmap of future directions, see **[`docs/CONCLUSION_AND_ROADMAP.md`](docs/CONCLUSION_AND_ROADMAP.md)** and **[`docs/V18_RESULTS.md`](docs/V18_RESULTS.md)**.
 
 - [Overview](#overview)
 - [Lessons learned](#lessons-learned)
 - [Architecture](#architecture)
-- [Roadmap and vision](#roadmap-and-vision)
+- [Conclusion and future roadmap](#roadmap-and-vision)
 - [Repository layout and running](#repository-layout-and-running)
 
 ---
@@ -77,8 +79,9 @@ V15 is the first run designed to produce a clean, held-out answer
 
 ## Lessons learned
 
-Fifteen versions fall into four eras. Per-version details are in
-[`experiments/README.md`](experiments/README.md).
+Eighteen versions fall into four eras. Full synthesis is in
+[`docs/CONCLUSION_AND_ROADMAP.md`](docs/CONCLUSION_AND_ROADMAP.md) and
+per-version details are in [`experiments/README.md`](experiments/README.md).
 
 ### Era 1 · Evolving agent firms (V1–V7)
 
@@ -136,9 +139,9 @@ milestone ratchet.*
   automated leakage gate now rejects any change that introduces identifiers
   from gold or hidden-test patches.
 
-### Era 4 · Evolving the harness (V15)
+### Era 4 · Evolving the harness, Red-Team rankers & compute-matched scaling (V15–V18)
 
-*The V14 harness becomes the genome: 18 knobs plus a patch against its source.*
+*The harness becomes the genome (`V15`), followed by specialist roles (`V16`), firewalled Red Teams & blackboards (`V17`), and the compute-matched `N = 80` showdown (`V18`).*
 
 - **Fitness has to discriminate.** The first stage-1 task subset was useless:
   all 8 genomes solved the same task and failed the other five, so ranking
@@ -147,10 +150,29 @@ milestone ratchet.*
 - **Keep the grader out of the search space.** Genomes can change prompts,
   search and verification, but never the grader, the datasets or the
   evaluator.
-- **Name infrastructure accurately.** Until Oct 27 the "llm-d gateway" was a
-  custom Python proxy. V15 now runs on the real llm-d router. The old proxy's
-  rewrites were audited as no-ops for SWE-bench, so the switch changes speed,
-  not agent behavior.
+- **Continuous candidate-pool ranking beats binary Red-Team gating.** Across
+  `2,525` container-graded candidate patches from V17 (`1,385` runs), binary
+  Red-Team gating rejected `45.5%` of valid patches (`332 FN`). Retaining all
+  self-verified patches in a candidate pool and ranking them continuously
+  (`V18`) eliminated pool discards and raised top-1 selection accuracy on
+  resolvable runs from `87.6%` to `96.0%` (`+8.4 pp`).
+- **On localized bug fixes, `3×` parallel sampling + selection matches
+  collaborative hierarchy at lower cost—with complementary wins.** On the fresh
+  `N = 80` `SWE-bench Verified` benchmark, compute-matched `Flat_3x_Select`
+  (`53 / 80 = 66.2%`, `442k` tokens/task) statistically tied `V18_Collab`
+  (`52 / 80 = 65.0%`, `555k` tokens/task, $p = 1.00$), while `V18_Collab`
+  solved `4` tasks where all 3 flat rollouts failed (`0 / 3`), lifting the
+  combined union to `58 / 80` (`72.5%`).
+- **Evolving prompt personas fails to generalize (`3×` null/negative).** Across
+  `V16`, `V17`, and `V18` (`V18_Evolved` `48 / 80 = 60.0%` vs generalist
+  `V18_Collab` `52 / 80 = 65.0%`), mutating specialist/falsifier role text
+  overfit to finite training sets, whereas substrate code fixes and continuous
+  verifier calibration transferred reliably.
+- **Fault localization is solved (`95.5%`); self-reproduction fidelity
+  (`77.3%` false self-pass) is the remaining frontier.** On `21 / 22` of the
+  universally unsolved V18 tasks (`0 / 5` runs), agents edited the exact gold
+  file(s), and on `17 / 22` (`77.3%`) their patch passed `.hae/reproduce_issue.py`
+  yet failed the hidden test because the self-written repro was too narrow.
 
 ---
 
@@ -212,49 +234,17 @@ Deeper specs:
 
 ## Roadmap and vision
 
-**Vision.** We want a self-hosted engineering harness whose design is
-*discovered* rather than hand-written. It should be evolved under fitness that
-only rewards code that runs, protected against benchmark leakage by
-construction, and able to scale from a one-line bug fix to a multi-week build
-by ratcheting small, verified steps.
+> **Full Synthesis & Roadmap:** See **[`docs/CONCLUSION_AND_ROADMAP.md`](docs/CONCLUSION_AND_ROADMAP.md)** for the complete `V1 → V18` empirical synthesis and detailed future roadmap.
 
-| Horizon | Goal | Done when |
+| Horizon | Goal | Status / Outcome |
 | :--- | :--- | :--- |
-| **Done: V15** | Show that evolution beats hand design | Evolved 17/28 vs seed 12/28 vs random 16/28 on held-out test: beats the seed, ties random search ([results](results/v15/test_2026-10-28/README.md)) |
-| **Next** | Comparable, trustworthy numbers | SWE-bench Pro (public), ≥ 3 seeds, official `swebench` grading, external baselines at matched budget |
-| **Then** | Long-horizon builds | ≥ 10k LoC on a second target with an external oracle, with ratchet settings evolved too |
-| **Serving** | Make the harness and llm-d co-designed | Prefix hit rate and latency per layer measured and optimized |
-
-**Follow-ups from V15.**
-- Re-grade the final predictions with the official `swebench eval` harness
-  (today's grader is approximate), and re-run V12 flat ReAct under the same
-  load as the V15 test.
-- Evolution only tied random search: run more generations and repeated
-  evaluations (≥ 2 seeds per genome) to cut selection noise before claiming
-  an evolutionary advantage.
-
-**Next: comparable numbers.**
-- Run the selected harness on SWE-bench Pro (public) with at least 3 seeds.
-- Compare against mini-SWE-agent and OpenHands on the same Beam endpoint, at
-  matched token budgets.
-- Run the leakage gate on *every* prompt or harness change, not only on
-  evolved patches.
-
-**Then: long-horizon builds.**
-- Add a second greenfield target with an external oracle, such as an
-  interpreter checked against a reference implementation, and scale to 10k+
-  LoC.
-- Make the ratchet's settings evolvable too: milestone size, diff caps,
-  planner prompts and recovery policy.
-
-**Serving: co-design with llm-d.**
-- Measure prefix-cache hit rate and latency per harness layer.
-- Order prompts so stable content comes first, and consider making that
-  layout an evolvable gene.
-- Calibrate llm-d's prefix-cache-affinity filter for Beam on this hardware.
-  It's currently off because its saturation threshold is uncalibrated.
-- Evaluate prefill/decode disaggregation for the long-prefix, short-output
-  calls the falsifier and recon make.
+| **Done: V14 Ratchet** | Long-horizon multi-milestone construction with external oracle | **`15 / 15` (`100%`)** on `MiniSQL` (`2,345` LoC, `sqlite3` oracle) vs **`8 / 15`** monolithic `AB-MCTS` vs **`0 / 15`** flat ReAct ([results](results/ratchet/planner_driven_minisql_eval_2026-10-23/README.md)) |
+| **Done: V15–V17** | Harness code search, specialist roles, and firewalled Red Team on $n = 28$ | Code search beat hand seed (`17/28` vs `12/28`); specialist role prompts were null (`V16`); binary Red-Team gate raised precision (`67.5%`) but suffered `45.5%` false rejections ([V17 report](experiments/v17/README.md)) |
+| **Done: V18 (`N = 80`)** | Compute-matched collaborative synthesis vs `3×` parallel sampling + candidate-pool ranker | Candidate-pool ranker lifted top-1 accuracy `87.6% → 96.0%`; `Flat_3x_Select` (**`53/80 = 66.2%`**, `442k` tok) and `V18_Collab` (**`52/80 = 65.0%`**, `555k` tok) tied statistically with a **`58/80` (`72.5%`)** combined union ([V18 results](docs/V18_RESULTS.md)) |
+| **Next 1: Adaptive Routing** | Route easy tasks to `1× Flat` (`147k` tok) and discordant tasks to `V18_Collab` synthesis | Target the **`58 / 80` (`72.5%`)** portfolio union at **`~260k–290k` mean tokens/task** (`~45–50%` token savings) |
+| **Next 2: Differential Repros** | Close the `17 / 22` (`77.3%`) false self-repro gap on hard tasks | Generate discriminating inputs (`x_diff`) where candidate `Patch A` and `Patch B` diverge before selection |
+| **Next 3: Ratchet Suite** | Compute-matched multi-target long-horizon build benchmark (`2k–10k` LoC) | Expand `MiniSQL` (`15/15`) to 5 targets with external reference oracles (`sqlite3`, `git`, `jq`, `re`, `h2`) at matched `1.8M`-token budgets |
+| **Next 4: Cascade Evolution** | Dense-signal verifier training & `10 → 50 → 150` staged harness evolution | Train verifiers/middleware on the `n = 2,925+` container-graded checkpoint archive rather than mutating persona prompts |
 
 ---
 

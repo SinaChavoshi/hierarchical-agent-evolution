@@ -1,0 +1,43 @@
+{
+ "FAIL_TO_PASS": {
+  "astropy/io/ascii/tests/test_qdp.py::test_roundtrip[True]": "FAILED"
+ },
+ "PASS_TO_PASS_failures": [],
+ "PASS_TO_PASS_summary": {
+  "ERROR": 0,
+  "FAILED": 0,
+  "MISSING": 0,
+  "PASSED": 8,
+  "SKIPPED": 0
+ },
+ "elapsed_seconds": 6.1,
+ "executor": "kubectl:default/v18fl-e6ab09-astropy-astropy-14365/testbed:/testbed",
+ "f2p_passed": 0,
+ "f2p_total": 1,
+ "instance_id": "astropy__astropy-14365",
+ "patch_chars": 617,
+ "patch_source": "/usr/local/google/home/chavoshi/hae_v17_dev/results/v18/showdown_2026-11-02/evals/Flat_1x_V18__r2/astropy__astropy-14365/prediction.json",
+ "pytest": {
+  "files": [
+   "astropy/io/ascii/tests/test_qdp.py"
+  ],
+  "log_tail": "ns multiple command blocks. Please verify\",\n                        AstropyUserWarning,\n                    )\n                command_lines += line + \"\\n\"\n                continue\n    \n            if datatype.startswith(\"data\"):\n                # The first time I find data, I define err_specs\n                if err_specs == {} and command_lines != \"\":\n                    for cline in command_lines.strip().split(\"\\n\"):\n                        command = cline.strip().split()\n                        # This should never happen, but just in case.\n                        if len(command) < 3:\n                            continue\n                        err_specs[command[1].lower()] = [int(c) for c in command[2:]]\n                if colnames is None:\n                    colnames = _interpret_err_lines(err_specs, ncol, names=input_colnames)\n    \n                if current_rows is None:\n                    current_rows = []\n    \n                values = []\n                for v in line.split(delimiter):\n                    if v == \"NO\":\n                        values.append(np.ma.masked)\n                    else:\n                        # Understand if number is int or float\n                        try:\n                            values.append(int(v))\n                        except ValueError:\n>                           values.append(float(v))\nE                           ValueError: could not convert string to float: 'no'\n\nastropy/io/ascii/qdp.py:316: ValueError\n==================================== PASSES ====================================\n=========================== short test summary info ============================\nPASSED astropy/io/ascii/tests/test_qdp.py::test_get_tables_from_qdp_file\nPASSED astropy/io/ascii/tests/test_qdp.py::test_roundtrip[False]\nPASSED astropy/io/ascii/tests/test_qdp.py::test_read_example\nPASSED astropy/io/ascii/tests/test_qdp.py::test_roundtrip_example\nPASSED astropy/io/ascii/tests/test_qdp.py::test_roundtrip_example_comma\nPASSED astropy/io/ascii/tests/test_qdp.py::test_read_write_simple\nPASSED astropy/io/ascii/tests/test_qdp.py::test_read_write_simple_specify_name\nPASSED astropy/io/ascii/tests/test_qdp.py::test_get_lines_from_qdp\nFAILED astropy/io/ascii/tests/test_qdp.py::test_roundtrip[True] - ValueError:...\n1 failed, 8 passed in 0.11s\n\n<frozen importlib._bootstrap>:228: RuntimeWarning: numpy.ndarray size changed, may indicate binary incompatibility. Expected 80 from C header, got 96 from PyObject\ncommand terminated with exit code 1\n",
+  "rc": 1,
+  "reported": 9
+ },
+ "resolved": false,
+ "steps": {
+  "apply_model_patch": {
+   "note": "",
+   "ok": true
+  },
+  "apply_test_patch": {
+   "note": "",
+   "ok": true
+  },
+  "reset": {
+   "dirty_after": "0",
+   "rc": 0
+  }
+ }
+}

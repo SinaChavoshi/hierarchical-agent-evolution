@@ -1,0 +1,5 @@
+{
+ "instance_id": "pytest-dev__pytest-5787",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/src/_pytest/_code/code.py b/src/_pytest/_code/code.py\nindex a0f4d15ce..e0211882a 100644\n--- a/src/_pytest/_code/code.py\n+++ b/src/_pytest/_code/code.py\n@@ -897,6 +897,12 @@ class ExceptionChainRepr(ExceptionRepr):\n                 tw.line(element[2], yellow=True)\n         super().toterminal(tw)\n \n+    def __str__(self):\n+        tw = py.io.TerminalWriter(stringio=True)\n+        tw.hasmarkup = False\n+        self.toterminal(tw)\n+        return tw.stringio.getvalue().strip()\n+\n \n class ReprExceptionInfo(ExceptionRepr):\n     def __init__(self, reprtraceback, reprcrash):\n"
+}

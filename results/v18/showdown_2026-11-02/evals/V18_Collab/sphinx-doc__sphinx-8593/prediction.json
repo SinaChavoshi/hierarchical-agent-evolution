@@ -1,0 +1,5 @@
+{
+ "instance_id": "sphinx-doc__sphinx-8593",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py\nindex 76265f5be..ab5011181 100644\n--- a/sphinx/ext/autodoc/__init__.py\n+++ b/sphinx/ext/autodoc/__init__.py\n@@ -728,7 +728,11 @@ class Documenter:\n \n             has_doc = bool(doc)\n \n-            metadata = extract_metadata(doc)\n+                        # for variables, documentation may come from attribute docs\n+            attr_doc = None\n+            if (namespace, membername) in attr_docs:\n+                attr_doc = '\\n'.join(attr_docs[(namespace, membername)])\n+            metadata = extract_metadata(attr_doc if attr_doc else doc)\n             if 'private' in metadata:\n                 # consider a member private if docstring has \"private\" metadata\n                 isprivate = True\n"
+}

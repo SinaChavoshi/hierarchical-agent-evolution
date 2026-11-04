@@ -1,0 +1,5 @@
+{
+ "instance_id": "pydata__xarray-4075",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/xarray/core/weighted.py b/xarray/core/weighted.py\nindex 996d2e4c..3affb360 100644\n--- a/xarray/core/weighted.py\n+++ b/xarray/core/weighted.py\n@@ -1,3 +1,4 @@\n+import numpy as np\n from typing import TYPE_CHECKING, Hashable, Iterable, Optional, Union, overload\n \n from .computation import dot\n@@ -107,6 +108,10 @@ class Weighted:\n             )\n \n         self.obj = obj\n+        # ensure weights are numeric so boolean weights are treated as 0/1\n+        # (otherwise reductions such as dot can yield boolean results)\n+        if np.issubdtype(weights.dtype, np.bool_):\n+            weights = weights.astype(int)\n         self.weights = weights\n \n     @staticmethod\n"
+}

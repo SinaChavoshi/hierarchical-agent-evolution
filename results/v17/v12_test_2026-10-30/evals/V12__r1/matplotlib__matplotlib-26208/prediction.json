@@ -1,0 +1,5 @@
+{
+ "instance_id": "matplotlib__matplotlib-26208",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/lib/matplotlib/stackplot.py b/lib/matplotlib/stackplot.py\nindex c97a21e029..3c8e824891 100644\n--- a/lib/matplotlib/stackplot.py\n+++ b/lib/matplotlib/stackplot.py\n@@ -111,11 +111,10 @@ def stackplot(axes, x, *args,\n         first_line = center - 0.5 * total\n         stack += first_line\n \n-    # Color between x = 0 and the first array.\n+        # Color between x = 0 and the first array.\n     coll = axes.fill_between(x, first_line, stack[0, :],\n                              facecolor=next(colors), label=next(labels, None),\n                              **kwargs)\n-    coll.sticky_edges.y[:] = [0]\n     r = [coll]\n \n     # Color between array i-1 and array i\n"
+}

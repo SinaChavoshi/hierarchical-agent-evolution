@@ -1,0 +1,5 @@
+{
+ "instance_id": "sphinx-doc__sphinx-9229",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py\nindex 1f4c98284..81b53c5a8 100644\n--- a/sphinx/ext/autodoc/__init__.py\n+++ b/sphinx/ext/autodoc/__init__.py\n@@ -1786,6 +1786,7 @@ class DataDocumenterMixinBase:\n         pass\n \n \n+# ensure consistent alias documentation path\n class GenericAliasMixin(DataDocumenterMixinBase):\n     \"\"\"\n     Mixin for DataDocumenter and AttributeDocumenter to provide the feature for\ndiff --git a/sphinx/util/typing.py b/sphinx/util/typing.py\nindex af6edcae0..29af39b1d 100644\n--- a/sphinx/util/typing.py\n+++ b/sphinx/util/typing.py\n@@ -57,7 +57,7 @@ TextlikeNode = Union[nodes.Text, nodes.TextElement]\n NoneType = type(None)\n \n # path matcher\n-PathMatcher = Callable[[str], bool]\n+PathMatcher = Callable[[str], bool]  # type alias docstring invariant\n \n # common role functions\n RoleFunction = Callable[[str, str, str, int, Inliner, Dict[str, Any], List[str]],\n"
+}

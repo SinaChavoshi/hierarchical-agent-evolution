@@ -1,0 +1,5 @@
+{
+ "instance_id": "matplotlib__matplotlib-26208",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/lib/matplotlib/axes/_base.py b/lib/matplotlib/axes/_base.py\nindex 5203e3232c..6a58c161ec 100644\n--- a/lib/matplotlib/axes/_base.py\n+++ b/lib/matplotlib/axes/_base.py\n@@ -2460,6 +2460,12 @@ class _AxesBase(martist.Artist):\n         \"\"\"\n         # Collections are deliberately not supported (yet); see\n         # the TODO note in artists.py.\n+        supported = [a for a in self._children\n+                     if (not visible_only or a.get_visible()) and\n+                     isinstance(a, (mlines.Line2D, mpatches.Patch, mimage.AxesImage))]\n+        if not supported:\n+            self.dataLim.ignore(False)\n+            return\n         self.dataLim.ignore(True)\n         self.dataLim.set_points(mtransforms.Bbox.null().get_points())\n         self.ignore_existing_data_limits = True\n"
+}

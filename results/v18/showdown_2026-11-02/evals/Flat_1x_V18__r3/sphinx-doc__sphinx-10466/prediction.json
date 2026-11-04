@@ -1,0 +1,5 @@
+{
+ "instance_id": "sphinx-doc__sphinx-10466",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/sphinx/builders/gettext.py b/sphinx/builders/gettext.py\nindex e8bc547b7..91d04ef8d 100644\n--- a/sphinx/builders/gettext.py\n+++ b/sphinx/builders/gettext.py\n@@ -32,8 +32,19 @@ class Message:\n     \"\"\"An entry of translatable message.\"\"\"\n     def __init__(self, text: str, locations: List[Tuple[str, int]], uuids: List[str]):\n         self.text = text\n-        self.locations = locations\n-        self.uuids = uuids\n+        # Deduplicate locations (and corresponding uuids) while preserving order.\n+        seen = set()\n+        unique_locations = []\n+        unique_uuids = []\n+        for loc, uid in zip(locations, uuids):\n+            key = loc\n+            if key in seen:\n+                continue\n+            seen.add(key)\n+            unique_locations.append(loc)\n+            unique_uuids.append(uid)\n+        self.locations = unique_locations\n+        self.uuids = unique_uuids\n \n \n class Catalog:\n"
+}

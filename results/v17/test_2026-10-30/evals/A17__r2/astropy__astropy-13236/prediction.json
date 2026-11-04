@@ -1,0 +1,5 @@
+{
+ "instance_id": "astropy__astropy-13236",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/astropy/table/table.py b/astropy/table/table.py\nindex 5afe2127a..6079f75a8 100644\n--- a/astropy/table/table.py\n+++ b/astropy/table/table.py\n@@ -1243,6 +1243,9 @@ class Table:\n         # mixin class\n         if (not isinstance(data, Column) and not data_is_mixin\n                 and isinstance(data, np.ndarray) and len(data.dtype) > 1):\n+            warnings.warn(\"In a future version, structured arrays will be added \"\n+                          \"as a Column. To retain current behavior, wrap `data` \"\n+                          \"in `Column`.\", FutureWarning)\n             data = data.view(NdarrayMixin)\n             data_is_mixin = True\n \n"
+}

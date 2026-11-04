@@ -1,0 +1,5 @@
+{
+ "instance_id": "pytest-dev__pytest-6197",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/src/_pytest/python.py b/src/_pytest/python.py\nindex 306e5f217..af70b9c69 100644\n--- a/src/_pytest/python.py\n+++ b/src/_pytest/python.py\n@@ -192,6 +192,19 @@ def path_matches_patterns(path, patterns):\n \n def pytest_pycollect_makemodule(path, parent):\n     if path.basename == \"__init__.py\":\n+        if not parent.session.isinitpath(path):\n+            dirname = path.dirpath()\n+            patterns = parent.config.getini(\"python_files\")\n+            has_module = False\n+            try:\n+                for child in dirname.listdir():\n+                    if child.isfile() and child.ext == \".py\" and child.basename != \"__init__.py\":\n+                        has_module = True\n+                        break\n+            except Exception:\n+                pass\n+            if not has_module:\n+                return None\n         return Package(path, parent)\n     return Module(path, parent)\n \n"
+}

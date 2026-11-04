@@ -1,0 +1,5 @@
+{
+ "instance_id": "mwaskom__seaborn-3069",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/seaborn/_core/scales.py b/seaborn/_core/scales.py\nindex bbd71ec1..e6f5ee67 100644\n--- a/seaborn/_core/scales.py\n+++ b/seaborn/_core/scales.py\n@@ -192,6 +192,9 @@ class Nominal(Scale):\n             # and (B) allow the values parameter for a Coordinate to set xlim/ylim\n             axis.set_view_interval(0, len(units_seed) - 1)\n \n+        if getattr(axis, \"axis_name\", None) == \"y\":\n+            axis.set_inverted(True)\n+\n         new._matplotlib_scale = mpl_scale\n \n         # TODO array cast necessary to handle float/int mixture, which we need\n"
+}

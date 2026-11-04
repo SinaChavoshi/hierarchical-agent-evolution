@@ -1,0 +1,5 @@
+{
+ "instance_id": "pydata__xarray-4075",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/xarray/core/weighted.py b/xarray/core/weighted.py\nindex 996d2e4c..c1b7c207 100644\n--- a/xarray/core/weighted.py\n+++ b/xarray/core/weighted.py\n@@ -107,7 +107,9 @@ class Weighted:\n             )\n \n         self.obj = obj\n-        self.weights = weights\n+        # ensure weights are numeric so boolean weights are not collapsed\n+        # to bool in dot products (see issue with weighted mean)\n+        self.weights = weights * 1\n \n     @staticmethod\n     def _reduce(\n"
+}

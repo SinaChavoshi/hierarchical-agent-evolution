@@ -1,0 +1,43 @@
+{
+ "FAIL_TO_PASS": {
+  "sklearn/tree/tests/test_export.py::test_export_text": "PASSED"
+ },
+ "PASS_TO_PASS_failures": [],
+ "PASS_TO_PASS_summary": {
+  "ERROR": 0,
+  "FAILED": 0,
+  "MISSING": 0,
+  "PASSED": 5,
+  "SKIPPED": 0
+ },
+ "elapsed_seconds": 6.1,
+ "executor": "kubectl:default/v18fl-f9bb20-scikit-learn-scikit-learn-14053/testbed:/testbed",
+ "f2p_passed": 1,
+ "f2p_total": 1,
+ "instance_id": "scikit-learn__scikit-learn-14053",
+ "patch_chars": 764,
+ "patch_source": "/usr/local/google/home/chavoshi/hae_v17_dev/results/v18/showdown_2026-11-02/evals/Flat_1x_V18__r2/scikit-learn__scikit-learn-14053/prediction.json",
+ "pytest": {
+  "files": [
+   "sklearn/tree/tests/test_export.py"
+  ],
+  "log_tail": "......EE                                                                 [100%]\n==================================== ERRORS ====================================\n___________________ ERROR at setup of test_plot_tree_entropy ___________________\n\n    @pytest.fixture(scope='function')\n    def pyplot():\n        \"\"\"Setup and teardown fixture for matplotlib.\n    \n        This fixture checks if we can import matplotlib. If not, the tests will be\n        skipped. Otherwise, we setup matplotlib backend and close the figures\n        after running the functions.\n    \n        Returns\n        -------\n        pyplot : module\n            The ``matplotlib.pyplot`` module.\n        \"\"\"\n        matplotlib = pytest.importorskip('matplotlib')\n>       matplotlib.use('agg', warn=False, force=True)\nE       TypeError: use() got an unexpected keyword argument 'warn'\n\nsklearn/conftest.py:18: TypeError\n____________________ ERROR at setup of test_plot_tree_gini _____________________\n\n    @pytest.fixture(scope='function')\n    def pyplot():\n        \"\"\"Setup and teardown fixture for matplotlib.\n    \n        This fixture checks if we can import matplotlib. If not, the tests will be\n        skipped. Otherwise, we setup matplotlib backend and close the figures\n        after running the functions.\n    \n        Returns\n        -------\n        pyplot : module\n            The ``matplotlib.pyplot`` module.\n        \"\"\"\n        matplotlib = pytest.importorskip('matplotlib')\n>       matplotlib.use('agg', warn=False, force=True)\nE       TypeError: use() got an unexpected keyword argument 'warn'\n\nsklearn/conftest.py:18: TypeError\n==================================== PASSES ====================================\n=========================== short test summary info ============================\nPASSED sklearn/tree/tests/test_export.py::test_graphviz_toy\nPASSED sklearn/tree/tests/test_export.py::test_graphviz_errors\nPASSED sklearn/tree/tests/test_export.py::test_friedman_mse_in_graphviz\nPASSED sklearn/tree/tests/test_export.py::test_precision\nPASSED sklearn/tree/tests/test_export.py::test_export_text_errors\nPASSED sklearn/tree/tests/test_export.py::test_export_text\nERROR sklearn/tree/tests/test_export.py::test_plot_tree_entropy - TypeError: ...\nERROR sklearn/tree/tests/test_export.py::test_plot_tree_gini - TypeError: use...\n6 passed, 1 warning, 2 errors in 0.45s\n\ncommand terminated with exit code 1\n",
+  "rc": 1,
+  "reported": 8
+ },
+ "resolved": true,
+ "steps": {
+  "apply_model_patch": {
+   "note": "",
+   "ok": true
+  },
+  "apply_test_patch": {
+   "note": "",
+   "ok": true
+  },
+  "reset": {
+   "dirty_after": "0",
+   "rc": 0
+  }
+ }
+}

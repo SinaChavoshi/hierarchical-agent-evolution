@@ -1,0 +1,5 @@
+{
+ "instance_id": "pytest-dev__pytest-6197",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/src/_pytest/python.py b/src/_pytest/python.py\nindex 306e5f217..2f23166b3 100644\n--- a/src/_pytest/python.py\n+++ b/src/_pytest/python.py\n@@ -177,6 +177,14 @@ def pytest_collect_file(path, parent):\n     ext = path.ext\n     if ext == \".py\":\n         if not parent.session.isinitpath(path):\n+            if path.basename == \"__init__.py\":\n+                # only collect __init__.py for packages that are ancestors of\n+                # an explicitly given test path (initpath)\n+                if not any(\n+                    str(ip) == str(path.dirpath()) or str(ip).startswith(str(path.dirpath()))\n+                    for ip in parent.session._initialpaths\n+                ):\n+                    return\n             if not path_matches_patterns(\n                 path, parent.config.getini(\"python_files\") + [\"__init__.py\"]\n             ):\n"
+}

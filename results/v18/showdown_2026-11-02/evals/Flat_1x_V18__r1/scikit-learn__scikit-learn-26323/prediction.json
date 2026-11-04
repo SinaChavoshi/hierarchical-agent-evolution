@@ -1,0 +1,5 @@
+{
+ "instance_id": "scikit-learn__scikit-learn-26323",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/sklearn/compose/_column_transformer.py b/sklearn/compose/_column_transformer.py\nindex 4eddd12b1..217ea7ee7 100644\n--- a/sklearn/compose/_column_transformer.py\n+++ b/sklearn/compose/_column_transformer.py\n@@ -303,6 +303,10 @@ class ColumnTransformer(TransformerMixin, _BaseComposition):\n         for trans in transformers:\n             _safe_set_output(trans, transform=transform)\n \n+        # set output for the remainder if it is an estimator\n+        if self.remainder not in (\"passthrough\", \"drop\"):\n+            _safe_set_output(self.remainder, transform=transform)\n+\n         return self\n \n     def get_params(self, deep=True):\n"
+}

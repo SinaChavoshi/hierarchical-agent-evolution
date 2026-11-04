@@ -1,0 +1,5 @@
+{
+ "instance_id": "matplotlib__matplotlib-23314",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/lib/mpl_toolkits/mplot3d/axes3d.py b/lib/mpl_toolkits/mplot3d/axes3d.py\nindex 9db44b7994..0b93bcca1c 100755\n--- a/lib/mpl_toolkits/mplot3d/axes3d.py\n+++ b/lib/mpl_toolkits/mplot3d/axes3d.py\n@@ -387,6 +387,8 @@ class Axes3D(Axes):\n \n     @martist.allow_rasterization\n     def draw(self, renderer):\n+        if not self.get_visible():\n+            return\n         self._unstale_viewLim()\n \n         # draw the background patch\n@@ -3102,6 +3104,8 @@ pivot='tail', normalize=False, **kwargs)\n                                     call_axes_locator=call_axes_locator,\n                                     bbox_extra_artists=bbox_extra_artists,\n                                     for_layout_only=for_layout_only)\n+        if not self.get_visible():\n+            return None\n         batch = [ret]\n         if self._axis3don:\n             for axis in self._axis_map.values():\n"
+}

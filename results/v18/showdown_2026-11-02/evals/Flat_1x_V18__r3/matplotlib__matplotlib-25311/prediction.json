@@ -1,0 +1,5 @@
+{
+ "instance_id": "matplotlib__matplotlib-25311",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py\nindex 1dee8a23d9..3305ee7b45 100755\n--- a/lib/matplotlib/offsetbox.py\n+++ b/lib/matplotlib/offsetbox.py\n@@ -1500,13 +1500,16 @@ class DraggableBase:\n     coordinate and set a relevant attribute.\n     \"\"\"\n \n+    @property\n+    def canvas(self):\n+        return self.ref_artist.figure.canvas\n+\n     def __init__(self, ref_artist, use_blit=False):\n         self.ref_artist = ref_artist\n         if not ref_artist.pickable():\n             ref_artist.set_picker(True)\n         self.got_artist = False\n-        self.canvas = self.ref_artist.figure.canvas\n-        self._use_blit = use_blit and self.canvas.supports_blit\n+        self._use_blit = use_blit and self.ref_artist.figure.canvas.supports_blit\n         self.cids = [\n             self.canvas.callbacks._connect_picklable(\n                 'pick_event', self.on_pick),\n"
+}

@@ -1,0 +1,5 @@
+{
+ "instance_id": "sphinx-doc__sphinx-8548",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py\nindex ddfd2b365..56b86a1e2 100644\n--- a/sphinx/ext/autodoc/__init__.py\n+++ b/sphinx/ext/autodoc/__init__.py\n@@ -598,6 +598,13 @@ class Documenter:\n             attr_docs = self.analyzer.find_attr_docs()\n             if self.objpath:\n                 key = ('.'.join(self.objpath[:-1]), self.objpath[-1])\n+                if key not in attr_docs:\n+                    # search base classes for inherited attributes\n+                    for cls in getattr(self.object, '__mro__', [])[1:]:\n+                        base_key = (cls.__name__, self.objpath[-1])\n+                        if base_key in attr_docs:\n+                            key = base_key\n+                            break\n                 if key in attr_docs:\n                     no_docstring = True\n                     # make a copy of docstring for attributes to avoid cache\n"
+}

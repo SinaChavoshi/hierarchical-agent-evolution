@@ -1,0 +1,5 @@
+{
+ "instance_id": "pylint-dev__pylint-6386",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/pylint/config/utils.py b/pylint/config/utils.py\nindex 8c790416..6a47e123 100644\n--- a/pylint/config/utils.py\n+++ b/pylint/config/utils.py\n@@ -218,6 +218,10 @@ def _preprocess_options(run: Run, args: Sequence[str]) -> list[str]:\n     i = 0\n     while i < len(args):\n         argument = args[i]\n+        if argument == \"-v\":\n+            _set_verbose_mode(run, None)\n+            i += 1\n+            continue\n         if not argument.startswith(\"--\"):\n             processed_args.append(argument)\n             i += 1\n"
+}

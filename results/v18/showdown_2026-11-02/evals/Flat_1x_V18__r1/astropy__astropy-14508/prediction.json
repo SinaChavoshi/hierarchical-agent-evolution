@@ -1,0 +1,5 @@
+{
+ "instance_id": "astropy__astropy-14508",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/astropy/io/fits/card.py b/astropy/io/fits/card.py\nindex 118bfced8..8009651d6 100644\n--- a/astropy/io/fits/card.py\n+++ b/astropy/io/fits/card.py\n@@ -1299,7 +1299,14 @@ def _format_value(value):\n \n def _format_float(value):\n     \"\"\"Format a floating number to make sure it gets the decimal point.\"\"\"\n-    value_str = f\"{value:.16G}\"\n+    # Prefer the shortest string representation that round-trips to the same\n+    # value, falling back to a 16-digit format when necessary.\n+    value_str = str(value).upper()\n+    try:\n+        if float(value_str) != value:\n+            value_str = f\"{value:.16G}\"\n+    except ValueError:\n+        value_str = f\"{value:.16G}\"\n     if \".\" not in value_str and \"E\" not in value_str:\n         value_str += \".0\"\n     elif \"E\" in value_str:\n"
+}

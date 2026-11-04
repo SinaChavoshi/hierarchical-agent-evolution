@@ -1,0 +1,5 @@
+{
+ "instance_id": "pydata__xarray-3677",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/xarray/core/merge.py b/xarray/core/merge.py\nindex 10c7804d..0538d1ee 100644\n--- a/xarray/core/merge.py\n+++ b/xarray/core/merge.py\n@@ -541,10 +541,15 @@ def merge_core(\n     ------\n     MergeError if the merge cannot be done successfully.\n     \"\"\"\n+    from .dataarray import DataArray\n     from .dataset import calculate_dimensions\n \n     _assert_compat_valid(compat)\n \n+    objects = [\n+        obj.to_dataset() if isinstance(obj, DataArray) else obj for obj in objects\n+    ]\n+\n     coerced = coerce_pandas_values(objects)\n     aligned = deep_align(\n         coerced, join=join, copy=False, indexes=indexes, fill_value=fill_value\n"
+}

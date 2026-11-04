@@ -1,0 +1,5 @@
+{
+ "instance_id": "pytest-dev__pytest-10356",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/src/_pytest/mark/structures.py b/src/_pytest/mark/structures.py\nindex 800a25c92..e3de14aac 100644\n--- a/src/_pytest/mark/structures.py\n+++ b/src/_pytest/mark/structures.py\n@@ -357,7 +357,12 @@ class MarkDecorator:\n \n def get_unpacked_marks(obj: object) -> Iterable[Mark]:\n     \"\"\"Obtain the unpacked marks that are stored on an object.\"\"\"\n-    mark_list = getattr(obj, \"pytestmark\", [])\n+    mark_list = []\n+    if isinstance(obj, type):\n+        for base in obj.__mro__:\n+            mark_list.extend(base.__dict__.get(\"pytestmark\", []))\n+    else:\n+        mark_list = getattr(obj, \"pytestmark\", [])\n     if not isinstance(mark_list, list):\n         mark_list = [mark_list]\n     return normalize_mark_list(mark_list)\n"
+}

@@ -74,10 +74,11 @@ This directory holds the design notes, evaluation reports, retrospectives, and p
 
 ## Recommended reading order
 
+0. **Program synthesis, core learnings (`V1 → V18`) & future roadmap:** [`docs/CONCLUSION_AND_ROADMAP.md`](../docs/CONCLUSION_AND_ROADMAP.md) and [`docs/V18_RESULTS.md`](../docs/V18_RESULTS.md).
 1. **Why execution grounding is non-negotiable:** [V1](v1/README.md) and its [execution-grounded audit](v1/execution_grounded_correction.md).
 2. **Interactive tool loops on real repositories:** [V12 evaluation report](v12/v12_evaluation_report.md).
 3. **Clean-context `AB-MCTS` ("Move 37" branching) & Git milestone ratcheting:** [V13 hierarchical AB-MCTS spec](v13/v13_hierarchical_agentic_ab_mcts_architecture.md), [V14 macro-ratchet spec](v14/v14_generalized_macro_ratchet_architecture.md), and [MiniSQL 15/15 `sqlite3` oracle results](../results/ratchet/planner_driven_minisql_eval_2026-10-23/README.md).
 4. **Benchmark hygiene & evolving the harness itself:** [V14 retrospective](v14/v14_retrospective.md), [V15 design](v15/README.md), and [V15 unseen Verified results](../results/v15/test_2026-10-28/README.md).
-5. **Evolving "Company DNA", firewalled Red Teams & typed blackboards:** [V16 Company DNA protocol & validation results](v16/README.md), [V16 role refresh report](v16/role_refresh_report.md), and the [V17 Red-Team + Blackboard experiment plan](v17/README.md).
+5. **Evolving "Company DNA", firewalled Red Teams & compute-matched collaborative synthesis:** [V16 Company DNA protocol & validation results](v16/README.md), [V17 Red-Team + Blackboard report](v17/README.md), [V18 design & summary](v18/README.md), and [V18 `N = 80` full evaluation report](../docs/V18_RESULTS.md).
 
 Diagrams: [V15–V17 system architecture](v17/assets/hae_architecture_v17.svg) · [V15 architecture](v15/assets/v15_system_architecture.svg) · [V14 milestone ratchet architecture](v14/assets/v14_macro_ratchet_architecture.svg) · [V2–V3 trajectory](v2/assets/v2_v3_evolutionary_trajectory.png)

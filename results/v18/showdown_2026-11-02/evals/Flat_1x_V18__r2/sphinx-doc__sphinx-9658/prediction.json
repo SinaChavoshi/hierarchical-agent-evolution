@@ -1,0 +1,5 @@
+{
+ "instance_id": "sphinx-doc__sphinx-9658",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/sphinx/ext/autodoc/__init__.py b/sphinx/ext/autodoc/__init__.py\nindex a255c0691..1d704947b 100644\n--- a/sphinx/ext/autodoc/__init__.py\n+++ b/sphinx/ext/autodoc/__init__.py\n@@ -1655,6 +1655,10 @@ class ClassDocumenter(DocstringSignatureMixin, ModuleLevelDocumenter):  # type:\n                 # A subclass of generic types\n                 # refs: PEP-560 <https://www.python.org/dev/peps/pep-0560/>\n                 bases = list(self.object.__orig_bases__)\n+                # mocked objects are not classes; resolve them to their class\n+                bases = [base.__class__ if (not isinstance(base, type) and\n+                                            getattr(base, '__sphinx_mock__', False)) else base\n+                         for base in bases]\n             elif hasattr(self.object, '__bases__') and len(self.object.__bases__):\n                 # A normal class\n                 bases = list(self.object.__bases__)\n"
+}

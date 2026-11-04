@@ -1,0 +1,5 @@
+{
+ "instance_id": "astropy__astropy-13579",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py\nindex d7605b078..0289b2db3 100644\n--- a/astropy/wcs/wcsapi/wrappers/sliced_wcs.py\n+++ b/astropy/wcs/wcsapi/wrappers/sliced_wcs.py\n@@ -251,7 +251,9 @@ class SlicedLowLevelWCS(BaseWCSWrapper):\n                 iworld_curr += 1\n                 world_arrays_new.append(world_arrays[iworld_curr])\n             else:\n-                world_arrays_new.append(1.)\n+                # find index among dropped\n+                dropped_idx = [i for i in range(self._wcs.world_n_dim) if i not in self._world_keep].index(iworld)\n+                world_arrays_new.append(self.dropped_world_dimensions['value'][dropped_idx])\n \n         world_arrays_new = np.broadcast_arrays(*world_arrays_new)\n         pixel_arrays = list(self._wcs.world_to_pixel_values(*world_arrays_new))\n"
+}

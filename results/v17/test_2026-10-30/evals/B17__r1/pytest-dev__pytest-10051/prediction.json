@@ -1,0 +1,5 @@
+{
+ "instance_id": "pytest-dev__pytest-10051",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/src/_pytest/logging.py b/src/_pytest/logging.py\nindex a4f4214b1..18de25182 100644\n--- a/src/_pytest/logging.py\n+++ b/src/_pytest/logging.py\n@@ -342,7 +342,7 @@ class LogCaptureHandler(logging_StreamHandler):\n         super().emit(record)\n \n     def reset(self) -> None:\n-        self.records = []\n+        self.records.clear()\n         self.stream = StringIO()\n \n     def handleError(self, record: logging.LogRecord) -> None:\n@@ -694,6 +694,7 @@ class LoggingPlugin:\n             self.report_handler,\n             level=self.log_level,\n         ) as report_handler:\n+            caplog_handler.records = []\n             caplog_handler.reset()\n             report_handler.reset()\n             item.stash[caplog_records_key][when] = caplog_handler.records\n"
+}

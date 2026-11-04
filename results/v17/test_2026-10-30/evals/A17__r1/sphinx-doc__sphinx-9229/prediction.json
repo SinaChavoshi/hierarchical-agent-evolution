@@ -1,0 +1,5 @@
+{
+ "instance_id": "sphinx-doc__sphinx-9229",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/sphinx/util/inspect.py b/sphinx/util/inspect.py\nindex f216e8797..673e53b7c 100644\n--- a/sphinx/util/inspect.py\n+++ b/sphinx/util/inspect.py\n@@ -398,6 +398,12 @@ def isgenericalias(obj: Any) -> bool:\n     if (hasattr(typing, '_GenericAlias') and  # only for py37+\n             isinstance(obj, typing._GenericAlias)):  # type: ignore\n         return True\n+    elif (hasattr(typing, '_UnionGenericAlias') and  # for py37+\n+          isinstance(obj, typing._UnionGenericAlias)):  # type: ignore\n+        return True\n+    elif (hasattr(typing, '_CallableGenericAlias') and  # for py37+\n+          isinstance(obj, typing._CallableGenericAlias)):  # type: ignore\n+        return True\n     elif (hasattr(types, 'GenericAlias') and  # only for py39+\n           isinstance(obj, types.GenericAlias)):  # type: ignore\n         return True\n"
+}

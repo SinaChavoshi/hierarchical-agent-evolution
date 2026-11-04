@@ -1,0 +1,5 @@
+{
+ "instance_id": "pydata__xarray-4075",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/xarray/core/weighted.py b/xarray/core/weighted.py\nindex 996d2e4c..f7223be4 100644\n--- a/xarray/core/weighted.py\n+++ b/xarray/core/weighted.py\n@@ -107,6 +107,9 @@ class Weighted:\n             )\n \n         self.obj = obj\n+        # convert boolean weights to numeric to avoid boolean arithmetic\n+        if weights.dtype == bool:\n+            weights = weights.astype(int)\n         self.weights = weights\n \n     @staticmethod\n"
+}

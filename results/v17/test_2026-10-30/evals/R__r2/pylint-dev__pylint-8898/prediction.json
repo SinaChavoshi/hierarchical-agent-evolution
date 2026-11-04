@@ -1,0 +1,5 @@
+{
+ "instance_id": "pylint-dev__pylint-8898",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/pylint/config/argument.py b/pylint/config/argument.py\nindex 30a5fd175..0e66d75e7 100644\n--- a/pylint/config/argument.py\n+++ b/pylint/config/argument.py\n@@ -112,8 +112,16 @@ def _regex_transformer(value: str) -> Pattern[str]:\n \n \n def _regexp_csv_transfomer(value: str) -> Sequence[Pattern[str]]:\n-    \"\"\"Transforms a comma separated list of regular expressions.\"\"\"\n+    \"\"\"Transforms a comma separated list of regular expressions.\n+\n+    A value that is quoted (single or double quotes) is treated as a single\n+    regular expression, so that commas inside the expression are preserved.\n+    \"\"\"\n     patterns: list[Pattern[str]] = []\n+    value = value.strip()\n+    if value and value[0] in \"\\\"'\" and value[-1] == value[0]:\n+        patterns.append(_regex_transformer(value[1:-1]))\n+        return patterns\n     for pattern in _csv_transformer(value):\n         patterns.append(_regex_transformer(pattern))\n     return patterns\n"
+}

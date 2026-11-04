@@ -1,0 +1,5 @@
+{
+ "instance_id": "psf__requests-1766",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/requests/auth.py b/requests/auth.py\nindex a3de123..6948969 100644\n--- a/requests/auth.py\n+++ b/requests/auth.py\n@@ -70,6 +70,8 @@ class HTTPDigestAuth(AuthBase):\n         realm = self.chal['realm']\n         nonce = self.chal['nonce']\n         qop = self.chal.get('qop')\n+        if qop is not None:\n+            qop = qop.strip('\"')\n         algorithm = self.chal.get('algorithm')\n         opaque = self.chal.get('opaque')\n \n"
+}

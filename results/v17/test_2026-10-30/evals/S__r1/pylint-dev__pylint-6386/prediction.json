@@ -1,0 +1,5 @@
+{
+ "instance_id": "pylint-dev__pylint-6386",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/pylint/config/callback_actions.py b/pylint/config/callback_actions.py\nindex 76199539..76d5fb15 100644\n--- a/pylint/config/callback_actions.py\n+++ b/pylint/config/callback_actions.py\n@@ -45,6 +45,10 @@ class _DoNothingAction(_CallbackAction):\n     without erroring when they are then processed again by argparse.\n     \"\"\"\n \n+    def __init__(self, *args, **kwargs):\n+        kwargs.setdefault(\"nargs\", 0)\n+        super().__init__(*args, **kwargs)\n+\n     def __call__(\n         self,\n         parser: argparse.ArgumentParser,\n"
+}

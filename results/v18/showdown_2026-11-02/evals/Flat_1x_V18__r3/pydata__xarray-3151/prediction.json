@@ -1,0 +1,5 @@
+{
+ "instance_id": "pydata__xarray-3151",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/xarray/core/combine.py b/xarray/core/combine.py\nindex 37ae903b..dfd09096 100644\n--- a/xarray/core/combine.py\n+++ b/xarray/core/combine.py\n@@ -500,8 +500,8 @@ def combine_by_coords(datasets, compat='no_conflicts', data_vars='all',\n                                    data_vars=data_vars, coords=coords,\n                                    fill_value=fill_value)\n \n-        # Check the overall coordinates are monotonically increasing\n-        for dim in concatenated.dims:\n+                        # Check the overall coordinates are monotonically increasing\n+        for dim in concat_dims:\n             if dim in concatenated:\n                 indexes = concatenated.indexes.get(dim)\n                 if not (indexes.is_monotonic_increasing\n"
+}

@@ -1,0 +1,5 @@
+{
+ "instance_id": "matplotlib__matplotlib-23299",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/lib/matplotlib/__init__.py b/lib/matplotlib/__init__.py\nindex c268a56724..f43f674f79 100755\n--- a/lib/matplotlib/__init__.py\n+++ b/lib/matplotlib/__init__.py\n@@ -1087,6 +1087,9 @@ def rc_context(rc=None, fname=None):\n              plt.plot(x, y)  # uses 'print.rc'\n \n     \"\"\"\n+    # Resolve the \"auto\" backend (if any) before copying, so that reverting\n+    # does not trigger a backend switch that would destroy figures.\n+    get_backend()\n     orig = rcParams.copy()\n     try:\n         if fname:\n"
+}

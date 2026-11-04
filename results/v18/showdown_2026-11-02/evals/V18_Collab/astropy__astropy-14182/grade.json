@@ -1,0 +1,43 @@
+{
+ "FAIL_TO_PASS": {
+  "astropy/io/ascii/tests/test_rst.py::test_rst_with_header_rows": "FAILED"
+ },
+ "PASS_TO_PASS_failures": [],
+ "PASS_TO_PASS_summary": {
+  "ERROR": 0,
+  "FAILED": 0,
+  "MISSING": 0,
+  "PASSED": 9,
+  "SKIPPED": 0
+ },
+ "elapsed_seconds": 6.7,
+ "executor": "kubectl:default/v18te-d93716-astropy-astropy-14182/testbed:/testbed",
+ "f2p_passed": 0,
+ "f2p_total": 1,
+ "instance_id": "astropy__astropy-14182",
+ "patch_chars": 622,
+ "patch_source": "/usr/local/google/home/chavoshi/hae_v17_dev/results/v18/showdown_2026-11-02/evals/V18_Collab/astropy__astropy-14182/prediction.json",
+ "pytest": {
+  "files": [
+   "astropy/io/ascii/tests/test_rst.py"
+  ],
+  "log_tail": " object at 0x78b2e9d20dc0>, <astropy.io.ascii.core.Column object at 0x78b2e9d206d0>]\n\n    def _convert_vals(self, cols):\n        for col in cols:\n            for key, converters in self.converters.items():\n                if fnmatch.fnmatch(col.name, key):\n                    break\n            else:\n                if col.dtype is not None:\n                    converters = [convert_numpy(col.dtype)]\n                else:\n                    converters = self.default_converters\n    \n            col.converters = self._validate_and_copy(col, converters)\n    \n            # Catch the last error in order to provide additional information\n            # in case all attempts at column conversion fail.  The initial\n            # value of of last_error will apply if no converters are defined\n            # and the first col.converters[0] access raises IndexError.\n            last_err = \"no converters defined\"\n    \n            while not hasattr(col, \"data\"):\n                # Try converters, popping the unsuccessful ones from the list.\n                # If there are no converters left here then fail.\n                if not col.converters:\n>                   raise ValueError(f\"Column {col.name} failed to convert: {last_err}\")\nE                   ValueError: Column wave failed to convert: could not convert string to float: 'float64'\n\nastropy/io/ascii/core.py:1121: ValueError\n==================================== PASSES ====================================\n=========================== short test summary info ============================\nPASSED astropy/io/ascii/tests/test_rst.py::test_read_normal\nPASSED astropy/io/ascii/tests/test_rst.py::test_read_normal_names\nPASSED astropy/io/ascii/tests/test_rst.py::test_read_normal_names_include\nPASSED astropy/io/ascii/tests/test_rst.py::test_read_normal_exclude\nPASSED astropy/io/ascii/tests/test_rst.py::test_read_unbounded_right_column\nPASSED astropy/io/ascii/tests/test_rst.py::test_read_unbounded_right_column_header\nPASSED astropy/io/ascii/tests/test_rst.py::test_read_right_indented_table\nPASSED astropy/io/ascii/tests/test_rst.py::test_trailing_spaces_in_row_definition\nPASSED astropy/io/ascii/tests/test_rst.py::test_write_normal\nFAILED astropy/io/ascii/tests/test_rst.py::test_rst_with_header_rows - ValueE...\n1 failed, 9 passed in 0.12s\n\n<frozen importlib._bootstrap>:228: RuntimeWarning: numpy.ndarray size changed, may indicate binary incompatibility. Expected 80 from C header, got 96 from PyObject\ncommand terminated with exit code 1\n",
+  "rc": 1,
+  "reported": 10
+ },
+ "resolved": false,
+ "steps": {
+  "apply_model_patch": {
+   "note": "",
+   "ok": true
+  },
+  "apply_test_patch": {
+   "note": "",
+   "ok": true
+  },
+  "reset": {
+   "dirty_after": "0",
+   "rc": 0
+  }
+ }
+}

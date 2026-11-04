@@ -1,0 +1,5 @@
+{
+ "instance_id": "matplotlib__matplotlib-23476",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/lib/matplotlib/backend_bases.py b/lib/matplotlib/backend_bases.py\nindex 9ae2982c62..be957198a7 100755\n--- a/lib/matplotlib/backend_bases.py\n+++ b/lib/matplotlib/backend_bases.py\n@@ -1652,8 +1652,9 @@ class FigureCanvasBase:\n         self.mouse_grabber = None  # the Axes currently grabbing mouse\n         self.toolbar = None  # NavigationToolbar2 will set me\n         self._is_idle_drawing = False\n-        # We don't want to scale up the figure DPI more than once.\n-        figure._original_dpi = figure.dpi\n+                # We don't want to scale up the figure DPI more than once.\n+        if not hasattr(figure, \"_original_dpi\"):\n+            figure._original_dpi = figure.dpi\n         self._device_pixel_ratio = 1\n         super().__init__()  # Typically the GUI widget init (if any).\n \n"
+}

@@ -1,0 +1,5 @@
+{
+ "instance_id": "psf__requests-5414",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/requests/models.py b/requests/models.py\nindex e7d292d5..329112e9 100644\n--- a/requests/models.py\n+++ b/requests/models.py\n@@ -353,7 +353,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):\n \n         try:\n             host = idna.encode(host, uts46=True).decode('utf-8')\n-        except idna.IDNAError:\n+        except (idna.IDNAError, UnicodeError):\n             raise UnicodeError\n         return host\n \n@@ -403,7 +403,7 @@ class PreparedRequest(RequestEncodingMixin, RequestHooksMixin):\n                 host = self._get_idna_encoded_host(host)\n             except UnicodeError:\n                 raise InvalidURL('URL has an invalid label.')\n-        elif host.startswith(u'*'):\n+        elif host.startswith(u'*') or host.startswith(u'.') or host.endswith(u'.') or '..' in host:\n             raise InvalidURL('URL has an invalid label.')\n \n         # Carefully reconstruct the network location\n"
+}

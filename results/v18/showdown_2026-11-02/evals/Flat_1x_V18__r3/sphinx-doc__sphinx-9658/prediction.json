@@ -1,0 +1,5 @@
+{
+ "instance_id": "sphinx-doc__sphinx-9658",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/sphinx/ext/autodoc/mock.py b/sphinx/ext/autodoc/mock.py\nindex b562f47fd..adc27d413 100644\n--- a/sphinx/ext/autodoc/mock.py\n+++ b/sphinx/ext/autodoc/mock.py\n@@ -40,7 +40,7 @@ class _MockObject:\n         return super().__new__(cls)\n \n     def __init__(self, *args: Any, **kwargs: Any) -> None:\n-        self.__qualname__ = ''\n+        self.__qualname__ = self.__display_name__.split('.')[-1]\n \n     def __len__(self) -> int:\n         return 0\n"
+}

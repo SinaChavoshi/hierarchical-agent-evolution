@@ -1,0 +1,5 @@
+{
+ "instance_id": "pytest-dev__pytest-7324",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/src/_pytest/mark/expression.py b/src/_pytest/mark/expression.py\nindex 04c73411a..d6a64993a 100644\n--- a/src/_pytest/mark/expression.py\n+++ b/src/_pytest/mark/expression.py\n@@ -161,6 +161,9 @@ def not_expr(s: Scanner) -> ast.expr:\n         return ret\n     ident = s.accept(TokenType.IDENT)\n     if ident:\n+        if ident.value in (\"True\", \"False\", \"None\"):\n+            value = {\"True\": True, \"False\": False, \"None\": None}[ident.value]\n+            return ast.NameConstant(value)\n         return ast.Name(ident.value, ast.Load())\n     s.reject((TokenType.NOT, TokenType.LPAREN, TokenType.IDENT))\n \n@@ -181,6 +184,9 @@ class MatcherAdapter(Mapping[str, bool]):\n         raise NotImplementedError()\n \n \n+evaluate = None\n+\n+\n class Expression:\n     \"\"\"A compiled match expression as used by -k and -m.\n \n"
+}

@@ -1,0 +1,5 @@
+{
+ "instance_id": "sphinx-doc__sphinx-8551",
+ "model_name_or_path": "hae-v15/reflection-Beam-1.0-501B-A23B-NVFP4",
+ "model_patch": "diff --git a/sphinx/domains/python.py b/sphinx/domains/python.py\nindex 79d7e4f46..e3f0ab28a 100644\n--- a/sphinx/domains/python.py\n+++ b/sphinx/domains/python.py\n@@ -271,8 +271,8 @@ class PyXrefMixin:\n                   contnode: Node = None, env: BuildEnvironment = None) -> Node:\n         result = super().make_xref(rolename, domain, target,  # type: ignore\n                                    innernode, contnode, env)\n-        result['refspecific'] = True\n         if target.startswith(('.', '~')):\n+            result['refspecific'] = True\n             prefix, result['reftarget'] = target[0], target[1:]\n             if prefix == '.':\n                 text = target[1:]\n"
+}
